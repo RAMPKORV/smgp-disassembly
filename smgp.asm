@@ -19338,7 +19338,7 @@ loc_0001301E:
 	DBF	D0, loc_0001301E
 	CLR.b	$FFFF9042.w
 	LEA	$FFFF9043.w, A1
-	LEA	loc_00013380, A2
+	LEA	InitialDriversAndTeamMap, A2
 	BTST.b	#6, $FFFF9043.w
 	BEQ.b	loc_00013040
 	LEA	loc_00013392, A2
@@ -19575,9 +19575,13 @@ loc_00013300:
 	dc.b	$00, $01, $01, $00, $02, $02, $03, $06, $09, $09, $09, $00, $00, $00, $01, $01, $01, $01, $01, $01, $01 ;0x20
 	dc.b	$01 ;0x0 (0x00013372-0x00013373, Entry count: 0x1) [Unknown data]
 	dc.b	$01, $02, $02, $03, $03, $00, $00, $00, $00, $01, $01, $01, $01 ;0x0 (0x00013373-0x00013380, Entry count: 0xD)
-loc_00013380:
-	dc.b	$1B, $01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F ;0x0 (0x00013380-0x00013391, Entry count: 0x11)
-	dc.b	$00 ;0x0 (0x00013391-0x00013392, Entry count: 0x1) [Unknown data]
+
+;loc_00013380
+InitialDriversAndTeamMap:
+	dc.b	$1B ; Player starting team
+	dc.b  $01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F
+	dc.b	$00
+
 loc_00013392:
 	dc.b	$50, $50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E ;0x0 (0x00013392-0x000133A3, Entry count: 0x11)
 	dc.b	$00 ;0x0 (0x000133A3-0x000133A4, Entry count: 0x1) [Unknown data]
