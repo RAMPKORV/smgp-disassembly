@@ -15396,7 +15396,7 @@ loc_0000D068:
 	SUBQ.b	#1, $FFFFFC02.w
 	BNE.w	loc_0000D0FA
 	MOVE.b	#1, $FFFFFC02.w
-	LEA	loc_000195AC, A1
+	LEA	TeamMachineScreenStats, A1
 	CLR.w	D0
 	MOVE.b	$FFFFFC18.w, D0
 	MULS.w	#7, D0
@@ -15607,7 +15607,7 @@ loc_0000D320:
 	JSR	loc_00000972
 	CLR.l	D0
 	LEA	loc_000204DA, A1
-	LEA	loc_000195AC, A2
+	LEA	TeamMachineScreenStats, A2
 	CLR.l	D0
 	MOVE.b	$FFFFFC18.w, D0
 	MULS.w	#7, D0
@@ -15631,7 +15631,7 @@ loc_0000D320:
 	MOVE.w	#7, D5
 	JSR	loc_000007AA
 	LEA	loc_000203B8, A1
-	LEA	loc_000195AC, A2
+	LEA	TeamMachineScreenStats, A2
 	CLR.w	D0
 	MOVE.b	$FFFFFC18.w, D0
 	MULS.w	#7, D0
@@ -19350,7 +19350,7 @@ loc_00013044:
 	RTS
 loc_0001304C:
 	CLR.w	D0
-	LEA	loc_000195AC, A1
+	LEA	TeamMachineScreenStats, A1
 	MOVE.b	$FFFF9043.w, D0
 	ANDI.b	#$0F, D0
 	MULS.w	#7, D0
@@ -20910,7 +20910,9 @@ loc_000193BE:
 	dc.b	$1C, $20, $0E, $0D, $0E, $17 ;0x0 (0x0001958E-0x00019594, Entry count: 0x6)
 	dc.b	$20, $0E, $1C, $1D, $FF, $10, $0E, $1B, $16, $0A, $17, $22 ;0x0 (0x00019594-0x000195A0, Entry count: 0xC) [Unknown data]
 	dc.b	$22, $18, $1E, $1B, $FF, $0C, $18, $1E, $17, $1D, $1B, $22 ;0x0 (0x000195A0-0x000195AC, Entry count: 0xC)
-loc_000195AC:
+;loc_000195AC:
+TeamMachineScreenStats:
+  ; ENG., T.M, SUS., TIRE, BRA., ?, ?
 	dc.b	$64, $64, $50, $64, $64 ;0x0 (0x000195AC-0x000195B1, Entry count: 0x5)
 	dc.b	$00, $05 ;0x0 (0x000195B1-0x000195B3, Entry count: 0x2) [Unknown data]
 	dc.b	$50, $64, $64, $5A, $64 ;0x0 (0x000195B3-0x000195B8, Entry count: 0x5)
