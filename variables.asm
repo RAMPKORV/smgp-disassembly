@@ -5,7 +5,7 @@
 ; 0x5adc: some sort of frame counter that is reset when you start a race etc
 ; 0x5b8f: Track data
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
-; 0x9040: List of driver points awarded, by team order
+; 0x9030: List of driver points awarded, by team order
 ; 0x9043: Current team
 ; 0x9101: Current shift
 ; 0x9145: Current track idx to be loaded

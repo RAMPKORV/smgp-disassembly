@@ -19307,7 +19307,7 @@ loc_00012FC0:
 	CLR.b	(A1)+
 	DBF	D0, loc_00012FC0
 	CLR.l	D2
-	LEA	loc_000132EA, A1
+	LEA	PointsAwardedPerPlacement, A1
 	LEA	$FFFF906E.w, A2
 	LEA	$FFFF907E.w, A3
 	MOVE.w	#5, D0
@@ -19559,8 +19559,9 @@ loc_000132B2:
 loc_000132E4:
 	DBF	D0, loc_000132B2
 	RTS
-loc_000132EA:
-	dc.b	$09, $06, $04, $03, $02, $01 ;0x0 (0x000132EA-0x000132F0, Entry count: 0x6)
+;loc_000132EA:
+PointsAwardedPerPlacement:
+	dc.b	$09, $06, $04, $03, $02, $01 
 loc_000132F0:
 	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01 ;0x0 (0x000132F0-0x00013300, Entry count: 0x10)
 loc_00013300:
