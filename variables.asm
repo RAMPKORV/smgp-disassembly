@@ -7,6 +7,10 @@
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
 ; 0x9030: List of driver points awarded, by team order
 ; 0x9043: Current team
+; 0x9044: Drivers and teams mapping
+; 0x905E: ???
+; 0x906E: The placement (this round) of each team during the results
+; 0x907E: Points awarded (this round) per team during results
 ; 0x9101: Current shift
 ; 0x9145: Current track idx to be loaded
 ; 0x9161: steering

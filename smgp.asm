@@ -372,7 +372,7 @@ loc_0000057C:
 	MOVE.l	$FFFFFF00.w, D1
 	TST.w	D1
 	BNE.b	loc_0000058A
-	MOVE.l	#$2A6D365B, D1
+	MOVE.l	#$2A6D365B, D1 
 loc_0000058A:
 	MOVE.l	D1, D0
 	ADD.l	D1, D1
@@ -19561,7 +19561,7 @@ loc_000132E4:
 	RTS
 ;loc_000132EA:
 PointsAwardedPerPlacement:
-	dc.b	$09, $06, $04, $03, $02, $01 
+	dc.b	$09, $06, $04, $03, $02, $01
 loc_000132F0:
 	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01 ;0x0 (0x000132F0-0x00013300, Entry count: 0x10)
 loc_00013300:
