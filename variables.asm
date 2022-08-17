@@ -17,7 +17,12 @@
 ; 0x9145: Current track idx to be loaded
 ; 0x9161: steering
 ; 0x9181: engine characteristics offset (?)
+; 0x9206: ?
+; 0x9222: ?
+; 0xA980: ? Some struct
+; 0xAE00: Player state struct ??
 ; 0xae1a: Player distance on current track
 ; 0xae26: Player's current speed (read only)
-; 0xfc54: Set last bit to crash
+; 0xfc50: crash recoil from signs (word)
+; 0xfc54: Set last bit to crash/retire (word)
 ; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)
