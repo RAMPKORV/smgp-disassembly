@@ -3,7 +3,7 @@
 ; 0xfc10: cursor position on title screen
 ; 0x5ac9: the volume of 'enemy' car engine sounds
 ; 0x5adc: some sort of frame counter that is reset when you start a race etc
-; 0x5b01: Track data
+; 0x5b01: Track data (curves)
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
 ; 0x9030: List of driver points awarded, by team order
 ; 0x9043: Current team
@@ -19,6 +19,7 @@
 ; 0x9181: engine characteristics offset (?)
 ; 0x9206: ?
 ; 0x9222: ?
+; 0x924C.l: Pointer to signs data (in ROM)
 ; 0xA980: ? Some struct
 ; 0xAE00: Player state struct ??
 ; 0xae1a: Player distance on current track
