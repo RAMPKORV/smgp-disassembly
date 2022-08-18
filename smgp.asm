@@ -573,7 +573,18 @@ loc_000007F6:
 	ADD.l	D3, D7
 	DBF	D5, loc_000007E2
 	RTS
-	dc.b	$32, $1A, $3E, $1A, $4E, $BA, $00, $A4, $7C, $00, $1C, $1A, $7A, $00, $1A, $1A, $30, $1A, $20, $5A, $4E, $BA, $FF, $86, $51, $C9, $FF, $E8, $4E, $75 ;0x0 (0x00000804-0x00000822, Entry count: 0x1E) [Unknown data]
+	dc.b	$32, $1A		; MOVE.w (A2)+, D1
+	dc.b	$3E, $1A, $4E, $BA	; MOVE.w (A2)+, D7
+	dc.b	$00, $A4		; JSR *+$8AE
+	dc.b	$7C, $00		; MOVEQ #0, D6
+	dc.b	$1C, $1A		; MOVE.b (A2)+, D6
+	dc.b	$7A, $00		; MOVEQ #0, D5
+	dc.b	$1A, $1A		; MOVE.b (A2)+, D5
+	dc.b	$30, $1A		; MOVE.w (A2)+, D0
+	dc.b	$20, $5A		; MOVEA.l (A2)+, A0
+	dc.b	$4E, $BA, $FF, $86	; JSR *+$7A0
+	dc.b	$51, $C9, $FF, $E8	; DBF D1, *+$FFE8
+	dc.b	$4E, $75		; RTS ;0x0 (0x00000804-0x00000822, Entry count: 0x1E) [Unknown data] [ This is an unreached (possibly unused?) routine. ]
 loc_00000822:
 	MOVE.w	#$0180, D3
 loc_00000826:
