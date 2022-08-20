@@ -18022,9 +18022,9 @@ loc_F872:
 	dc.l	loc_68DC6 ; San Marino background tile mapping
 	dc.l	loc_5519A ; San Marino tile mapping for minimap
 	dc.l	loc_FDCE ; San Marino background palette
-	dc.l	loc_FF96 ; ?
+	dc.l	loc_FF96 ; San Marino sideline style
 	dc.l	loc_FFA0 ; San Marino road style data
-	dc.l	loc_FFAA ; ?
+	dc.l	loc_FFAA ; San Marino finish line style
 	dc.l	loc_1B80 ; ?
 	dc.l	loc_7173C ; San Marino signs data
 	dc.l	loc_717A6 ; San Marino tileset for signs
@@ -18041,9 +18041,9 @@ loc_F872:
 	dc.l	loc_676FE ; Brazil background tile mapping
 	dc.l	loc_569EE ; Brazil tile mapping for minimap
 	dc.l	loc_FF18 ; Brazil background palette
-	dc.l	loc_FFB4 ; ?
+	dc.l	loc_FFB4 ; Brazil sideline style
 	dc.l	loc_FFBE ; Brazil road style data
-	dc.l	loc_FFC8 ; ?
+	dc.l	loc_FFC8 ; Brazil finish line style
 	dc.l	loc_1B42-2 ; ?
 	dc.l	loc_739AA ; Brazil signs data
 	dc.l	loc_73A30 ; Brazil tileset for signs
