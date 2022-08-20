@@ -12,6 +12,18 @@ escape = 1
 		elseif ("\c"=" ")
 			dc.b	$32
 
+                elseif ("\c"=".")
+                        dc.b    $29
+
+                elseif ("\c"="'")
+                        dc.b    $26
+
+                elseif ("\c"="!")
+                        dc.b    $2D
+
+                elseif ("\c"="?")
+                        dc.b    $28
+
 		; 0-9
 		elseif ("\c">="0")&("\c"<="9")
 			dc.b	("\c"-"0")
@@ -29,7 +41,7 @@ escape = 1
 	else
 		; Custom character
 		if "\c"="n"
-			dc.b	$FA
+			dc.b	$FC
 		; Invalid
 		else
 			inform 2,"Invalid escape character '%s'", "\c"
