@@ -18020,7 +18020,7 @@ loc_0000F872:
 	dc.l	loc_00055032 ; San Marino tiles used for minimap
 	dc.l	loc_00068F4A ; San Marino tiles used for background
 	dc.l	loc_00068DC6 ; San Marino background tile mapping
-	dc.l	loc_0005519A ; ?
+	dc.l	loc_0005519A ; San Marino tile mapping for minimap
 	dc.l	loc_0000FDCE ; San Marino background palette
 	dc.l	loc_0000FF96 ; ?
 	dc.l	loc_0000FFA0 ; San Marino road style data
@@ -18035,10 +18035,11 @@ loc_0000F872:
 	dc.l	$FFFFFD00
 	dc.l	loc_00010176 ; ?
 	dc.l	$002B002B
+
 	dc.l	loc_0005683C ; Brazil tiles used for minimap
 	dc.l	loc_000679D8 ; Brazil tiles used used for background
 	dc.l	loc_000676FE ; Brazil background tile mapping
-	dc.l	loc_000569EE ; ?
+	dc.l	loc_000569EE ; Brazil tile mapping for minimap
 	dc.l	loc_0000FF18 ; Brazil background palette
 	dc.l	loc_0000FFB4 ; ?
 	dc.l	loc_0000FFBE ; Brazil road style data
@@ -18052,7 +18053,8 @@ loc_0000F872:
 	dc.l	loc_000738BA ; ?
 	dc.l	$FFFFFD08
 	dc.l	loc_000101A4 ; ?
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_00055516
 	dc.l	loc_0006ACB6
 	dc.l	loc_0006AB3E
@@ -18061,16 +18063,17 @@ loc_0000F872:
 	dc.l	loc_0000FFD2
 	dc.l	loc_0000FFDC
 	dc.l	loc_0000FFE6
-	dc.l	loc_00001804-4	;Predicted
-	dc.l	loc_00071DBA	; (Predicted offset)
-	dc.l	loc_00071E20	; (Predicted offset)
-	dc.l	loc_00071CFA	;Predicted
+	dc.l	loc_00001804-4
+	dc.l	loc_00071DBA
+	dc.l	loc_00071E20
+	dc.l	loc_00071CFA
 	dc.l	loc_00071C26
 	dc.l	loc_00071CAC
 	dc.l	loc_00071CE2
 	dc.l	$FFFFFD10
 	dc.l	loc_000101D2
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_000559D0
 	dc.l	loc_0006A16E
 	dc.l	loc_0006A002
@@ -18079,16 +18082,17 @@ loc_0000F872:
 	dc.l	loc_0000FFF0
 	dc.l	loc_0000FFFA
 	dc.l	loc_00010004
-	dc.l	loc_00001942-2	;Predicted
-	dc.l	loc_000723F0	; (Predicted offset)
-	dc.l	loc_0007245A	; (Predicted offset)
-	dc.l	loc_00072326	;Predicted
+	dc.l	loc_00001942-2
+	dc.l	loc_000723F0
+	dc.l	loc_0007245A
+	dc.l	loc_00072326
 	dc.l	loc_00072242
 	dc.l	loc_000722CA
 	dc.l	loc_00072308
 	dc.l	$FFFFFD18
 	dc.l	loc_00010200
-	dc.l	$002c002e	;Predicted
+	dc.l	$002c002e
+
 	dc.l	loc_0005583E
 	dc.l	loc_00065D64
 	dc.l	loc_00065B18
@@ -18097,16 +18101,17 @@ loc_0000F872:
 	dc.l	loc_0001000E
 	dc.l	loc_00010018
 	dc.l	loc_00010022
-	dc.l	loc_00011D40	;Predicted
-	dc.l	loc_000721B6	; (Predicted offset)
-	dc.l	loc_0007222C	; (Predicted offset)
-	dc.l	loc_000720CB	;Predicted
+	dc.l	loc_00011D40
+	dc.l	loc_000721B6
+	dc.l	loc_0007222C
+	dc.l	loc_000720CB
 	dc.l	loc_00071FFC
 	dc.l	loc_00072090
 	dc.l	loc_000720B6
 	dc.l	$FFFFFD20
 	dc.l	loc_0001022E
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_0005627E
 	dc.l	loc_0006C048
 	dc.l	loc_0006BEC0
@@ -18115,16 +18120,17 @@ loc_0000F872:
 	dc.l	loc_0001002C
 	dc.l	loc_00010036
 	dc.l	loc_00010040
-	dc.l	loc_00001C04-4	;Predicted
-	dc.l	loc_00072F8C	; (Predicted offset)
-	dc.l	loc_0007300E	; (Predicted offset)
-	dc.l	loc_00072EAB	;Predicted
+	dc.l	loc_00001C04-4
+	dc.l	loc_00072F8C
+	dc.l	loc_0007300E
+	dc.l	loc_00072EAB
 	dc.l	loc_00072E0C
 	dc.l	loc_00072E88
 	dc.l	loc_00072E9C
 	dc.l	$FFFFFD28
 	dc.l	loc_0001025C
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_0005655C
 	dc.l	loc_0006841A
 	dc.l	loc_00068240
@@ -18133,16 +18139,17 @@ loc_0000F872:
 	dc.l	loc_0001004A
 	dc.l	loc_00010054
 	dc.l	loc_0001005E
-	dc.l	loc_00001A42-2	;Predicted
-	dc.l	loc_00073546	; (Predicted offset)
-	dc.l	loc_000735BC	; (Predicted offset)
-	dc.l	loc_00073474	;Predicted
+	dc.l	loc_00001A42-2
+	dc.l	loc_00073546
+	dc.l	loc_000735BC
+	dc.l	loc_00073474
 	dc.l	loc_00073314
 	dc.l	loc_00073404
 	dc.l	loc_00073450
 	dc.l	$FFFFFD30
 	dc.l	loc_0001028A
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_0005568C
 	dc.l	loc_00066FDE
 	dc.l	loc_00066E62
@@ -18151,16 +18158,17 @@ loc_0000F872:
 	dc.l	loc_00010068
 	dc.l	loc_00010072
 	dc.l	loc_0001007C
-	dc.l	loc_00001B02-2	;Predicted
-	dc.l	loc_00071F98	; (Predicted offset)
-	dc.l	loc_00071FEA	; (Predicted offset)
-	dc.l	loc_00071EC0	;Predicted
+	dc.l	loc_00001B02-2
+	dc.l	loc_00071F98
+	dc.l	loc_00071FEA
+	dc.l	loc_00071EC0
 	dc.l	loc_00071E36
 	dc.l	loc_00071E8C
 	dc.l	loc_00071EAE
 	dc.l	$FFFFFD38
 	dc.l	loc_000102B8
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_000566BC
 	dc.l	loc_000651F0
 	dc.l	loc_00065090
@@ -18169,16 +18177,17 @@ loc_0000F872:
 	dc.l	loc_00010086
 	dc.l	loc_00010090
 	dc.l	loc_0001009A
-	dc.l	loc_00011DC0	;Predicted
-	dc.l	loc_000737A0	; (Predicted offset)
-	dc.l	loc_00073816	; (Predicted offset)
-	dc.l	loc_000736B2	;Predicted
+	dc.l	loc_00011DC0
+	dc.l	loc_000737A0
+	dc.l	loc_00073816
+	dc.l	loc_000736B2
 	dc.l	loc_000735D6
 	dc.l	loc_0007365C
 	dc.l	loc_00073694
 	dc.l	$FFFFFD40
 	dc.l	loc_000102E6
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_00055D3A
 	dc.l	loc_0006D3A2
 	dc.l	loc_0006D1AE
@@ -18187,16 +18196,17 @@ loc_0000F872:
 	dc.l	loc_000100A4
 	dc.l	loc_000100AE
 	dc.l	loc_000100B8
-	dc.l	loc_000019C2-2	;Predicted
-	dc.l	loc_00072922	; (Predicted offset)
-	dc.l	loc_00072980	; (Predicted offset)
-	dc.l	loc_00072854	;Predicted
+	dc.l	loc_000019C2-2
+	dc.l	loc_00072922
+	dc.l	loc_00072980
+	dc.l	loc_00072854
 	dc.l	loc_00072784
 	dc.l	loc_00072806
 	dc.l	loc_0007283C
 	dc.l	$FFFFFD48
 	dc.l	loc_00010314
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_00055EF2
 	dc.l	loc_00066488
 	dc.l	loc_0006630E
@@ -18205,16 +18215,17 @@ loc_0000F872:
 	dc.l	loc_000100C2
 	dc.l	loc_000100CC
 	dc.l	loc_000100D6
-	dc.l	loc_00001A80	;Predicted
-	dc.l	loc_00072B7A	; (Predicted offset)
-	dc.l	loc_00072BEC	; (Predicted offset)
-	dc.l	loc_00072AA5	;Predicted
+	dc.l	loc_00001A80
+	dc.l	loc_00072B7A
+	dc.l	loc_00072BEC
+	dc.l	loc_00072AA5
 	dc.l	loc_0007299A
 	dc.l	loc_00072A3C
 	dc.l	loc_00072A84
 	dc.l	$FFFFFD50
 	dc.l	loc_00010342
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_000553B6
 	dc.l	loc_0006C9E6
 	dc.l	loc_0006C908
@@ -18223,16 +18234,17 @@ loc_0000F872:
 	dc.l	loc_000100E0
 	dc.l	loc_000100EA
 	dc.l	loc_000100F4
-	dc.l	loc_00001AC2-2	;Predicted
-	dc.l	loc_00071BBA	; (Predicted offset)
-	dc.l	loc_00071C14	; (Predicted offset)
-	dc.l	loc_00071AE3	;Predicted
+	dc.l	loc_00001AC2-2
+	dc.l	loc_00071BBA
+	dc.l	loc_00071C14
+	dc.l	loc_00071AE3
 	dc.l	loc_00071A38
 	dc.l	loc_00071AC0
 	dc.l	loc_00071AD4
 	dc.l	$FFFFFD58
 	dc.l	loc_00010370
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_000563B6
 	dc.l	loc_000649FC
 	dc.l	loc_00064884
@@ -18241,16 +18253,17 @@ loc_0000F872:
 	dc.l	loc_000100FE
 	dc.l	loc_00010108
 	dc.l	loc_00010112
-	dc.l	loc_00001D82-2	;Predicted
-	dc.l	loc_00073264	; (Predicted offset)
-	dc.l	loc_000732F6	; (Predicted offset)
-	dc.l	loc_00073178	;Predicted
+	dc.l	loc_00001D82-2
+	dc.l	loc_00073264
+	dc.l	loc_000732F6
+	dc.l	loc_00073178
 	dc.l	loc_0007301C
 	dc.l	loc_000730E6
 	dc.l	loc_0007314E
 	dc.l	$FFFFFD60
 	dc.l	loc_0001039E
-	dc.l	$002B002B	; (Predicted offset)
+	dc.l	$002B002B
+
 	dc.l	loc_00055B8A
 	dc.l	loc_0006B708
 	dc.l	loc_0006B51A
@@ -18259,16 +18272,17 @@ loc_0000F872:
 	dc.l	loc_0001011C
 	dc.l	loc_00010126
 	dc.l	loc_00010130
-	dc.l	loc_00011E40	;Predicted
-	dc.l	loc_000726D0	; (Predicted offset)
-	dc.l	loc_00072766	; (Predicted offset)
-	dc.l	loc_000725DD	; (Predicted offset)
+	dc.l	loc_00011E40
+	dc.l	loc_000726D0
+	dc.l	loc_00072766
+	dc.l	loc_000725DD
 	dc.l	loc_00072480
 	dc.l	loc_00072578
 	dc.l	loc_000725BC
 	dc.l	$FFFFFD68
 	dc.l	loc_000103CC
-	dc.l	$002B002B	; (Predicted offset)
+	dc.l	$002B002B
+
 	dc.l	loc_000560D4
 	dc.l	loc_00069758
 	dc.l	loc_000695FE
@@ -18277,16 +18291,17 @@ loc_0000F872:
 	dc.l	loc_0001013A
 	dc.l	loc_00010144
 	dc.l	loc_0001014E
-	dc.l	loc_000017C2-2	; (Predicted offset)
-	dc.l	loc_00072D78	; (Predicted offset)
-	dc.l	loc_00072DEA	; (Predicted offset)
-	dc.l	loc_00072CBA	; (Predicted offset)
+	dc.l	loc_000017C2-2
+	dc.l	loc_00072D78
+	dc.l	loc_00072DEA
+	dc.l	loc_00072CBA
 	dc.l	loc_00072C02
 	dc.l	loc_00072C86
 	dc.l	loc_00072CA8
 	dc.l	$FFFFFD70
 	dc.l	loc_000103FA
-	dc.l	$002B002B	; (Predicted offset)
+	dc.l	$002B002B
+
 	dc.l	loc_000551B4
 	dc.l	loc_0006DCF8
 	dc.l	loc_0006DA8A
@@ -18295,16 +18310,17 @@ loc_0000F872:
 	dc.l	loc_00010158
 	dc.l	loc_00010162
 	dc.l	loc_0001016C
-	dc.l	loc_00001804-4	;Predicted
-	dc.l	loc_000719AC	; (Predicted offset)
-	dc.l	loc_00071A1E	; (Predicted offset)
-	dc.l	loc_000718EB	;Predicted
+	dc.l	loc_00001804-4
+	dc.l	loc_000719AC
+	dc.l	loc_00071A1E
+	dc.l	loc_000718EB
 	dc.l	loc_000717C8
 	dc.l	loc_000718AE
 	dc.l	loc_000718D6
 	dc.l	$FFFFFD78
 	dc.l	loc_00010428
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_00054CB2
 	dc.l	loc_00063ECA
 	dc.l	loc_00063910
@@ -18313,16 +18329,17 @@ loc_0000F872:
 	dc.l	loc_0000FF5C-2
 	dc.l	loc_0000FF64
 	dc.l	loc_0000FF6E
-	dc.l	loc_00000D40	;Predicted
-	dc.l	loc_00073B26	; (Predicted offset)
-	dc.l	loc_00073B54	; (Predicted offset)
-	dc.l	loc_00073ABC	;Predicted
+	dc.l	loc_00000D40
+	dc.l	loc_00073B26
+	dc.l	loc_00073B54
+	dc.l	loc_00073ABC
 	dc.l	loc_00073A4A
 	dc.l	loc_00073A8A
 	dc.l	loc_00073AAC
-	dc.l	$FFFFFD80	;Predicted
+	dc.l	$FFFFFD80
 	dc.l	loc_00010456
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_00054E88
 	dc.l	loc_00063ECA
 	dc.l	loc_00063910
@@ -18331,16 +18348,17 @@ loc_0000F872:
 	dc.l	loc_0000FF5C-2
 	dc.l	loc_0000FF64
 	dc.l	loc_0000FF6E
-	dc.l	loc_00001DC0	;Predicted
-	dc.l	loc_00073D7C	; (Predicted offset)
-	dc.l	loc_00073DEA	; (Predicted offset)
-	dc.l	loc_00073C8D	;Predicted
+	dc.l	loc_00001DC0
+	dc.l	loc_00073D7C
+	dc.l	loc_00073DEA
+	dc.l	loc_00073C8D
 	dc.l	loc_00073B5E
 	dc.l	loc_00073C16
 	dc.l	loc_00073C66
-	dc.l	$FFFFFD88	;Predicted
+	dc.l	$FFFFFD88
 	dc.l	loc_00010456
-	dc.l	$002B002B	;Predicted
+	dc.l	$002B002B
+
 	dc.l	loc_00054E88
 	dc.l	loc_00063ECA
 	dc.l	loc_00063C10
@@ -18349,16 +18367,17 @@ loc_0000F872:
 	dc.l	loc_0000FF78
 	dc.l	loc_0000FF82
 	dc.l	loc_0000FF8C
-	dc.l	loc_00001DC0	;Predicted
-	dc.l	loc_00073D7C	; (Predicted offset)
-	dc.l	loc_00073DEA	; (Predicted offset)
-	dc.l	loc_00073C8D	;Predicted
+	dc.l	loc_00001DC0
+	dc.l	loc_00073D7C
+	dc.l	loc_00073DEA
+	dc.l	loc_00073C8D
 	dc.l	loc_00073B5E
 	dc.l	loc_00073C16
 	dc.l	loc_00073C66
-	dc.l	$FFFFFD88	;Predicted
+	dc.l	$FFFFFD88
 	dc.l	loc_00010456
-	dc.l	$002f0038	;Predicted
+	dc.l	$002f0038
+
 loc_0000FDCA:
 	dc.l	$0A1014F0
 loc_0000FDCE:
