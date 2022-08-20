@@ -37775,29 +37775,51 @@ loc_000713EC:
 	dc.l	$000714B8
 	dc.l	$000714BA
 	dc.l	$000714BC
-	dc.b	$00, $00, $00, $00 ;0x0 (0x000713F8-0x000713FC, Entry count: 0x4) [Unknown data]
+	dc.l	$00000000
 	dc.l	$000714CF
 	dc.l	$000714D2
-	dc.b	$00, $07, $14, $D5, $00, $07, $14, $DA ;0x0 (0x00071404-0x0007140C, Entry count: 0x8) [Unknown data]
-	dc.l	$000714BF, $000714C2, $000714C5, $000714CA, $000714DF, $000714E2, $000714E5, $000714EA, $000714EF, $000714F2 ;0x0 (0x0007140C-0x00071434, Entry count: 0x28)
-	dc.b	$00, $07, $14, $F5, $00, $07, $14, $FA ;0x0 (0x00071434-0x0007143C, Entry count: 0x8) [Unknown data]
+	dc.l    $000714D5
+	dc.l    $000714DA 
+	dc.l	$000714BF
+	dc.l	$000714C2 
+	dc.l	$000714C5 
+	dc.l	$000714CA 
+	dc.l	$000714DF 
+	dc.l	$000714E2 
+	dc.l	$000714E5 
+	dc.l	$000714EA 
+	dc.l	$000714EF 
+	dc.l	$000714F2 
+	dc.l	$000714F5 
+	dc.l    $000714FA
 	dc.l	$000714FF
 	dc.l	$00071502
 	dc.l	$00071505
-	dc.b	$00, $07, $15, $0A ;0x0 (0x00071448-0x0007144C, Entry count: 0x4) [Unknown data]
-	dc.l	$000714EF, $000714F2, $000714F5, $000714FA, $0007150F, $00071511, $00071513, $00071515, $00071517, $0007151A ;0x0 (0x0007144C-0x00071474, Entry count: 0x28)
-	dc.b	$00, $07, $15, $1D, $00, $07, $15, $22 ;0x0 (0x00071474-0x0007147C, Entry count: 0x8) [Unknown data]
-	dc.l	$000714EF
-	dc.l	$000714F2
-	dc.b	$00, $07, $14, $F5 ;0x0 (0x00071484-0x00071488, Entry count: 0x4) [Unknown data]
-	dc.l	$000714FA
-	dc.l	$000714EF
-	dc.l	$000714F2
-	dc.b	$00, $07, $14, $F5, $00, $07, $14, $FA ;0x0 (0x00071494-0x0007149C, Entry count: 0x8) [Unknown data]
+	dc.l	$0007150A
 	dc.l	$000714EF
 	dc.l	$000714F2
 	dc.l	$000714F5
-	dc.b	$00, $07, $14, $FA ;0x0 (0x000714A8-0x000714AC, Entry count: 0x4) [Unknown data]
+	dc.l	$000714FA
+	dc.l	$0007150F
+	dc.l	$00071511
+	dc.l	$00071513
+	dc.l	$00071515
+	dc.l	$00071517
+	dc.l	$0007151A 
+	dc.l	$0007151D
+	dc.l    $00071522
+	dc.l	$000714EF
+	dc.l	$000714F2
+	dc.l	$000714F5 
+	dc.l	$000714FA
+	dc.l	$000714EF
+	dc.l	$000714F2
+	dc.l	$000714F5
+	dc.l    $000714FA 
+	dc.l	$000714EF
+	dc.l	$000714F2
+	dc.l	$000714F5
+	dc.l	$000714FA
 	dc.l	$00071527
 	dc.l	$00071529
 	dc.l	$0007152B
