@@ -6,16 +6,12 @@ i = 0
 c substr 1+i,1+i,\text
 	if escape=0
 		; Escape character
-		if "\c"="%"
+		if "\c"="\"
 escape = 1
 		; Space
 		elseif ("\c"=" ")
-			dc.b	$00
-			
-		; ? (small font)
-		elseif ("\c"="?")
-			dc.b	$B4
-			
+			dc.b	$32
+
 		; 0-9
 		elseif ("\c">="0")&("\c"<="9")
 			dc.b	("\c"-"0")
@@ -32,8 +28,8 @@ escape = 1
 		endif
 	else
 		; Custom character
-		if "\c"="c"
-			dc.b	$FE
+		if "\c"="n"
+			dc.b	$FA
 		; Invalid
 		else
 			inform 2,"Invalid escape character '%s'", "\c"
@@ -42,5 +38,7 @@ escape = 0
 	endif
 i = i+1
 	endw
+
+    dc.b $FF 
 	
 	endm
