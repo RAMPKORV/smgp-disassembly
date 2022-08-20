@@ -26874,7 +26874,7 @@ loc_0003B480:
 	dc.b	$0A, $17, $22, $20, $0A, $22, $2A, $32, $10, $12, $1F, $0E, $32, $16, $0E, $FC, $1D, $11, $0E, $32, $1C, $0E, $0C, $1E, $1B, $12, $1D, $22, $32, $16, $18, $17 ;0x0 (0x0003B480-0x0003B4A4, Entry count: 0x24)
 	dc.b	$0E, $22, $29, $FF ;0x20
 loc_0003B4A4:
-    txt "LET'S TRY HARD\nTO WIN."
+    txt     "LET'S TRY HARD\nTO WIN."
 	dc.b	$00 ;0x0 (0x0003B4BB-0x0003B4BC, Entry count: 0x1) [Unknown data]
 loc_0003B4BC:
 	dc.b	$12, $32, $0E, $17, $1F, $22, $32, $22, $18, $1E, $1B, $32, $11, $12, $10, $11, $FC, $1C, $19, $12, $1B, $12, $1D, $1C, $29, $FF ;0x0 (0x0003B4BC-0x0003B4D6, Entry count: 0x1A)
