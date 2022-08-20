@@ -11,7 +11,7 @@
 ; 0x905E: ???
 ; 0x906E: The placement (this round) of each team during the results
 ; 0x907E: Points awarded (this round) per team during results
-; 0x9101: Current shift
+; 0x9100.w: Current shift
 ; 0x9104: Revolution meter?
 ; 0x9108: Distance (delta) travelled?
 ; 0x9144.w: Current track idx to be loaded
