@@ -18030,7 +18030,7 @@ loc_F872:
 	dc.l	loc_717A6 ; San Marino tileset for signs
 	dc.l	loc_71660 ; San Marino map for minimap position
 	dc.l	loc_7152E ; San Marino Track data
-	dc.l	loc_715EA ; ?
+	dc.l	loc_715EA ; San Marino slope data
 	dc.l	loc_7163C ; ?
 	dc.l	$FFFFFD00
 	dc.l	loc_10176 ; ?
@@ -18049,7 +18049,7 @@ loc_F872:
 	dc.l	loc_73A30 ; Brazil tileset for signs
 	dc.l	loc_738CF ; Brazil map for minimap position
 	dc.l	loc_73830 ; Brazil Track data
-	dc.l	loc_73894 ; ?
+	dc.l	loc_73894 ; Brazil slope data
 	dc.l	loc_738BA ; ?
 	dc.l	$FFFFFD08
 	dc.l	loc_101A4 ; ?
