@@ -18033,7 +18033,7 @@ loc_0000F872:
 	dc.l	loc_000715EA ; ?
 	dc.l	loc_0007163C ; ?
 	dc.l	$FFFFFD00
-	dc.l	loc_00010176
+	dc.l	loc_00010176 ; ?
 	dc.l	$002B002B
 	dc.l	loc_0005683C ; Brazil tiles used for minimap
 	dc.l	loc_000679D8 ; Brazil tiles used used for background
@@ -18051,7 +18051,7 @@ loc_0000F872:
 	dc.l	loc_00073894 ; ?
 	dc.l	loc_000738BA ; ?
 	dc.l	$FFFFFD08
-	dc.l	loc_000101A4
+	dc.l	loc_000101A4 ; ?
 	dc.l	$002B002B	;Predicted
 	dc.l	loc_00055516
 	dc.l	loc_0006ACB6
@@ -26889,7 +26889,7 @@ loc_0003B524:
 	dc.l	loc_0003B708	;Predicted
 	dc.l	loc_0003B716	;Predicted
 	dc.l	loc_0003B72E
-	dc.l	loc_0003B74C
+	dc.l	loc_0003B74C    ; San Marino message after preliminary race
 	dc.l	loc_0003B770
 	dc.l	loc_0003B798
 	dc.l	loc_0003B7C0	;Predicted
