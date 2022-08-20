@@ -6872,7 +6872,7 @@ loc_000061F6:
 	RTS
 loc_000061FC:
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008 ;0x0 (0x000061FC-0x00006224, Entry count: 0x28)
-loc_00006224:
+loc_00006224: ; Suspected: Level initialization
 	JSR	loc_0000F848
 	LEA	$20(A1), A1
 	MOVE.w	(A1)+, $FFFF920C.w
@@ -18017,29 +18017,29 @@ loc_0000F860:
 	ADDA.w	D0, A1
 	RTS
 loc_0000F872:
-	dc.l	loc_00055032
-	dc.l	loc_00068F4A
-	dc.l	loc_00068DC6
-	dc.l	loc_0005519A
-	dc.l	loc_0000FDCE
-	dc.l	loc_0000FF96
+	dc.l	loc_00055032 ; San Marino tiles used for minimap
+	dc.l	loc_00068F4A ; San Marino tiles used for background
+	dc.l	loc_00068DC6 ; San Marino background tile mapping
+	dc.l	loc_0005519A ; ?
+	dc.l	loc_0000FDCE ; San Marino background palette
+	dc.l	loc_0000FF96 ; ?
 	dc.l	loc_0000FFA0
 	dc.l	loc_0000FFAA
-	dc.l	loc_00001B80	;Predicted
-	dc.l	loc_0007173C	; (Predicted offset)
-	dc.l	loc_000717A6	; (Predicted offset)
-	dc.l	loc_00071660	;Predicted
-	dc.l	loc_0007152E
+	dc.l	loc_00001B80
+	dc.l	loc_0007173C
+	dc.l	loc_000717A6
+	dc.l	loc_00071660 ; San Marino map for minimap position
+	dc.l	loc_0007152E ; San Marino Track data
 	dc.l	loc_000715EA
 	dc.l	loc_0007163C
 	dc.l	$FFFFFD00
 	dc.l	loc_00010176
-	dc.l	$002B002B	;Predicted
-	dc.l	loc_0005683C
-	dc.l	loc_000679D8
-	dc.l	loc_000676FE
-	dc.l	loc_000569EE
-	dc.l	loc_0000FF18
+	dc.l	$002B002B
+	dc.l	loc_0005683C ; Brazil tiles used for minimap
+	dc.l	loc_000679D8 ; Brazil tiles used for minimap
+	dc.l	loc_000676FE ; Brazil background tile mapping
+	dc.l	loc_000569EE ; ?
+	dc.l	loc_0000FF18 ; Brazil background palette
 	dc.l	loc_0000FFB4
 	dc.l	loc_0000FFBE
 	dc.l	loc_0000FFC8
