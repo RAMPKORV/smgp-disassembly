@@ -18023,33 +18023,33 @@ loc_0000F872:
 	dc.l	loc_0005519A ; ?
 	dc.l	loc_0000FDCE ; San Marino background palette
 	dc.l	loc_0000FF96 ; ?
-	dc.l	loc_0000FFA0
-	dc.l	loc_0000FFAA
-	dc.l	loc_00001B80
-	dc.l	loc_0007173C
-	dc.l	loc_000717A6
+	dc.l	loc_0000FFA0 ; San Marino road style data
+	dc.l	loc_0000FFAA ; ?
+	dc.l	loc_00001B80 ; ?
+	dc.l	loc_0007173C ; San Marino signs data
+	dc.l	loc_000717A6 ; San Marino tileset for signs
 	dc.l	loc_00071660 ; San Marino map for minimap position
 	dc.l	loc_0007152E ; San Marino Track data
-	dc.l	loc_000715EA
-	dc.l	loc_0007163C
+	dc.l	loc_000715EA ; ?
+	dc.l	loc_0007163C ; ?
 	dc.l	$FFFFFD00
 	dc.l	loc_00010176
 	dc.l	$002B002B
 	dc.l	loc_0005683C ; Brazil tiles used for minimap
-	dc.l	loc_000679D8 ; Brazil tiles used for minimap
+	dc.l	loc_000679D8 ; Brazil tiles used used for background
 	dc.l	loc_000676FE ; Brazil background tile mapping
 	dc.l	loc_000569EE ; ?
 	dc.l	loc_0000FF18 ; Brazil background palette
-	dc.l	loc_0000FFB4
-	dc.l	loc_0000FFBE
-	dc.l	loc_0000FFC8
-	dc.l	loc_00001B42-2	;Predicted
-	dc.l	loc_000739AA	; (Predicted offset)
-	dc.l	loc_00073A30	; (Predicted offset)
-	dc.l	loc_000738CF	;Predicted
-	dc.l	loc_00073830
-	dc.l	loc_00073894
-	dc.l	loc_000738BA
+	dc.l	loc_0000FFB4 ; ?
+	dc.l	loc_0000FFBE ; Brazil road style data
+	dc.l	loc_0000FFC8 ; ?
+	dc.l	loc_00001B42-2 ; ?	
+	dc.l	loc_000739AA ; Brazil signs data
+	dc.l	loc_00073A30 ; Brazil tileset for signs
+	dc.l	loc_000738CF ; Brazil map for minimap position
+	dc.l	loc_00073830 ; Brazil Track data
+	dc.l	loc_00073894 ; ?
+	dc.l	loc_000738BA ; ?
 	dc.l	$FFFFFD08
 	dc.l	loc_000101A4
 	dc.l	$002B002B	;Predicted
