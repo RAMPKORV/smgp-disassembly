@@ -15608,7 +15608,7 @@ loc_D320:
 	MOVE.l	#$50000000, VDP_control_port
 	JSR	loc_972
 	CLR.l	D0
-	LEA	loc_19A34, A1
+	LEA	DriverPortraitTiles, A1
 	MOVE.b	$FFFFFC19.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A0
@@ -15630,7 +15630,7 @@ loc_D320:
 	LEA	loc_56E36, A0
 	JSR	loc_972
 	CLR.l	D0
-	LEA	loc_198A4, A1
+	LEA	DriverPortraitTileMappings, A1
 	MOVE.b	$FFFFFC19.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A0
@@ -19869,7 +19869,7 @@ loc_13760:
 loc_13764:
 	CLR.l	D1
 	MOVE.w	D0, D1
-	LEA	loc_19A34, A1
+	LEA	DriverPortraitTiles, A1
 	LSL.l	#2, D1
 	MOVEA.l	(A1,D1.w), A0
 	MOVE.w	#$1C20, D7
@@ -19932,7 +19932,7 @@ loc_13856:
 loc_13858:
 	CLR.l	D0
 	CLR.l	D1
-	LEA	loc_198A4, A1
+	LEA	DriverPortraitTileMappings, A1
 	MOVE.b	$FFFFFC01.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A0
@@ -20964,6 +20964,7 @@ loc_193BE:
 ;loc_195AC:
 TeamMachineScreenStats:
   ; ENG., T.M, SUS., TIRE, BRA., ?, ?
+  ; The last two bytes affect the drawn curve
 	dc.b	$64, $64, $50, $64, $64 ; Madonna bars
 	dc.b	$00, $05
 	dc.b	$50, $64, $64, $5A, $64 ; Firenze bars
@@ -21035,25 +21036,26 @@ loc_19664:
 	dc.w	$0000, $0240, $068C, $0ACE, $0248, $0888, $0EEE, $04CE, $008C, $0444, $08AC, $046A, $0024, $0664, $0480 ;0x0 (0x00019846-0x00019864, Entry count: 0x1E)
 	dc.b	$02, $0E, $00, $00, $00, $00, $06, $8C, $08, $88, $02, $48, $04, $44, $0C, $CC, $0A, $22, $00, $AC, $0E, $66, $08, $AC, $04, $6A, $00, $24, $08, $02, $02, $44 ;0x0 (0x00019864-0x000198A4, Entry count: 0x40) [Unknown data]
 	dc.b	$02, $0E, $00, $00, $00, $00, $06, $8C, $08, $88, $02, $48, $04, $44, $0C, $CC, $0A, $22, $00, $AC, $0E, $66, $08, $AC, $04, $6A, $00, $24, $08, $02, $02, $44 ;0x20
-loc_198A4:
-	dc.l	loc_199B8
-	dc.l	loc_19A12
-	dc.l	loc_19A02
-	dc.l	loc_19978
-	dc.l	loc_198EC
-	dc.l	loc_1999E
-	dc.l	loc_19900
-	dc.l	loc_199EE
-	dc.l	loc_19956
-	dc.l	loc_1998C
-	dc.l	loc_19932
-	dc.l	loc_19964
-	dc.l	loc_199CC
-	dc.l	loc_199DE
-	dc.l	loc_19916
-	dc.l	loc_19942
-	dc.l	loc_19A22
-	dc.l	loc_19A22	;Predicted
+;loc_198A4:
+DriverPortraitTileMappings:
+	dc.l	loc_199B8 ; G. Ceara
+	dc.l	loc_19A12 ; A. Asslin
+	dc.l	loc_19A02 ; F. Elssler
+	dc.l	loc_19978 ; G. Alberti
+	dc.l	loc_198EC ; A. Picos
+	dc.l	loc_1999E ; J. Herbin
+	dc.l	loc_19900 ; M. Hamano
+	dc.l	loc_199EE ; E. Pacheco
+	dc.l	loc_19956 ; G. Turner
+	dc.l	loc_1998C ; B. Miller
+	dc.l	loc_19932 ; E. Bellini
+	dc.l	loc_19964 ; M. Moreau
+	dc.l	loc_199CC ; R. Cotman
+	dc.l	loc_199DE ; E. Tornio
+	dc.l	loc_19916 ; C. Tegner
+	dc.l	loc_19942 ; P. Klinger
+	dc.l	loc_19A22 ; You
+	dc.l	loc_19A22	; You
 loc_198EC:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $20, $D3, $0D, $21, $11, $15, $01, $90, $19, $01, $90, $1B, $F8 ;0x0 (0x000198EC-0x00019900, Entry count: 0x14) [Unknown data]
 loc_19900:
@@ -21088,25 +21090,26 @@ loc_19A12:
 	dc.b	$06, $00, $00, $00, $00, $06, $19, $01, $90, $19, $01, $51, $15, $13, $C7, $FE ;0x0 (0x00019A12-0x00019A22, Entry count: 0x10) [Unknown data]
 loc_19A22:
 	dc.b	$06, $00, $00, $00, $00, $00, $15, $21, $51, $15, $11, $51, $15, $11, $50, $3C, $0F, $E0 ;0x0 (0x00019A22-0x00019A34, Entry count: 0x12) [Unknown data]
-loc_19A34:
-	dc.l	loc_1C3B6
-	dc.l	loc_1D906
-	dc.l	loc_1D450
-	dc.l	loc_1B820
-	dc.l	loc_19A7C
-	dc.l	loc_1C048
-	dc.l	loc_19E1E
-	dc.l	loc_1D0A0
-	dc.l	loc_1AE70
-	dc.l	loc_1BC28
-	dc.l	loc_1A670
-	dc.l	loc_1B3EE
-	dc.l	loc_1C772
-	dc.l	loc_1CC2A
-	dc.l	loc_1A2AE
-	dc.l	loc_1AA90
-	dc.l	loc_1DE04
-	dc.l	loc_1DE04	;Predicted
+;loc_19A34:
+DriverPortraitTiles:
+	dc.l	loc_1C3B6 ; G. Ceara
+	dc.l	loc_1D906 ; A. Asselin
+	dc.l	loc_1D450 ; F. Elssler
+	dc.l	loc_1B820 ; G. Alberti
+	dc.l	loc_19A7C ; A. Picos
+	dc.l	loc_1C048 ; J. Herbin
+	dc.l	loc_19E1E ; M. Hamano
+	dc.l	loc_1D0A0 ; E. Pacheco
+	dc.l	loc_1AE70 ; G. Turner
+	dc.l	loc_1BC28 ; B. Miller
+	dc.l	loc_1A670 ; E. Bellini
+	dc.l	loc_1B3EE ; M. Moreau
+	dc.l	loc_1C772 ; R. Cotman
+	dc.l	loc_1CC2A ; E. Tornio
+	dc.l	loc_1A2AE ; C. Tegner
+	dc.l	loc_1AA90 ; P. Klinger
+	dc.l	loc_1DE04 ; You
+	dc.l	loc_1DE04	; You
 loc_19A7C:
 	dc.b	$80, $30, $80, $03, $00, $14, $04, $25, $13, $35, $14, $45, $16, $55, $12, $66, $34, $74, $06, $81, $06, $35, $82, $06, $36, $83, $06, $32, $17, $6F, $27, $6E ;0x0 (0x00019A7C-0x00019E1E, Entry count: 0x3A2) [Unknown data]
 	dc.b	$84, $05, $15, $85, $07, $73, $86, $04, $05, $17, $74, $38, $F7, $58, $F3, $68, $F2, $87, $06, $38, $88, $04, $02, $15, $17, $27, $75, $37, $77, $89, $04, $07 ;0x20
@@ -22587,7 +22590,7 @@ loc_21B44:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07 ;0x0 (0x00021B64-0x00021B6E, Entry count: 0xA) [Unknown data]
 	dc.l	loc_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00 ;0x0 (0x00021B72-0x00021B7C, Entry count: 0xA) [Unknown data]
-loc_21B7C:
+loc_21B7C: ; Team names
 	dc.l	loc_21BBC
 	dc.l	loc_21BD2
 	dc.l	loc_21BE8
