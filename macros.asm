@@ -1,9 +1,9 @@
-txt macro text
+txt macro
 
 escape = 0
 i = 0
-	while i<strlen(\text)
-c substr 1+i,1+i,\text
+	while i<strlen(\1)
+c substr 1+i,1+i,\1
 	if escape=0
 		; Escape character
 		if "\c"="\"
