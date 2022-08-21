@@ -1,105 +1,81 @@
   include "macros.asm"
 	include "constants.asm"
 	include	"variables.asm"
+
+Vectors:
 loc_0:
 	dc.l	$00FF0100
 loc_4:
 	dc.l	loc_20E
 loc_8:
-	dc.l	loc_200	;Predicted (Code target predicted at 0x200)
-	dc.l	loc_200	;Predicted (Code target predicted at 0x200)
-	dc.l	loc_204	;Predicted (Code target predicted at 0x204)
-	dc.l	loc_204	;Predicted (Code target predicted at 0x204)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
+	dc.l	loc_200
+	dc.l	loc_200
+	dc.l	loc_204
+	dc.l	loc_204
 	dc.l	loc_208
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
 	dc.l	$FFFFFFD2
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
+	dc.l	loc_20C
 	dc.l	loc_3B4
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_20C	;Predicted (Code target predicted at 0x20C)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	loc_208	;Predicted (Code target predicted at 0x208)
-	dc.l	$53454741	;Predicted (Code target predicted at 0x53454741)
-	dc.l	$204D4547	;Predicted (Code target predicted at 0x204D4547)
-	dc.l	$41204452	;Predicted (Code target predicted at 0x41204452)
-	dc.l	$49564520	;Predicted (Code target predicted at 0x49564520)
-	dc.l	$28432953	;Predicted (Code target predicted at 0x28432953)
-	dc.l	$45474120	;Predicted (Code target predicted at 0x45474120)
-	dc.l	$31393930	;Predicted (Code target predicted at 0x31393930)
-	dc.l	$2E4A554E	;Predicted (Code target predicted at 0x2E4A554E)
-	dc.l	$53757065	;Predicted (Code target predicted at 0x53757065)
-	dc.l	$72204D6F	;Predicted (Code target predicted at 0x72204D6F)
-	dc.l	$6E61636F	;Predicted (Code target predicted at 0x6E61636F)
-	dc.l	$20475020	;Predicted (Code target predicted at 0x20475020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$53757065	;Predicted (Code target predicted at 0x53757065)
-	dc.l	$72204D6F	;Predicted (Code target predicted at 0x72204D6F)
-	dc.l	$6E61636F	;Predicted (Code target predicted at 0x6E61636F)
-	dc.l	$20475020	;Predicted (Code target predicted at 0x20475020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
-	dc.l	$20202020	;Predicted (Code target predicted at 0x20202020)
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_20C
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+	dc.l	loc_208
+
+  Header:
+  dc.b "SEGA MEGA DRIVE " ; Console name
+	dc.b "(C)SEGA 1990.JUN" ; Copyright holder and release date
+  dc.b "Super Monaco GP                                 " ; Domestic name
+	dc.b "Super Monaco GP                                 " ; International name
 	dc.l	$474D2020	;Predicted (Code target predicted at 0x474D2020)
 	dc.l	$20202034	;Predicted (Code target predicted at 0x20202034)
 	dc.l	$3032362D	;Predicted (Code target predicted at 0x3032362D)
