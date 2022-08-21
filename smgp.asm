@@ -20964,38 +20964,39 @@ loc_193BE:
 ;loc_195AC:
 TeamMachineScreenStats:
   ; ENG., T.M, SUS., TIRE, BRA., ?, ?
-	dc.b	$64, $64, $50, $64, $64 ;0x0 (0x000195AC-0x000195B1, Entry count: 0x5)
-	dc.b	$00, $05 ;0x0 (0x000195B1-0x000195B3, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $64, $64, $5A, $64 ;0x0 (0x000195B3-0x000195B8, Entry count: 0x5)
-	dc.b	$02, $04 ;0x0 (0x000195B8-0x000195BA, Entry count: 0x2) [Unknown data]
-	dc.b	$64, $50, $5A, $50, $64 ;0x0 (0x000195BA-0x000195BF, Entry count: 0x5)
-	dc.b	$01, $05 ;0x0 (0x000195BF-0x000195C1, Entry count: 0x2) [Unknown data]
-	dc.b	$64, $3C, $64, $64, $64 ;0x0 (0x000195C1-0x000195C6, Entry count: 0x5)
-	dc.b	$03, $05 ;0x0 (0x000195C6-0x000195C8, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $50, $50, $50, $50 ;0x0 (0x000195C8-0x000195CD, Entry count: 0x5)
-	dc.b	$01, $05 ;0x0 (0x000195CD-0x000195CF, Entry count: 0x2) [Unknown data]
-	dc.b	$3C, $64, $3C, $50, $64 ;0x0 (0x000195CF-0x000195D4, Entry count: 0x5)
-	dc.b	$02, $03 ;0x0 (0x000195D4-0x000195D6, Entry count: 0x2) [Unknown data]
-	dc.b	$64, $3C, $50, $50, $50 ;0x0 (0x000195D6-0x000195DB, Entry count: 0x5)
-	dc.b	$03, $04 ;0x0 (0x000195DB-0x000195DD, Entry count: 0x2) [Unknown data]
-	dc.b	$3C, $50, $3C, $3C, $50 ;0x0 (0x000195DD-0x000195E2, Entry count: 0x5)
-	dc.b	$02, $03 ;0x0 (0x000195E2-0x000195E4, Entry count: 0x2) [Unknown data]
-	dc.b	$3C, $3C, $46, $3C, $3C ;0x0 (0x000195E4-0x000195E9, Entry count: 0x5)
-	dc.b	$03, $03 ;0x0 (0x000195E9-0x000195EB, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $32, $32, $3C, $28 ;0x0 (0x000195EB-0x000195F0, Entry count: 0x5)
-	dc.b	$01, $05 ;0x0 (0x000195F0-0x000195F2, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $28, $50, $50, $50 ;0x0 (0x000195F2-0x000195F7, Entry count: 0x5)
-	dc.b	$03, $01 ;0x0 (0x000195F7-0x000195F9, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $3C, $28, $32, $28 ;0x0 (0x000195F9-0x000195FE, Entry count: 0x5)
-	dc.b	$03, $04 ;0x0 (0x000195FE-0x00019600, Entry count: 0x2) [Unknown data]
-	dc.b	$5A, $1E, $3C, $3C, $28 ;0x0 (0x00019600-0x00019605, Entry count: 0x5)
-	dc.b	$03, $01 ;0x0 (0x00019605-0x00019607, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $1E, $3C, $28, $28 ;0x0 (0x00019607-0x0001960C, Entry count: 0x5)
-	dc.b	$01, $02 ;0x0 (0x0001960C-0x0001960E, Entry count: 0x2) [Unknown data]
-	dc.b	$3C, $28, $28, $3C, $28 ;0x0 (0x0001960E-0x00019613, Entry count: 0x5)
-	dc.b	$03, $02 ;0x0 (0x00019613-0x00019615, Entry count: 0x2) [Unknown data]
-	dc.b	$50, $1E, $3C, $3C, $14 ;0x0 (0x00019615-0x0001961A, Entry count: 0x5)
-	dc.b	$01, $03, $FF, $FF, $FF, $FF, $FF, $04, $FF, $00 ;0x0 (0x0001961A-0x00019624, Entry count: 0xA) [Unknown data]
+	dc.b	$64, $64, $50, $64, $64 ; Madonna bars
+	dc.b	$00, $05
+	dc.b	$50, $64, $64, $5A, $64 ; Firenze bars
+	dc.b	$02, $04
+	dc.b	$64, $50, $5A, $50, $64 ; Millions bars
+	dc.b	$01, $05
+	dc.b	$64, $3C, $64, $64, $64 ; Bestowal bars
+	dc.b	$03, $05
+	dc.b	$50, $50, $50, $50, $50 ; Blanche bars
+	dc.b	$01, $05
+	dc.b	$3C, $64, $3C, $50, $64 ; Tyrant bars
+	dc.b	$02, $03
+	dc.b	$64, $3C, $50, $50, $50 ; Losel bars
+	dc.b	$03, $04
+	dc.b	$3C, $50, $3C, $3C, $50 ; May bars
+	dc.b	$02, $03
+	dc.b	$3C, $3C, $46, $3C, $3C ; Bullets bars
+	dc.b	$03, $03
+	dc.b	$50, $32, $32, $3C, $28 ; Dardan bars
+	dc.b	$01, $05
+	dc.b	$50, $28, $50, $50, $50 ; Linden bars
+	dc.b	$03, $01
+	dc.b	$50, $3C, $28, $32, $28 ; Minarae bars
+	dc.b	$03, $04
+	dc.b	$5A, $1E, $3C, $3C, $28 ; Rigel bars
+	dc.b	$03, $01
+	dc.b	$50, $1E, $3C, $28, $28 ; Comet bars
+	dc.b	$01, $02
+	dc.b	$3C, $28, $28, $3C, $28 ; Orchis bars
+	dc.b	$03, $02
+	dc.b	$50, $1E, $3C, $3C, $14 ; Zeroforce bars
+	dc.b	$01, $03
+  dc.b  $FF, $FF, $FF, $FF, $FF, $04, $FF, $00 ;0x0 (0x0001961A-0x00019624, Entry count: 0xA) [Unknown data]
 loc_19624:
 	dc.b	$42, $1E, $00, $00, $0E, $EE, $08, $00, $00, $22, $0C, $66, $00, $00, $00, $00, $00, $00, $00, $00, $00, $CC, $0C, $C0, $0A, $CC, $02, $43, $02, $44, $00, $00 ;0x0 (0x00019624-0x00019664, Entry count: 0x40) [Unknown data]
 	dc.b	$02, $66, $00, $00, $00, $EE, $0E, $EE, $02, $22, $06, $66, $04, $4E, $00, $0A, $00, $EE, $00, $88, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;0x20
