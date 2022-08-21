@@ -51,6 +51,9 @@ escape = 0
 i = i+1
 	endw
 
-    dc.b $FF
+    rept narg-1
+		shift
+		dc.b \1
+	endr
 
 	endm
