@@ -12,6 +12,8 @@ escape = 1
 				dc.b    $29
 		elseif ("\c"="'")
 				dc.b    $26
+		elseif ("\c"='"')
+				dc.b    $27
 		elseif ("\c"="!")
 				dc.b    $2D
 		elseif ("\c"="?")

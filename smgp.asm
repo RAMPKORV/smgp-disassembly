@@ -10019,61 +10019,75 @@ loc_8688:
 loc_8694:
 	dc.w	$0014
 	dc.w	$0013
-	dc.b	$00, $12 ;0x0 (0x00008698-0x0000869A, Entry count: 0x2) [Unknown data]
+	dc.w	$0012
 	dc.w	$0011
 	dc.w	$0010
-	dc.b	$00, $09 ;0x0 (0x0000869E-0x000086A0, Entry count: 0x2) [Unknown data]
+	dc.w	$0009
 	dc.w	$0008
-	dc.b	$00, $07 ;0x0 (0x000086A2-0x000086A4, Entry count: 0x2) [Unknown data]
+	dc.w	$0007
 	dc.w	$0006
-	dc.b	$00, $05, $00, $04, $00, $03, $00, $02 ;0x0 (0x000086A6-0x000086AE, Entry count: 0x8) [Unknown data]
+	dc.w	$0005
+  dc.w	$0004
+  dc.w	$0003
+  dc.w	$0002
 loc_86AE:
-	dc.b	$00, $01 ;0x0 (0x000086AE-0x000086B0, Entry count: 0x2) [Unknown data]
+	dc.w	$0001
 	dc.w	$24D4
 	dc.w	$1B8C
-	dc.b	$18, $61 ;0x0 (0x000086B4-0x000086B6, Entry count: 0x2) [Unknown data]
+	dc.w  $1861
 	dc.w	$1601
 	dc.w	$1251
-	dc.b	$10, $F1 ;0x0 (0x000086BA-0x000086BC, Entry count: 0x2) [Unknown data]
+	dc.w	$10F1
 	dc.w	$0FB0
-	dc.b	$0E, $AB ;0x0 (0x000086BE-0x000086C0, Entry count: 0x2) [Unknown data]
+	dc.w	$0EAB
 	dc.w	$0DB8
-	dc.b	$0C, $3C ;0x0 (0x000086C2-0x000086C4, Entry count: 0x2) [Unknown data]
+	dc.w	$0C3C
 	dc.w	$09FF
 	dc.w	$0929
-	dc.b	$08, $73 ;0x0 (0x000086C8-0x000086CA, Entry count: 0x2) [Unknown data]
+	dc.w	$0873
 	dc.w	$07D8
 	dc.w	$0717
-	dc.b	$06, $78 ;0x0 (0x000086CE-0x000086D0, Entry count: 0x2) [Unknown data]
+	dc.w	$0678
 	dc.w	$057E
 	dc.w	$04C8
-	dc.b	$04, $7D ;0x0 (0x000086D4-0x000086D6, Entry count: 0x2) [Unknown data]
+	dc.w	$047D
 	dc.w	$03FF
 	dc.w	$038B
-	dc.b	$03, $6F, $03, $3C, $03, $0E, $02, $EE ;0x0 (0x000086DA-0x000086E2, Entry count: 0x8) [Unknown data]
+	dc.w	$036F
+  dc.w	$033C
+  dc.w	$030E
+  dc.w	$02EE
 	dc.w	$02C0
-	dc.b	$02, $87, $02, $71 ;0x0 (0x000086E4-0x000086E8, Entry count: 0x4) [Unknown data]
+	dc.w	$0287
+  dc.w  $0271
 	dc.w	$0264
-	dc.b	$02, $33 ;0x0 (0x000086EA-0x000086EC, Entry count: 0x2) [Unknown data]
+	dc.w	$0233
 	dc.w	$0209
-	dc.b	$01, $F6, $01, $F2, $01, $CD, $01, $A4, $01, $98 ;0x0 (0x000086EE-0x000086F8, Entry count: 0xA) [Unknown data]
+	dc.w	$01F6
+  dc.w  $01F2
+  dc.w  $01CD
+  dc.w  $01A4
+  dc.w  $0198
 	dc.w	$0192
-	dc.b	$01, $6D, $01, $60 ;0x0 (0x000086FA-0x000086FE, Entry count: 0x4) [Unknown data]
+	dc.w	$016D
+  dc.w  $0160
 	dc.w	$015B
-	dc.b	$01, $39 ;0x0 (0x00008700-0x00008702, Entry count: 0x2) [Unknown data]
+	dc.w	$0139
 	dc.w	$012F
 	dc.w	$012A
-	dc.b	$01, $22, $01, $19, $01, $11, $01, $05 ;0x0 (0x00008706-0x0000870E, Entry count: 0x8) [Unknown data]
+	dc.w	$0122
+  dc.w	$0119
+  dc.w	$0111
+  dc.w	$0105
 loc_870E:
-	dc.w	$A7F1, $A7F2, $A7D7, $A7CE, $A7E0 ;0x0 (0x0000870E-0x00008718, Entry count: 0xA)
+	dc.w	$A7F1, $A7F2, $A7D7, $A7CE, $A7E0
 loc_8718:
-	dc.w	$A7D5, $A7D2, $A7D6, $A7D2, $A7DD ;0x0 (0x00008718-0x00008722, Entry count: 0xA)
+	dc.w	$A7D5, $A7D2, $A7D6, $A7D2, $A7DD
 loc_8722:
-	dc.w	$A7F1, $A7F2, $A7D5, $A7D2, $A7D6, $A7D2, $A7DD ;0x0 (0x00008722-0x00008730, Entry count: 0xE)
+	dc.w	$A7F1, $A7F2, $A7D5, $A7D2, $A7D6, $A7D2, $A7DD
 loc_8730:
-	dc.w	$A7D8, $A7DF, $A7CE, $A7DB ;0x0 (0x00008730-0x00008738, Entry count: 0x8)
-	dc.b	$00
-	dc.b	$10
+	dc.w	$A7D8, $A7DF, $A7CE, $A7DB
+	dc.w	$0010
 loc_873A:
 	TST.w	$FFFF9140.w
 	BEQ.w	loc_87D0
