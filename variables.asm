@@ -26,6 +26,7 @@
 ; 0xAE00: Player state struct ??
 ; 0xae1a: Player distance on current track
 ; 0xae26: Player's current speed (read only)
+; 0xE9EC: 10 bytes determines team color
 ; 0xfc50: crash recoil from signs (word)
 ; 0xfc54: Set last bit to crash/retire (word)
 ; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)
