@@ -5,74 +5,74 @@
 StartOfRom:
 Vectors:
 loc_0:
-	dc.l	$00FF0100
+	dc.l	$00FF0100  ; Initial stack pointer value
 loc_4:
-	dc.l	loc_20E
+	dc.l	EntryPoint ; Start of program
 loc_8:
-	dc.l	loc_200
-	dc.l	loc_200
-	dc.l	loc_204
-	dc.l	loc_204
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	$FFFFFFD2
-	dc.l	loc_20C
-	dc.l	loc_3B4
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_20C
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
-	dc.l	loc_208
+	dc.l	ErrorTrap1 ; Bus error
+	dc.l	ErrorTrap1 ; Address error (4)
+	dc.l	ErrorTrap2 ; Illegal instruction
+	dc.l	ErrorTrap2 ; Division by zero
+	dc.l	ErrorTrap3 ; CHK exception
+	dc.l	ErrorTrap3 ; TRAPV exception (8)
+	dc.l	ErrorTrap3 ; Privilege violation
+	dc.l	ErrorTrap3 ; TRACE exception
+	dc.l	ErrorTrap3 ; Line-A emulator
+	dc.l	ErrorTrap3 ; Line-F emulator (12)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (16)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (20)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (24)
+	dc.l	ErrorTrap3 ; Spurious exception
+	dc.l	loc_20C    ; IRQ level 1
+	dc.l	loc_20C    ; IRQ level 2
+	dc.l	loc_20C    ; IRQ level 3 (28)
+	dc.l	$FFFFFFD2  ; IRQ level 4 (horizontal retrace interrupt)
+	dc.l	loc_20C    ; IRQ level 5
+	dc.l	loc_3B4    ; IRQ level 6 (vertical retrace interrupt)
+	dc.l	loc_20C    ; IRQ level 7 (32)
+	dc.l	loc_20C    ; TRAP #00 exception
+	dc.l	loc_20C    ; TRAP #01 exception
+	dc.l	loc_20C    ; TRAP #02 exception
+	dc.l	loc_20C    ; TRAP #03 exception (36)
+	dc.l	loc_20C    ; TRAP #04 exception
+	dc.l	loc_20C    ; TRAP #05 exception
+	dc.l	loc_20C    ; TRAP #06 exception
+	dc.l	loc_20C    ; TRAP #07 exception (40)
+	dc.l	loc_20C    ; TRAP #08 exception
+	dc.l	loc_20C    ; TRAP #09 exception
+	dc.l	loc_20C    ; TRAP #10 exception
+	dc.l	loc_20C    ; TRAP #11 exception (44)
+	dc.l	loc_20C    ; TRAP #12 exception
+	dc.l	loc_20C    ; TRAP #13 exception
+	dc.l	loc_20C    ; TRAP #14 exception
+	dc.l	loc_20C    ; TRAP #15 exception (48)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (52)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (56)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (60)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved)
+	dc.l	ErrorTrap3 ; Unused (reserved) (64)
 
-  Header:
+Header:
   dc.b "SEGA MEGA DRIVE " ; Console name
 	dc.b "(C)SEGA 1990.JUN" ; Copyright holder and release date
   dc.b "Super Monaco GP                                 " ; Domestic name
@@ -93,18 +93,21 @@ ROMEndLoc:
 	dc.b "            "	; Modem support
 	dc.b "                                        "	; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
   dc.b "JUE             " ; Region
-loc_200:
-	NOP	;Predicted (Offset array entry)
-	BRA.b	loc_200	;Predicted (Code-scan)
-loc_204:
-	NOP	;Predicted (Offset array entry)
-	BRA.b	loc_204	;Predicted (Code-scan)
-loc_208:
+;loc_200:
+ErrorTrap1:
 	NOP
-	BRA.b	loc_208
+	BRA.b	ErrorTrap1
+;loc_204:
+ErrorTrap2:
+	NOP
+	BRA.b	ErrorTrap2
+;loc_208:
+ErrorTrap3:
+	NOP
+	BRA.b	ErrorTrap3
 loc_20C:
 	RTE	;Predicted (Offset array entry)
-loc_20E:
+EntryPoint:
 	TST.l	$00A10008
 loc_214:
 	BNE.w	loc_2EE
@@ -166,7 +169,7 @@ loc_296:
 	LEA	ROMEndLoc.w, A0
 	MOVE.l	(A0), D0
 	ADDQ.l	#1, D0
-	LEA	loc_200.w, A0
+	LEA	ErrorTrap1.w, A0
 	SUB.l	A0, D0
 	ASR.l	#1, D0
 	MOVE.w	D0, D2
