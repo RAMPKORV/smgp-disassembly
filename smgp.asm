@@ -2,6 +2,7 @@
 	include "constants.asm"
 	include	"variables.asm"
 
+StartOfRom:
 Vectors:
 loc_0:
 	dc.l	$00FF0100
@@ -76,18 +77,22 @@ loc_8:
 	dc.b "(C)SEGA 1990.JUN" ; Copyright holder and release date
   dc.b "Super Monaco GP                                 " ; Domestic name
 	dc.b "Super Monaco GP                                 " ; International name
-	dc.l	$474D2020	;Predicted (Code target predicted at 0x474D2020)
-	dc.l	$20202034	;Predicted (Code target predicted at 0x20202034)
-	dc.l	$3032362D	;Predicted (Code target predicted at 0x3032362D)
-	dc.b	$30, $31 ;0x0 (0x0000018C-0x0000018E, Entry count: 0x2) [Unknown data]
+  dc.b "GM     4026-01" ; Version
 loc_18E:
-	dc.w	$65B5
-	dc.b	'J               ',0,0,0,0 ;0x0 (0x00000190-0x000001A4, Entry count: 0x14) [Unknown data]
-loc_1A4:
-	dc.l	$0007FFFF
-	dc.b	$00, $FF, $00, $00, $00, $FF, $FF, $FF, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20 ;0x0 (0x000001A8-0x00000200, Entry count: 0x58) [Unknown data]
-	dc.b	$20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20 ;0x20
-	dc.b	$20, $20, $20, $20, $20, $20, $20, $20, $4A, $55, $45, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20, $20 ;0x40
+	dc.w	$65B5 ; Checksum
+	dc.b	'J               '
+  dc.l StartOfRom
+;loc_1A4:
+ROMEndLoc:
+	dc.l EndOfRom-1
+	dc.l $00FF0000 ; Start of RAM
+  dc.l $00FFFFFF ; End of RAM
+  dc.b "    "		; Backup RAM ID
+	dc.l $20202020		; Backup RAM start address
+	dc.l $20202020		; Backup RAM end address
+	dc.b "            "	; Modem support
+	dc.b "                                        "	; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
+  dc.b "JUE             " ; Region
 loc_200:
 	NOP	;Predicted (Offset array entry)
 	BRA.b	loc_200	;Predicted (Code-scan)
@@ -158,7 +163,7 @@ loc_296:
 	MOVE.w	D0, (A2)
 	MOVEM.l	(A6), D0/D1/D2/D3/D4/D5/D6/D7/A0/A1/A2/A3/A4/A5/A6
 	MOVE	#$2700, SR
-	LEA	loc_1A4.w, A0
+	LEA	ROMEndLoc.w, A0
 	MOVE.l	(A0), D0
 	ADDQ.l	#1, D0
 	LEA	loc_200.w, A0
@@ -40369,4 +40374,5 @@ loc_763F0:
 	dc.b	$22, $10, $19, $0A, $A1, $13, $A9, $01, $A3, $A9, $00, $A1, $10, $00, $1A, $09, $A2, $29, $00, $2A, $9A, $21, $91, $91, $99, $11, $01, $91, $00, $1A, $1A, $01 ;0x97C0
 	dc.b	$1A, $20, $00, $A2, $0A, $19, $92, $19, $10, $A1, $00, $01, $09, $19, $19, $90, $10, $01, $09, $10, $90, $00, $19, $00, $00, $00, $19, $00, $00, $00, $00, $00 ;0x97E0
 	dc.b	$09, $10, $00, $19, $19, $19, $00, $91, $00, $00, $01, $90, $19, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;0x9800
-endOfRom:
+EndOfRom:
+	END
