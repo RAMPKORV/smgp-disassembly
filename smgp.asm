@@ -19616,19 +19616,41 @@ loc_13392:
 	dc.b	$00 ;0x0 (0x000133A3-0x000133A4, Entry count: 0x1) [Unknown data]
 loc_133A4:
 	dc.b	$01, $01, $01, $01, $02, $01, $02, $02, $02, $01, $02, $01, $02, $02, $02, $02 ;0x0 (0x000133A4-0x000133B4, Entry count: 0x10)
-loc_133B4:
-	dc.b	$06, $0A, $06, $08, $0A, $04, $0A, $08, $08, $0A, $06, $08, $08, $06, $0A, $06, $06, $08, $08, $0A, $04, $08, $06, $06, $08, $02, $0A, $04, $06, $0A, $06, $06 ;0x0 (0x000133B4-0x00013404, Entry count: 0x50)
-	dc.b	$06, $06, $08, $02, $08, $04, $04, $08, $02, $06, $04, $04, $06, $04, $06, $04, $04, $04, $04, $04, $06, $06, $08, $04, $06, $02, $04, $04, $06, $04, $04, $04 ;0x20
-	dc.b	$04, $04, $04, $04, $02, $04, $02, $04, $02, $04, $04, $04, $04, $04, $04, $02 ;0x40
+loc_133B4: ; Team car characteristics
+  ; Suspected
+  ; 1st byte: Affects acceleration
+  ; 2nd byte: Affects max speed
+  ; 3rd byte: Affects steering?
+  ; 4th byte: Affects breaks?
+  ; 5th byte: ?
+  dc.b  $06, $0A, $06, $08, $0A ; Madonna
+  dc.b  $04, $0A, $08, $08, $0A ; Firenze
+  dc.b  $06, $08, $08, $06, $0A ; Millions
+  dc.b  $06, $06, $08, $08, $0A ; Bestowal
+  dc.b  $04, $08, $06, $06, $08 ; Blanche
+  dc.b  $02, $0A, $04, $06, $0A ; Tyrant
+  dc.b  $06, $06, $06, $06, $08 ; Losel
+  dc.b  $02, $08, $04, $04, $08 ; May
+  dc.b  $02, $06, $04, $04, $06 ; Bullets
+  dc.b  $04, $06, $04, $04, $04 ; Dardan
+  dc.b  $04, $04, $06, $06, $08 ; Linden
+  dc.b  $04, $06, $02, $04, $04 ; Minarae
+  dc.b  $06, $04, $04, $04, $04 ; Rigel
+  dc.b  $04, $04, $04, $02, $04 ; Comet
+  dc.b  $02, $04, $02, $04, $04 ; Orchis
+  dc.b  $04, $04, $04, $04, $02 ; Zero Force
 loc_13404:
-	dc.b	$FF, $FF, $00, $00 ;0x0 (0x00013404-0x00013408, Entry count: 0x4) [Unknown data]
+	dc.w	$FFFF
+  dc.w  $0000
 	dc.w	$0002
-	dc.b	$00, $01 ;0x0 (0x0001340A-0x0001340C, Entry count: 0x2) [Unknown data]
+	dc.w	$0001
 loc_1340C:
-	dc.b	$00, $00, $00, $1E ;0x0 (0x0001340C-0x00013410, Entry count: 0x4) [Unknown data]
+	dc.w	$0000
+  dc.w	$001E
 	dc.w	$003C
 	dc.w	$005A
-	dc.b	$00, $78, $00, $96 ;0x0 (0x00013414-0x00013418, Entry count: 0x4) [Unknown data]
+	dc.w	$0078
+  dc.w	$0096
 	JSR	loc_396
 	SUBQ.w	#1, $FFFFFC16.w
 	BCC.b	loc_13484
