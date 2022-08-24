@@ -15072,13 +15072,17 @@ loc_CA76:
 loc_CA94:
 	RTS
 loc_CA96:
-	dc.b	$10, $12, $FB, $43, $1D, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FC, $3A, $32, $32, $17, $0E, $21, $1D, $32, $1B, $18, $1E ;0x0 (0x0000CA96-0x0000CAEC, Entry count: 0x56) [Unknown data]
-	dc.b	$17, $0D, $32, $3B, $FC, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FC, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D ;0x20
-	dc.b	$32, $32, $32, $3B, $FC, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF, $00 ;0x40
+	dc.b	$10, $12, $FB, $43, $1D, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FC, $3A, $32, $32
+  txt "NEXT ROUND "
+  dc.b $3B, $FC, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FC, $3A, $32, $32
+  txt "PASSWORD   "
+  dc.b $3B, $FC, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF, $00 ;0x40
 loc_CAEC:
-	dc.b	$10, $12, $FB, $43, $1D, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FC, $3A, $32, $32, $17, $0E, $21, $1D, $32, $22, $0E, $0A, $1B ;0x0 (0x0000CAEC-0x0000CB3C, Entry count: 0x50) [Unknown data]
-	dc.b	$32, $3B, $FC, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FC, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $32, $32, $3B ;0x20
-	dc.b	$FC, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF ;0x40
+	dc.b	$10, $12, $FB, $43, $1D, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FC, $3A, $32, $32
+  txt "NEXT YEAR "
+	dc.b	$3B, $FC, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FC, $3A, $32, $32
+  txt "PASSWORD  "
+	dc.b	$3B, $FC, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF
 loc_CB3C:
 	LEA	loc_CA96, A6
 	CMPI.w	#$0010, $FFFF9144.w
@@ -16091,9 +16095,17 @@ loc_DAF2:
 	dc.l	loc_DAFC
 	dc.l	loc_DB12
 loc_DAFC:
-	dc.b	$E5, $06, $FB, $67, $C0, $22, $18, $1E, $26, $1F, $0E, $FA, $0D, $18, $17, $0E, $FA, $12, $1D, $2D, $FF, $00 ;0x0 (0x0000DAFC-0x0000DB12, Entry count: 0x16) [Unknown data]
+	dc.b	$E5, $06, $FB, $67, $C0
+  txt "YOU'VE", $FA
+  txt "DONE", $FA
+  txt "IT!", $FF, $00
 loc_DB12:
-	dc.b	$E8, $8A, $22, $18, $1E, $1B, $FA, $15, $12, $0C, $0E, $17, $1C, $0E, $FC, $17, $18, $29, $FA, $04, $06, $00, $00, $2C, $1D, $11, $06, $09, $FF, $00 ;0x0 (0x0000DB12-0x0000DB30, Entry count: 0x1E) [Unknown data]
+	dc.b	$E8, $8A
+
+  txt "YOUR", $FA
+  txt "LICENSE", $FC
+  txt "NO", $29, $FA
+  dc.b $04, $06, $00, $00, $2C, $1D, $11, $06, $09, $FF, $00
 	JSR	loc_396
 	BSR.b	loc_DB56
 	JSR	loc_D5C
@@ -16282,18 +16294,30 @@ loc_DDDA:
 	dc.l	loc_DDE4
 	dc.l	loc_DE0C
 loc_DDE4:
-	dc.b	$E4, $B0, $FB, $C7, $C0, $FA, $15, $0A, $19, $FA, $FA, $FA, $1D, $12, $16, $0E, $FC, $FD, $FA, $01, $1C, $1D, $FC, $FA, $02, $17, $0D, $FC, $FA, $03, $1B, $0D ;0x0 (0x0000DDE4-0x0000DE0C, Entry count: 0x28) [Unknown data]
-	dc.b	$FC, $FD, $1D, $18, $1D, $0A, $15, $FF ;0x20
+	dc.b	$E4, $B0, $FB, $C7, $C0, $FA
+  txt "LAP"
+  dc.b $FA, $FA, $FA
+  txt "TIME"
+  dc.b $FC, $FD, $FA, $01
+  txt "ST"
+  dc.b $FC, $FA, $02
+  txt "ND"
+  dc.b $FC, $FA, $03
+  txt "RD"
+	dc.b	$FC, $FD
+  txt "TOTAL", $FF
 loc_DE0C:
-	dc.b	$EB, $2E, $0D, $1B, $12, $1F, $0E, $1B, $26, $1C, $FA, $19, $18, $12, $17, $1D, $1C, $FF ;0x0 (0x0000DE0C-0x0000DE1E, Entry count: 0x12) [Unknown data]
+	dc.b	$EB, $2E
+  txt "DRIVER'S", $FA
+  txt "POINTS", $FF
 loc_DE1E:
 	dc.l	$FFFF92E4
 	dc.l	$FFFF92E8
 	dc.l	$FFFF92EC
 	dc.l	$FFFF92DC
 loc_DE2E:
-	dc.l	$E5BAE6BA	;Predicted
-	dc.l	$E7BAE93A	;Predicted
+	dc.l	$E5BAE6BA
+	dc.l	$E7BAE93A
 loc_DE36:
 	dc.l	$FFFFEA00
 	dc.l	$FFFFEB52
@@ -16600,36 +16624,35 @@ loc_E326:
 loc_E334:
 	dc.b	$00, $BD, $00, $CC, $00, $02, $F1, $B4, $01, $26, $00, $BF, $00, $02, $F1, $C2, $01, $8A, $00, $CB, $00, $02, $F1, $D0, $00, $E7, $00, $B0, $00, $02, $F1, $E4 ;0x0 (0x0000E334-0x0000E354, Entry count: 0x20) [Unknown data]
 loc_E354:
-	dc.b	$00, $01 ;0x0 (0x0000E354-0x0000E356, Entry count: 0x2) [Unknown data]
+	dc.b	$00, $01
 	dc.l	loc_E35E
 	dc.l	loc_E386
 loc_E35E:
-	dc.l	$E786FBC7	;Predicted
-	dc.l	$C0FA150A	;Predicted
-	dc.l	$19FAFAFA	;Predicted
-	dc.l	$1D12160E	;Predicted
-	dc.l	$FCFDFA01	;Predicted
-	dc.l	$1C1DFCFA	;Predicted
-	dc.l	$02170DFC	;Predicted
-	dc.l	$FA031B0D	;Predicted
-	dc.l	$FCFD1D18	;Predicted
-	dc.l	$1D0A15FF	;Predicted
+	dc.b	$E7, $86, $FB, $C7
+	dc.b	$C0, $FA
+  txt "LAP"
+  dc.b $FA, $FA, $FA
+	txt "TIME"
+	dc.b	$FC, $FD, $FA
+  txt "1ST", $FC, $FA
+	txt "2ND", $FC, $FA
+  txt "3RD", $FC, $FD
+  txt "TOTAL", $FF
 loc_E386:
-	dc.l	$EB260D1B	;Predicted
-	dc.l	$121F0E1B	;Predicted
-	dc.l	$261CFA19	;Predicted
-	dc.l	$1812171D	;Predicted
-	dc.l	$1CFF87D9	;Predicted
+	dc.l	$EB, $26
+  txt "DRIVER'S", $FA
+  txt "POINTS", $FF
+  dc.b $87, $D9
 loc_E39A:
-	dc.l	$87DB87CE	;Predicted
-	dc.l	$87D987CA	;Predicted
-	dc.l	$87DB87CE	;Predicted
-	dc.l	loc_87DE-1	;Predicted
-	dc.l	$87D80000	;Predicted
-	dc.l	$87C287D7	;Predicted
-	dc.l	$87CD0000	;Predicted
-	dc.l	$87DB87CA	;Predicted
-	dc.l	$87CC87CE	;Predicted
+	dc.l	$87, $DB, $87, $CE
+	dc.l	$87, $D9, $87, $CA
+	dc.l	$8, $7DB, $87, $CE
+	dc.l	loc_87DE-1
+	dc.l	$87, $D8, $00, $00
+	dc.l	$87, $C2, $87, $D7
+	dc.l	$87, $CD, $00, $00
+	dc.l	$87, $DB, $87, $CA
+	dc.l	$87, $CC, $87, $CE
 loc_E3BE:
 	dc.l	$FFFF92E4
 	dc.l	$FFFF92E8
