@@ -14604,7 +14604,7 @@ loc_C480:
 	dc.w	$0EF6
 loc_C48A:
 	dc.l	$07D80ED8
-	dc.b	$10, $EE, $07, $EE, $0E, $EE
+	dc.b	$10, $EE, $07, $EE, $0E, $EE ;0x0 (0x0000C48E-0x0000C494, Entry count: 0x6) [Unknown data]
 loc_C494:
 	dc.b	$04, $04, $FB, $A7, $C0
   txt "POSITION"
@@ -14612,15 +14612,11 @@ loc_C494:
   txt "YOU"
   dc.b $2B
   txt "RIVAL"
-  dc.b $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF
+  dc.b $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF ;0x0 (0x0000C494-0x0000C4B4, Entry count: 0x20) [Unknown data]
 loc_C4B4:
-	dc.b	$04, $06, $FB, $A7, $C0
-  txt "YOUR"
-  dc.b $FC, $FA
-  txt "POSITION"
-  dc.b $28, $FF, $00
+	dc.b	$04, $06, $FB, $A7, $C0, $22, $18, $1E, $1B, $FC, $FA, $19, $18, $1C, $12, $1D, $12, $18, $17, $28, $FF, $00 ;0x0 (0x0000C4B4-0x0000C4CA, Entry count: 0x16) [Unknown data]
 loc_C4CA:
-	dc.b	$00, $07
+	dc.b	$00, $07 ;0x0 (0x0000C4CA-0x0000C4CC, Entry count: 0x2) [Unknown data]
 	dc.l	loc_C4EC
 	dc.l	loc_C4FA
 	dc.l	loc_C500
@@ -14630,12 +14626,9 @@ loc_C4CA:
 	dc.l	loc_C51C
 	dc.l	loc_C520
 loc_C4EC:
-	dc.b	$01, $2C, $FB, $A7, $C0
-  txt "LAP", $FA
-  txt "TIME", $FF
+	dc.b	$01, $2C, $FB, $A7, $C0, $15, $0A, $19, $FA, $1D, $12, $16, $0E, $FF ;0x0 (0x0000C4EC-0x0000C4FA, Entry count: 0xE) [Unknown data]
 loc_C4FA:
-	dc.b	$04, $30
-  txt "LAP", $FF
+	dc.b	$04, $30, $15, $0A, $19, $FF ;0x0 (0x0000C4FA-0x0000C500, Entry count: 0x6) [Unknown data]
 loc_C500:
 	dc.b	$04, $38, $FB, $C4, $AC, $1C, $10, $FC, $1D, $11, $FF, $00 ;0x0 (0x0000C500-0x0000C50C, Entry count: 0xC) [Unknown data]
 loc_C50C:
@@ -14659,47 +14652,43 @@ loc_C5A4:
 loc_C5D8:
 	dc.w	$C7EC, $0000, $C7CD, $C7DB, $C7D2, $C7DF, $C7CE, $C7DB, $C7E6, $C7DC, $0000, $C7D9, $C7D8, $C7D2, $C7D7, $C7DD, $0000, $C7DB, $C7CA, $C7D7, $C7D4, $C7D2, $C7D7, $C7D0, $0000, $C7EC ;0x0 (0x0000C5D8-0x0000C60C, Entry count: 0x34)
 loc_C60C:
-	txt "YOU", $00
+	dc.b	$22, $18, $1E, $00 ;0x0 (0x0000C60C-0x0000C610, Entry count: 0x4) [Unknown data]
 loc_C610:
 	dc.w	$0000, $87EC, $87EC, $87EC ;0x0 (0x0000C610-0x0000C618, Entry count: 0x8)
 loc_C618:
-	dc.b	$02, $06, $FB, $C7, $C0, $1B
-  txt "ROUND", $FA, $FF
+	dc.b	$02, $06, $FB, $C7, $C0, $1B, $18, $1E, $17, $0D, $FA, $FF ;0x0 (0x0000C618-0x0000C624, Entry count: 0xC) [Unknown data]
 loc_C624:
-	txt "SAN", $FA
-  txt "MARINO", $FF
+	dc.b	$1C, $0A, $17, $FA, $16, $0A, $1B, $12, $17, $18, $FF ;0x0 (0x0000C624-0x0000C62F, Entry count: 0xB)
 loc_C62F:
-	txt "BRAZIL", $FF
+	dc.b	$0B, $1B, $0A, $23, $12, $15, $FF ;0x0 (0x0000C62F-0x0000C636, Entry count: 0x7)
 loc_C636:
-	txt "FRANCE", $FF
+	dc.b	$0F, $1B, $0A, $17, $0C, $0E, $FF ;0x0 (0x0000C636-0x0000C63D, Entry count: 0x7)
 loc_C63D:
-	txt "HUNGARY", $FF
+	dc.b	$11, $1E, $17, $10, $0A, $1B, $22, $FF ;0x0 (0x0000C63D-0x0000C645, Entry count: 0x8)
 loc_C645:
-  txt "WEST", $FA
-  txt "GERMANY", $FF
+	dc.b	$20, $0E, $1C, $1D, $FA, $10, $0E, $1B, $16, $0A, $17, $22, $FF ;0x0 (0x0000C645-0x0000C652, Entry count: 0xD)
 loc_C652:
-	txt "U.S.A", $FF
+	dc.b	$1E, $29, $1C, $29, $0A, $29, $FF ;0x0 (0x0000C652-0x0000C659, Entry count: 0x7)
 loc_C659:
-	txt "CANADA", $FF
+	dc.b	$0C, $0A, $17, $0A, $0D, $0A, $FF ;0x0 (0x0000C659-0x0000C660, Entry count: 0x7)
 loc_C660:
-  txt "GREAT", $FA
-  txt "BRITAIN", $FF
+	dc.b	$10, $1B, $0E, $0A, $1D, $FA, $0B, $1B, $12, $1D, $0A, $12, $17, $FF ;0x0 (0x0000C660-0x0000C66E, Entry count: 0xE)
 loc_C66E:
-	txt "ITALY", $FF
+	dc.b	$12, $1D, $0A, $15, $22, $FF ;0x0 (0x0000C66E-0x0000C674, Entry count: 0x6)
 loc_C674:
-	txt	"PORTUGAL", $FF
+	dc.b	$19, $18, $1B, $1D, $1E, $10, $0A, $15, $FF ;0x0 (0x0000C674-0x0000C67D, Entry count: 0x9)
 loc_C67D:
-	txt "SPAIN", $FF
+	dc.b	$1C, $19, $0A, $12, $17, $FF ;0x0 (0x0000C67D-0x0000C683, Entry count: 0x6)
 loc_C683:
-	txt "MEXICO", $FF
+	dc.b	$16, $0E, $21, $12, $0C, $18, $FF ;0x0 (0x0000C683-0x0000C68A, Entry count: 0x7)
 loc_C68A:
-	txt "JAPAN", $FF
+	dc.b	$13, $0A, $19, $0A, $17, $FF ;0x0 (0x0000C68A-0x0000C690, Entry count: 0x6)
 loc_C690:
-	txt "BELGIUM", $FF
+	dc.b	$0B, $0E, $15, $10, $12, $1E, $16, $FF ;0x0 (0x0000C690-0x0000C698, Entry count: 0x8)
 loc_C698:
-	txt "AUSTRALIA", $FF
+	dc.b	$0A, $1E, $1C, $1D, $1B, $0A, $15, $12, $0A, $FF ;0x0 (0x0000C698-0x0000C6A2, Entry count: 0xA)
 loc_C6A2:
-	txt "MONACO", $FF
+	dc.b	$16, $18, $17, $0A, $0C, $18, $FF ;0x0 (0x0000C6A2-0x0000C6A9, Entry count: 0x7)
 	dc.b	$00 ;0x0 (0x0000C6A9-0x0000C6AA, Entry count: 0x1) [Unknown data]
 loc_C6AA:
 	MOVE.w	(A5)+, (A6)+
