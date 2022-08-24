@@ -5973,9 +5973,17 @@ loc_522A:
 	DBF	D0, loc_522A	;Predicted (Code-scan)
 	RTS	;Predicted (Code-scan)
 loc_5232:
-	dc.b	$01, $04, $FB, $C7, $C0, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FA, $17, $0E, $21, $1D, $FA, $22, $0E, $0A, $1B, $26, $1C, $FA, $15, $12, $17, $0E, $FA, $1E, $19 ;0x0 (0x00005232-0x00005282, Entry count: 0x50) [Unknown data]
-	dc.b	$FA, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FC, $FB, $A7, $C0, $FA, $1D, $0E, $0A, $16, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $0D, $1B, $12, $1F, $0E, $1B, $FA ;0x20
-	dc.b	$FA, $FA, $FA, $FA, $17, $0A, $1D, $12, $18, $17, $0A, $15, $12, $1D, $22, $FF ;0x40
+	dc.b	$01, $04, $FB, $C7, $C0, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FA
+  txt "NEXT", $FA
+  txt "YEAR'S", $FA
+  txt "LINE", $FA
+  txt "UP"
+	dc.b	$FA, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FC, $FB, $A7, $C0, $FA
+  txt "TEAM"
+  dc.b $FA, $FA, $FA, $FA, $FA, $FA, $FA
+  txt "DRIVER"
+	dc.b	$FA, $FA, $FA, $FA, $FA
+  txt "NATIONALITY", $FF
 loc_5282:
 	dc.b	$00, $05, $32, $80 ;0x0 (0x00005282-0x00005286, Entry count: 0x4) [Unknown data]
 	dc.l	loc_2BE36
@@ -6004,13 +6012,21 @@ loc_5306:
 loc_530E:
 	dc.b	$1C, $0A, $00, $00, $0A, $00, $00, $0B, $00, $00, $0C, $00, $00, $0D, $00 ;0x0 (0x0000530E-0x0000531D, Entry count: 0xF) [Unknown data]
 loc_531D:
-	dc.b	$FB, $C7, $C0, $1B, $0E, $1D, $12, $1B, $0E, $0D, $FF ;0x0 (0x0000531D-0x00005328, Entry count: 0xB)
+	dc.b	$FB, $C7, $C0
+  txt "RETIRED", $FF
 loc_5328:
-	dc.b	$FB, $C7, $C0, $2C, $2C, $FF ;0x0 (0x00005328-0x0000532E, Entry count: 0x6) [Unknown data]
+	dc.b	$FB, $C7, $C0, $2C, $2C, $FF
 loc_532E:
-	dc.b	$01, $1C, $1D, $02, $17, $0D, $03, $1B, $0D, $04, $1D, $11 ;0x0 (0x0000532E-0x0000533A, Entry count: 0xC)
+	txt "1ST"
+  txt "2ND"
+  txt "3RD"
+  txt "4TH"
 loc_533A:
-	dc.b	$05, $1D, $11, $06, $1D, $11, $07, $1D, $11, $08, $1D, $11, $09, $1D, $11 ;0x0 (0x0000533A-0x00005349, Entry count: 0xF)
+	txt "5TH"
+  txt "6TH"
+  txt "7TH"
+  txt "8TH"
+  txt "9TH"
 loc_5349:
 	dc.b	$FB, $80, $01, $00, $01, $01, $01, $02, $01, $01, $01, $01, $02, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02 ;0x0 (0x00005349-0x00005397, Entry count: 0x4E)
 	dc.b	$01, $01, $01, $03, $01, $01, $04, $FD, $05, $06, $07, $08, $09, $0A, $0B, $0C, $0D, $0E, $0F, $10, $11, $12, $13, $14, $15, $16, $17, $18, $05, $19, $1A, $1B ;0x20
@@ -14590,7 +14606,13 @@ loc_C48A:
 	dc.l	$07D80ED8
 	dc.b	$10, $EE, $07, $EE, $0E, $EE ;0x0 (0x0000C48E-0x0000C494, Entry count: 0x6) [Unknown data]
 loc_C494:
-	dc.b	$04, $04, $FB, $A7, $C0, $19, $18, $1C, $12, $1D, $12, $18, $17, $FC, $FA, $22, $18, $1E, $2B, $1B, $12, $1F, $0A, $15, $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF ;0x0 (0x0000C494-0x0000C4B4, Entry count: 0x20) [Unknown data]
+	dc.b	$04, $04, $FB, $A7, $C0
+  txt "POSITION"
+  dc.b  $FC, $FA
+  txt "YOU"
+  dc.b $2B
+  txt "RIVAL"
+  dc.b $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF ;0x0 (0x0000C494-0x0000C4B4, Entry count: 0x20) [Unknown data]
 loc_C4B4:
 	dc.b	$04, $06, $FB, $A7, $C0, $22, $18, $1E, $1B, $FC, $FA, $19, $18, $1C, $12, $1D, $12, $18, $17, $28, $FF, $00 ;0x0 (0x0000C4B4-0x0000C4CA, Entry count: 0x16) [Unknown data]
 loc_C4CA:
