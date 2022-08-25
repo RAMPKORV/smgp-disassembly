@@ -21,7 +21,9 @@
 ; 0x9206: ?
 ; 0x9222: ?
 ; 0x9226; ?
+; 0x9244: ?
 ; 0x924C.l: Pointer to signs data (in ROM)
+; 0x9250: ?
 ; 0xA980: ? Some struct
 ; 0xAE00: Player state struct ??
 ; 0xae1a: Player distance on current track
