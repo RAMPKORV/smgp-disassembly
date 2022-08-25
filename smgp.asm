@@ -22201,7 +22201,7 @@ loc_20F2E:
 	dc.b	$00, $00, $00, $00, $0E, $EE, $08, $00, $06, $AE, $04, $6A, $02, $48, $00, $26, $0C, $CC, $08, $88, $04, $44, $06, $6E, $02, $2C, $02, $06, $02, $44, $00, $00 ;0x40
 	dc.b	$08, $AA, $00, $00, $00, $EE, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $06, $66, $00, $6C, $02, $AE, $00, $26, $0E, $EE, $08, $AA, $02, $44 ;0x60
 loc_20FAE: ; Suspected team color palettes
-	dc.b	$00, $06, $00, $0C, $00, $EC, $0A, $AE, $00, $0E ;0x0 (0x00020FAE-0x00020FB8, Entry count: 0xA) [Unknown data]
+	dc.b	$00, $06, $00, $0C, $00, $EC, $0A, $AE, $00, $0E
 	dc.w	$000E, $0008, $00EE, $0088 ;0x0 (0x00020FB8-0x00020FC0, Entry count: 0x8)
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $06, $6E, $02, $2C, $00, $04, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $08, $88, $02, $22, $06, $66, $00, $26 ;0x0 (0x00020FC0-0x00020FF0, Entry count: 0x30) [Unknown data]
 	dc.b	$0E, $EE, $0A, $AA, $02, $44, $02, $22, $04, $44, $00, $0A, $0C, $CC, $06, $66 ;0x20
@@ -22250,23 +22250,23 @@ loc_20FAE: ; Suspected team color palettes
 	dc.w	$0CCC, $0666, $004E, $0028 ;0x0 (0x00021300-0x00021308, Entry count: 0x8)
 	dc.b	$0E, $EE, $08, $88, $04, $44, $02, $4E, $00, $2A, $00, $04, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;0x0 (0x00021308-0x0002132E, Entry count: 0x26) [Unknown data]
 	dc.b	$00, $00, $00, $00, $00, $00 ;0x20
-loc_2132E:
-	dc.l	loc_2136E
-	dc.l	loc_21428-2
-	dc.l	loc_214D2-2
-	dc.l	loc_2157C-2
-	dc.l	loc_21618-2
-	dc.l	loc_216B4-2
-	dc.l	loc_21742-2
-	dc.l	loc_217D0-2
-	dc.l	loc_21850-2
-	dc.l	loc_218C2-2
-	dc.l	loc_21950-2
-	dc.l	loc_219C2-2
-	dc.l	loc_21A26-2
-	dc.l	loc_21A8A-2
-	dc.l	loc_21AE0-2
-	dc.l	loc_21B44-2
+loc_2132E: ; Pointers to team introduction layouts
+	dc.l	loc_2136E    ; Madonna
+	dc.l	loc_21428-2  ; Firenze
+	dc.l	loc_214D2-2  ; Millions
+	dc.l	loc_2157C-2  ; Bestowal
+	dc.l	loc_21618-2  ; Blanche
+	dc.l	loc_216B4-2  ; Tyrant
+	dc.l	loc_21742-2  ; Losel
+	dc.l	loc_217D0-2  ; May
+	dc.l	loc_21850-2  ; Bullets
+	dc.l	loc_218C2-2  ; Dardan
+ 	dc.l	loc_21950-2  ; Linden
+	dc.l	loc_219C2-2  ; Minarae
+	dc.l	loc_21A26-2  ; Rigel
+	dc.l	loc_21A8A-2  ; Comet
+	dc.l	loc_21AE0-2  ; Orchis
+	dc.l	loc_21B44-2  ; ZeroForce
 loc_2136E:
 	dc.b	$00, $0C ;0x0 (0x0002136E-0x00021370, Entry count: 0x2) [Unknown data]
 	dc.l	loc_21F14
@@ -22498,61 +22498,61 @@ loc_21850:
 	dc.l	loc_30009	;Predicted
 loc_218C2:
 	dc.l	loc_21EF6
-	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07 ;0x0 (0x000218C6-0x000218D0, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
-	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07 ;0x0 (0x000218D4-0x000218DE, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F4A
-	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07 ;0x0 (0x000218E2-0x000218EC, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EF6
-	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07 ;0x0 (0x000218F0-0x000218FA, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F14
-	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07 ;0x0 (0x000218FE-0x00021908, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
-	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07 ;0x0 (0x0002190C-0x00021916, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21ECC
-	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01 ;0x0 (0x0002191A-0x00021924, Entry count: 0xA) [Unknown data]
+	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EC0
-	dc.b	$20, $01, $6C, $C2, $00, $03, $00, $01, $00, $03 ;0x0 (0x00021928-0x00021932, Entry count: 0xA) [Unknown data]
+	dc.b	$20, $01, $6C, $C2, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21EC0
-	dc.b	$20, $01, $6C, $C6, $00, $03 ;0x0 (0x00021936-0x0002193C, Entry count: 0x6) [Unknown data]
+	dc.b	$20, $01, $6C, $C6, $00, $03
 	dc.l	loc_10004-1	;Predicted
 	dc.l	loc_21EC0
 	dc.l	$20016CCA	;Predicted
 	dc.l	loc_30001	;Predicted
 	dc.l	loc_30007	;Predicted
-loc_21950:
+loc_21950: ; Linden team introduction layout
 	dc.l	loc_21F1E
-	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07 ;0x0 (0x00021954-0x0002195E, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F62
-	dc.b	$60, $01, $69, $18, $00, $03, $00, $02, $00, $07 ;0x0 (0x00021962-0x0002196C, Entry count: 0xA) [Unknown data]
+	dc.b	$60, $01, $69, $18, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F2E
-	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07 ;0x0 (0x00021970-0x0002197A, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F14
-	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07 ;0x0 (0x0002197E-0x00021988, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
-	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07 ;0x0 (0x0002198C-0x00021996, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01 ;0x0 (0x0002199A-0x000219A4, Entry count: 0xA) [Unknown data]
+	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.b	$20, $01, $6D, $38, $00, $03 ;0x0 (0x000219A8-0x000219AE, Entry count: 0x6) [Unknown data]
+	dc.b	$20, $01, $6D, $38, $00, $03
 	dc.l	loc_40001	;Predicted
 	dc.l	loc_21ECC
 	dc.l	$20016D42	;Predicted
 	dc.l	loc_30004	;Predicted
 	dc.l	loc_10006	;Predicted
-loc_219C2:
+loc_219C2: ; Minarae team introduction layout
 	dc.l	loc_21F4A
-	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07 ;0x0 (0x000219C6-0x000219D0, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
-	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07 ;0x0 (0x000219D4-0x000219DE, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
-	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07 ;0x0 (0x000219E2-0x000219EC, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
-	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07 ;0x0 (0x000219F0-0x000219FA, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EF6
-	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07 ;0x0 (0x000219FE-0x00021A08, Entry count: 0xA) [Unknown data]
+	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $06, $00, $03 ;0x0 (0x00021A0C-0x00021A12, Entry count: 0x6) [Unknown data]
+	dc.b	$20, $01, $6D, $06, $00, $03
 	dc.l	loc_40001	;Predicted
 	dc.l	loc_21ECC
 	dc.l	$20016D40	;Predicted
@@ -26779,7 +26779,7 @@ loc_3B042:
 loc_3B062:
 	dc.b	$0D, $18, $17, $26, $1D, $32, $10, $12, $1F, $0E, $32, $16, $0E, $FC, $0A, $17, $22, $32, $1D, $1B, $18, $1E, $0B, $15, $0E, $2D, $FF ;0x0 (0x0003B062-0x0003B07D, Entry count: 0x1B)
 	dc.b	$00 ;0x0 (0x0003B07D-0x0003B07E, Entry count: 0x1) [Unknown data]
-loc_3B07E:
+loc_3B07E: ; Pointers to team introductions
 	dc.l	loc_3B17E	;Predicted
 	dc.l	loc_3B1A6	;Predicted
 	dc.l	loc_3B1BC	;Predicted

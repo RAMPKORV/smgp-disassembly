@@ -21,7 +21,8 @@
 ; 0x9206: ?
 ; 0x9222: ?
 ; 0x9226; ?
-; 0x9244: ?
+; 0x9240: Pointer to start of signs data for current track
+; 0x9244: Pointer to current signs data location
 ; 0x924C.l: Pointer to signs data (in ROM)
 ; 0x9250: ?
 ; 0xA980: ? Some struct
