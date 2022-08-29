@@ -2683,39 +2683,23 @@ loc_21FA:
 	dc.b	$02, $29, $00, $00, $0E, $EE, $0A, $AA, $02, $22, $06, $66, $04, $4E, $00, $08, $0E, $EE, $08, $88, $0C, $00, $02, $2E, $00, $00, $04, $44, $00, $0E, $00, $CE ;0x0 (0x000021FA-0x00002250, Entry count: 0x56) [Unknown data]
 	dc.b	$00, $00, $00, $00, $02, $2E, $0E, $EE, $02, $22, $06, $66, $00, $0E, $00, $08, $00, $EE, $00, $88, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00 ;0x20
 	dc.b	$00, $00, $00, $00, $00, $AE, $0E, $EE, $02, $22, $06, $66, $02, $A0, $00, $40, $02, $A0, $00, $40, $04, $44 ;0x40
-loc_2250:
-	dc.b	$00, $0E, $00, $08 ;0x0 (0x00002250-0x00002254, Entry count: 0x4) [Unknown data]
-	dc.l	$00EE0088
-	dc.b	$02, $2E, $00, $08 ;0x0 (0x00002258-0x0000225C, Entry count: 0x4) [Unknown data]
-	dc.l	$022E0008
-	dc.b	$0E, $44, $0A, $02 ;0x0 (0x00002260-0x00002264, Entry count: 0x4) [Unknown data]
-	dc.l	$00EE0088
-	dc.b	$00, $E0, $00, $60 ;0x0 (0x00002268-0x0000226C, Entry count: 0x4) [Unknown data]
-	dc.l	$00EE0068
-	dc.b	$0E, $EE, $06, $66 ;0x0 (0x00002270-0x00002274, Entry count: 0x4) [Unknown data]
-	dc.l	$0E440800
-	dc.b	$0E, $24, $0A, $02 ;0x0 (0x00002278-0x0000227C, Entry count: 0x4) [Unknown data]
-	dc.l	$0EEE0888
-	dc.b	$02, $CE, $00, $4A ;0x0 (0x00002280-0x00002284, Entry count: 0x4) [Unknown data]
-	dc.l	$02CE004A
-	dc.b	$0E, $E2, $0A, $60 ;0x0 (0x00002288-0x0000228C, Entry count: 0x4) [Unknown data]
-	dc.l	$0EE20A60
-	dc.b	$0E, $46, $0A, $02 ;0x0 (0x00002290-0x00002294, Entry count: 0x4) [Unknown data]
-	dc.l	$0EE80AA0
-	dc.b	$02, $6E, $00, $28 ;0x0 (0x00002298-0x0000229C, Entry count: 0x4) [Unknown data]
-	dc.l	$026E0028
-	dc.b	$0E, $66, $0E, $02 ;0x0 (0x000022A0-0x000022A4, Entry count: 0x4) [Unknown data]
-	dc.l	$0E660E02
-	dc.b	$0E, $EE, $06, $66 ;0x0 (0x000022A8-0x000022AC, Entry count: 0x4) [Unknown data]
-	dc.l	$00CE0068
-	dc.b	$06, $E0, $02, $60 ;0x0 (0x000022B0-0x000022B4, Entry count: 0x4) [Unknown data]
-	dc.l	$06E00260
-	dc.b	$0C, $EE, $06, $88 ;0x0 (0x000022B8-0x000022BC, Entry count: 0x4) [Unknown data]
-	dc.l	$0CEE0688
-	dc.b	$06, $66, $02, $22 ;0x0 (0x000022C0-0x000022C4, Entry count: 0x4) [Unknown data]
-	dc.l	$00EE008A
-	dc.b	$0E, $EE, $06, $66 ;0x0 (0x000022C8-0x000022CC, Entry count: 0x4) [Unknown data]
-	dc.l	$026E0028
+loc_2250: ; Player in-game palette
+	dc.b	$00, $0E, $00, $08,	$00, $EE,	$00, $88 ; Madonna
+	dc.b	$02, $2E, $00, $08,	$02, $2E, $00, $08 ; Firenze
+	dc.b	$0E, $44, $0A, $02,	$00, $EE, $00, $88 ; Millions
+	dc.b	$00, $E0, $00, $60, $00, $EE, $00, $68 ; Bestowal
+	dc.b	$0E, $EE, $06, $66, $0E, $44, $08, $00 ; Blanche
+	dc.b	$0E, $24, $0A, $02, $0E, $EE, $08, $88 ; Tyrant
+	dc.b	$02, $CE, $00, $4A, $02, $CE, $00, $4A ; Losel
+	dc.b	$0E, $E2, $0A, $60, $0E, $E2, $0A, $60 ; May
+	dc.b	$0E, $46, $0A, $02, $0E, $E8, $0A, $A0 ; Bullets
+	dc.b	$02, $6E, $00, $28, $02, $6E, $00, $28 ; Dardan
+	dc.b	$0E, $66, $0E, $02, $0E, $66, $0E, $02 ; Linden
+	dc.b	$0E, $EE, $06, $66, $00, $CE, $00, $68 ; Minarae
+	dc.b	$06, $E0, $02, $60, $06, $E0, $02, $60 ; Rigel
+	dc.b	$0C, $EE, $06, $88, $0C, $EE, $06, $88 ; Comet
+	dc.b	$06, $66, $02, $22, $00, $EE, $00, $8A ; Orchis
+	dc.b	$0E, $EE, $06, $66, $02, $6E, $00, $28 ; ZeroForce
 	JSR	loc_396
 	JSR	loc_C44
 	JSR	loc_D5C
@@ -19619,7 +19603,7 @@ loc_132E4:
 PointsAwardedPerPlacement:
 	dc.b	$09, $06, $04, $03, $02, $01
 loc_132F0:
-	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01 
+	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01
 loc_13300:
 	dc.b	$06, $06, $06, $06, $09, $09, $09, $09, $01, $02, $03, $04, $06, $06, $09, $09, $01, $02, $02, $03, $04, $06, $06, $09, $01, $01, $02, $03, $03, $04, $06, $09 ;0x0 (0x00013300-0x00013337, Entry count: 0x37)
 	dc.b	$00, $01, $02, $02, $03, $04, $04, $06, $00, $00, $01, $01, $02, $03, $03, $09, $00, $00, $01, $01, $02, $02, $03 ;0x20
