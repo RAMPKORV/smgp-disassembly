@@ -24711,7 +24711,7 @@ loc_3049A:
 	dc.b	$61, $32, $39, $51, $E2, $C3, $1B, $4B, $F6, $A2, $A3, $5C, $85, $E4, $6B, $98, $B1, $CC, $80, $00, $00, $00, $00, $02, $B9, $D6, $F9, $FF, $5F, $34, $B9, $C9 ;0x3A0
 	dc.b	$F2, $E7, $27, $FB, $5F, $27, $8F, $B5, $E6, $A5, $FE, $B9, $46, $27, $2B, $D4, $7D, $39, $DB, $8A, $E5, $5B, $E8, $13, $E9, $7D, $BE, $16, $AF, $12, $98, $C6 ;0x3C0
 	dc.b	$73, $00, $09, $C0 ;0x3E0
-loc_3087E:
+loc_3087E: ; Round sign tiles
 	dc.l	loc_308FE
 	dc.l	loc_30954
 	dc.l	loc_30990
@@ -24728,7 +24728,7 @@ loc_3087E:
 	dc.l	loc_30C44
 	dc.l	loc_30C82
 	dc.l	loc_30CB0
-loc_308BE:
+loc_308BE: ; Round sign tile mappings
 	dc.l	loc_30CEC
 	dc.l	loc_30E48
 	dc.l	loc_30F64
