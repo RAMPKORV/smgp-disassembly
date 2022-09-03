@@ -27664,11 +27664,11 @@ loc_3C62C:
 loc_3C650:
 	txt "DON'T DISGRACE\\nOUR TEAM!", $FF, $00
 loc_3C66A:
-	dc.b	$22, $18, $1E, $32, $0C, $18, $1E, $15, $0D, $32, $11, $0A, $1F, $0E, $32, $0D, $18, $17, $0E, $FC, $12, $1D, $32, $16, $1E, $0C, $11, $32, $0B, $0E, $1D, $1D, $0E, $1B, $29, $FF
+	txt "YOU COULD HAVE DONE\nIT MUCH BETTER.", $FF
 loc_3C68E:
-	dc.b	$20, $0E, $32, $0C, $0A, $17, $26, $1D, $32, $19, $1E, $1D, $32, $1E, $19, $32, $20, $12, $1D, $11, $FC, $22, $18, $1E, $32, $0A, $17, $22, $32, $16, $18, $1B, $0E, $29, $FF, $00
+	txt "WE CAN'T PUT UP WITH\nYOU ANY MORE.", $FF, $00
 loc_3C6B2:
-	dc.b	$22, $18, $1E, $32, $0A, $1B, $0E, $32, $1D, $18, $18, $32, $10, $18, $18, $0D, $FC, $0F, $18, $1B, $32, $18, $1E, $1B, $32, $1D, $0E, $0A, $16, $29, $FF, $00
+	txt "YOU ARE TOO GOOD\nFOR OUR TEAM.", $FF, $00
 loc_3C6D2:
 	dc.b	$FD, $1E, $17, $0B, $0E, $15, $12, $0E, $1F, $0A, $0B, $15, $0E, $2D, $FF, $00
 loc_3C6E2:
