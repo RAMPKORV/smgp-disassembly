@@ -26722,155 +26722,116 @@ loc_3AA2C:
 loc_3AA3C:
 	dc.b	$51, $48, $B9, $65, $4C, $67, $53, $64, $79, $FF
 loc_3AA46:
-	dc.b	$0E, $1B, $1B, $18, $1B, $FF
+	txt "ERROR", $FF
 loc_3AA4C:
-	dc.b	$FD, $22, $18, $1E, $1B, $32, $0D, $0A, $22, $1C, $32, $0A, $1B, $0E, $32, $10, $18, $17, $0E, $2D, $FF
-	dc.b	$00
+	dc.b	$FD, $22, $18, $1E, $1B, $32, $0D, $0A, $22, $1C, $32, $0A, $1B, $0E, $32, $10, $18, $17, $0E, $2D, $FF, $00
 loc_3AA62:
-	dc.b	$12, $26, $15, $15, $32, $1C, $11, $18, $20, $32, $22, $18, $1E, $32, $20, $11, $0A, $1D, $FC, $1B, $0E, $0A, $15, $32, $0D, $1B, $12, $1F, $12, $17, $10, $32
-	dc.b	$12, $1C, $29, $FF
+	txt "I'LL SHOW YOU WHAT\nREAL DRIVING IS.", $FF
 loc_3AA86:
-	dc.b	$1D, $11, $0E, $32, $1B, $0E, $1C, $1E, $15, $1D, $1C, $32, $20, $12, $15, $15, $32, $0B, $0E, $FC, $1A, $1E, $12, $1D, $0E, $32, $18, $0B, $1F, $12, $18, $1E
-	dc.b	$1C, $29, $FF, $00
+	txt "THE RESULTS WILL BE\nQUITE OBVIOUS.", $FF, $00
 loc_3AAAA:
-	dc.b	$12, $26, $15, $15, $32, $17, $0E, $1F, $0E, $1B, $32, $15, $18, $1C, $0E, $FC, $1D, $18, $32, $22, $18, $1E, $29, $FF
+	txt "I'LL NEVER LOSE\nTO YOU.", $FF
 loc_3AAC2:
-	dc.b	$1D, $11, $0E, $32, $1B, $0A, $0C, $0E, $32, $12, $1C, $17, $26, $1D, $32, $0A, $1C, $FC, $0E, $0A, $1C, $22, $32, $0A, $1C, $32, $22, $18, $1E, $32, $1D, $11
-	dc.b	$12, $17, $14, $29, $FF
-	dc.b	$00
+	txt	"THE RACE ISN'T AS\nEASY AS YOU THINK.", $FF, $00
 loc_3AAE8:
-	dc.b	$0D, $18, $17, $26, $1D, $32, $1D, $0A, $14, $0E, $32, $0A, $0D, $1F, $0A, $17, $1D, $0A, $10, $0E, $FC, $18, $0F, $32, $16, $0E, $2D, $FF
+	txt "DON'T TAKE ADVANTAGE\nOF ME!", $FF
 loc_3AB04:
-	dc.b	$0A, $1D, $32, $0F, $12, $1B, $1C, $1D, $2A, $FC, $1D, $0A, $14, $0E, $32, $12, $1D, $32, $0E, $0A, $1C, $22, $29, $FF
+	txt "AT FIRST,\nTAKE IT EASY.", $FF
 loc_3AB1C:
-	dc.b	$12, $26, $15, $15, $32, $17, $0E, $1F, $0E, $1B, $32, $16, $0A, $14, $0E, $32, $20, $0A, $22, $FC, $0F, $18, $1B, $32, $22, $18, $1E, $32, $0A, $10, $0A, $12
-	dc.b	$17, $29, $FF
-	dc.b	$00
+	txt "I'LL NEVER MAKE WAY\nFOR YOU AGAIN.", $FF, $00
 loc_3AB40:
-	dc.b	$22, $18, $1E, $1B, $32, $0E, $0F, $0F, $18, $1B, $1D, $32, $20, $12, $15, $15, $FC, $13, $1E, $1C, $1D, $32, $0B, $0E, $32, $12, $17, $32, $1F, $0A, $12, $17
-	dc.b	$2D, $FF
+	txt "YOUR EFFORT WILL\nJUST BE IN VAIN!", $FF
 loc_3AB62:
-	dc.b	$22, $18, $1E, $26, $15, $15, $32, $0E, $17, $0D, $32, $1E, $19, $FC, $0A, $17, $32, $1E, $17, $0D, $0E, $1B, $0D, $18, $10, $32, $0A, $10, $0A, $12, $17, $29
-	dc.b	$FF, $00
+	txt "YOU'LL END UP\nAN UNDERDOG AGAIN.", $FF, $00
 loc_3AB84:
-	dc.b	$12, $1D, $26, $1C, $32, $0A, $0B, $18, $1E, $1D, $32, $1D, $12, $16, $0E, $FC, $0F, $18, $1B, $32, $22, $18, $1E, $32, $1D, $18, $32, $1A, $1E, $12, $1D, $29
-	dc.b	$FF, $00
+	txt "IT'S ABOUT TIME\nFOR YOU TO QUIT.", $FF, $00
 loc_3ABA6:
-	dc.b	$22, $18, $1E, $32, $0A, $1B, $0E, $32, $0A, $1C, $32, $16, $0E, $0A, $17, $32, $0A, $1C, $FC, $0E, $1F, $0E, $1B, $29, $FF
-	dc.b	$00
+	txt "YOU ARE AS MEAN AS\nEVER.", $FF, $00
 loc_3ABC0:
-	dc.b	$FD, $12, $32, $0D, $1B, $12, $1F, $0E, $32, $1A, $1E, $12, $1D, $0E, $32, $0F, $0A, $1C, $1D, $29, $FF
-	dc.b	$00
+	dc.b	$FD, $12, $32, $0D, $1B, $12, $1F, $0E, $32, $1A, $1E, $12, $1D, $0E, $32, $0F, $0A, $1C, $1D, $29, $FF, $00
 loc_3ABD6:
-	dc.b	$12, $32, $0C, $0A, $17, $32, $0D, $1B, $12, $1F, $0E, $32, $0F, $0A, $1C, $1D, $0E, $1B, $FC, $1D, $11, $0A, $17, $32, $22, $18, $1E, $29, $FF
-	dc.b	$00
+	txt "I CAN DRIVE FASTER\\nTHAN YOU.", $FF, $00
 loc_3ABF4:
-	dc.b	$22, $18, $1E, $32, $1C, $1D, $12, $15, $15, $32, $20, $0A, $17, $1D, $32, $1D, $18, $FC, $0C, $18, $17, $1D, $12, $17, $1E, $0E, $29, $FF
+	txt "YOU STILL WANT TO\nCONTINUE.", $FF
 loc_3AC10:
 	dc.b	$FD, $0D, $18, $17, $26, $1D, $32, $0B, $0E, $32, $1C, $1D, $1E, $0C, $14, $32, $1E, $19, $2D, $FF
 loc_3AC24:
-	dc.b	$FD, $12, $1D, $26, $1C, $32, $12, $17, $1D, $0E, $1B, $0E, $1C, $1D, $12, $17, $10, $29, $FF
-	dc.b	$00
+	dc.b	$FD, $12, $1D, $26, $1C, $32, $12, $17, $1D, $0E, $1B, $0E, $1C, $1D, $12, $17, $10, $29, $FF, $00
 loc_3AC38:
-	dc.b	$FD, $15, $0E, $1D, $26, $1C, $32, $0D, $1B, $12, $1F, $0E, $32, $0F, $0A, $12, $1B, $2D, $FF
-	dc.b	$00
+	dc.b	$FD, $15, $0E, $1D, $26, $1C, $32, $0D, $1B, $12, $1F, $0E, $32, $0F, $0A, $12, $1B, $2D, $FF, $00
 loc_3AC4C:
-	dc.b	$22, $18, $1E, $26, $0D, $32, $0B, $0E, $1D, $1D, $0E, $1B, $32, $1C, $1D, $18, $19, $FC, $1B, $0A, $0C, $12, $17, $10, $29, $FF
+	txt "YOU'D BETTER STOP\nRACING.", $FF
 loc_3AC66:
-	dc.b	$12, $32, $1E, $17, $0D, $0E, $1B, $0E, $1C, $1D, $12, $16, $0A, $1D, $0E, $0D, $32, $22, $18, $1E, $FC, $1D, $11, $0E, $32, $18, $1D, $11, $0E, $1B, $32, $0D
-	dc.b	$0A, $22, $29, $FF
+	txt "I UNDERESTIMATED YOU\nTHE OTHER DAY.", $FF
 loc_3AC8A:
-	dc.b	$12, $1D, $26, $1C, $32, $0C, $0E, $0A, $1B, $0A, $26, $1C, $32, $0E, $1B, $0A, $FC, $17, $18, $20, $2D, $FF
+	txt "IT'S CEARA'S ERA\nNOW!", $FF
 loc_3ACA0:
-	dc.b	$12, $32, $10, $1E, $0E, $1C, $1C, $32, $22, $18, $1E, $32, $17, $0E, $0E, $0D, $FC, $16, $18, $1B, $0E, $32, $0E, $21, $19, $0E, $1B, $12, $0E, $17, $0C, $0E
-	dc.b	$29, $FF
+	txt "I GUESS YOU NEED\nMORE EXPERIENCE.", $FF
 loc_3ACC2:
-	dc.b	$17, $18, $20, $2A, $32, $15, $0E, $1D, $26, $1C, $32, $0C, $18, $16, $19, $0E, $1D, $0E, $FC, $0A, $10, $0A, $12, $17, $1C, $1D, $32, $0E, $0A, $0C, $11, $32
-	dc.b	$18, $1D, $11, $0E, $1B, $2D, $FF
-	dc.b	$00
+	txt "NOW, LET'S COMPETE\nAGAINST EACH OTHER!", $FF, $00
 loc_3ACEA:
-	dc.b	$22, $18, $1E, $1B, $32, $0E, $0F, $0F, $18, $1B, $1D, $32, $12, $1C, $FC, $12, $17, $32, $1F, $0A, $12, $17, $29, $FF
+	txt	"YOUR EFFORT IS\nIN VAIN.", $FF
 loc_3AD02:
-	dc.b	$22, $18, $1E, $32, $0C, $0A, $17, $32, $1C, $0E, $15, $0D, $18, $16, $32, $20, $12, $17, $FC, $0B, $22, $32, $1C, $11, $0E, $0E, $1B, $32, $15, $1E, $0C, $14
-	dc.b	$29, $FF
+	txt "YOU CAN SELDOM WIN\nBY SHEER LUCK.", $FF
 loc_3AD24:
-	dc.b	$0A, $1B, $0E, $32, $22, $18, $1E, $32, $1C, $1D, $12, $15, $15, $FC, $0A, $32, $1B, $0A, $0C, $0E, $1B, $2E, $FF
-	dc.b	$00
+	txt "ARE YOU STILL\nA RACER?", $FF, $00
 loc_3AD3C:
-	dc.b	$22, $18, $1E, $32, $0C, $0A, $17, $32, $17, $0E, $1F, $0E, $1B, $32, $20, $12, $17, $FC, $18, $1F, $0E, $1B, $32, $0C, $0E, $0A, $1B, $0A, $29, $FF
+	txt "YOU CAN NEVER WIN\nOVER CEARA.", $FF
 loc_3AD5A:
-	dc.b	$15, $0E, $1D, $26, $1C, $32, $1D, $1B, $22, $32, $1D, $18, $32, $0D, $18, $32, $18, $1E, $1B, $FC, $0B, $0E, $1C, $1D, $29, $FF
+	txt "LET'S TRY TO DO OUR\nBEST.", $FF
 loc_3AD74:
 	dc.b	$FD, $10, $18, $32, $0E, $0A, $1C, $22, $32, $20, $12, $1D, $11, $32, $16, $0E, $2D, $FF
 loc_3AD86:
-	dc.b	$12, $32, $0C, $0A, $17, $26, $1D, $32, $0A, $15, $15, $18, $20, $32, $22, $18, $1E, $32, $1D, $18, $FC, $1D, $0A, $14, $0E, $32, $18, $1F, $0E, $1B, $32, $16
-	dc.b	$22, $32, $1C, $0E, $0A, $1D, $29, $FF
+	txt "I CAN'T ALLOW YOU TO\nTAKE OVER MY SEAT.", $FF
 loc_3ADAE:
-	dc.b	$12, $1D, $26, $1C, $32, $0D, $18, $32, $18, $1B, $32, $0D, $12, $0E, $FC, $0F, $18, $1B, $32, $16, $0E, $2D, $FF
-	dc.b	$00
+	txt "IT'S DO OR DIE\nFOR ME!", $FF,$00
 loc_3ADC6:
-	dc.b	$18, $11, $2A, $32, $0A, $1B, $0E, $32, $22, $18, $1E, $32, $1C, $1D, $12, $15, $15, $FC, $0C, $18, $16, $19, $0E, $1D, $12, $17, $10, $2E, $FF
-	dc.b	$00
+	txt "OH, ARE YOU STILL\nCOMPETING?", $FF, $00
 loc_3ADE4:
 	dc.b	$FD, $20, $18, $1B, $14, $12, $17, $10, $32, $11, $0A, $1B, $0D, $2E, $FF, $00
 loc_3ADF4:
-	dc.b	$22, $18, $1E, $32, $0D, $18, $17, $26, $1D, $32, $11, $0A, $1F, $0E, $32, $1D, $18, $32, $10, $18, $FC, $0E, $0A, $1C, $22, $32, $20, $12, $1D, $11, $32, $16
-	dc.b	$0E, $29, $FF
-	dc.b	$00
+	txt "YOU DON'T HAVE TO GO\nEASY WITH ME.", $FF, $00
 loc_3AE18:
-	dc.b	$12, $32, $17, $0E, $1F, $0E, $1B, $32, $1C, $19, $0E, $0A, $14, $32, $1D, $18, $FC, $1E, $17, $0D, $0E, $1B, $0D, $18, $10, $1C, $29, $FF
+	txt "I NEVER SPEAK TO\nUNDERDOGS.", $FF
 loc_3AE34:
-	dc.b	$0D, $18, $32, $22, $18, $1E, $32, $12, $17, $1D, $0E, $17, $0D, $32, $1D, $18, $FC, $16, $0A, $14, $0E, $32, $0A, $32, $0C, $18, $16, $0E, $0B, $0A, $0C, $14
-	dc.b	$2E, $FF
+	txt "DO YOU INTEND TO\nMAKE A COMEBACK?", $FF
 loc_3AE56:
-	dc.b	$15, $18, $1C, $12, $17, $10, $32, $1D, $18, $32, $0A, $32, $13, $1E, $17, $12, $18, $1B, $FC, $0D, $1B, $12, $1F, $0E, $1B, $32, $12, $1C, $32, $0A, $32, $0D
-	dc.b	$12, $1C, $10, $1B, $0A, $0C, $0E, $FF
+	txt "LOSING TO A JUNIOR\nDRIVER IS A DISGRACE", $FF
 loc_3AE7E:
-	dc.b	$0D, $18, $32, $22, $18, $1E, $32, $16, $12, $17, $0D, $32, $1D, $11, $1B, $18, $20, $12, $17, $10, $FC, $1D, $11, $0E, $32, $1B, $0A, $0C, $0E, $2E, $FF, $00
+	txt "DO YOU MIND THROWING\nTHE RACE?", $FF, $00
 loc_3AE9E:
-	dc.b	$0C, $18, $1E, $15, $0D, $32, $22, $18, $1E, $32, $15, $0E, $1D, $32, $16, $0E, $32, $20, $12, $17, $FC, $0A, $10, $0A, $12, $17, $2E, $FF
+	txt "COULD YOU LET ME WIN\nAGAIN?", $FF
 loc_3AEBA:
-	dc.b	$22, $18, $1E, $26, $0D, $32, $0B, $0E, $1D, $1D, $0E, $1B, $32, $17, $18, $1D, $FC, $0C, $18, $16, $0E, $32, $0C, $15, $18, $1C, $0E, $32, $1D, $18, $32, $16
-	dc.b	$0E, $29, $FF
-	dc.b	$00
+	txt "YOU'D BETTER NOT\nCOME CLOSE TO ME.", $FF, $00
 loc_3AEDE:
-	dc.b	$20, $12, $17, $32, $18, $1F, $0E, $1B, $32, $16, $0E, $32, $0A, $17, $0D, $32, $16, $0A, $14, $0E, $FC, $22, $18, $1E, $1B, $32, $0C, $18, $16, $0E, $0B, $0A
-	dc.b	$0C, $14, $2D, $FF
+	txt "WIN OVER ME AND MAKE\nYOUR COMEBACK!", $FF
 loc_3AF02:
-	dc.b	$20, $11, $0A, $1D, $26, $1C, $32, $1D, $11, $0E, $32, $16, $0A, $1D, $1D, $0E, $1B, $2E, $FC, $22, $18, $1E, $32, $15, $18, $18, $14, $32, $0D, $0E, $19, $1B
-	dc.b	$0E, $1C, $1C, $0E, $0D, $29, $FF, $00
+	txt "WHAT'S THE MATTER?\nYOU LOOK DEPRESSED.", $FF, $00
 loc_3AF2A:
-	dc.b	$FD, $18, $14, $2A, $32, $1D, $11, $0E, $17, $32, $0C, $18, $16, $0E, $32, $18, $17, $2D, $FF
-	dc.b	$00
+	dc.b	$FD, $18, $14, $2A, $32, $1D, $11, $0E, $17, $32, $0C, $18, $16, $0E, $32, $18, $17, $2D, $FF, $00
 loc_3AF3E:
-	dc.b	$22, $18, $1E, $26, $1B, $0E, $32, $1C, $1D, $12, $15, $15, $FC, $0A, $32, $10, $18, $18, $0D, $32, $1B, $0A, $0C, $0E, $1B, $29, $FF
-	dc.b	$00
+	txt "YOU'RE STILL\nA GOOD RACER.", $FF, $00
 loc_3AF5A:
 	dc.b	$FD, $12, $26, $16, $32, $1C, $0E, $1B, $12, $18, $1E, $1C, $32, $17, $18, $20, $29, $FF
 loc_3AF6C:
-	dc.b	$0D, $18, $32, $22, $18, $1E, $32, $1D, $11, $12, $17, $14, $32, $22, $18, $1E, $26, $1B, $0E, $FC, $1C, $1D, $12, $15, $15, $32, $1D, $11, $0E, $32, $1D, $18
-	dc.b	$19, $32, $1B, $0A, $0C, $0E, $1B, $2E, $FF
-	dc.b	$00
+	txt "DO YOU THINK YOU'RE\nSTILL THE TOP RACER?", $FF, $00
 loc_3AF96:
-	dc.b	$0D, $18, $32, $22, $18, $1E, $32, $1D, $11, $12, $17, $14, $32, $22, $18, $1E, $32, $0C, $0A, $17, $FC, $20, $12, $17, $32, $0A, $10, $0A, $12, $17, $1C, $1D
-	dc.b	$32, $16, $0E, $2E, $FF, $00
+	txt "DO YOU THINK YOU CAN\nWIN AGAINST ME?", $FF, $00
 loc_3AFBC:
-	dc.b	$22, $18, $1E, $26, $1B, $0E, $32, $17, $18, $1D, $32, $1C, $1E, $12, $1D, $0A, $0B, $15, $0E, $FC, $0F, $18, $1B, $32, $1D, $11, $0E, $32, $1D, $0E, $0A, $16
-	dc.b	$29, $FF
+	txt "YOU'RE NOT SUITABLE\nFOR THE TEAM.", $FF
 loc_3AFDE:
-	dc.b	$11, $0A, $1F, $0E, $17, $26, $1D, $32, $22, $18, $1E, $32, $11, $0A, $0D, $FC, $0E, $17, $18, $1E, $10, $11, $32, $22, $0E, $1D, $2E, $FF
+	txt "HAVEN'T YOU HAD\nENOUGH YET?", $FF
 loc_3AFFA:
 	dc.b	$FD, $22, $18, $1E, $26, $15, $15, $32, $19, $0A, $22, $32, $0F, $18, $1B, $32, $1D, $11, $12, $1C, $29, $FF
 loc_3B010:
-	dc.b	$22, $18, $1E, $26, $1B, $0E, $32, $1B, $0E, $0A, $15, $15, $22, $FC, $0F, $12, $17, $12, $1C, $11, $0E, $0D, $32, $20, $12, $1D, $11, $29, $FF
+	txt "YOU'RE REALLY\nFINISHED WITH.", $FF
 	dc.b	$00
 loc_3B02E:
 	dc.b	$FD, $10, $0E, $1D, $32, $0A, $20, $0A, $22, $32, $0F, $1B, $18, $16, $32, $16, $0E, $29, $FF, $00
 loc_3B042:
-	dc.b	$0D, $18, $17, $26, $1D, $32, $0B, $18, $1D, $11, $0E, $1B, $32, $16, $0E, $29, $FC, $13, $1E, $1C, $1D, $32, $10, $0E, $1D, $32, $0A, $20, $0A, $22, $2D, $FF
+	txt "DON'T BOTHER ME.\nJUST GET AWAY!", $FF
 loc_3B062:
-	dc.b	$0D, $18, $17, $26, $1D, $32, $10, $12, $1F, $0E, $32, $16, $0E, $FC, $0A, $17, $22, $32, $1D, $1B, $18, $1E, $0B, $15, $0E, $2D, $FF
-	dc.b	$00
+	txt "DON'T GIVE ME\nANY TROUBLE!", $FF, $00
 loc_3B07E: ; Pointers to team introductions
 	dc.l	loc_3B17E
 	dc.l	loc_3B1A6
@@ -26975,63 +26936,41 @@ loc_3B2B4:
 loc_3B2BA:
 	dc.b	$45, $5E, $54, $32, $45, $51, $61, $65, $42, $68, $C1, $32, $4E, $4B, $44, $67, $64, $79, $FF, $00
 loc_3B2CE:
-	dc.b	$0B, $0E, $32, $1D, $11, $0E, $32, $1D, $18, $19, $32, $0D, $1B, $12, $1F, $0E, $1B, $FC, $20, $12, $1D, $11, $32, $1D, $11, $0E, $32, $0B, $0E, $1C, $1D, $32
-	dc.b	$0C, $0A, $1B, $29, $FF
-	dc.b	$00
+	txt "BE THE TOP DRIVER\nWITH THE BEST CAR.", $FF, $00
 loc_3B2F4:
-	dc.b	$0A, $1B, $0E, $32, $22, $18, $1E, $32, $1C, $1E, $1B, $0E, $32, $12, $0F, $32, $22, $18, $1E, $FC, $0C, $0A, $17, $32, $1C, $1D, $12, $15, $15, $32, $0D, $1B
-	dc.b	$12, $1F, $0E, $2E, $FF
-	dc.b	$00
+	txt "ARE YOU SURE IF YOU\nCAN STILL DRIVE?", $FF, $00
 loc_3B31A:
-	dc.b	$15, $0E, $1D, $26, $1C, $32, $1D, $1B, $22, $32, $1D, $18, $32, $0B, $0E, $0A, $1D, $FC, $1D, $11, $0E, $32, $16, $0A, $0D, $18, $17, $17, $0A, $32, $1D, $0E
-	dc.b	$0A, $16, $29, $FF
+	txt "LET'S TRY TO BEAT\nTHE MADONNA TEAM.", $FF
 loc_3B33E:
-	dc.b	$0A, $1B, $0E, $32, $22, $18, $1E, $32, $10, $0E, $1D, $1D, $12, $17, $10, $32, $0F, $0A, $2C, $FC, $16, $12, $15, $12, $0A, $1B, $32, $20, $12, $1D, $11, $32
-	dc.b	$1D, $11, $0E, $32, $0F, $01, $2E, $FF
+	txt "ARE YOU GETTING FA-\nMILIAR WITH THE F1?", $FF
 loc_3B366:
-	dc.b	$12, $26, $15, $15, $32, $11, $0E, $15, $19, $32, $22, $18, $1E, $32, $16, $0A, $14, $0E, $FC, $0A, $32, $0C, $18, $16, $0E, $0B, $0A, $0C, $14, $29, $FF, $00
+	txt "I'LL HELP YOU MAKE\nA COMEBACK.", $FF, $00
 loc_3B386:
-	dc.b	$20, $0E, $32, $11, $0A, $1F, $0E, $32, $1D, $11, $0E, $32, $16, $18, $1C, $1D, $FC, $1B, $0E, $15, $12, $0A, $0B, $15, $0E, $32, $16, $0A, $0C, $11, $12, $17
-	dc.b	$0E, $29, $FF
-	dc.b	$00
+	txt "WE HAVE THE MOST\nRELIABLE MACHINE.", $FF, $00
 loc_3B3AA:
-	dc.b	$20, $0E, $26, $15, $15, $32, $11, $0A, $1F, $0E, $32, $0A, $32, $19, $0A, $1B, $1D, $22, $FC, $0F, $18, $1B, $32, $22, $18, $1E, $32, $15, $0A, $1D, $0E, $1B
-	dc.b	$29, $FF
+	txt "WE'LL HAVE A PARTY\nFOR YOU LATER.", $FF
 loc_3B3CC:
-	dc.b	$15, $0E, $1D, $26, $1C, $32, $14, $0E, $0E, $19, $32, $1E, $19, $32, $18, $1E, $1B, $FC, $19, $0A, $1C, $1D, $32, $19, $0E, $1B, $0F, $18, $1B, $16, $0A, $17
-	dc.b	$0C, $0E, $1C, $29, $FF
-	dc.b	$00
+	txt "LET'S KEEP UP OUR\nPAST PERFORMANCES.", $FF, $00
 loc_3B3F2:
-	dc.b	$20, $0A, $1D, $0C, $11, $32, $0F, $18, $1B, $32, $1D, $1B, $18, $1E, $0B, $15, $0E, $FC, $0A, $17, $0D, $32, $0D, $1B, $12, $1F, $0E, $32, $0C, $0A, $1B, $0E
-	dc.b	$0F, $1E, $15, $15, $22, $29, $FF
-	dc.b	$00
+	txt "WATCH FOR TROUBLE\nAND DRIVE CAREFULLY.", $FF, $00
 loc_3B41A:
-	dc.b	$12, $26, $15, $15, $32, $1B, $0E, $15, $22, $32, $18, $17, $32, $22, $18, $1E, $1B, $FC, $1D, $0A, $15, $0E, $17, $1D, $29, $FF
+	txt "I'LL RELY ON YOUR\nTALENT.", $FF
 loc_3B434:
-	dc.b	$20, $0E, $26, $1B, $0E, $32, $0A, $32, $1C, $1D, $0E, $0A, $0D, $22, $32, $1D, $0E, $0A, $16, $29, $FC, $0D, $18, $17, $26, $1D, $32, $15, $0E, $1D, $32, $1E
-	dc.b	$1C, $32, $0D, $18, $20, $17, $29, $FF
+	txt "WE'RE A STEADY TEAM.\nDON'T LET US DOWN.", $FF
 loc_3B45C:
-	dc.b	$20, $0E, $26, $15, $15, $32, $0B, $0E, $32, $1F, $0E, $1B, $22, $32, $1C, $1D, $1B, $12, $0C, $1D, $FC, $20, $12, $1D, $11, $32, $22, $18, $1E, $2A, $32, $18
-	dc.b	$14, $2E, $FF
-	dc.b	$00
+	txt "WE'LL BE VERY STRICT\nWITH YOU, OK?", $FF, $00
 loc_3B480:
-	dc.b	$0A, $17, $22, $20, $0A, $22, $2A, $32, $10, $12, $1F, $0E, $32, $16, $0E, $FC, $1D, $11, $0E, $32, $1C, $0E, $0C, $1E, $1B, $12, $1D, $22, $32, $16, $18, $17
-	dc.b	$0E, $22, $29, $FF
+	txt "ANYWAY, GIVE ME\nTHE SECURITY MONEY.", $FF
 loc_3B4A4:
-    txt     "LET'S TRY HARD\nTO WIN.", $FF, $00
+  txt "LET'S TRY HARD\nTO WIN.", $FF, $00
 loc_3B4BC:
-	dc.b	$12, $32, $0E, $17, $1F, $22, $32, $22, $18, $1E, $1B, $32, $11, $12, $10, $11, $FC, $1C, $19, $12, $1B, $12, $1D, $1C, $29, $FF
+	txt "I ENVY YOUR HIGH\nSPIRITS.", $FF
 loc_3B4D6:
-	dc.b	$20, $0E, $15, $15, $2A, $32, $15, $0E, $1D, $26, $1C, $32, $0E, $17, $13, $18, $22, $FC, $1D, $11, $0E, $32, $1B, $0A, $0C, $0E, $32, $1D, $18, $10, $0E, $1D
-	dc.b	$11, $0E, $1B, $29, $FF
-	dc.b	$00
+	txt "WELL, LET'S ENJOY\nTHE RACE TOGETHER.", $FF, $00
 loc_3B4FC:
-	dc.b	$FD, $11, $12, $2D, $FF
-	dc.b	$00
+	dc.b	$FD, $11, $12, $2D, $FF, $00
 loc_3B502:
-	dc.b	$20, $0E, $26, $0D, $32, $0A, $19, $19, $1B, $0E, $0C, $12, $0A, $1D, $0E, $FC, $22, $18, $1E, $1B, $32, $13, $18, $12, $17, $12, $17, $10, $32, $1E, $1C, $29
-	dc.b	$FF
-	dc.b	$00
+	txt "WE'D APPRECIATE\nYOUR JOINING US.", $FF, $00
 loc_3B524:
 	dc.l	loc_3B5AC
 	dc.l	loc_3B5C2
@@ -27731,7 +27670,7 @@ loc_3C590:
 loc_3C5A6:
 	dc.b	$FD, $1D, $11, $0A, $17, $14, $1C, $32, $0F, $18, $1B, $32, $17, $18, $1D, $11, $12, $17, $10, $29, $FF, $00
 loc_3C5BC:
-	dc.b	$0D, $18, $32, $22, $18, $1E, $1B, $32, $0B, $0E, $1C, $1D, $32, $1D, $18, $32, $0B, $0E, $2C, $FC, $0C, $18, $16, $0E, $32, $1D, $11, $0E, $32, $1D, $18, $19, $32, $0D, $1B, $12, $1F, $0E, $1B, $29, $FF, $00
+	txt "DO YOUR BEST TO BE-\nCOME THE TOP DRIVER.", $FF, $00
 loc_3C5E6:
 	txt "OK. LET'S GO TO\nTHE PARTY.", $FF, $00
 loc_3C602:

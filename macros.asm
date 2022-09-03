@@ -6,18 +6,22 @@ c substr 1+i,1+i,\1
 	if escape=0
 		if "\c"="\"
 escape = 1
-		elseif ("\c"=" ")
-			dc.b	$32
-		elseif ("\c"=".")
-				dc.b    $29
 		elseif ("\c"="'")
 				dc.b    $26
 		elseif ("\c"='"')
 				dc.b    $27
+		elseif ("\c"="?")
+				dc.b    $2E
+		elseif ("\c"=".")
+				dc.b    $29
+		elseif ("\c"=",")
+				dc.b    $2A
+		elseif ("\c"="-")
+				dc.b    $2C
 		elseif ("\c"="!")
 				dc.b    $2D
-		elseif ("\c"="?")
-				dc.b    $28
+		elseif ("\c"=" ")
+			dc.b	$32
 		elseif ("\c">="0")&("\c"<="9")
 			dc.b	("\c"-"0")
 		elseif ("\c">="A")&("\c"<="Z")
