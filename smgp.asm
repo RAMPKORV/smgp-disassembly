@@ -2523,7 +2523,9 @@ loc_1EB4:
 	dc.l	loc_1EBE
 	dc.l	loc_1ECC
 loc_1EBE:
-	dc.b	$E1, $06, $FB, $C7, $C0, $0B, $0E, $1C, $1D, $FA, $15, $0A, $19, $FF
+	dc.b	$E1, $06, $FB, $C7, $C0
+  txt "BEST", $FA
+  txt "LAP", $FF
 loc_1ECC:
 	dc.b	$E3, $1A, $FB, $C4, $AC, $06, $1A, $06, $06, $1B, $06, $06, $FE, $07, $FA, $07, $07, $FA, $07, $07, $FF, $00
 loc_1EE2:
@@ -2548,15 +2550,23 @@ loc_1F08:
 loc_1F22:
 	dc.b	$E0, $62, $FB, $A7, $70, $00, $01, $02, $03, $04, $FE, $05, $06, $07, $08, $09, $FF, $00
 loc_1F34:
-	dc.b	$E0, $C4, $FB, $C7, $C0, $0B, $0E, $1C, $1D, $FA, $15, $0A, $19, $FF
+	dc.b	$E0, $C4, $FB, $C7, $C0
+  txt "BEST", $FA
+  txt "LAP", $FF
 loc_1F42:
-	dc.b	$E1, $44, $03, $FA, $15, $0A, $19, $1C, $FF, $00
+	dc.b	$E1, $44, $03, $FA
+  txt "LAPS", $FF, $00
 loc_1F4C:
-	dc.b	$E1, $44, $05, $FA, $15, $0A, $19, $1C, $FF, $00
+	dc.b	$E1, $44, $05, $FA
+  txt "LAPS", $FF, $00
 loc_1F56:
-	dc.b	$E0, $EC, $15, $0A, $19, $FA, $1D, $12, $16, $0E, $FF, $00
+	dc.b	$E0, $EC
+  txt "LAP", $FA
+  txt "TIME", $FF, $00
 loc_1F62:
-	dc.b	$E0, $6C, $FB, $A7, $C0, $15, $0A, $19, $FA, $1D, $12, $16, $0E, $FF
+	dc.b	$E0, $6C, $FB, $A7, $C0
+  txt "LAP", $FA
+  txt "TIME", $FF
 loc_1F70:
 	dc.b	$E0, $6E, $FB, $C4, $AC, $06, $1A, $06, $06, $1B, $06, $06, $FE, $07, $FA, $07, $07, $FA, $07, $07, $FD, $FB, $87, $C0, $00, $26, $00, $00, $27, $00, $00, $FE
 	dc.b	$00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FF
@@ -2564,7 +2574,8 @@ loc_1FA0:
 	dc.b	$E0, $AE, $FB, $87, $C0, $00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00
 	dc.b	$00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FF, $00
 loc_1FCE:
-	dc.b	$E2, $72, $FB, $A7, $C0, $15, $0A, $19, $FF, $00
+	dc.b	$E2, $72, $FB, $A7, $C0
+  txt "LAP", $FF, $00
 loc_1FD8:
 	dc.b	$E2, $F2, $FB, $C7, $C0, $0D, $29, $19, $29, $FF
 loc_1FE2:
@@ -3947,7 +3958,8 @@ loc_3570:
 	dc.l	$0908FFFF
 	dc.b	$ED, $84
 loc_358A:
-	dc.b	$FB, $C7, $C0, $1C, $0E, $15, $0E, $0C, $1D, $0E, $0D
+	dc.b	$FB, $C7, $C0
+  txt "SELECTED"
 loc_3595:
 	dc.b	$FF, $01, $01, $01, $02, $03, $04, $05, $06, $07, $0C, $12, $2C
 loc_35A2:
@@ -5059,14 +5071,31 @@ loc_4694:
 	dc.l	loc_46E8
 	dc.l	loc_4708
 loc_46A4:
-	dc.b	$E2, $8E, $FB, $87, $C0, $19, $1B, $0E, $15, $12, $16, $12, $17, $0A, $1B, $22, $FA, $1B, $0A, $0C, $0E, $FA, $1B, $0E, $1C, $1E, $15, $1D, $1C, $FF
+	dc.b	$E2, $8E, $FB, $87, $C0
+  txt "PRELIMINARY", $FA
+  txt "RACE", $FA
+  txt "RESULTS", $FF
 loc_46C2:
-	dc.b	$E3, $8A, $FB, $E7, $C0, $19, $29, $19, $FC, $02, $17, $0D, $FC, $03, $1B, $0D, $FC, $04, $1D, $11, $FC, $05, $1D, $11, $FC, $06, $1D, $11, $FC, $07, $1D, $11
-	dc.b	$FC, $08, $1D, $11, $FF, $00
+	dc.b	$E3, $8A, $FB, $E7, $C0
+  txt "P.P", $FC
+  txt "2ND", $FC
+  txt "3RD", $FC
+  txt "4TH", $FC
+  txt "5TH", $FC
+  txt "6TH", $FC
+  txt "7TH", $FC
+  txt "8TH", $FF, $00
 loc_46E8:
-	dc.b	$E3, $A8, $FA, $09, $1D, $11, $FC, $01, $00, $1D, $11, $FC, $01, $01, $1D, $11, $FC, $01, $02, $1D, $11, $FC, $01, $03, $1D, $11, $FC, $01, $04, $1D, $11, $FF
+	dc.b	$E3, $A8, $FA
+  txt "9TH", $FC
+  txt "10TH", $FC
+  txt "11TH", $FC
+  txt "12TH", $FC
+  txt "13TH", $FC
+  txt "14TH", $FF
 loc_4708:
-	dc.b	$E9, $A8, $01, $05, $1D, $11, $FF, $00
+	dc.b	$E9, $A8
+  txt "15TH", $FF, $00
 loc_4710:
 	dc.b	$E9, $B2, $FB, $E7, $C0, $FA, $FA, $2C, $2C, $2C, $2C, $2C, $FA, $FF
 loc_471E:
@@ -5957,12 +5986,14 @@ loc_522A:
 	DBF	D0, loc_522A
 	RTS
 loc_5232:
-	dc.b	$01, $04, $FB, $C7, $C0, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FA
+	dc.b	$01, $04, $FB, $C7, $C0
+  txt "-------", $FA
   txt "NEXT", $FA
   txt "YEAR'S", $FA
   txt "LINE", $FA
-  txt "UP"
-	dc.b	$FA, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FC, $FB, $A7, $C0, $FA
+  txt "UP", $FA
+  txt "--------", $FC
+  dc.b $FB, $A7, $C0, $FA
   txt "TEAM"
   dc.b $FA, $FA, $FA, $FA, $FA, $FA, $FA
   txt "DRIVER"
@@ -20991,50 +21022,147 @@ loc_193B6:
 	dc.l	$6B2E0003
 loc_193BE:
 	dc.l	loc_19496-1
-	dc.b	$00, $07, $00, $01, $95, $25, $00, $06, $00, $01, $94, $9D, $00, $09, $00, $01, $95, $2B, $00, $06, $00, $01, $94, $A7, $00, $09, $00, $01, $95, $31, $00, $07
-	dc.b	$00, $01, $94, $B1, $00, $09, $00, $01, $95, $39, $00, $05, $00, $01, $94, $BB, $00, $07, $00, $01, $95, $3F, $00, $06, $00, $01, $94, $C3, $00, $08, $00, $01
-	dc.b	$95, $45, $00, $06, $00, $01, $94, $CB, $00, $08, $00, $01, $95, $4B, $00, $05, $00, $01, $94, $D3, $00, $09, $00, $01, $95, $51, $00, $05, $00, $01, $94, $DD
-	dc.b	$00, $08, $00, $01, $95, $57, $00, $0D, $00, $01, $94, $E5, $00, $08, $00, $01, $95, $65, $00, $06, $00, $01, $94, $ED, $00, $09, $00, $01, $95, $6B, $00, $05
-	dc.b	$00, $01, $94, $F7, $00, $08, $00, $01, $95, $71, $00, $06, $00, $01, $94, $FF, $00, $08, $00, $01, $95, $77, $00, $0D, $00, $01, $95, $07, $00, $08, $00, $01
-	dc.b	$95, $85, $00, $07, $00, $01, $95, $0F, $00, $08, $00, $01, $95, $8D, $00, $06, $00, $01, $95, $17, $00, $09, $00, $01, $95, $93, $00, $0C, $00, $01, $95, $21
-	dc.b	$00, $03, $00, $01, $95, $9F, $00, $0C, $00, $01, $95, $21, $00, $0F, $00, $01, $95, $9F, $00, $05
+	dc.b	$00, $07
+  dc.l	loc_19526-1
+  dc.b	$00, $06
+  dc.l	loc_1949E-1
+  dc.b	$00, $09
+  dc.l	loc_1952C-1
+  dc.b	$00, $06
+  dc.l	loc_194A8-1
+  dc.b	$00, $09
+  dc.l	loc_19532-1
+  dc.b	$00, $07
+  dc.l	loc_194B2-1
+  dc.b	$00, $09
+  dc.l	loc_1953A-1
+  dc.b	$00, $05
+  dc.l	loc_194BC-1
+  dc.b	$00, $07
+  dc.l	loc_19540-1
+  dc.b	$00, $06
+  dc.l	loc_194C4-1
+  dc.b	$00, $08
+  dc.l	loc_19546-1
+  dc.b	$00, $06
+  dc.l	loc_194CC-1
+  dc.b	$00, $08
+  dc.l	loc_1954C-1
+  dc.b	$00, $05
+  dc.l	loc_194D4-1
+  dc.b	$00, $09
+  dc.l	loc_19552-1
+  dc.b	$00, $05
+  dc.l	loc_194DE-1
+  dc.b	$00, $08
+  dc.l	loc_19558-1
+  dc.b	$00, $0D
+  dc.l	loc_194E6-1
+  dc.b	$00, $08
+  dc.l	loc_19566-1
+  dc.b	$00, $06
+  dc.l	loc_194EE-1
+  dc.b	$00, $09
+  dc.l	loc_1956C-1
+  dc.b	$00, $05
+  dc.l	loc_194F8-1
+  dc.b	$00, $08
+  dc.l	loc_19572-1
+  dc.b	$00, $06
+  dc.l	loc_19500-1
+  dc.b	$00, $08
+  dc.l	loc_19578-1
+  dc.b	$00, $0D
+  dc.l	loc_19508-1
+  dc.b	$00, $08
+  dc.l	loc_19586-1
+  dc.b	$00, $07
+  dc.l	loc_19510-1
+  dc.b	$00, $08
+  dc.l	loc_1958E-1
+  dc.b	$00, $06
+  dc.l	loc_19518-1
+  dc.b	$00, $09
+  dc.l	loc_19594-1
+  dc.b	$00, $0C
+  dc.l	loc_19522-1
+  dc.b	$00, $03
+  dc.l	loc_195A0-1
+  dc.b	$00, $0C
+  dc.l	loc_19522-1
+  dc.b	$00, $0F
+  dc.l	loc_195A0-1
+  dc.b	$00, $05
 loc_19496:
   txt "G.CEARA", $00
+loc_1949E:
 	txt "A.ASSELIN", $00
+loc_194A8:
 	txt "F.ELSSLER", $00
+loc_194B2:
 	txt "G.ALBERTI", $00
+loc_194BC:
 	txt "A.PICOS", $00
+loc_194C4:
 	txt "J.HERBIN"
+loc_194CC:
   txt "M.HAMANO"
+loc_194D4:
   txt "E.PACHECO", $00
+loc_194DE:
 	txt "G.TURNER"
+loc_194E6:
   txt "B.MILLER"
+loc_194EE:
   txt "E.BELLINI", $00
+loc_194F8:
 	txt "M.MOREAU"
+loc_19500:
   txt "R.COTMAN"
+loc_19508:
   txt "E.TORNIO"
+loc_19510:
   txt "C.TEGNER"
+loc_19518:
   txt "P.KLINGER", $00
+loc_19522:
 	txt "YOU", $00
+loc_19526:
   txt "BRAZIL"
+loc_1952C:
   txt "FRANCE"
+loc_19532:
   txt "AUSTRIA", $00
+loc_1953A:
 	txt "ITALY", $00
+loc_19540:
 	txt "BRAZIL"
+loc_19546:
   txt "FRANCE"
+loc_1954C:
   txt "JAPAN", $00
+loc_19552:
 	txt "SPAIN", $00
+loc_19558:
 	txt "GREAT", $FF
   txt "BRITAIN", $00
+loc_19566:
 	txt "U.S.A."
+loc_1956C:
   txt "ITALY", $00
+loc_19572:
   txt "FRANCE"
+loc_19578:
   txt "GREAT", $FF
   txt "BRITAIN", $00
+loc_19586:
 	txt "FINLAND", $00
+loc_1958E:
 	txt "SWEDEN"
+loc_19594:
 	txt "WEST", $FF
   txt "GERMANY"
+loc_195A0:
   txt "YOUR", $FF
 	txt "COUNTRY"
 ;loc_195AC:
