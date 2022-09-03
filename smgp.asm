@@ -14600,7 +14600,7 @@ loc_C494:
 loc_C4B4:
 	dc.b	$04, $06, $FB, $A7, $C0, $22, $18, $1E, $1B, $FC, $FA, $19, $18, $1C, $12, $1D, $12, $18, $17, $28, $FF, $00 ;0x0 (0x0000C4B4-0x0000C4CA, Entry count: 0x16) [Unknown data]
 loc_C4CA:
-	dc.b	$00, $07 ;0x0 (0x0000C4CA-0x0000C4CC, Entry count: 0x2) [Unknown data]
+	dc.b	$00, $07
 	dc.l	loc_C4EC
 	dc.l	loc_C4FA
 	dc.l	loc_C500
@@ -18065,327 +18065,344 @@ loc_F872:
 	dc.l	loc_101A4 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_55516
-	dc.l	loc_6ACB6
-	dc.l	loc_6AB3E
-	dc.l	loc_5566C
-	dc.l	loc_FE10
-	dc.l	loc_FFD2
-	dc.l	loc_FFDC
-	dc.l	loc_FFE6
-	dc.l	loc_1804-4
-	dc.l	loc_71DBA
-	dc.l	loc_71E20
-	dc.l	loc_71CFA
-	dc.l	loc_71C26
-	dc.l	loc_71CAC
-	dc.l	loc_71CE2
+  ; France
+	dc.l	loc_55516 ; France tiles used for minimap
+	dc.l	loc_6ACB6 ; France tiles used used for background
+	dc.l	loc_6AB3E ; France background tile mapping
+	dc.l	loc_5566C ; France tile mapping for minimap
+	dc.l	loc_FE10 ; France background palette
+	dc.l	loc_FFD2 ; France sideline style
+	dc.l	loc_FFDC ; France road style data
+	dc.l	loc_FFE6 ; France finish line style
+	dc.l	loc_1804-4 ; ?
+	dc.l	loc_71DBA ; France signs data
+	dc.l	loc_71E20 ; France tileset for signs
+	dc.l	loc_71CFA ; France map for minimap position
+	dc.l	loc_71C26 ; France Track data
+	dc.l	loc_71CAC ; France slope data
+	dc.l	loc_71CE2 ; ?
 	dc.l	$FFFFFD10
-	dc.l	loc_101D2
+	dc.l	loc_101D2 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_559D0
-	dc.l	loc_6A16E
-	dc.l	loc_6A002
-	dc.l	loc_55B6E
-	dc.l	loc_FE52
-	dc.l	loc_FFF0
-	dc.l	loc_FFFA
-	dc.l	loc_10004
-	dc.l	loc_1942-2
-	dc.l	loc_723F0
-	dc.l	loc_7245A
-	dc.l	loc_72326
-	dc.l	loc_72242
-	dc.l	loc_722CA
-	dc.l	loc_72308
+  ; Hungary
+	dc.l	loc_559D0 ; Hungary tiles used for minimap
+	dc.l	loc_6A16E ; Hungary tiles used used for background
+	dc.l	loc_6A002 ; Hungary background tile mapping
+	dc.l	loc_55B6E ; Hungary tile mapping for minimap
+	dc.l	loc_FE52 ; Hungary background palette
+	dc.l	loc_FFF0 ; Hungary sideline style
+	dc.l	loc_FFFA ; Hungary road style data
+	dc.l	loc_10004 ; Hungary finish line style
+	dc.l	loc_1942-2 ; ?
+	dc.l	loc_723F0 ; Hungary signs data
+	dc.l	loc_7245A ; Hungary tileset for signs
+	dc.l	loc_72326 ; Hungary map for minimap position
+	dc.l	loc_72242 ; Hungary Track data
+	dc.l	loc_722CA ; Hungary slope data
+	dc.l	loc_72308 ; ?
 	dc.l	$FFFFFD18
-	dc.l	loc_10200
+	dc.l	loc_10200 ; ?
 	dc.l	$002c002e
 
-	dc.l	loc_5583E
-	dc.l	loc_65D64
-	dc.l	loc_65B18
-	dc.l	loc_559A8
-	dc.l	loc_FE3C
-	dc.l	loc_1000E
-	dc.l	loc_10018
-	dc.l	loc_10022
-	dc.l	loc_11D40
-	dc.l	loc_721B6
-	dc.l	loc_7222C
-	dc.l	loc_720CB
-	dc.l	loc_71FFC
-	dc.l	loc_72090
-	dc.l	loc_720B6
+  ; West Germany
+	dc.l	loc_5583E ; West Germany tiles used for minimap
+	dc.l	loc_65D64 ; West Germany tiles used used for background
+	dc.l	loc_65B18 ; West Germany background tile mapping
+	dc.l	loc_559A8 ; West Germany tile mapping for minimap
+	dc.l	loc_FE3C ; West Germany background palette
+	dc.l	loc_1000E ; West Germany sideline style
+	dc.l	loc_10018 ; West Germany road style data
+	dc.l	loc_10022 ; West Germany finish line style
+	dc.l	loc_11D40 ; ?
+	dc.l	loc_721B6 ; West Germany signs data
+	dc.l	loc_7222C ; West Germany tileset for signs
+	dc.l	loc_720CB ; West Germany map for minimap position
+	dc.l	loc_71FFC ; West Germany Track data
+	dc.l	loc_72090 ; West Germany slope data
+	dc.l	loc_720B6 ; ?
 	dc.l	$FFFFFD20
-	dc.l	loc_1022E
+	dc.l	loc_1022E ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_5627E
-	dc.l	loc_6C048
-	dc.l	loc_6BEC0
-	dc.l	loc_5638C
-	dc.l	loc_FEC0
-	dc.l	loc_1002C
-	dc.l	loc_10036
-	dc.l	loc_10040
-	dc.l	loc_1C04-4
-	dc.l	loc_72F8C
-	dc.l	loc_7300E
-	dc.l	loc_72EAB
-	dc.l	loc_72E0C
-	dc.l	loc_72E88
-	dc.l	loc_72E9C
+  ; USA
+	dc.l	loc_5627E ; USA tiles used for minimap
+	dc.l	loc_6C048 ; USA tiles used used for background
+	dc.l	loc_6BEC0 ; USA background tile mapping
+	dc.l	loc_5638C ; USA tile mapping for minimap
+	dc.l	loc_FEC0 ; USA background palette
+	dc.l	loc_1002C ; USA sideline style
+	dc.l	loc_10036 ; USA road style data
+	dc.l	loc_10040 ; USA finish line style
+	dc.l	loc_1C04-4 ; ?
+	dc.l	loc_72F8C ; USA signs data
+	dc.l	loc_7300E ; USA tileset for signs
+	dc.l	loc_72EAB ; USA map for minimap position
+	dc.l	loc_72E0C ; USA Track data
+	dc.l	loc_72E88 ; USA slope data
+	dc.l	loc_72E9C ; ?
 	dc.l	$FFFFFD28
-	dc.l	loc_1025C
+	dc.l	loc_1025C ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_5655C
-	dc.l	loc_6841A
-	dc.l	loc_68240
-	dc.l	loc_5669E
-	dc.l	loc_FEEC
-	dc.l	loc_1004A
-	dc.l	loc_10054
-	dc.l	loc_1005E
-	dc.l	loc_1A42-2
-	dc.l	loc_73546
-	dc.l	loc_735BC
-	dc.l	loc_73474
-	dc.l	loc_73314
-	dc.l	loc_73404
-	dc.l	loc_73450
+  ; Canada
+	dc.l	loc_5655C ; Canada tiles used for minimap
+	dc.l	loc_6841A ; Canada tiles used used for background
+	dc.l	loc_68240 ; Canada background tile mapping
+	dc.l	loc_5669E ; Canada tile mapping for minimap
+	dc.l	loc_FEEC ; Canada background palette
+	dc.l	loc_1004A ; Canada sideline style
+	dc.l	loc_10054 ; Canada road style data
+	dc.l	loc_1005E ; Canada finish line style
+	dc.l	loc_1A42-2 ; ?
+	dc.l	loc_73546 ; Canada signs data
+	dc.l	loc_735BC ; Canada tileset for signs
+	dc.l	loc_73474 ; Canada map for minimap position
+	dc.l	loc_73314 ; Canada Track data
+	dc.l	loc_73404 ; Canada slope data
+	dc.l	loc_73450 ; ?
 	dc.l	$FFFFFD30
-	dc.l	loc_1028A
+	dc.l	loc_1028A; ?
 	dc.l	$002B002B
 
-	dc.l	loc_5568C
-	dc.l	loc_66FDE
-	dc.l	loc_66E62
-	dc.l	loc_55812
-	dc.l	loc_FE26
-	dc.l	loc_10068
-	dc.l	loc_10072
-	dc.l	loc_1007C
-	dc.l	loc_1B02-2
-	dc.l	loc_71F98
-	dc.l	loc_71FEA
-	dc.l	loc_71EC0
-	dc.l	loc_71E36
-	dc.l	loc_71E8C
-	dc.l	loc_71EAE
+  ; Great Britain
+	dc.l	loc_5568C  ; Great Britain tiles used for minimap
+	dc.l	loc_66FDE  ; Great Britain tiles used used for background
+	dc.l	loc_66E62  ; Great Britain background tile mapping
+	dc.l	loc_55812  ; Great Britain tile mapping for minimap
+	dc.l	loc_FE26  ; Great Britain background palette
+	dc.l	loc_10068 ; Great Britain sideline style
+	dc.l	loc_10072  ; Great Britain road style data
+	dc.l	loc_1007C  ; Great Britain finish line style
+	dc.l	loc_1B02-2  ; ?
+	dc.l	loc_71F98 ; Great Britain signs data
+	dc.l	loc_71FEA  ; Great Britain tileset for signs
+	dc.l	loc_71EC0  ; Great Britain map for minimap position
+	dc.l	loc_71E36  ; Great Britain Track data
+	dc.l	loc_71E8C ; Great Britain slope data
+	dc.l	loc_71EAE; ?
 	dc.l	$FFFFFD38
-	dc.l	loc_102B8
+	dc.l	loc_102B8; ?
 	dc.l	$002B002B
 
-	dc.l	loc_566BC
-	dc.l	loc_651F0
-	dc.l	loc_65090
-	dc.l	loc_5681A
-	dc.l	loc_FF04-2
-	dc.l	loc_10086
-	dc.l	loc_10090
-	dc.l	loc_1009A
-	dc.l	loc_11DC0
-	dc.l	loc_737A0
-	dc.l	loc_73816
-	dc.l	loc_736B2
-	dc.l	loc_735D6
-	dc.l	loc_7365C
-	dc.l	loc_73694
+  ; Italy
+	dc.l	loc_566BC ; Italy tiles used for minimap
+	dc.l	loc_651F0 ; Italy tiles used used for background
+	dc.l	loc_65090 ; Italy background tile mapping
+	dc.l	loc_5681A ; Italy tile mapping for minimap
+	dc.l	loc_FF04-2 ; Italy background palette
+	dc.l	loc_10086 ; Italy sideline style
+	dc.l	loc_10090 ; Italy road style data
+	dc.l	loc_1009A ; Italy finish line style
+	dc.l	loc_11DC0 ; ?
+	dc.l	loc_737A0 ; Italy signs data
+	dc.l	loc_73816 ; Italy tileset for signs
+	dc.l	loc_736B2 ; Italy map for minimap position
+	dc.l	loc_735D6 ; Italy Track data
+	dc.l	loc_7365C ; Italy slope data
+	dc.l	loc_73694 ; ?
 	dc.l	$FFFFFD40
-	dc.l	loc_102E6
+	dc.l	loc_102E6 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_55D3A
-	dc.l	loc_6D3A2
-	dc.l	loc_6D1AE
-	dc.l	loc_55ED2
-	dc.l	loc_FE7E
-	dc.l	loc_100A4
-	dc.l	loc_100AE
-	dc.l	loc_100B8
-	dc.l	loc_19C2-2
-	dc.l	loc_72922
-	dc.l	loc_72980
-	dc.l	loc_72854
-	dc.l	loc_72784
-	dc.l	loc_72806
-	dc.l	loc_7283C
+  ; Portugal
+	dc.l	loc_55D3A ; Portugal tiles used for minimap
+	dc.l	loc_6D3A2 ; Portugal tiles used used for background
+	dc.l	loc_6D1AE ; Portugal background tile mapping
+	dc.l	loc_55ED2 ; Portugal tile mapping for minimap
+	dc.l	loc_FE7E ; Portugal background palette
+	dc.l	loc_100A4 ; Portugal sideline style
+	dc.l	loc_100AE ; Portugal road style data
+	dc.l	loc_100B8 ; Portugal finish line style
+	dc.l	loc_19C2-2 ; ?
+	dc.l	loc_72922 ; Portugal signs data
+	dc.l	loc_72980 ; Portugal tileset for signs
+	dc.l	loc_72854 ; Portugal map for minimap position
+	dc.l	loc_72784 ; Portugal Track data
+	dc.l	loc_72806 ; Portugal slope data
+	dc.l	loc_7283C ; ?
 	dc.l	$FFFFFD48
-	dc.l	loc_10314
+	dc.l	loc_10314 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_55EF2
-	dc.l	loc_66488
-	dc.l	loc_6630E
-	dc.l	loc_560BC
-	dc.l	loc_FE94
-	dc.l	loc_100C2
-	dc.l	loc_100CC
-	dc.l	loc_100D6
-	dc.l	loc_1A80
-	dc.l	loc_72B7A
-	dc.l	loc_72BEC
-	dc.l	loc_72AA5
-	dc.l	loc_7299A
-	dc.l	loc_72A3C
-	dc.l	loc_72A84
+  ; Spain
+	dc.l	loc_55EF2 ; Spain tiles used for minimap
+	dc.l	loc_66488 ; Spain tiles used used for background
+	dc.l	loc_6630E ; Spain background tile mapping
+	dc.l	loc_560BC ; Spain tile mapping for minimap
+	dc.l	loc_FE94 ; Spain background palette
+	dc.l	loc_100C2 ; Spain sideline style
+	dc.l	loc_100CC ; Spain road style data
+	dc.l	loc_100D6 ; Spain finish line style
+	dc.l	loc_1A80 ; ?
+	dc.l	loc_72B7A ; Spain signs data
+	dc.l	loc_72BEC ; Spain tileset for signs
+	dc.l	loc_72AA5 ; Spain map for minimap position
+	dc.l	loc_7299A ; Spain Track data
+	dc.l	loc_72A3C ; Spain slope data
+	dc.l	loc_72A84 ; ?
 	dc.l	$FFFFFD50
-	dc.l	loc_10342
+	dc.l	loc_10342 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_553B6
-	dc.l	loc_6C9E6
-	dc.l	loc_6C908
-	dc.l	loc_554E8
-	dc.l	loc_FDFA
-	dc.l	loc_100E0
-	dc.l	loc_100EA
-	dc.l	loc_100F4
-	dc.l	loc_1AC2-2
-	dc.l	loc_71BBA
-	dc.l	loc_71C14
-	dc.l	loc_71AE3
-	dc.l	loc_71A38
-	dc.l	loc_71AC0
-	dc.l	loc_71AD4
+  ; Mexico
+	dc.l	loc_553B6 ; Mexico tiles used for minimap
+	dc.l	loc_6C9E6 ; Mexico tiles used used for background
+	dc.l	loc_6C908 ; Mexico background tile mapping
+	dc.l	loc_554E8 ; Mexico tile mapping for minimap
+	dc.l	loc_FDFA ; Mexico background palette
+	dc.l	loc_100E0 ; Mexico sideline style
+	dc.l	loc_100EA ; Mexico road style data
+	dc.l	loc_100F4 ; Mexico finish line style
+	dc.l	loc_1AC2-2 ; ?
+	dc.l	loc_71BBA ; Mexico signs data
+	dc.l	loc_71C14 ; Mexico tileset for signs
+	dc.l	loc_71AE3 ; Mexico map for minimap position
+	dc.l	loc_71A38 ; Mexico Track data
+	dc.l	loc_71AC0 ; Mexico slope data
+	dc.l	loc_71AD4 ; ?
 	dc.l	$FFFFFD58
-	dc.l	loc_10370
+	dc.l	loc_10370 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_563B6
-	dc.l	loc_649FC
-	dc.l	loc_64884
-	dc.l	loc_56542
-	dc.l	loc_FED6
-	dc.l	loc_100FE
-	dc.l	loc_10108
-	dc.l	loc_10112
-	dc.l	loc_1D82-2
-	dc.l	loc_73264
-	dc.l	loc_732F6
-	dc.l	loc_73178
-	dc.l	loc_7301C
-	dc.l	loc_730E6
-	dc.l	loc_7314E
+  ; Japan
+	dc.l	loc_563B6 ; Japan tiles used for minimap
+	dc.l	loc_649FC ; Japan tiles used used for background
+	dc.l	loc_64884 ; Japan background tile mapping
+	dc.l	loc_56542 ; Japan tile mapping for minimap
+	dc.l	loc_FED6 ; Japan background palette
+	dc.l	loc_100FE ; Japan sideline style
+	dc.l	loc_10108 ; Japan road style data
+	dc.l	loc_10112 ; Japan finish line style
+	dc.l	loc_1D82-2 ; ?
+	dc.l	loc_73264 ; Japan signs data
+	dc.l	loc_732F6 ; Japan tileset for signs
+	dc.l	loc_73178 ; Japan map for minimap position
+	dc.l	loc_7301C ; Japan Track data
+	dc.l	loc_730E6 ; Japan slope data
+	dc.l	loc_7314E ; ?
 	dc.l	$FFFFFD60
-	dc.l	loc_1039E
+	dc.l	loc_1039E ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_55B8A
-	dc.l	loc_6B708
-	dc.l	loc_6B51A
-	dc.l	loc_55D18
-	dc.l	loc_FE68
-	dc.l	loc_1011C
-	dc.l	loc_10126
-	dc.l	loc_10130
-	dc.l	loc_11E40
-	dc.l	loc_726D0
-	dc.l	loc_72766
-	dc.l	loc_725DD
-	dc.l	loc_72480
-	dc.l	loc_72578
-	dc.l	loc_725BC
+  ; Belgium
+	dc.l	loc_55B8A ; Belgium tiles used for minimap
+	dc.l	loc_6B708 ; Belgium tiles used used for background
+	dc.l	loc_6B51A ; Belgium background tile mapping
+	dc.l	loc_55D18 ; Belgium tile mapping for minimap
+	dc.l	loc_FE68 ; Belgium background palette
+	dc.l	loc_1011C ; Belgium sideline style
+	dc.l	loc_10126 ; Belgium road style data
+	dc.l	loc_10130 ; Belgium finish line style
+	dc.l	loc_11E40 ; ?
+	dc.l	loc_726D0 ; Belgium signs data
+	dc.l	loc_72766 ; Belgium tileset for signs
+	dc.l	loc_725DD ; Belgium map for minimap position
+	dc.l	loc_72480 ; Belgium Track data
+	dc.l	loc_72578 ; Belgium slope data
+	dc.l	loc_725BC ; ?
 	dc.l	$FFFFFD68
-	dc.l	loc_103CC
+	dc.l	loc_103CC ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_560D4
-	dc.l	loc_69758
-	dc.l	loc_695FE
-	dc.l	loc_56258
-	dc.l	loc_FEAA
-	dc.l	loc_1013A
-	dc.l	loc_10144
-	dc.l	loc_1014E
-	dc.l	loc_17C2-2
-	dc.l	loc_72D78
-	dc.l	loc_72DEA
-	dc.l	loc_72CBA
-	dc.l	loc_72C02
-	dc.l	loc_72C86
-	dc.l	loc_72CA8
+  ; Australia
+	dc.l	loc_560D4 ; Australia tiles used for minimap
+	dc.l	loc_69758 ; Australia tiles used used for background
+	dc.l	loc_695FE ; Australia background tile mapping
+	dc.l	loc_56258 ; Australia tile mapping for minimap
+	dc.l	loc_FEAA ; Australia background palette
+	dc.l	loc_1013A ; Australia sideline style
+	dc.l	loc_10144 ; Australia road style data
+	dc.l	loc_1014E ; Australia finish line style
+	dc.l	loc_17C2-2 ; ?
+	dc.l	loc_72D78 ; Australia signs data
+	dc.l	loc_72DEA ; Australia tileset for signs
+	dc.l	loc_72CBA ; Australia map for minimap position
+	dc.l	loc_72C02 ; Australia Track data
+	dc.l	loc_72C86 ; Australia slope data
+	dc.l	loc_72CA8 ; ?
 	dc.l	$FFFFFD70
-	dc.l	loc_103FA
+	dc.l	loc_103FA ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_551B4
-	dc.l	loc_6DCF8
-	dc.l	loc_6DA8A
-	dc.l	loc_5539C
-	dc.l	loc_FDE4
-	dc.l	loc_10158
-	dc.l	loc_10162
-	dc.l	loc_1016C
-	dc.l	loc_1804-4
-	dc.l	loc_719AC
-	dc.l	loc_71A1E
-	dc.l	loc_718EB
-	dc.l	loc_717C8
-	dc.l	loc_718AE
-	dc.l	loc_718D6
+  ; Monaco
+	dc.l	loc_551B4 ; Monaco tiles used for minimap
+	dc.l	loc_6DCF8 ; Monaco tiles used used for background
+	dc.l	loc_6DA8A ; Monaco background tile mapping
+	dc.l	loc_5539C ; Monaco tile mapping for minimap
+	dc.l	loc_FDE4 ; Monaco background palette
+	dc.l	loc_10158 ; Monaco sideline style
+	dc.l	loc_10162 ; Monaco road style data
+	dc.l	loc_1016C ; Monaco finish line style
+	dc.l	loc_1804-4 ; ?
+	dc.l	loc_719AC ; Monaco signs data
+	dc.l	loc_71A1E ; Monaco tileset for signs
+	dc.l	loc_718EB ; Monaco map for minimap position
+	dc.l	loc_717C8 ; Monaco Track data
+	dc.l	loc_718AE ; Monaco slope data
+	dc.l	loc_718D6 ; ?
 	dc.l	$FFFFFD78
-	dc.l	loc_10428
+	dc.l	loc_10428 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_54CB2
-	dc.l	loc_63ECA
-	dc.l	loc_63910
-	dc.l	loc_54E6A
-	dc.l	loc_FF2E
-	dc.l	loc_FF5C-2
-	dc.l	loc_FF64
-	dc.l	loc_FF6E
-	dc.l	loc_D40
-	dc.l	loc_73B26
-	dc.l	loc_73B54
-	dc.l	loc_73ABC
-	dc.l	loc_73A4A
-	dc.l	loc_73A8A
-	dc.l	loc_73AAC
+  ; Monaco (Arcade preliminary)
+	dc.l	loc_54CB2 ; Monaco (Arcade preliminary) tiles used for minimap
+	dc.l	loc_63ECA ; Monaco (Arcade preliminary) tiles used used for background
+	dc.l	loc_63910 ; Monaco (Arcade preliminary) background tile mapping
+	dc.l	loc_54E6A ; Monaco (Arcade preliminary) tile mapping for minimap
+	dc.l	loc_FF2E ; Monaco (Arcade preliminary) background palette
+	dc.l	loc_FF5C-2 ; Monaco (Arcade preliminary) sideline style
+	dc.l	loc_FF64 ; Monaco (Arcade preliminary) road style data
+	dc.l	loc_FF6E ; Monaco (Arcade preliminary) finish line style
+	dc.l	loc_D40 ; ?
+	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
+	dc.l	loc_73B54 ; Monaco (Arcade preliminary) tileset for signs
+	dc.l	loc_73ABC ; Monaco (Arcade preliminary) map for minimap position
+	dc.l	loc_73A4A ; Monaco (Arcade preliminary) Track data
+	dc.l	loc_73A8A ; Monaco (Arcade preliminary) slope data
+	dc.l	loc_73AAC ; ?
 	dc.l	$FFFFFD80
-	dc.l	loc_10456
+	dc.l	loc_10456 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_54E88
-	dc.l	loc_63ECA
-	dc.l	loc_63910
-	dc.l	loc_55012
-	dc.l	loc_FF2E
-	dc.l	loc_FF5C-2
-	dc.l	loc_FF64
-	dc.l	loc_FF6E
-	dc.l	loc_1DC0
-	dc.l	loc_73D7C
-	dc.l	loc_73DEA
-	dc.l	loc_73C8D
-	dc.l	loc_73B5E
-	dc.l	loc_73C16
-	dc.l	loc_73C66
+  ; Monaco (Arcade main)
+	dc.l	loc_54E88 ; Monaco (Arcade main) tiles used for minimap
+	dc.l	loc_63ECA ; Monaco (Arcade main) tiles used used for background
+	dc.l	loc_63910 ; Monaco (Arcade main) background tile mapping
+	dc.l	loc_55012 ; Monaco (Arcade main) tile mapping for minimap
+	dc.l	loc_FF2E  ; Monaco (Arcade main) background palette
+	dc.l	loc_FF5C-2 ; Monaco (Arcade main) sideline style
+	dc.l	loc_FF64 ; Monaco (Arcade main) road style data
+	dc.l	loc_FF6E ; Monaco (Arcade main) finish line style
+	dc.l	loc_1DC0 ; ?
+	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
+	dc.l	loc_73DEA ; Monaco (Arcade main) tileset for signs
+	dc.l	loc_73C8D  ; Monaco (Arcade main) map for minimap position
+	dc.l	loc_73B5E ; Monaco (Arcade main) Track data
+	dc.l	loc_73C16 ; Monaco (Arcade main) slope data
+	dc.l	loc_73C66 ; ?
 	dc.l	$FFFFFD88
-	dc.l	loc_10456
+	dc.l	loc_10456 ; ?
 	dc.l	$002B002B
 
-	dc.l	loc_54E88
-	dc.l	loc_63ECA
-	dc.l	loc_63C10
-	dc.l	loc_55012
-	dc.l	loc_FF44
-	dc.l	loc_FF78
-	dc.l	loc_FF82
-	dc.l	loc_FF8C
-	dc.l	loc_1DC0
-	dc.l	loc_73D7C
-	dc.l	loc_73DEA
-	dc.l	loc_73C8D
-	dc.l	loc_73B5E
-	dc.l	loc_73C16
-	dc.l	loc_73C66
+  ; Monaco (Arcade Wet Condition)
+	dc.l	loc_54E88 ; Monaco (Arcade Wet Condition) tiles used for minimap
+	dc.l	loc_63ECA ; Monaco (Arcade Wet Condition) tiles used used for background
+	dc.l	loc_63C10 ; Monaco (Arcade Wet Condition) background tile mapping
+	dc.l	loc_55012 ; Monaco (Arcade Wet Condition) tile mapping for minimap
+	dc.l	loc_FF44 ; Monaco (Arcade Wet Condition) background palette
+	dc.l	loc_FF78 ; Monaco (Arcade Wet Condition) sideline style
+	dc.l	loc_FF82 ; Monaco (Arcade Wet Condition) road style data
+	dc.l	loc_FF8C ; Monaco (Arcade Wet Condition) finish line style
+	dc.l	loc_1DC0 ; ?
+	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
+	dc.l	loc_73DEA  ; Monaco (Arcade Wet Condition) tileset for signs
+	dc.l	loc_73C8D ; Monaco (Arcade Wet Condition) map for minimap position
+	dc.l	loc_73B5E ; Monaco (Arcade Wet Condition) Track data
+	dc.l	loc_73C16 ; Monaco (Arcade Wet Condition) slope data
+	dc.l	loc_73C66 ; ?
 	dc.l	$FFFFFD88
-	dc.l	loc_10456
+	dc.l	loc_10456 ; ?
 	dc.l	$002f0038
 
 loc_FDCA:
