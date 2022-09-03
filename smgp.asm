@@ -225,7 +225,7 @@ loc_376:
 	MOVE.l	#$C0000000, VDP_control_port	;Predicted (Code-scan)
 	MOVEQ	#$0000003F, D7	;Predicted (Code-scan)
 loc_388:
-	MOVE.w	#$000E, $00C00000	;Predicted (Code-scan)
+	MOVE.w	#$000E, VDP_data_port	;Predicted (Code-scan)
 	DBF	D7, loc_388	;Predicted (Code-scan)
 loc_394:
 	BRA.b	loc_394	;Predicted (Code-scan)
@@ -306,7 +306,7 @@ loc_4B4:
 	dc.l	$00A00000	;A0
 	dc.l	$00A11100	;A1
 	dc.l	$00A11200	;A2 (Predicted offset)
-	dc.l	$00C00000	;A3 (Predicted offset)
+	dc.l	VDP_data_port	;A3 (Predicted offset)
 	dc.l	VDP_control_port	;A4
 	dc.b	$04, $14, $30, $3C, $07, $6C, $00, $00, $00, $00, $FF, $00, $81, $37, $00, $01, $01, $00, $00, $FF, $FF, $00, $00, $80, $AF, $01, $D7, $1F, $11, $29, $00, $21 ;0x0 (0x000004D4-0x00000518, Entry count: 0x44)
 	dc.b	$28, $00, $F9, $77, $ED, $B0, $DD, $E1, $FD, $E1, $ED, $47, $ED, $4F, $08, $D9, $F1, $C1, $D1, $E1, $08, $D9, $F1, $D1, $E1, $F9, $F3, $ED, $56, $36, $E9, $E9 ;0x20
@@ -411,7 +411,7 @@ loc_60A:
 	MOVE.l	#$C0000000, VDP_control_port
 	MOVEQ	#$0000003F, D7
 loc_620:
-	MOVE.w	#0, $00C00000
+	MOVE.w	#0, VDP_data_port
 	DBF	D7, loc_620
 	RTS
 loc_62E:
@@ -442,7 +442,7 @@ loc_686:
 	MOVE.w	#$8004, VDP_control_port
 	MOVE.w	#$8AFF, VDP_control_port
 	MOVE.l	#$40000010, VDP_control_port
-	MOVE.l	#0, $00C00000
+	MOVE.l	#0, VDP_data_port
 	LEA	$FFFFFC00.w, A0
 	MOVE.w	#$003F, D0
 loc_6BE:
@@ -511,7 +511,7 @@ loc_778:
 loc_780:
 	MOVE.l	#$00400000, D3
 loc_786:
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 loc_78C:
 	MOVE.l	D7, $4(A5)
 	MOVE.w	D6, D4
@@ -540,7 +540,7 @@ loc_7D4:
 	JSR	loc_AB0(PC)
 	LEA	$FFFFEA00.w, A6
 loc_7DC:
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 loc_7E2:
 	MOVE.l	D7, $4(A5)
 	MOVE.w	D6, D4
@@ -588,7 +588,7 @@ loc_838:
 	DBF	D5, loc_826
 	RTS
 loc_846:
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	MOVE.w	(A6)+, D6
 loc_84E:
 	MOVE.w	D6, D7
@@ -705,7 +705,7 @@ loc_960:
 loc_972:
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A32(PC), A3
-	LEA	$00C00000, A4
+	LEA	VDP_data_port, A4
 	BRA.b	loc_98A
 loc_982:
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
@@ -1398,7 +1398,7 @@ loc_10A2:
 	MOVE.w	#$DDDD, D1
 	MOVE.l	#$48400002, VDP_control_port
 loc_1100:
-	MOVE.w	D1, $00C00000
+	MOVE.w	D1, VDP_data_port
 	DBF	D0, loc_1100
 loc_110A:
 	TST.w	$FFFF914A.w
@@ -1435,17 +1435,17 @@ loc_1144:
 	MOVE.l	#$40000003, VDP_control_port
 	MOVEQ	#$0000003F, D0
 loc_1186:
-	MOVE.w	#$073F, $00C00000
+	MOVE.w	#$073F, VDP_data_port
 	DBF	D0, loc_1186
 	MOVE.l	#$5F800003, VDP_control_port
 	MOVEQ	#$0000003F, D0
 loc_119E:
-	MOVE.w	#$873F, $00C00000
+	MOVE.w	#$873F, VDP_data_port
 	DBF	D0, loc_119E
 	MOVE.l	#$62000003, VDP_control_port
 	MOVEQ	#$0000001F, D0
 loc_11B6:
-	MOVE.w	#$873C, $00C00000
+	MOVE.w	#$873C, VDP_data_port
 	DBF	D0, loc_11B6
 	JSR	loc_F848
 	LEA	$C(A1), A1
@@ -1975,7 +1975,7 @@ loc_182C:
 	ADD.w	D0, D0
 	MOVE.l	#$62A20003, VDP_control_port
 	LEA	loc_20F2(PC), A0
-	MOVE.l	(A0,D0.w), $00C00000
+	MOVE.l	(A0,D0.w), VDP_data_port
 	CLR.w	$FFFFFC74.w
 loc_184A:
 	RTS
@@ -2359,7 +2359,7 @@ loc_1CC0:
 	MOVE.w	D1, (A1)+
 	RTS
 loc_1CCC:
-	LEA	$00C00000, A6
+	LEA	VDP_data_port, A6
 	TST.w	$FFFF927C.w
 	BEQ.b	loc_1CF2
 	MOVE.l	#$5F000003, $4(A6)
@@ -2922,7 +2922,7 @@ loc_25FC:
 	MOVE.l	D1, VDP_control_port
 	MOVEQ	#$0000000B, D2
 loc_2604:
-	MOVE.w	D4, $00C00000
+	MOVE.w	D4, VDP_data_port
 	ADDQ.w	#1, D4
 	DBF	D2, loc_2604
 	ADD.l	D0, D1
@@ -2963,7 +2963,7 @@ loc_264E:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 loc_269A:
-	MOVEA.l	#$00C00000, A1
+	MOVEA.l	#VDP_data_port, A1
 	MOVE.w	#$030F, D1
 	MOVE.l	#$40000000, $4(A1)
 loc_26AC:
@@ -3403,13 +3403,13 @@ loc_2CB2:
 	MOVE.l	$FFFF9006.w, D0
 	ORI	#$0700, SR
 	MOVE.l	D0, VDP_control_port
-	MOVE.w	#$8354, $00C00000
+	MOVE.w	#$8354, VDP_data_port
 	CLR.w	D1
 	MOVE.b	$FFFF900E.w, D1
 loc_2CE2:
-	MOVE.w	#$8355, $00C00000
+	MOVE.w	#$8355, VDP_data_port
 	DBF	D1, loc_2CE2
-	MOVE.w	#$8356, $00C00000
+	MOVE.w	#$8356, VDP_data_port
 	ANDI	#$F8FF, SR
 	CLR.w	D2
 	MOVE.b	$FFFF900D.w, D2
@@ -3417,25 +3417,25 @@ loc_2D00:
 	ADDI.l	#$00800000, D0
 	ORI	#$0700, SR
 	MOVE.l	D0, VDP_control_port
-	MOVE.w	#$8357, $00C00000
+	MOVE.w	#$8357, VDP_data_port
 	CLR.w	D1
 	MOVE.b	$FFFF900E.w, D1
 loc_2D1E:
-	MOVE.w	#$834F, $00C00000
+	MOVE.w	#$834F, VDP_data_port
 	DBF	D1, loc_2D1E
-	MOVE.w	#$8358, $00C00000
+	MOVE.w	#$8358, VDP_data_port
 	DBF	D2, loc_2D00
 	ANDI	#$F8FF, SR
 	ADDI.l	#$00800000, D0
 	ORI	#$0700, SR
 	MOVE.l	D0, VDP_control_port
-	MOVE.w	#$8359, $00C00000
+	MOVE.w	#$8359, VDP_data_port
 	CLR.w	D1
 	MOVE.b	$FFFF900E.w, D1
 loc_2D58:
-	MOVE.w	#$835A, $00C00000
+	MOVE.w	#$835A, VDP_data_port
 	DBF	D1, loc_2D58
-	MOVE.w	#$835B, $00C00000
+	MOVE.w	#$835B, VDP_data_port
 	ANDI	#$F8FF, SR
 	MOVE.b	$FFFF900D.w, D0
 	CMP.b	$FFFF900C.w, D0
@@ -3483,7 +3483,7 @@ loc_2DDA:
 loc_2DFC:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_2E12:
@@ -3491,7 +3491,7 @@ loc_2E12:
 	ADDI.w	#$831E, D0
 	ORI	#$0700, SR
 	MOVE.l	#$6A400003, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_2E34:
@@ -3602,7 +3602,7 @@ loc_2F92:
 	CLR.w	D0
 	MOVE.b	(A1)+, D0
 	ADDI.w	#$831D, D0
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	DBF	D3, loc_2F92
 	ADDI.l	#$01000000, D7
 	DBF	D1, loc_2F8A
@@ -3785,7 +3785,7 @@ loc_3284:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	loc_32CA
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	MOVE.w	#$E786, D6
 	TST.w	$FFFFFF2E.w
 	BEQ.b	loc_32AE
@@ -4552,7 +4552,7 @@ loc_3D96:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 	MOVE.l	#$40020010, VDP_control_port
-	MOVE.w	#0, $00C00000
+	MOVE.w	#0, VDP_data_port
 	MOVE.w	$FFFFFC24.w, D0
 	ADDQ.w	#4, D0
 	CMPI.w	#$0014, D0
@@ -4815,7 +4815,7 @@ loc_42B4:
 	MOVE.l	$FFFFFC00.w, VDP_control_port
 	MOVE.w	#$000C, D0
 loc_42C0:
-	MOVE.w	(A0)+, $00C00000
+	MOVE.w	(A0)+, VDP_data_port
 	DBF	D0, loc_42C0
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.w	#$00F0, D0
@@ -4901,7 +4901,7 @@ loc_43FA:
 	MOVE.l	$FFFF92E0.w, (A0,D0.w)
 	RTS
 loc_440E:
-	LEA	$00C00000, A1
+	LEA	VDP_data_port, A1
 	LEA	$FFFFAD40.w, A0
 	LEA	$FFFFE810.w, A3
 	LEA	loc_471E(PC), A2
@@ -4956,7 +4956,7 @@ loc_4498:
 	ANDI.w	#2, D0
 	SUBQ.w	#3, D0
 	MOVE.l	#$70000003, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI.w	#4, D1
 	MULU.w	#$009B, D1
 	LEA	$FFFFEA00.w, A6
@@ -5177,7 +5177,7 @@ loc_489C:
 	MOVE.b	$FFFFFC12.w, D1
 	MOVE.b	D0, (A0,D1.w)
 loc_48A6:
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	MOVE.l	$FFFFFC04.w, D0
 	ADDI.l	#$00300000, D0
 	MOVE.l	D0, $4(A5)
@@ -5239,11 +5239,11 @@ loc_492E:
 	LEA	loc_54DE(PC), A0
 	MOVE.b	(A0,D0.w), D0
 	ADDI.w	#$C05F, D0
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ADDQ.w	#1, D0
 	ADDI.l	#$00800000, D7
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	RTS
 loc_4968:
 	JSR	loc_8AE
@@ -5296,7 +5296,7 @@ loc_4A2C:
 	MOVEQ	#0, D1
 	MOVEQ	#$00000029, D0
 	LEA	$00FF5C40, A0
-	LEA	$00C00000, A1
+	LEA	VDP_data_port, A1
 	MOVE.l	#$53200000, VDP_control_port
 loc_4A58:
 	MOVE.l	D1, (A1)
@@ -5327,7 +5327,7 @@ loc_4A7E:
 	MOVEQ	#$0000001F, D0
 	MOVE.w	D0, D1
 loc_4A9E:
-	MOVE.w	$00C00000, (A0)+
+	MOVE.w	VDP_data_port, (A0)+
 	DBF	D0, loc_4A9E
 loc_4AA8:
 	MOVE.w	-$40(A0), D2
@@ -5338,7 +5338,7 @@ loc_4AA8:
 loc_4AB8:
 	MOVE.l	$FFFFFC04.w, D0
 	BEQ.b	loc_4AE0
-	LEA	$00C00000, A6
+	LEA	VDP_data_port, A6
 	MOVE.l	D0, $4(A6)
 	LEA	$FFFFCE00.w, A0
 	MOVE.b	$FFFFFC20.w, D0
@@ -5537,7 +5537,7 @@ loc_4D54:
 	MOVE.w	#$E204, D6
 	MOVE.w	#9, $FFFFFC0A.w
 loc_4D66:
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	LEA	loc_5349(PC), A6
 	JSR	loc_84E
 loc_4D76:
@@ -5811,7 +5811,7 @@ loc_503A:
 	RTS
 	JSR	loc_396
 	MOVE.l	#$40000010, VDP_control_port
-	MOVE.w	$FFFFFC1C.w, $00C00000
+	MOVE.w	$FFFFFC1C.w, VDP_data_port
 	JSR	loc_4C8A(PC)
 	JSR	loc_D5C
 	MOVE.w	$FFFFFC1C.w, D0
@@ -5882,7 +5882,7 @@ loc_5154:
 loc_5156:
 	LEA	loc_5232(PC), A6
 	JSR	loc_846
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	MOVE.w	#$0306, D6
 	MOVEQ	#0, D5
 loc_516C:
@@ -6104,7 +6104,7 @@ loc_567C:
 	MOVE.w	$FFFFFF28.w, $FFFF9144.w
 	MOVE.w	#8, D0
 loc_56C6:
-	MOVE.l	#0, $00C00000
+	MOVE.l	#0, VDP_data_port
 	DBF	D0, loc_56C6
 	LEA	loc_32660, A0
 	MOVE.w	#$0082, D0
@@ -6142,7 +6142,7 @@ loc_56C6:
 	MOVE.l	#$40200000, VDP_control_port
 	MOVE.w	#7, D0
 loc_578E:
-	MOVE.l	#$FFFFFFFF, $00C00000
+	MOVE.l	#$FFFFFFFF, VDP_data_port
 	DBF	D0, loc_578E
 	LEA	loc_325E6, A6
 	JSR	loc_6DA
@@ -6175,7 +6175,7 @@ loc_5826:
 	JSR	loc_8AE
 	MOVE.l	D7, VDP_control_port
 loc_583A:
-	MOVE.w	D2, $00C00000
+	MOVE.w	D2, VDP_data_port
 	DBF	D0, loc_583A
 	MOVEM.w	(A7)+, D0/D1/D2/D7
 	DBF	D1, loc_5826
@@ -6188,7 +6188,7 @@ loc_583A:
 	LSR.w	#1, D0
 	MOVE.w	#$00B0, D1
 loc_5874:
-	MOVE.l	D0, $00C00000
+	MOVE.l	D0, VDP_data_port
 	DBF	D1, loc_5874
 	CLR.l	D0
 	MOVE.w	$FFFFFC04.w, D0
@@ -6201,7 +6201,7 @@ loc_5874:
 	LSL.l	#5, D0
 	MOVE.w	#7, D1
 loc_58A8:
-	MOVE.l	(A1,D0.w), $00C00000
+	MOVE.l	(A1,D0.w), VDP_data_port
 	ADDQ.l	#4, D0
 	DBF	D1, loc_58A8
 	SUBQ.w	#1, $FFFFFC04.w
@@ -6241,7 +6241,7 @@ loc_58C4:
 	MOVE.w	$FFFFFF28.w, D0
 	MULS.w	#$003B, D0
 	ADDA.l	D0, A6
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	MOVE.w	#$E198, D6
 	MOVE.w	#$2032, D0
 	JSR	loc_84E
@@ -6258,10 +6258,10 @@ loc_5996:
 	MOVE.l	(A2), D0
 	LEA	$FFFFE85C.w, A3
 	JSR	loc_15D6
-	MOVE.l	(A3)+, $00C00000
-	MOVE.l	(A3)+, $00C00000
-	MOVE.l	(A3)+, $00C00000
-	MOVE.l	(A3)+, $00C00000
+	MOVE.l	(A3)+, VDP_data_port
+	MOVE.l	(A3)+, VDP_data_port
+	MOVE.l	(A3)+, VDP_data_port
+	MOVE.l	(A3)+, VDP_data_port
 	RTS
 loc_59BC:
 	MOVE.b	$FFFFFF20.w, D5
@@ -7217,7 +7217,7 @@ loc_663C:
 	MOVE.w	#$02FF, D1
 	MOVE.w	#$9FFF, D2
 	LEA	$FFFFF600.w, A0
-	LEA	$00C00000, A1
+	LEA	VDP_data_port, A1
 loc_664E:
 	MOVE.w	(A0)+, D3
 	AND.w	D2, D3
@@ -8458,7 +8458,7 @@ loc_72D0:
 loc_72D6:
 	MOVE.l	#$49800003, D0
 	LEA	$FFFF91BC.w, A0
-	LEA	$00C00000, A1
+	LEA	VDP_data_port, A1
 	LEA	$FFFFEA00.w, A2
 	MOVEQ	#6, D1
 loc_72EC:
@@ -13665,25 +13665,25 @@ loc_B6C8:
 	BEQ.b	loc_B706
 	ORI	#$0700, SR
 	MOVE.l	#$4E160000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	MOVE.l	#$4E240000, VDP_control_port
-	MOVE.w	#$434D, $00C00000
+	MOVE.w	#$434D, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_B706:
 	ORI	#$0700, SR
 	MOVE.l	#$4E160000, VDP_control_port
-	MOVE.w	#$434D, $00C00000
+	MOVE.w	#$434D, VDP_data_port
 	MOVE.l	#$4E240000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_B734:
 	ORI	#$0700, SR
 	MOVE.l	#$4E160000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	MOVE.l	#$4E240000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_B762:
@@ -13916,25 +13916,25 @@ loc_BA6C:
 	BEQ.b	loc_BAAA
 	ORI	#$0700, SR	;Predicted (Code-scan)
 	MOVE.l	#$52120000, VDP_control_port	;Predicted (Code-scan)
-	MOVE.w	#$434F, $00C00000	;Predicted (Code-scan)
+	MOVE.w	#$434F, VDP_data_port	;Predicted (Code-scan)
 	MOVE.l	#$52220000, VDP_control_port	;Predicted (Code-scan)
-	MOVE.w	#$434D, $00C00000	;Predicted (Code-scan)
+	MOVE.w	#$434D, VDP_data_port	;Predicted (Code-scan)
 	ANDI	#$F8FF, SR	;Predicted (Code-scan)
 	RTS	;Predicted (Code-scan)
 loc_BAAA:
 	ORI	#$0700, SR
 	MOVE.l	#$52120000, VDP_control_port
-	MOVE.w	#$434D, $00C00000
+	MOVE.w	#$434D, VDP_data_port
 	MOVE.l	#$52220000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_BAD8:
 	ORI	#$0700, SR
 	MOVE.l	#$52120000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	MOVE.l	#$52220000, VDP_control_port
-	MOVE.w	#$434F, $00C00000
+	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_BB06:
@@ -14261,7 +14261,7 @@ loc_C024:
 	MOVE.w	#$0080, D0
 	MOVE.l	#$5A000003, VDP_control_port
 loc_C058:
-	MOVE.l	#$622A622B, $00C00000
+	MOVE.l	#$622A622B, VDP_data_port
 	DBF	D0, loc_C058
 	MOVE.w	#$0014, D0
 	MOVE.l	#$59000003, D7
@@ -14272,7 +14272,7 @@ loc_C074:
 	DBF	D0, loc_C074
 	SUBI.l	#$000C0000, D7
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	#$6229, $00C00000
+	MOVE.w	#$6229, VDP_data_port
 	MOVEM.l	(A7)+, D0/D7
 	DBF	D0, loc_C070
 	MOVE.w	#$004B, $FFFFFC1A.w
@@ -14359,7 +14359,7 @@ loc_C1A0:
 loc_C1A2:
 	ADD.w	D4, D5
 loc_C1A4:
-	MOVE.w	D5, $00C00000
+	MOVE.w	D5, VDP_data_port
 	RTS
 	dc.b	$3A, $9E, $51, $C8, $FF, $FC, $4E, $75 ;0x0 (0x0000C1AC-0x0000C1B4, Entry count: 0x8) [Unknown data]
 loc_C1B4:
@@ -14545,7 +14545,7 @@ loc_C40C:
 	BEQ.b	loc_C474
 	MOVEQ	#$00000019, D0
 loc_C418:
-	MOVE.w	(A0)+, $00C00000
+	MOVE.w	(A0)+, VDP_data_port
 	DBF	D0, loc_C418
 	MOVE.l	A0, $FFFFC48A.w
 	ADD.w	D2, $FFFFC482.w
@@ -14557,7 +14557,7 @@ loc_C43A:
 	RTS
 loc_C43C:
 	MOVEA.l	$FFFFC48A.w, A0
-	MOVE.w	(A0)+, $00C00000
+	MOVE.w	(A0)+, VDP_data_port
 	MOVE.l	A0, $FFFFC48A.w
 	MOVE.w	$FFFFC486.w, D0
 	ADDQ.w	#2, D0
@@ -15097,7 +15097,7 @@ loc_CBC0:
 loc_CBD0:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC19.w
 	BSR.w	loc_B480
@@ -15109,7 +15109,7 @@ loc_CBD0:
 	ANDI.w	#1, D0
 	SUBQ.w	#1, D0
 	MOVE.l	#$40020010, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	BSR.b	loc_CC3A
 	LEA	loc_CC2C, A1
 	MOVE.w	$FFFFFC14.w, D0
@@ -15445,9 +15445,9 @@ loc_D0B6:
 loc_D0CE:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ADDI.w	#$0800, D0
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC0C.w
 	RTS
@@ -15531,7 +15531,7 @@ loc_D1EA:
 	ADDI.w	#$47C0, D0
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 loc_D204:
@@ -15562,7 +15562,7 @@ loc_D242:
 loc_D25A:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC0E.w
 	RTS
@@ -15692,7 +15692,7 @@ loc_D484:
 	MOVE.w	#4, D1
 	MOVE.w	#$47C0, D4
 	MOVE.w	#$EC34, D7
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	JSR	loc_4F14
 	CLR.l	D0
 	LEA	loc_21B7C, A1
@@ -15780,7 +15780,7 @@ loc_D604:
 	MOVE.w	#$0035, D0
 loc_D620:
 	MOVE.l	#$4A8C0003, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 loc_D630:
 	RTS
 loc_D632:
@@ -16533,7 +16533,7 @@ loc_E29C:
 	JSR	loc_8AE
 	MOVE.l	D7, VDP_control_port
 	LEA	loc_20F2, A0
-	MOVE.l	(A0,D0.w), $00C00000
+	MOVE.l	(A0,D0.w), VDP_data_port
 	RTS
 loc_E2C0:
 	MOVEA.l	(A3)+, A6
@@ -16743,7 +16743,7 @@ loc_E5C0:
 loc_E5D0:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC10.w
 	RTS
@@ -16930,7 +16930,7 @@ loc_E8FC:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
 loc_E91A:
-	MOVE.w	$00C00000, (A1)+
+	MOVE.w	VDP_data_port, (A1)+
 	DBF	D0, loc_E91A
 	LEA	$FFFFFC0C.w, A1
 	MOVE.w	#9, D0
@@ -16938,7 +16938,7 @@ loc_E91A:
 loc_E932:
 	MOVE.w	(A1)+, D1
 	ADDI.w	#$C000, D1
-	MOVE.w	D1, $00C00000
+	MOVE.w	D1, VDP_data_port
 	DBF	D0, loc_E932
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC02.w
@@ -16994,7 +16994,7 @@ loc_EA1C:
 	MOVE.w	#9, D0
 	MOVE.l	D7, VDP_control_port
 loc_EA40:
-	MOVE.w	$00C00000, (A1)+
+	MOVE.w	VDP_data_port, (A1)+
 	DBF	D0, loc_EA40
 	LEA	$FFFFFC0C.w, A1
 	MOVE.w	#9, D0
@@ -17002,7 +17002,7 @@ loc_EA40:
 loc_EA58:
 	MOVE.w	(A1)+, D1
 	ADDI.w	#$2000, D1
-	MOVE.w	D1, $00C00000
+	MOVE.w	D1, VDP_data_port
 	DBF	D0, loc_EA58
 	ANDI	#$F8FF, SR
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
@@ -17157,7 +17157,7 @@ loc_EC5A:
 loc_EC6A:
 	MOVE.w	$FFFFFC18.w, D0
 	JSR	loc_157C
-	LEA	$00C00000, A5
+	LEA	VDP_data_port, A5
 	MOVE.w	D1, D0
 	MOVE.w	#2, D1
 	MOVE.w	#$07C0, D4
@@ -17235,7 +17235,7 @@ loc_ED70:
 	DBF	D1, loc_ED70
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
 	JSR	loc_8C0
@@ -17331,7 +17331,7 @@ loc_EF18:
 loc_EF28:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D0, $00C00000
+	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC0C.w
 	RTS
@@ -17536,7 +17536,7 @@ loc_F1DA:
 	JSR	loc_8AE
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	D6, $00C00000
+	MOVE.w	D6, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, $FFFFFC0A.w
 	RTS
@@ -17574,7 +17574,7 @@ loc_F262:
 	JSR	loc_13170
 	BSR.w	loc_F336
 	MOVE.l	#$40020010, VDP_control_port
-	MOVE.w	#$0048, $00C00000
+	MOVE.w	#$0048, VDP_data_port
 	LEA	loc_39E80, A6
 	JSR	loc_846
 	LEA	loc_39EB4, A6
@@ -17635,7 +17635,7 @@ loc_F3EC:
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	#$000D, D2
 loc_F3FE:
-	MOVE.l	D0, $00C00000
+	MOVE.l	D0, VDP_data_port
 	ADDQ.w	#1, D0
 	DBF	D2, loc_F3FE
 	ADDI.w	#$0100, D6
@@ -17658,9 +17658,9 @@ loc_F43E:
 	CLR.w	D4
 	MOVE.b	(A1)+, D4
 	ADD.w	D0, D4
-	MOVE.w	D4, $00C00000
+	MOVE.w	D4, VDP_data_port
 	DBF	D3, loc_F43E
-	MOVE.l	#0, $00C00000
+	MOVE.l	#0, VDP_data_port
 	DBF	D2, loc_F43A
 	ANDI	#$F8FF, SR
 	ADDI.w	#$0100, D6
