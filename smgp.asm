@@ -20944,15 +20944,101 @@ loc_19108:
 	dc.l	$669A0003
 loc_19114:
 	dc.l	$00019233
-	dc.b	$00, $0B, $00, $01, $92, $E5, $00, $0C, $00, $01, $93, $5B, $00, $12, $00, $01, $92, $3F, $00, $0B, $00, $01, $92, $F1, $00, $0E, $00, $01, $93, $5B, $00, $12
-	dc.b	$00, $01, $92, $4B, $00, $0C, $00, $01, $92, $FF, $00, $0B, $00, $01, $93, $6D, $00, $12, $00, $01, $92, $57, $00, $0C, $00, $01, $93, $0B, $00, $0D, $00, $01
-	dc.b	$93, $6D, $00, $12, $00, $01, $92, $63, $00, $0B, $00, $01, $93, $19, $00, $0D, $00, $01, $93, $6D, $00, $12, $00, $01, $92, $6F, $00, $0A, $00, $01, $93, $27
-	dc.b	$00, $0C, $00, $01, $93, $5B, $00, $12, $00, $01, $92, $79, $00, $09, $00, $01, $93, $0B, $00, $0D, $00, $01, $93, $7F, $00, $12, $00, $01, $92, $83, $00, $07
-	dc.b	$00, $01, $93, $33, $00, $0B, $00, $01, $93, $5B, $00, $12, $00, $01, $92, $8B, $00, $0B, $00, $01, $93, $27, $00, $0C, $00, $01, $93, $7F, $00, $12, $00, $01
-	dc.b	$92, $97, $00, $0A, $00, $01, $93, $0B, $00, $0D, $00, $01, $93, $6D, $00, $12, $00, $01, $92, $A1, $00, $0C, $00, $01, $93, $33, $00, $0B, $00, $01, $93, $91
-	dc.b	$00, $12, $00, $01, $92, $AD, $00, $0B, $00, $01, $93, $3F, $00, $0E, $00, $01, $93, $7F, $00, $12, $00, $01, $92, $B9, $00, $0A, $00, $01, $93, $33, $00, $0B
-	dc.b	$00, $01, $93, $91, $00, $12, $00, $01, $92, $C3, $00, $09, $00, $01, $93, $27, $00, $0C, $00, $01, $93, $A3, $00, $12, $00, $01, $92, $CD, $00, $0A, $00, $01
-	dc.b	$93, $4D, $00, $0D, $00, $01, $93, $7F, $00, $12, $00, $01, $92, $D7, $00, $0D, $00, $01, $93, $33, $00, $0B, $00, $01, $93, $A3, $00, $12
+	dc.w	$000B
+  dc.l	$000192E5
+  dc.w	$000C
+  dc.l	$0001935B
+  dc.w	$0012
+  dc.l	$0001923F
+  dc.w	$000B
+  dc.l	$000192F1
+  dc.w	$000E
+  dc.l	$0001935B
+  dc.w	$0012
+	dc.l	$0001924B
+  dc.w	$000C
+  dc.l	$000192FF
+  dc.w	$000B
+  dc.l	$0001936D
+  dc.w	$0012
+  dc.l	$00019257
+  dc.w	$000C
+  dc.l	$0001930B
+  dc.w	$000D
+  dc.l	$0001936D
+  dc.w	$0012
+  dc.l	$00019263
+  dc.w	$000B
+  dc.l	$00019319
+  dc.w	$000D
+  dc.l	$0001936D
+  dc.w	$0012
+  dc.l	$0001926F
+  dc.w	$000A
+  dc.l	$00019327
+	dc.w	$000C
+  dc.l	$0001935B
+  dc.w	$0012
+  dc.l	$00019279
+  dc.w	$0009
+  dc.l	$0001930B
+  dc.w	$000D
+  dc.l	$0001937F
+  dc.w	$0012
+  dc.l	$00019283
+  dc.w	$0007
+	dc.l	$00019333
+  dc.w	$000B
+  dc.l	$0001935B
+  dc.w	$0012
+  dc.l	$0001928B
+  dc.w	$000B
+  dc.l	$00019327
+  dc.w	$000C
+  dc.l	$0001937F
+  dc.w	$0012
+  dc.l	$00019297
+  dc.w	$000A
+  dc.l	$0001930B
+  dc.w	$000D
+  dc.l	$0001936D
+  dc.w	$0012
+  dc.l	$000192A1
+  dc.w	$000C
+  dc.l	$00019333
+  dc.w	$000B
+  dc.l	$00019391
+	dc.w	$0012
+  dc.l	$000192AD
+  dc.w	$000B
+  dc.l	$0001933F
+  dc.w	$000E
+  dc.l	$0001937F
+  dc.w	$0012
+  dc.l	$000192B9
+  dc.w	$000A
+  dc.l	$00019333
+  dc.w	$000B
+	dc.l	$00019391
+  dc.w	$0012
+  dc.l	$000192C3
+  dc.w	$0009
+  dc.l	$00019327
+  dc.w	$000C
+  dc.l	$000193A3
+  dc.w	$0012
+  dc.l	$000192CD
+  dc.w	$000A
+  dc.l	$0001934D
+  dc.w	$000D
+  dc.l	$0001937F
+  dc.w	$0012
+  dc.l	$000192D7
+  dc.w	$000D
+  dc.l	$00019333
+  dc.w	$000B
+  dc.l	$000193A3
+  dc.w	$0012
   txt "MADONNA", $FF
 	txt "456", $00
 	txt "FIRENZE", $FF
@@ -21021,144 +21107,132 @@ loc_193B6:
 	dc.l	$6A200003
 	dc.l	$6B2E0003
 loc_193BE:
-	dc.l	loc_19496-1
-	dc.b	$00, $07
-  dc.l	loc_19526-1
-  dc.b	$00, $06
-  dc.l	loc_1949E-1
-  dc.b	$00, $09
-  dc.l	loc_1952C-1
-  dc.b	$00, $06
-  dc.l	loc_194A8-1
-  dc.b	$00, $09
-  dc.l	loc_19532-1
-  dc.b	$00, $07
-  dc.l	loc_194B2-1
-  dc.b	$00, $09
-  dc.l	loc_1953A-1
-  dc.b	$00, $05
-  dc.l	loc_194BC-1
-  dc.b	$00, $07
-  dc.l	loc_19540-1
-  dc.b	$00, $06
-  dc.l	loc_194C4-1
-  dc.b	$00, $08
-  dc.l	loc_19546-1
-  dc.b	$00, $06
-  dc.l	loc_194CC-1
-  dc.b	$00, $08
-  dc.l	loc_1954C-1
-  dc.b	$00, $05
-  dc.l	loc_194D4-1
-  dc.b	$00, $09
-  dc.l	loc_19552-1
-  dc.b	$00, $05
-  dc.l	loc_194DE-1
-  dc.b	$00, $08
-  dc.l	loc_19558-1
-  dc.b	$00, $0D
-  dc.l	loc_194E6-1
-  dc.b	$00, $08
-  dc.l	loc_19566-1
-  dc.b	$00, $06
-  dc.l	loc_194EE-1
-  dc.b	$00, $09
-  dc.l	loc_1956C-1
-  dc.b	$00, $05
-  dc.l	loc_194F8-1
-  dc.b	$00, $08
-  dc.l	loc_19572-1
-  dc.b	$00, $06
-  dc.l	loc_19500-1
-  dc.b	$00, $08
-  dc.l	loc_19578-1
-  dc.b	$00, $0D
-  dc.l	loc_19508-1
-  dc.b	$00, $08
-  dc.l	loc_19586-1
-  dc.b	$00, $07
-  dc.l	loc_19510-1
-  dc.b	$00, $08
-  dc.l	loc_1958E-1
-  dc.b	$00, $06
-  dc.l	loc_19518-1
-  dc.b	$00, $09
-  dc.l	loc_19594-1
-  dc.b	$00, $0C
-  dc.l	loc_19522-1
-  dc.b	$00, $03
-  dc.l	loc_195A0-1
-  dc.b	$00, $0C
-  dc.l	loc_19522-1
-  dc.b	$00, $0F
-  dc.l	loc_195A0-1
-  dc.b	$00, $05
-loc_19496:
-  txt "G.CEARA", $00
-loc_1949E:
-	txt "A.ASSELIN", $00
-loc_194A8:
-	txt "F.ELSSLER", $00
-loc_194B2:
-	txt "G.ALBERTI", $00
-loc_194BC:
-	txt "A.PICOS", $00
-loc_194C4:
-	txt "J.HERBIN"
-loc_194CC:
-  txt "M.HAMANO"
-loc_194D4:
-  txt "E.PACHECO", $00
-loc_194DE:
-	txt "G.TURNER"
-loc_194E6:
-  txt "B.MILLER"
-loc_194EE:
-  txt "E.BELLINI", $00
-loc_194F8:
-	txt "M.MOREAU"
-loc_19500:
-  txt "R.COTMAN"
-loc_19508:
-  txt "E.TORNIO"
-loc_19510:
-  txt "C.TEGNER"
-loc_19518:
-  txt "P.KLINGER", $00
-loc_19522:
-	txt "YOU", $00
-loc_19526:
-  txt "BRAZIL"
-loc_1952C:
-  txt "FRANCE"
-loc_19532:
-  txt "AUSTRIA", $00
-loc_1953A:
-	txt "ITALY", $00
-loc_19540:
-	txt "BRAZIL"
-loc_19546:
-  txt "FRANCE"
-loc_1954C:
-  txt "JAPAN", $00
-loc_19552:
-	txt "SPAIN", $00
+	dc.l	loc_19496-1 ; Driver 0 name
+	dc.w	$0007       ; Driver 0 name length
+  dc.l	loc_19526-1 ; Driver 0 country
+  dc.w	$0006       ; Driver 0 country length
+
+  dc.l	loc_1949E-1 ; Driver 1 name
+  dc.w	$0009       ; Driver 1 name length
+  dc.l	loc_1952C-1 ; Driver 1 country
+  dc.w	$0006       ; Driver 1 country length
+
+  dc.l	loc_194A8-1 ; Driver 2 name
+  dc.w	$0009       ; Driver 2 name length
+  dc.l	loc_19532-1 ; Driver 2 country
+  dc.w	$0007       ; Driver 2 country length
+
+  dc.l	loc_194B2-1 ; Driver 3 name
+  dc.w	$0009       ; Driver 3 name length
+  dc.l	loc_1953A-1 ; Driver 3 country
+  dc.w	$0005       ; Driver 3 country length
+
+  dc.l	loc_194BC-1 ; Driver 4 name
+  dc.w	$0007       ; Driver 4 name length
+  dc.l	loc_19540-1 ; Driver 4 country
+  dc.w	$0006       ; Driver 4 country length
+
+  dc.l	loc_194C4-1 ; Driver 5 name
+  dc.w	$0008       ; Driver 5 name length
+  dc.l	loc_19546-1 ; Driver 5 country
+  dc.w	$0006       ; Driver 5 country length
+
+  dc.l	loc_194CC-1 ; Driver 6 name
+  dc.w	$0008       ; Driver 6 name length
+  dc.l	loc_1954C-1 ; Driver 6 country
+  dc.w	$0005       ; Driver 6 country length
+
+  dc.l	loc_194D4-1 ; Driver 7 name
+  dc.w	$0009       ; Driver 7 name length
+  dc.l	loc_19552-1 ; Driver 7 country
+  dc.w	$0005       ; Driver 7 country length
+
+  dc.l	loc_194DE-1 ; Driver 8 name
+  dc.w	$0008       ; Driver 8 name length
+  dc.l	loc_19558-1 ; Driver 8 country
+  dc.w	$000D       ; Driver 8 country length
+
+  dc.l	loc_194E6-1 ; Driver 9 name
+  dc.w	$0008       ; Driver 9 name length
+  dc.l	loc_19566-1 ; Driver 9 country
+  dc.w	$0006       ; Driver 9 country length
+
+  dc.l	loc_194EE-1 ; Driver 10 name
+  dc.w	$0009       ; Driver 10 name length
+  dc.l	loc_1956C-1 ; Driver 10 country
+  dc.w	$0005       ; Driver 10 country length
+
+  dc.l	loc_194F8-1 ; Driver 11 name
+  dc.w	$0008       ; Driver 11 name length
+  dc.l	loc_19572-1 ; Driver 11 country
+  dc.w	$0006       ; Driver 11 country length
+
+  dc.l	loc_19500-1 ; Driver 12 name
+  dc.w	$0008       ; Driver 12 name length
+  dc.l	loc_19578-1 ; Driver 12 country
+  dc.w	$000D       ; Driver 12 country length
+
+  dc.l	loc_19508-1 ; Driver 13 name
+  dc.w	$0008       ; Driver 13 name length
+  dc.l	loc_19586-1 ; Driver 13 country
+  dc.w	$0007       ; Driver 13 country length
+
+  dc.l	loc_19510-1 ; Driver 14 name
+  dc.w	$0008       ; Driver 14 name length
+  dc.l	loc_1958E-1 ; Driver 14 country
+  dc.w	$0006       ; Driver 14 country length
+
+  dc.l	loc_19518-1 ; Driver 15 name
+  dc.w	$0009       ; Driver 15 name length
+  dc.l	loc_19594-1 ; Driver 15 country
+  dc.w	$000C       ; Driver 15 country length
+
+  dc.l	loc_19522-1 ; Driver 16 name
+  dc.w	$0003       ; Driver 16 name length
+  dc.l	loc_195A0-1 ; Driver 16 country
+  dc.w	$000C       ; Driver 16 country length
+
+  dc.l	loc_19522-1 ; Your name
+  dc.w	$000F       ; Your name length
+  dc.l	loc_195A0-1 ; Your country
+  dc.w	$0005       ; Your country length
+
+loc_19496:  txt "G.CEARA", $00
+loc_1949E:  txt "A.ASSELIN", $00
+loc_194A8:  txt "F.ELSSLER", $00
+loc_194B2:  txt "G.ALBERTI", $00
+loc_194BC:  txt "A.PICOS", $00
+loc_194C4:  txt "J.HERBIN"
+loc_194CC:  txt "M.HAMANO"
+loc_194D4:  txt "E.PACHECO", $00
+loc_194DE:  txt "G.TURNER"
+loc_194E6:  txt "B.MILLER"
+loc_194EE:  txt "E.BELLINI", $00
+loc_194F8:  txt "M.MOREAU"
+loc_19500:  txt "R.COTMAN"
+loc_19508:  txt "E.TORNIO"
+loc_19510:  txt "C.TEGNER"
+loc_19518:  txt "P.KLINGER", $00
+loc_19522:  txt "YOU", $00
+loc_19526:  txt "BRAZIL"
+loc_1952C:  txt "FRANCE"
+loc_19532:  txt "AUSTRIA", $00
+loc_1953A:  txt "ITALY", $00
+loc_19540:  txt "BRAZIL"
+loc_19546:  txt "FRANCE"
+loc_1954C:  txt "JAPAN", $00
+loc_19552:  txt "SPAIN", $00
 loc_19558:
 	txt "GREAT", $FF
   txt "BRITAIN", $00
-loc_19566:
-	txt "U.S.A."
-loc_1956C:
-  txt "ITALY", $00
-loc_19572:
-  txt "FRANCE"
+loc_19566:  txt "U.S.A."
+loc_1956C:  txt "ITALY", $00
+loc_19572:  txt "FRANCE"
 loc_19578:
   txt "GREAT", $FF
   txt "BRITAIN", $00
-loc_19586:
-	txt "FINLAND", $00
-loc_1958E:
-	txt "SWEDEN"
+loc_19586:  txt "FINLAND", $00
+loc_1958E:  txt "SWEDEN"
 loc_19594:
 	txt "WEST", $FF
   txt "GERMANY"
