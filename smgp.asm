@@ -20893,52 +20893,70 @@ loc_19114:
 	dc.b	$00, $12, $00, $01, $92, $AD, $00, $0B, $00, $01, $93, $3F, $00, $0E, $00, $01, $93, $7F, $00, $12, $00, $01, $92, $B9, $00, $0A, $00, $01, $93, $33, $00, $0B ;0xC0
 	dc.b	$00, $01, $93, $91, $00, $12, $00, $01, $92, $C3, $00, $09, $00, $01, $93, $27, $00, $0C, $00, $01, $93, $A3, $00, $12, $00, $01, $92, $CD, $00, $0A, $00, $01 ;0xE0
 	dc.b	$93, $4D, $00, $0D, $00, $01, $93, $7F, $00, $12, $00, $01, $92, $D7, $00, $0D, $00, $01, $93, $33, $00, $0B, $00, $01, $93, $A3, $00, $12 ;0x100
-	dc.b	$16, $0A, $0D, $18, $17, $17, $0A, $FF ;0x0 (0x00019234-0x0001923C, Entry count: 0x8)
-	dc.b	$04, $05, $06, $00 ;0x0 (0x0001923C-0x00019240, Entry count: 0x4) [Unknown data]
-	dc.b	$0F, $12, $1B, $0E, $17, $23, $0E, $FF ;0x0 (0x00019240-0x00019248, Entry count: 0x8)
-	dc.b	$05, $00, $00, $00 ;0x0 (0x00019248-0x0001924C, Entry count: 0x4) [Unknown data]
-	dc.b	$16, $12, $15, $15, $12, $18, $17, $1C, $FF ;0x0 (0x0001924C-0x00019255, Entry count: 0x9)
-	dc.b	$01, $08, $09 ;0x0 (0x00019255-0x00019258, Entry count: 0x3) [Unknown data]
-	dc.b	$0B, $0E, $1C, $1D, $18, $20, $0A, $15, $FF ;0x0 (0x00019258-0x00019261, Entry count: 0x9)
-	dc.b	$01, $06, $07 ;0x0 (0x00019261-0x00019264, Entry count: 0x3) [Unknown data]
-	dc.b	$0B, $15, $0A, $17, $0C, $11, $0E, $FF ;0x0 (0x00019264-0x0001926C, Entry count: 0x8)
-	dc.b	$05, $08, $02, $00 ;0x0 (0x0001926C-0x00019270, Entry count: 0x4) [Unknown data]
-	dc.b	$1D, $22, $1B, $0A, $17, $1D, $FF ;0x0 (0x00019270-0x00019277, Entry count: 0x7)
-	dc.b	$05, $04, $08 ;0x0 (0x00019277-0x0001927A, Entry count: 0x3) [Unknown data]
-	dc.b	$15, $18, $1C, $0E, $15, $FF ;0x0 (0x0001927A-0x00019280, Entry count: 0x6)
-	dc.b	$01, $02, $05, $00 ;0x0 (0x00019280-0x00019284, Entry count: 0x4) [Unknown data]
-	dc.b	$16, $0A, $22, $FF ;0x0 (0x00019284-0x00019288, Entry count: 0x4)
-	dc.b	$05, $05, $05, $00 ;0x0 (0x00019288-0x0001928C, Entry count: 0x4) [Unknown data]
-	dc.b	$0B, $1E, $15, $15, $0E, $1D, $1C, $FF ;0x0 (0x0001928C-0x00019294, Entry count: 0x8)
-	dc.b	$05, $06, $00, $00 ;0x0 (0x00019294-0x00019298, Entry count: 0x4) [Unknown data]
-	dc.b	$0D, $0A, $1B, $0D, $0A, $17, $FF ;0x0 (0x00019298-0x0001929F, Entry count: 0x7)
-	dc.b	$07, $00, $00 ;0x0 (0x0001929F-0x000192A2, Entry count: 0x3) [Unknown data]
-	dc.b	$15, $12, $17, $0D, $0E, $17, $FF ;0x0 (0x000192A2-0x000192A9, Entry count: 0x7)
-	dc.b	$15, $17, $01, $09, $08 ;0x0 (0x000192A9-0x000192AE, Entry count: 0x5) [Unknown data]
-	dc.b	$16, $12, $17, $0A, $1B, $0A, $0E, $FF ;0x0 (0x000192AE-0x000192B6, Entry count: 0x8)
-	dc.b	$05, $09, $04, $00 ;0x0 (0x000192B6-0x000192BA, Entry count: 0x4) [Unknown data]
-	dc.b	$1B, $12, $10, $0E, $15, $FF ;0x0 (0x000192BA-0x000192C0, Entry count: 0x6)
-	dc.b	$03, $00, $00, $00 ;0x0 (0x000192C0-0x000192C4, Entry count: 0x4) [Unknown data]
-	dc.b	$0C, $18, $16, $0E, $1D, $FF ;0x0 (0x000192C4-0x000192CA, Entry count: 0x6)
-	dc.b	$03, $02, $03, $00 ;0x0 (0x000192CA-0x000192CE, Entry count: 0x4) [Unknown data]
-	dc.b	$18, $1B, $0C, $11, $12, $1C, $FF ;0x0 (0x000192CE-0x000192D5, Entry count: 0x7)
-	dc.b	$00, $05, $06 ;0x0 (0x000192D5-0x000192D8, Entry count: 0x3) [Unknown data]
-	dc.b	$23, $0E, $1B, $18, $0F, $18, $1B, $0C, $0E, $FF ;0x0 (0x000192D8-0x000192E2, Entry count: 0xA)
-	dc.b	$02, $03, $01, $00 ;0x0 (0x000192E2-0x000192E6, Entry count: 0x4) [Unknown data]
-	dc.b	$19, $0A, $15, $16, $FF, $01, $09, $00, $FF, $1F, $01, $00, $0F, $12, $1B, $0E, $17, $23, $0E, $FF, $09, $09, $FF, $1F, $01, $02, $0D, $12, $0C, $14, $FF, $16 ;0x0 (0x000192E6-0x0001930B, Entry count: 0x25)
-	dc.b	$0D, $FF, $1F, $01, $00 ;0x20
-	dc.b	$00 ;0x0 (0x0001930B-0x0001930C, Entry count: 0x1) [Unknown data]
-	dc.b	$1F, $0A, $19, $18, $1B, $FF, $0D, $17, $19, $1A, $FF, $1F, $08 ;0x0 (0x0001930C-0x00019319, Entry count: 0xD)
-	dc.b	$00 ;0x0 (0x00019319-0x0001931A, Entry count: 0x1) [Unknown data]
-	dc.b	$0D, $0E, $15, $1D, $0A, $FF, $01, $00, $03, $FF, $1F, $01, $00 ;0x0 (0x0001931A-0x00019327, Entry count: 0xD)
-	dc.b	$00 ;0x0 (0x00019327-0x00019328, Entry count: 0x1) [Unknown data]
-	dc.b	$15, $12, $23, $23, $12, $0E, $FF, $02, $04, $FF, $1F, $08, $15, $18, $1B, $1B, $22, $FF, $03, $02, $FF, $1F, $08 ;0x0 (0x00019328-0x0001933F, Entry count: 0x17)
-	dc.b	$00 ;0x0 (0x0001933F-0x00019340, Entry count: 0x1) [Unknown data]
-	dc.b	$1C, $0E, $10, $0A, $FF, $1C, $10, $01, $00, $00, $00, $FF, $1F, $08, $16, $12, $1C, $0F, $12, $1B, $0E, $FF, $05, $00, $FF, $1F, $08 ;0x0 (0x00019340-0x0001935B, Entry count: 0x1B)
-	dc.b	$00 ;0x0 (0x0001935B-0x0001935C, Entry count: 0x1) [Unknown data]
-	dc.b	$07, $00, $00, $2A, $07, $05, $00, $2A, $08, $05, $00, $FF, $19, $1C, $2B, $1B, $19, $16, $06, $07, $00, $2A, $07, $02, $00, $2A, $08, $02, $00, $FF, $19, $1C ;0x0 (0x0001935C-0x000193B6, Entry count: 0x5A)
-	dc.b	$2B, $1B, $19, $16, $06, $04, $00, $2A, $06, $09, $00, $2A, $07, $09, $00, $FF, $19, $1C, $2B, $1B, $19, $16, $06, $01, $00, $2A, $06, $06, $00, $2A, $07, $06 ;0x20
-	dc.b	$00, $FF, $19, $1C, $2B, $1B, $19, $16, $05, $08, $00, $2A, $06, $03, $00, $2A, $07, $03, $00, $FF, $19, $1C, $2B, $1B, $19, $16 ;0x40
+  txt "MADONNA", $FF
+	txt "456", $00
+	txt "FIRENZE", $FF
+	txt "500", $00
+	txt "MILLIONS", $FF
+	txt "189"
+	txt "BESTOWAL", $FF
+	txt "167"
+	txt "BLANCHE", $FF
+	txt "582", $00
+	txt "TYRANT", $FF
+	txt "548"
+	txt "LOSEL", $FF
+	txt "125", $00
+	txt "MAY", $FF
+	txt "555", $00
+  txt "BULLETS", $FF
+	txt "560", $00
+	txt "DARDAN", $FF
+	txt "700"
+	txt "LINDEN", $FF
+	txt "LN198"
+	txt "MINARAE", $FF
+	txt "594", $00
+	txt "RIGEL", $FF
+	txt "3000"
+	txt "COMET", $FF
+	txt "323", $00
+	txt "ORCHIS", $FF
+	txt "056"
+	txt "ZEROFORCE", $FF
+	txt "231", $00
+	txt "PALM", $FF
+  txt "190", $FF
+  txt "V10"
+  txt "FIRENZE", $FF
+  txt "99", $FF
+  txt "V12"
+  txt "DICK", $FF
+  txt "MD", $FF
+  txt "V10", $00
+  txt "VAPOR", $FF
+  txt "DNPQ", $FF
+  txt "V8", 0
+  txt "DELTA", $FF
+  txt "103", $FF
+  txt "V10", $00
+  txt "LIZZIE", $FF
+  txt "24", $FF
+  txt "V8"
+  txt "LORRY", $FF
+  txt "32", $FF
+  txt "V8", $00
+  txt "SEGA", $FF
+  txt "SG1000", $FF
+  txt "V8"
+  txt "MISFIRE", $FF
+  txt "50", $FF
+  dc.b	$1F, $08, $00, $07, $00, $00, $2A, $07, $05, $00, $2A, $08, $05, $00, $FF
+  dc.b	$19, $1C, $2B, $1B, $19, $16, $06, $07, $00, $2A, $07, $02, $00, $2A, $08, $02, $00, $FF
+  dc.b	$19, $1C, $2B, $1B, $19, $16, $06, $04, $00, $2A, $06, $09, $00, $2A, $07, $09, $00, $FF
+  dc.b	$19, $1C, $2B, $1B, $19, $16, $06, $01, $00, $2A, $06, $06, $00, $2A, $07, $06, $00, $FF
+  dc.b	$19, $1C, $2B, $1B, $19, $16, $05, $08, $00, $2A, $06, $03, $00, $2A, $07, $03, $00, $FF
+  dc.b	$19, $1C, $2B, $1B, $19, $16
 loc_193B6:
 	dc.l	$6A200003
 	dc.l	$6B2E0003
