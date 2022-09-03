@@ -16,6 +16,8 @@ escape = 1
 				dc.b    $29
 		elseif ("\c"=",")
 				dc.b    $2A
+		elseif ("\c"="/")
+				dc.b    $2B
 		elseif ("\c"="-")
 				dc.b    $2C
 		elseif ("\c"="!")

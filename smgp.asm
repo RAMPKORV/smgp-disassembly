@@ -20943,166 +20943,218 @@ loc_19108:
 	dc.l	$65940003
 	dc.l	$669A0003
 loc_19114:
-	dc.l	$00019233
-	dc.w	$000B
-  dc.l	$000192E5
-  dc.w	$000C
-  dc.l	$0001935B
-  dc.w	$0012
-  dc.l	$0001923F
-  dc.w	$000B
-  dc.l	$000192F1
-  dc.w	$000E
-  dc.l	$0001935B
-  dc.w	$0012
-	dc.l	$0001924B
-  dc.w	$000C
-  dc.l	$000192FF
-  dc.w	$000B
-  dc.l	$0001936D
-  dc.w	$0012
-  dc.l	$00019257
-  dc.w	$000C
-  dc.l	$0001930B
-  dc.w	$000D
-  dc.l	$0001936D
-  dc.w	$0012
-  dc.l	$00019263
-  dc.w	$000B
-  dc.l	$00019319
-  dc.w	$000D
-  dc.l	$0001936D
-  dc.w	$0012
-  dc.l	$0001926F
-  dc.w	$000A
-  dc.l	$00019327
-	dc.w	$000C
-  dc.l	$0001935B
-  dc.w	$0012
-  dc.l	$00019279
-  dc.w	$0009
-  dc.l	$0001930B
-  dc.w	$000D
-  dc.l	$0001937F
-  dc.w	$0012
-  dc.l	$00019283
-  dc.w	$0007
-	dc.l	$00019333
-  dc.w	$000B
-  dc.l	$0001935B
-  dc.w	$0012
-  dc.l	$0001928B
-  dc.w	$000B
-  dc.l	$00019327
-  dc.w	$000C
-  dc.l	$0001937F
-  dc.w	$0012
-  dc.l	$00019297
-  dc.w	$000A
-  dc.l	$0001930B
-  dc.w	$000D
-  dc.l	$0001936D
-  dc.w	$0012
-  dc.l	$000192A1
-  dc.w	$000C
-  dc.l	$00019333
-  dc.w	$000B
-  dc.l	$00019391
-	dc.w	$0012
-  dc.l	$000192AD
-  dc.w	$000B
-  dc.l	$0001933F
-  dc.w	$000E
-  dc.l	$0001937F
-  dc.w	$0012
-  dc.l	$000192B9
-  dc.w	$000A
-  dc.l	$00019333
-  dc.w	$000B
-	dc.l	$00019391
-  dc.w	$0012
-  dc.l	$000192C3
-  dc.w	$0009
-  dc.l	$00019327
-  dc.w	$000C
-  dc.l	$000193A3
-  dc.w	$0012
-  dc.l	$000192CD
-  dc.w	$000A
-  dc.l	$0001934D
-  dc.w	$000D
-  dc.l	$0001937F
-  dc.w	$0012
-  dc.l	$000192D7
-  dc.w	$000D
-  dc.l	$00019333
-  dc.w	$000B
-  dc.l	$000193A3
-  dc.w	$0012
+
+	dc.l	loc_19234-1 ; Car 1 name
+	dc.w	$000B       ; Car 1 name length
+  dc.l	loc_192E6-1 ; Car 1 engine
+  dc.w	$000C       ; Car 1 engine length
+  dc.l	loc_1935C-1 ; Car 1 max power
+  dc.w	$0012       ; Car 1 max power length
+
+  dc.l	loc_19240-1 ; Car 2 name
+  dc.w	$000B       ; Car 2 name length
+  dc.l	loc_192F2-1 ; Car 2 engine
+  dc.w	$000E       ; Car 2 engine length
+  dc.l	loc_1935C-1 ; Car 2 max power
+  dc.w	$0012       ; Car 2 max power length
+
+	dc.l	loc_1924C-1 ; Car 3 name
+  dc.w	$000C       ; Car 3 name length
+  dc.l	loc_19300-1 ; Car 3 engine
+  dc.w	$000B       ; Car 3 engine length
+  dc.l	loc_1936E-1 ; Car 3 max power
+  dc.w	$0012       ; Car 3 max power length
+
+  dc.l	loc_19258-1 ; Car 4 name
+  dc.w	$000C       ; Car 4 name length
+  dc.l	loc_1930C-1 ; Car 4 engine
+  dc.w	$000D       ; Car 4 engine length
+  dc.l	loc_1936E-1 ; Car 4 max power
+  dc.w	$0012       ; Car 4 max power length
+
+  dc.l	loc_19264-1 ; Car 5 name
+  dc.w	$000B       ; Car 5 name length
+  dc.l	loc_1931A-1 ; Car 5 engine
+  dc.w	$000D       ; Car 5 engine length
+  dc.l	loc_1936E-1 ; Car 5 max power
+  dc.w	$0012       ; Car 5 max power length
+
+  dc.l	loc_19270-1 ; Car 6 name
+  dc.w	$000A       ; Car 6 name length
+  dc.l	loc_19328-1 ; Car 6 engine
+	dc.w	$000C       ; Car 6 engine length
+  dc.l	loc_1935C-1 ; Car 6 max power
+  dc.w	$0012       ; Car 6 max power length
+
+  dc.l	loc_1927A-1 ; Car 7 name
+  dc.w	$0009       ; Car 7 name length
+  dc.l	loc_1930C-1 ; Car 7 engine
+  dc.w	$000D       ; Car 7 engine length
+  dc.l	loc_19380-1 ; Car 7 max power
+  dc.w	$0012       ; Car 7 max power length
+
+  dc.l	loc_19284-1 ; Car 8 name
+  dc.w	$0007       ; Car 8 name length
+	dc.l	loc_19334-1 ; Car 8 engine
+  dc.w	$000B       ; Car 8 engine length
+  dc.l	loc_1935C-1 ; Car 8 max power
+  dc.w	$0012       ; Car 8 max power length
+
+  dc.l	loc_1928C-1 ; Car 9 name
+  dc.w	$000B       ; Car 9 name length
+  dc.l	loc_19328-1 ; Car 9 engine
+  dc.w	$000C       ; Car 9 engine length
+  dc.l	loc_19380-1 ; Car 9 max power
+  dc.w	$0012       ; Car 9 max power length
+
+  dc.l	loc_19298-1 ; Car 10 name
+  dc.w	$000A       ; Car 10 name length
+  dc.l	loc_1930C-1 ; Car 10 engine
+  dc.w	$000D       ; Car 10 engine length
+  dc.l	loc_1936E-1 ; Car 10 max power
+  dc.w	$0012       ; Car 10 max power length
+
+  dc.l	loc_192A2-1 ; Car 11 name
+  dc.w	$000C       ; Car 11 name length
+  dc.l	loc_19334-1 ; Car 11 engine
+  dc.w	$000B       ; Car 11 engine length
+  dc.l	loc_19392-1 ; Car 11 max power
+	dc.w	$0012       ; Car 11 max power length
+
+  dc.l	loc_192AE-1 ; Car 12 name
+  dc.w	$000B       ; Car 12 name length
+  dc.l	loc_19340-1 ; Car 12 engine
+  dc.w	$000E       ; Car 12 engine length
+  dc.l	loc_19380-1 ; Car 12 max power
+  dc.w	$0012       ; Car 12 max power length
+
+  dc.l	loc_192BA-1 ; Car 13 name
+  dc.w	$000A       ; Car 13 name length
+  dc.l	loc_19334-1 ; Car 13 engine
+  dc.w	$000B       ; Car 13 engine length
+	dc.l	loc_19392-1 ; Car 13 max power
+  dc.w	$0012       ; Car 13 max power length
+
+  dc.l	loc_192C4-1 ; Car 14 name
+  dc.w	$0009       ; Car 14 name length
+  dc.l	loc_19328-1 ; Car 14 engine
+  dc.w	$000C       ; Car 14 engine length
+  dc.l	loc_193A4-1 ; Car 14 max power
+  dc.w	$0012       ; Car 14 max power length
+
+  dc.l	loc_192CE-1 ; Car 15 name
+  dc.w	$000A       ; Car 15 name length
+  dc.l	loc_1934E-1 ; Car 15 engine
+  dc.w	$000D       ; Car 15 engine length
+  dc.l	loc_19380-1 ; Car 15 max power
+  dc.w	$0012       ; Car 15 max power length
+
+  dc.l	loc_192D8-1 ; Car 16 name
+  dc.w	$000D       ; Car 16 name length
+  dc.l	loc_19334-1 ; Car 16 engine
+  dc.w	$000B       ; Car 16 engine length
+  dc.l	loc_193A4-1 ; Car 16 max power
+  dc.w	$0012       ; Car 16 max power length
+
+loc_19234:
   txt "MADONNA", $FF
 	txt "456", $00
+loc_19240:
 	txt "FIRENZE", $FF
 	txt "500", $00
+loc_1924C:
 	txt "MILLIONS", $FF
 	txt "189"
+loc_19258:
 	txt "BESTOWAL", $FF
 	txt "167"
+loc_19264:
 	txt "BLANCHE", $FF
 	txt "582", $00
+loc_19270:
 	txt "TYRANT", $FF
 	txt "548"
+loc_1927A:
 	txt "LOSEL", $FF
 	txt "125", $00
+loc_19284:
 	txt "MAY", $FF
 	txt "555", $00
+loc_1928C:
   txt "BULLETS", $FF
 	txt "560", $00
+loc_19298:
 	txt "DARDAN", $FF
 	txt "700"
+loc_192A2:
 	txt "LINDEN", $FF
 	txt "LN198"
+loc_192AE:
 	txt "MINARAE", $FF
 	txt "594", $00
+loc_192BA:
 	txt "RIGEL", $FF
 	txt "3000"
+loc_192C4:
 	txt "COMET", $FF
 	txt "323", $00
+loc_192CE:
 	txt "ORCHIS", $FF
 	txt "056"
+loc_192D8:
 	txt "ZEROFORCE", $FF
 	txt "231", $00
+loc_192E6:
 	txt "PALM", $FF
   txt "190", $FF
   txt "V10"
+loc_192F2:
   txt "FIRENZE", $FF
   txt "99", $FF
   txt "V12"
+loc_19300:
   txt "DICK", $FF
   txt "MD", $FF
   txt "V10", $00
+loc_1930C:
   txt "VAPOR", $FF
   txt "DNPQ", $FF
   txt "V8", 0
+loc_1931A:
   txt "DELTA", $FF
   txt "103", $FF
   txt "V10", $00
+loc_19328:
   txt "LIZZIE", $FF
   txt "24", $FF
   txt "V8"
+loc_19334
   txt "LORRY", $FF
   txt "32", $FF
   txt "V8", $00
+loc_19340:
   txt "SEGA", $FF
   txt "SG1000", $FF
   txt "V8"
+loc_1934E:
   txt "MISFIRE", $FF
   txt "50", $FF
-  dc.b	$1F, $08, $00, $07, $00, $00, $2A, $07, $05, $00, $2A, $08, $05, $00, $FF
-  dc.b	$19, $1C, $2B, $1B, $19, $16, $06, $07, $00, $2A, $07, $02, $00, $2A, $08, $02, $00, $FF
-  dc.b	$19, $1C, $2B, $1B, $19, $16, $06, $04, $00, $2A, $06, $09, $00, $2A, $07, $09, $00, $FF
-  dc.b	$19, $1C, $2B, $1B, $19, $16, $06, $01, $00, $2A, $06, $06, $00, $2A, $07, $06, $00, $FF
-  dc.b	$19, $1C, $2B, $1B, $19, $16, $05, $08, $00, $2A, $06, $03, $00, $2A, $07, $03, $00, $FF
-  dc.b	$19, $1C, $2B, $1B, $19, $16
+  txt "V8", $00
+loc_1935C:
+  txt "700,750,850", $FF
+  txt "PS/RPM"
+loc_1936E:
+  txt "670,720,820", $FF
+  txt "PS/RPM"
+loc_19380:
+  txt "640,690,790", $FF
+  txt "PS/RPM"
+loc_19392:
+  txt "610,660,760", $FF
+  txt "PS/RPM"
+loc_193A4:
+  txt "580,630,730", $FF
+  txt "PS/RPM"
 loc_193B6:
 	dc.l	$6A200003
 	dc.l	$6B2E0003
