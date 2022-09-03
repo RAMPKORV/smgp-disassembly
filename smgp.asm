@@ -20969,45 +20969,45 @@ loc_193BE:
 	dc.b	$00, $01, $94, $F7, $00, $08, $00, $01, $95, $71, $00, $06, $00, $01, $94, $FF, $00, $08, $00, $01, $95, $77, $00, $0D, $00, $01, $95, $07, $00, $08, $00, $01 ;0x80
 	dc.b	$95, $85, $00, $07, $00, $01, $95, $0F, $00, $08, $00, $01, $95, $8D, $00, $06, $00, $01, $95, $17, $00, $09, $00, $01, $95, $93, $00, $0C, $00, $01, $95, $21 ;0xA0
 	dc.b	$00, $03, $00, $01, $95, $9F, $00, $0C, $00, $01, $95, $21, $00, $0F, $00, $01, $95, $9F, $00, $05 ;0xC0
-	dc.b	$10, $29, $0C, $0E, $0A, $1B, $0A ;0x0 (0x00019496-0x0001949D, Entry count: 0x7)
-	dc.b	$00 ;0x0 (0x0001949D-0x0001949E, Entry count: 0x1) [Unknown data]
-	dc.b	$0A, $29, $0A, $1C, $1C, $0E, $15, $12, $17 ;0x0 (0x0001949E-0x000194A7, Entry count: 0x9)
-	dc.b	$00 ;0x0 (0x000194A7-0x000194A8, Entry count: 0x1) [Unknown data]
-	dc.b	$0F, $29, $0E, $15, $1C, $1C, $15, $0E, $1B ;0x0 (0x000194A8-0x000194B1, Entry count: 0x9)
-	dc.b	$00 ;0x0 (0x000194B1-0x000194B2, Entry count: 0x1) [Unknown data]
-	dc.b	$10, $29, $0A, $15, $0B, $0E, $1B, $1D, $12 ;0x0 (0x000194B2-0x000194BB, Entry count: 0x9)
-	dc.b	$00 ;0x0 (0x000194BB-0x000194BC, Entry count: 0x1) [Unknown data]
-	dc.b	$0A, $29, $19, $12, $0C, $18, $1C ;0x0 (0x000194BC-0x000194C3, Entry count: 0x7)
-	dc.b	$00 ;0x0 (0x000194C3-0x000194C4, Entry count: 0x1) [Unknown data]
-	dc.b	$13, $29, $11, $0E, $1B, $0B, $12, $17, $16, $29, $11, $0A, $16, $0A, $17, $18, $0E, $29, $19, $0A, $0C, $11, $0E, $0C, $18 ;0x0 (0x000194C4-0x000194DD, Entry count: 0x19)
-	dc.b	$00 ;0x0 (0x000194DD-0x000194DE, Entry count: 0x1) [Unknown data]
-	dc.b	$10, $29, $1D, $1E, $1B, $17, $0E, $1B, $0B, $29, $16, $12, $15, $15, $0E, $1B, $0E, $29, $0B, $0E, $15, $15, $12, $17, $12 ;0x0 (0x000194DE-0x000194F7, Entry count: 0x19)
-	dc.b	$00 ;0x0 (0x000194F7-0x000194F8, Entry count: 0x1) [Unknown data]
-	dc.b	$16, $29, $16, $18, $1B, $0E, $0A, $1E, $1B, $29, $0C, $18, $1D, $16, $0A, $17, $0E, $29, $1D, $18, $1B, $17, $12, $18, $0C, $29, $1D, $0E, $10, $17, $0E, $1B ;0x0 (0x000194F8-0x00019518, Entry count: 0x20)
-	dc.b	$19, $29, $14, $15, $12, $17, $10, $0E, $1B, $00 ;0x0 (0x00019518-0x00019522, Entry count: 0xA) [Unknown data]
-	dc.b	$22
-	dc.b	$18
-	dc.b	$1E
-	dc.b	$00 ;0x0 (0x00019525-0x00019526, Entry count: 0x1) [Unknown data]
-	dc.b	$0B, $1B, $0A, $23, $12, $15, $0F, $1B, $0A, $17, $0C, $0E, $0A, $1E, $1C, $1D, $1B, $12, $0A ;0x0 (0x00019526-0x00019539, Entry count: 0x13)
-	dc.b	$00 ;0x0 (0x00019539-0x0001953A, Entry count: 0x1) [Unknown data]
-	dc.b	$12, $1D, $0A, $15, $22 ;0x0 (0x0001953A-0x0001953F, Entry count: 0x5)
-	dc.b	$00 ;0x0 (0x0001953F-0x00019540, Entry count: 0x1) [Unknown data]
-	dc.b	$0B, $1B, $0A, $23, $12, $15, $0F, $1B, $0A, $17, $0C, $0E, $13, $0A, $19, $0A, $17 ;0x0 (0x00019540-0x00019551, Entry count: 0x11)
-	dc.b	$00 ;0x0 (0x00019551-0x00019552, Entry count: 0x1) [Unknown data]
-	dc.b	$1C, $19, $0A, $12, $17 ;0x0 (0x00019552-0x00019557, Entry count: 0x5)
-	dc.b	$00 ;0x0 (0x00019557-0x00019558, Entry count: 0x1) [Unknown data]
-	dc.b	$10, $1B, $0E, $0A, $1D, $FF, $0B, $1B, $12, $1D, $0A, $12, $17 ;0x0 (0x00019558-0x00019565, Entry count: 0xD)
-	dc.b	$00 ;0x0 (0x00019565-0x00019566, Entry count: 0x1) [Unknown data]
-	dc.b	$1E, $29, $1C, $29, $0A, $29, $12, $1D, $0A, $15, $22 ;0x0 (0x00019566-0x00019571, Entry count: 0xB)
-	dc.b	$00 ;0x0 (0x00019571-0x00019572, Entry count: 0x1) [Unknown data]
-	dc.b	$0F, $1B, $0A, $17, $0C, $0E, $10, $1B, $0E, $0A, $1D, $FF, $0B, $1B, $12, $1D, $0A, $12, $17 ;0x0 (0x00019572-0x00019585, Entry count: 0x13)
-	dc.b	$00 ;0x0 (0x00019585-0x00019586, Entry count: 0x1) [Unknown data]
-	dc.b	$0F, $12, $17, $15, $0A, $17, $0D ;0x0 (0x00019586-0x0001958D, Entry count: 0x7)
-	dc.b	$00 ;0x0 (0x0001958D-0x0001958E, Entry count: 0x1) [Unknown data]
-	dc.b	$1C, $20, $0E, $0D, $0E, $17 ;0x0 (0x0001958E-0x00019594, Entry count: 0x6)
-	dc.b	$20, $0E, $1C, $1D, $FF, $10, $0E, $1B, $16, $0A, $17, $22 ;0x0 (0x00019594-0x000195A0, Entry count: 0xC) [Unknown data]
-	dc.b	$22, $18, $1E, $1B, $FF, $0C, $18, $1E, $17, $1D, $1B, $22 ;0x0 (0x000195A0-0x000195AC, Entry count: 0xC)
+
+  txt "G.CEARA", $00
+	txt "A.ASSELIN", $00
+	txt "F.ELSSLER", $00
+	txt "G.ALBERTI", $00
+	txt "A.PICOS", $00
+	txt "J.HERBIN"
+  txt "M.HAMANO"
+  txt "E.PACHECO", $00
+	txt "G.TURNER"
+  txt "B.MILLER"
+  txt "E.BELLINI", $00
+	txt "M.MOREAU"
+  txt "R.COTMAN"
+  txt "E.TORNIO"
+  txt "C.TEGNER"
+  txt "P.KLINGER", $00
+	txt "YOU", $00
+  txt "BRAZIL"
+  txt "FRANCE"
+  txt "AUSTRIA", $00
+	txt "ITALY", $00
+	txt "BRAZIL"
+  txt "FRANCE"
+  txt "JAPAN", $00
+	txt "SPAIN", $00
+	txt "GREAT", $FF
+  txt "BRITAIN", $00
+	txt "U.S.A."
+  txt "ITALY", $00
+  txt "FRANCE"
+  txt "GREAT", $FF
+  txt "BRITAIN", $00
+	txt "FINLAND", $00
+	txt "SWEDEN"
+	txt "WEST", $FF
+  txt "GERMANY"
+  txt "YOUR", $FF
+	txt "COUNTRY"
 ;loc_195AC:
 TeamMachineScreenStats:
   ; ENG., T.M, SUS., TIRE, BRA., ?, ?
@@ -26118,13 +26118,26 @@ loc_39160:
 	dc.l	loc_3916A
 	dc.l	loc_391AC
 loc_3916A:
-	dc.b	$E3, $88, $FB, $67, $C0, $16, $0A, $0D, $18, $17, $17, $0A, $FC, $0F, $12, $1B, $0E, $17, $23, $0E, $FC, $16, $12, $15, $15, $12, $18, $17, $1C, $FC, $0B, $0E ;0x0 (0x0003916A-0x000391AC, Entry count: 0x42) [Unknown data]
-	dc.b	$1C, $1D, $18, $20, $0A, $15, $FC, $FD, $0B, $15, $0A, $17, $0C, $11, $0E, $FC, $1D, $22, $1B, $0A, $17, $1D, $FC, $15, $18, $1C, $0E, $15, $FC, $16, $0A, $22 ;0x20
-	dc.b	$FF, $00 ;0x40
+	dc.b	$E3, $88, $FB, $67, $C0
+  txt "MADONNA\n"
+  txt "FIRENZE\n"
+  txt "MILLIONS\n"
+  txt "BESTOWAL\n", $FD
+  txt "BLANCHE\n"
+  txt "TYRANT\n"
+  txt "LOSEL\n"
+  txt "MAY", $FF, $00
 loc_391AC:
-	dc.b	$E3, $AC, $0B, $1E, $15, $15, $0E, $1D, $1C, $FC, $0D, $0A, $1B, $0D, $0A, $17, $FC, $15, $12, $17, $0D, $0E, $17, $FC, $16, $12, $17, $0A, $1B, $0A, $0E, $FC ;0x0 (0x000391AC-0x000391F0, Entry count: 0x44) [Unknown data]
-	dc.b	$FD, $1B, $12, $10, $0E, $15, $FC, $0C, $18, $16, $0E, $1D, $FC, $18, $1B, $0C, $11, $12, $1C, $FC, $23, $0E, $1B, $18, $0F, $18, $1B, $0C, $0E, $FC, $FD, $0E ;0x20
-	dc.b	$21, $12, $1D, $FF ;0x40
+	dc.b	$E3, $AC
+  txt "BULLETS\n"
+  txt "DARDAN\n"
+  txt "LINDEN\n"
+  txt "MINARAE\n", $FD
+  txt "RIGEL\n"
+  txt "COMET\n"
+  txt "ORCHIS\n"
+  txt "ZEROFORCE\n", $FD
+  dc.b $0E, $21, $12, $1D, $FF
 loc_391F0:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $F7, $DE, $3C, $67, $D0, $3C, $77, $CF, $1D, $F0, $A7, $A5, $42, $4A, $01, $90, $27, $A6, $4F, $4C, $88, $98, $8C, $14, $C0 ;0x0 (0x000391F0-0x00039376, Entry count: 0x186) [Unknown data]
 	dc.b	$66, $27, $01, $05, $30, $19, $8A, $20, $41, $4C, $46, $0A, $60, $0C, $0B, $05, $30, $06, $2A, $2A, $01, $05, $31, $18, $29, $9C, $14, $D8, $13, $9A, $CA, $62 ;0x20
