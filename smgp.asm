@@ -27417,41 +27417,37 @@ loc_3BA7A:
 loc_3BA80:
 	dc.b	$CE, $A6, $97, $AD, $2C, $88, $FF, $00
 loc_3BA88:
-	dc.b	$32, $16, $0A, $0D, $18, $17, $17, $0A, $FF, $00
+	txt " MADONNA", $FF, $00
 loc_3BA92:
-	dc.b	$32, $0F, $12, $1B, $0E, $17, $23, $0E, $FF
-	dc.b	$00
+	txt " FIRENZE", $FF, $00
 loc_3BA9C:
-	dc.b	$16, $12, $15, $15, $12, $18, $17, $1C, $FF, $00
+	txt "MILLIONS", $FF, $00
 loc_3BAA6:
-	dc.b	$0B, $0E, $1C, $1D, $18, $20, $0A, $15, $FF
-	dc.b	$00
+	txt "BESTOWAL", $FF, $00
 loc_3BAB0:
-	dc.b	$32, $0B, $15, $0A, $17, $0C, $11, $0E, $FF
-	dc.b	$00
+	txt " BLANCHE", $FF, $00
 loc_3BABA:
-	dc.b	$32, $1D, $22, $1B, $0A, $17, $1D, $FF
+	txt " TYRANT", $FF
 loc_3BAC2:
-	dc.b	$32, $32, $15, $18, $1C, $0E, $15, $FF
+	txt "  LOSEL", $FF
 loc_3BACA:
-	dc.b	$32, $32, $32, $16, $0A, $22, $FF
-	dc.b	$00
+	txt "   MAY", $FF, $00
 loc_3BAD2:
-	dc.b	$0B, $1E, $15, $15, $0E, $1D, $1C, $FF
+	txt "BULLETS", $FF
 loc_3BADA:
-	dc.b	$32, $0D, $0A, $1B, $0D, $0A, $17, $FF
+	txt " DARDAN", $FF
 loc_3BAE2:
-	dc.b	$32, $15, $12, $17, $0D, $0E, $17, $FF
+	txt " LINDEN", $FF
 loc_3BAEA:
-	dc.b	$16, $12, $17, $0A, $1B, $0A, $0E, $FF
+	txt "MINARAE", $FF
 loc_3BAF2:
-	dc.b	$32, $32, $1B, $12, $10, $0E, $15, $FF
+	txt "  RIGEL", $FF
 loc_3BAFA:
-	dc.b	$32, $32, $0C, $18, $16, $0E, $1D, $FF
+	txt "  COMET", $FF
 loc_3BB02:
-	dc.b	$32, $18, $1B, $0C, $11, $12, $1C, $FF
+	txt " ORCHIS", $FF
 loc_3BB0A:
-	dc.b	$23, $0E, $1B, $18, $0F, $18, $1B, $0C, $0E, $FF
+	txt "ZEROFORCE", $FF
 loc_3BB14:
 	dc.l	loc_3C018
 	dc.l	loc_3C024
