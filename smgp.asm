@@ -19094,7 +19094,7 @@ loc_12BF8:
 	BEQ.b	loc_12C20
 	BCLR.b	#2, $FFFF902F.w
 	BSET.b	#3, $FFFF902F.w
-	MOVE.b	#8, $FFFF9042.w
+	MOVE.b	#8, $FFFF9042.w ; You get challenged by Bullets (Team #8)
 	BCLR.b	#4, $FFFF9043.w
 	BSET.b	#5, $FFFF9043.w
 	RTS
@@ -19441,7 +19441,7 @@ loc_1301E:
 	LEA	InitialDriversAndTeamMap, A2
 	BTST.b	#6, $FFFF9043.w
 	BEQ.b	loc_13040
-	LEA	loc_13392, A2
+	LEA	SecondYearDriversAndTeamsMap, A2
 loc_13040:
 	MOVE.w	#$0010, D0
 loc_13044:
@@ -19683,9 +19683,12 @@ InitialDriversAndTeamMap:
 	dc.b  $01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F
 	dc.b	$00
 
-loc_13392:
-	dc.b	$50, $50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E
+;loc_13392:
+SecondYearDriversAndTeamsMap:
+	dc.b	$50
+  dc.b  $50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E
 	dc.b	$00
+
 loc_133A4:
 	dc.b	$01, $01, $01, $01, $02, $01, $02, $02, $02, $01, $02, $01, $02, $02, $02, $02
 loc_133B4: ; Team car characteristics
@@ -26978,7 +26981,8 @@ loc_3AA3C:
 loc_3AA46:
 	txt "ERROR", $FF
 loc_3AA4C:
-	dc.b	$FD, $22, $18, $1E, $1B, $32, $0D, $0A, $22, $1C, $32, $0A, $1B, $0E, $32, $10, $18, $17, $0E, $2D, $FF, $00
+  dc.b	$FD
+  txt "YOUR DAYS ARE GONE!", $FF, $00
 loc_3AA62:
 	txt "I'LL SHOW YOU WHAT\nREAL DRIVING IS.", $FF
 loc_3AA86:
@@ -27002,17 +27006,21 @@ loc_3AB84:
 loc_3ABA6:
 	txt "YOU ARE AS MEAN AS\nEVER.", $FF, $00
 loc_3ABC0:
-	dc.b	$FD, $12, $32, $0D, $1B, $12, $1F, $0E, $32, $1A, $1E, $12, $1D, $0E, $32, $0F, $0A, $1C, $1D, $29, $FF, $00
+	dc.b	$FD
+  txt "I DRIVE QUITE FAST.", $FF, $00
 loc_3ABD6:
-	txt "I CAN DRIVE FASTER\\nTHAN YOU.", $FF, $00
+	txt "I CAN DRIVE FASTER\nTHAN YOU.", $FF, $00
 loc_3ABF4:
 	txt "YOU STILL WANT TO\nCONTINUE.", $FF
 loc_3AC10:
-	dc.b	$FD, $0D, $18, $17, $26, $1D, $32, $0B, $0E, $32, $1C, $1D, $1E, $0C, $14, $32, $1E, $19, $2D, $FF
+	dc.b	$FD
+  txt "DON'T BE STUCK UP!", $FF
 loc_3AC24:
-	dc.b	$FD, $12, $1D, $26, $1C, $32, $12, $17, $1D, $0E, $1B, $0E, $1C, $1D, $12, $17, $10, $29, $FF, $00
+	dc.b	$FD
+  txt "IT'S INTERESTING.", $FF, $00
 loc_3AC38:
-	dc.b	$FD, $15, $0E, $1D, $26, $1C, $32, $0D, $1B, $12, $1F, $0E, $32, $0F, $0A, $12, $1B, $2D, $FF, $00
+	dc.b	$FD
+  txt "LET'S DRIVE FAIR!", $FF, $00
 loc_3AC4C:
 	txt "YOU'D BETTER STOP\nRACING.", $FF
 loc_3AC66:
@@ -27034,7 +27042,8 @@ loc_3AD3C:
 loc_3AD5A:
 	txt "LET'S TRY TO DO OUR\nBEST.", $FF
 loc_3AD74:
-	dc.b	$FD, $10, $18, $32, $0E, $0A, $1C, $22, $32, $20, $12, $1D, $11, $32, $16, $0E, $2D, $FF
+	dc.b	$FD
+  txt "GO EASY WITH ME!", $FF
 loc_3AD86:
 	txt "I CAN'T ALLOW YOU TO\nTAKE OVER MY SEAT.", $FF
 loc_3ADAE:
@@ -27042,7 +27051,8 @@ loc_3ADAE:
 loc_3ADC6:
 	txt "OH, ARE YOU STILL\nCOMPETING?", $FF, $00
 loc_3ADE4:
-	dc.b	$FD, $20, $18, $1B, $14, $12, $17, $10, $32, $11, $0A, $1B, $0D, $2E, $FF, $00
+	dc.b	$FD
+  txt "WORKING HARD?", $FF, $00
 loc_3ADF4:
 	txt "YOU DON'T HAVE TO GO\nEASY WITH ME.", $FF, $00
 loc_3AE18:
@@ -27062,11 +27072,13 @@ loc_3AEDE:
 loc_3AF02:
 	txt "WHAT'S THE MATTER?\nYOU LOOK DEPRESSED.", $FF, $00
 loc_3AF2A:
-	dc.b	$FD, $18, $14, $2A, $32, $1D, $11, $0E, $17, $32, $0C, $18, $16, $0E, $32, $18, $17, $2D, $FF, $00
+	dc.b	$FD
+  txt "OK, THEN COME ON!", $FF, $00
 loc_3AF3E:
 	txt "YOU'RE STILL\nA GOOD RACER.", $FF, $00
 loc_3AF5A:
-	dc.b	$FD, $12, $26, $16, $32, $1C, $0E, $1B, $12, $18, $1E, $1C, $32, $17, $18, $20, $29, $FF
+	dc.b	$FD
+  txt "I'M SERIOUS NOW.", $FF
 loc_3AF6C:
 	txt "DO YOU THINK YOU'RE\nSTILL THE TOP RACER?", $FF, $00
 loc_3AF96:
@@ -27076,12 +27088,14 @@ loc_3AFBC:
 loc_3AFDE:
 	txt "HAVEN'T YOU HAD\nENOUGH YET?", $FF
 loc_3AFFA:
-	dc.b	$FD, $22, $18, $1E, $26, $15, $15, $32, $19, $0A, $22, $32, $0F, $18, $1B, $32, $1D, $11, $12, $1C, $29, $FF
+	dc.b	$FD
+  txt "YOU'LL PAY FOR THIS.", $FF
 loc_3B010:
 	txt "YOU'RE REALLY\nFINISHED WITH.", $FF
 	dc.b	$00
 loc_3B02E:
-	dc.b	$FD, $10, $0E, $1D, $32, $0A, $20, $0A, $22, $32, $0F, $1B, $18, $16, $32, $16, $0E, $29, $FF, $00
+	dc.b	$FD
+  txt "GET AWAY FROM ME.", $FF, $00
 loc_3B042:
 	txt "DON'T BOTHER ME.\nJUST GET AWAY!", $FF
 loc_3B062:

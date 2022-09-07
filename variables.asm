@@ -33,4 +33,5 @@
 ; 0xFC14: ?
 ; 0xfc50: crash recoil from signs (word)
 ; 0xfc54: Set last bit to crash/retire (word)
+; 0xff26: Language. 0 = Japanese, 1 = English
 ; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)
