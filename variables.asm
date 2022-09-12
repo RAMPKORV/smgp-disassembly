@@ -13,7 +13,7 @@
 ; 0x907E: Points awarded (this round) per team during results
 ; 0x9100.w: Current shift
 ; 0x9104: Revolution meter?
-; 0x9108: Distance (delta) travelled?
+; 0x9108: Speed
 ; 0x9144.w: Current track idx to be loaded
 ; 0x915C.w: Car characteristics
 ; 0x9161: steering
@@ -33,5 +33,7 @@
 ; 0xFC14: ?
 ; 0xfc50: crash recoil from signs (word)
 ; 0xfc54: Set last bit to crash/retire (word)
+; 0xfc80: Disables speed update (boolean)
 ; 0xff26: Language. 0 = Japanese, 1 = English
+; 0xffae: Copy of speed (useless, only written to?)
 ; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)
