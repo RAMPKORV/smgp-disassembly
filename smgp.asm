@@ -4069,7 +4069,7 @@ loc_36F4:
 	JSR	loc_5B02(PC)
 	JSR	loc_6062(PC)
 	JSR	loc_5F10(PC)
-	JSR	loc_5F5E(PC)
+	JSR	loc_update_speed(PC)
 loc_3708:
 	JSR	loc_14FE(PC)
 	JSR	loc_867C(PC)
@@ -6601,7 +6601,7 @@ loc_5CF0:
 	BEQ.b	loc_5D30
 	MOVE.w	$FFFFFC9A.w, $FFFF9106.w
 loc_5CFC:
-	MOVE.w	$FFFF9106.w, player_speed.w
+	MOVE.w	$FFFF9106.w, player_speed.w ; Deacceleration from non-lethal obstacle collision
 	CLR.l	D0
 	LEA	loc_5FAE, A1
 	MOVE.w	$FFFF9180.w, D0
@@ -6697,35 +6697,35 @@ loc_5F4C:
 loc_5F58:
 	MOVE.w	D0, $FFFFE996.w
 	RTS
-loc_5F5E:
+loc_update_speed: ; Suspected update speed
 	CLR.l	D0
-	LEA	loc_5FAE, A1
+	LEA	loc_5FAE, A1 ; engine data
 	MOVE.w	$FFFF9180.w, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	$FFFFFF2E.w, D0 ; gear shift type
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFF9100.w, D0
+	MOVE.w	$FFFF9100.w, D0 ; current shift
 	LSL.l	#1, D0
 	MOVE.w	(A1,D0.w), D1
 	MOVE.w	$FFFF9102.w, D0
-	MULS.w	#$0064, D0
-	DIVS.w	D1, D0
-	MOVE.w	D0, $FFFF9106.w
-	SUB.w	player_speed.w, D0
-	BMI.b	loc_5F9E
+	MULS.w	#$0064, D0 ; D0 = D0 * 100
+	DIVS.w	D1, D0 ; D0 = D0 / D1
+	MOVE.w	D0, $FFFF9106.w ; new speed before acceleration min/max check (=($9102)*100/D1)
+	SUB.w	player_speed.w, D0 ; delta speed
+	BMI.b	loc_5F9E ; if negative, go to max deacceleration check
 	CMPI.w	#2, D0
-	BCS.b	loc_5FA8
-	MOVE.w	#2, D0
+	BCS.b	loc_5FA8 ; if not D0 < 2 (max acceleration)
+	MOVE.w	#2, D0   ; then D0 = 2
 	BRA.b	loc_5FA8
 loc_5F9E:
 	CMPI.w	#$FFFB, D0
-	BCC.b	loc_5FA8
-	MOVE.w	#$FFFB, D0
+	BCC.b	loc_5FA8   ; if D0 < -5 (max deacceleration)
+	MOVE.w	#$FFFB, D0 ; then D0 = -5
 loc_5FA8:
-	ADD.w	D0, player_speed.w
+	ADD.w	D0, player_speed.w; Add delta speed and return
 	RTS
-loc_5FAE:
+loc_5FAE: ; 180 bytes (engine characteristics?)
 	dc.b	$06, $8A, $03, $37, $02, $48, $01, $D3, $06, $8A, $03, $30, $02, $3A, $01, $BE, $07, $42, $03, $9B, $02, $7F, $01, $FB, $01, $BF, $01, $A2, $01, $7F, $06, $7E
 	dc.b	$03, $1F, $02, $24, $01, $A3, $06, $7E, $03, $18, $02, $16, $01, $8E, $07, $3A, $03, $8B, $02, $67, $01, $DB, $01, $97, $01, $72, $01, $47
 	dc.w	$067C, $031B, $021E, $019B, $067C, $0314, $0210, $0186, $0739, $0389, $0264, $01D7, $0192, $016C, $0140
