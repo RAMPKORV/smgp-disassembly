@@ -6308,7 +6308,7 @@ loc_59DA:
 	BTST.b	D5, $FFFFFF04.w
 	BNE.w	loc_5A62
 	MOVE.w	#3, D0
-	CMPI.w	#$0514, $FFFF9102.w
+	CMPI.w	#1300, $FFFF9102.w
 	BCC.b	loc_5A44
 	LEA	loc_59FE, A1
 	MOVE.w	$FFFF9100.w, D0
@@ -6389,7 +6389,7 @@ loc_5AB0:
 	CLR.w	$FFFF9102.w
 	BRA.b	loc_5ACE
 loc_5ABE:
-	CMPI.w	#$02BC, $FFFF9102.w
+	CMPI.w	#700, $FFFF9102.w
 	BCC.b	loc_5ACE
 	TST.w	$FFFF9100.w
 	BEQ.b	loc_5ACE
@@ -6438,7 +6438,7 @@ loc_5B34:
 	LSL.w	#5, D0
 	ADDA.l	D0, A1
 	MOVE.w	$FFFF9102.w, D0
-	DIVS.w	#$0032, D0
+	DIVS.w	#50, D0
 	MOVE.w	#$FF00, D1
 	MOVE.b	(A1,D0.w), D1
 	BTST.l	#7, D1
@@ -6483,14 +6483,14 @@ loc_5BC4:
 	MOVE.w	#0, $FFFF9102.w
 	BRA.b	loc_5BF6
 loc_5BD2:
-	CMPI.w	#$05DC, $FFFF9102.w
+	CMPI.w	#1500, $FFFF9102.w
 	BCC.b	loc_5BF0
 	ADD.w	D1, $FFFF9102.w
 	BPL.b	loc_5BE8
 	MOVE.w	#0, $FFFF9102.w
 	BRA.b	loc_5BF6
 loc_5BE8:
-	CMPI.w	#$05DC, $FFFF9102.w
+	CMPI.w	#1500, $FFFF9102.w
 	BCS.b	loc_5BF6
 loc_5BF0:
 	ADDI.w	#$FFCE, $FFFF9102.w
@@ -6541,7 +6541,7 @@ loc_5C5C:
 	BEQ.b	loc_5C90
 	SUB.w	D4, D5
 	BCC.b	loc_5C6C
-	ADDI.w	#$0064, D5
+	ADDI.w	#100, D5
 	BMI.b	loc_5C90
 loc_5C6C:
 	MOVE.w	$E(A2), D6
@@ -6614,7 +6614,7 @@ loc_5CFC:
 	MOVE.w	(A1,D0.w), D1
 	MOVE.w	$FFFF9106.w, D0
 	MULS.w	D1, D0
-	DIVS.w	#$0064, D0
+	DIVS.w	#100, D0
 	MOVE.w	D0, $FFFF9102.w
 loc_5D30:
 	RTS
@@ -6676,13 +6676,13 @@ loc_5F10:
 	MOVE.w	#$022E, D0
 	MOVE.w	$FFFFFF2E.w, D1
 	BEQ.b	loc_5F58
-	CMPI.w	#$02BC, $FFFF9102.w
+	CMPI.w	#700, $FFFF9102.w
 	BCC.b	loc_5F2C
 	CMPI.w	#0, $FFFF9100.w
 	BEQ.b	loc_5F58
 	BRA.b	loc_5F4C
 loc_5F2C:
-	CMPI.w	#$0514, $FFFF9102.w
+	CMPI.w	#1300, $FFFF9102.w
 	BCS.b	loc_5F58
 	CMPI.w	#6, $FFFF9100.w
 	BEQ.b	loc_5F58
@@ -6710,7 +6710,7 @@ Update_speed: ; Suspected update speed
 	LSL.l	#1, D0
 	MOVE.w	(A1,D0.w), D1
 	MOVE.w	$FFFF9102.w, D0
-	MULS.w	#$0064, D0 ; D0 = D0 * 100
+	MULS.w	#100, D0 ; D0 = D0 * 100
 	DIVS.w	D1, D0 ; D0 = D0 / D1
 	MOVE.w	D0, $FFFF9106.w ; new speed before acceleration min/max check (=($9102)*100/D1)
 	SUB.w	Player_speed.w, D0 ; delta speed
@@ -6720,9 +6720,9 @@ Update_speed: ; Suspected update speed
 	MOVE.w	#2, D0   ; then D0 = 2
 	BRA.b	loc_5FA8
 loc_5F9E:
-	CMPI.w	#$FFFB, D0
+	CMPI.w	#-5, D0
 	BCC.b	loc_5FA8   ; if D0 < -5 (max deacceleration)
-	MOVE.w	#$FFFB, D0 ; then D0 = -5
+	MOVE.w	#-5, D0 ; then D0 = -5
 loc_5FA8:
 	ADD.w	D0, Player_speed.w; Add delta speed and return
 	RTS
@@ -6740,9 +6740,9 @@ loc_6062:
 	MOVE.b	$FFFFFF23.w, D6
 	BTST.b	D6, $FFFFFF04.w
 	BEQ.b	loc_60BE
-	CMPI.w	#$05DC, $FFFF9102.w
+	CMPI.w	#1500, $FFFF9102.w
 	BCS.b	loc_6080
-	ADDI.w	#$FFD8, $FFFF9102.w
+	ADDI.w	#-40, $FFFF9102.w
 loc_6080:
 	CLR.l	D1
 	LEA	loc_60C0, A1
@@ -9341,16 +9341,16 @@ loc_7D78:
 	MOVE.w	#$0090, $18(A0)
 	MOVE.w	#$FFFF, $28(A0)
 	MOVE.w	$FFFF9104.w, D0
-	CMPI.w	#$05DC, D0
+	CMPI.w	#1500, D0
 	BCS.b	loc_7DD8
-	MOVE.w	#$05DC, D0
+	MOVE.w	#1500, D0
 loc_7DD8:
-	CMPI.w	#$02BC, D0
+	CMPI.w	#700, D0
 	BCC.b	loc_7DE4
-	DIVS.w	#$0064, D0
+	DIVS.w	#100, D0
 	BRA.b	loc_7DEA
 loc_7DE4:
-	DIVS.w	#$0032, D0
+	DIVS.w	#50, D0
 	SUBQ.w	#7, D0
 loc_7DEA:
 	LEA	loc_3C9FB, A1
@@ -11214,7 +11214,7 @@ loc_94C4:
 	SUB.w	$1E(A0), D0
 	BPL.b	loc_94EA
 	NEG.w	D0
-	CMPI.w	#$0064, D0
+	CMPI.w	#100, D0
 	BCC.b	loc_94EA
 	MOVE.w	Player_speed.w, D0
 	CMP.w	$26(A0), D0
@@ -12510,7 +12510,7 @@ loc_A68A:
 loc_A696:
 	MOVE.w	$FFFFAE1E.w, D0
 	SUB.w	$2A(A0), D0
-	CMPI.w	#$02BC, D0
+	CMPI.w	#700, D0
 	BCC.b	loc_A6AE
 	CMPI.w	#3, $24(A0)
 	BCC.b	loc_A6B4
