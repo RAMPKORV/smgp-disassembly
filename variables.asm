@@ -12,7 +12,9 @@
 ; 0x906E: The placement (this round) of each team during the results
 ; 0x907E: Points awarded (this round) per team during results
 ; 0x9100.w: Current shift
-; 0x9104: Revolution meter?
+; 0x9102: Engine RPM (why two?)
+; 0x9104: Engine RPM (why two?)
+; 0x9106: Speed (why two?)
 ; 0x9108: Speed
 ; 0x9144.w: Current track idx to be loaded
 ; 0x915C.w: Car characteristics
