@@ -1704,7 +1704,7 @@ loc_14F2:
 	MOVE.w	D1, (A1)+
 	RTS
 loc_14FE:
-	MOVE.w	player_speed.w, D0
+	MOVE.w	Player_speed.w, D0
 	JSR	loc_157C(PC)
 	LEA	$FFFFE800.w, A1
 	MOVEQ	#2, D0
@@ -4069,7 +4069,7 @@ loc_36F4:
 	JSR	loc_5B02(PC)
 	JSR	loc_6062(PC)
 	JSR	loc_5F10(PC)
-	JSR	loc_update_speed(PC)
+	JSR	Update_speed(PC)
 loc_3708:
 	JSR	loc_14FE(PC)
 	JSR	loc_867C(PC)
@@ -4706,7 +4706,7 @@ loc_3FE0:
 	MOVE.b	$FFFFFF23.w, D0
 	BTST.b	D0, $FFFFFF05.w
 	BEQ.b	loc_4026
-	CMPI.w	#$0080, player_speed.w
+	CMPI.w	#$0080, Player_speed.w
 	BCS.b	loc_4026
 	MOVE.w	$FFFF915A.w, D0
 	SUB.w	D0, $FFFF9020.w
@@ -4730,7 +4730,7 @@ loc_4026:
 loc_403A:
 	TST.w	$FFFF9208.w
 	BEQ.b	loc_4056
-	TST.w	player_speed.w
+	TST.w	Player_speed.w
 	BEQ.b	loc_4056
 	SUBQ.w	#1, $FFFF9172.w
 	BNE.b	loc_4056
@@ -6460,7 +6460,7 @@ loc_5B7E:
 	TST.w	$FFFF9208.w
 	BEQ.b	loc_5B9E
 	CLR.l	D2
-	MOVE.w	player_speed.w, D2
+	MOVE.w	Player_speed.w, D2
 	LSR.w	#5, D2
 	SUB.w	D2, D1
 	CMPI.w	#2, $FFFF9208.w
@@ -6529,7 +6529,7 @@ loc_5C34:
 loc_5C44:
 	RTS
 loc_5C46:
-	MOVE.w	player_speed.w, D4
+	MOVE.w	Player_speed.w, D4
 	BEQ.b	loc_5CA8
 	MOVE.w	$FFFFAE12.w, D1
 	MOVE.w	#$0060, D2
@@ -6601,7 +6601,7 @@ loc_5CF0:
 	BEQ.b	loc_5D30
 	MOVE.w	$FFFFFC9A.w, $FFFF9106.w
 loc_5CFC:
-	MOVE.w	$FFFF9106.w, player_speed.w ; Deacceleration from non-lethal obstacle collision
+	MOVE.w	$FFFF9106.w, Player_speed.w ; Deacceleration from non-lethal obstacle collision
 	CLR.l	D0
 	LEA	loc_5FAE, A1
 	MOVE.w	$FFFF9180.w, D0
@@ -6697,7 +6697,8 @@ loc_5F4C:
 loc_5F58:
 	MOVE.w	D0, $FFFFE996.w
 	RTS
-loc_update_speed: ; Suspected update speed
+;loc_5F5E
+Update_speed: ; Suspected update speed
 	CLR.l	D0
 	LEA	loc_5FAE, A1 ; engine data
 	MOVE.w	$FFFF9180.w, D0
@@ -6712,7 +6713,7 @@ loc_update_speed: ; Suspected update speed
 	MULS.w	#$0064, D0 ; D0 = D0 * 100
 	DIVS.w	D1, D0 ; D0 = D0 / D1
 	MOVE.w	D0, $FFFF9106.w ; new speed before acceleration min/max check (=($9102)*100/D1)
-	SUB.w	player_speed.w, D0 ; delta speed
+	SUB.w	Player_speed.w, D0 ; delta speed
 	BMI.b	loc_5F9E ; if negative, go to max deacceleration check
 	CMPI.w	#2, D0
 	BCS.b	loc_5FA8 ; if not D0 < 2 (max acceleration)
@@ -6723,7 +6724,7 @@ loc_5F9E:
 	BCC.b	loc_5FA8   ; if D0 < -5 (max deacceleration)
 	MOVE.w	#$FFFB, D0 ; then D0 = -5
 loc_5FA8:
-	ADD.w	D0, player_speed.w; Add delta speed and return
+	ADD.w	D0, Player_speed.w; Add delta speed and return
 	RTS
 loc_5FAE: ; 180 bytes (engine characteristics?)
 	dc.b	$06, $8A, $03, $37, $02, $48, $01, $D3, $06, $8A, $03, $30, $02, $3A, $01, $BE, $07, $42, $03, $9B, $02, $7F, $01, $FB, $01, $BF, $01, $A2, $01, $7F, $06, $7E
@@ -7724,7 +7725,7 @@ loc_6B60:
 loc_6B68:
 	LEA	$FFFFAE00.w, A0
 	JSR	loc_80E0
-	MULU.w	player_speed.w, D0
+	MULU.w	Player_speed.w, D0
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
 	SWAP	D0
@@ -9100,7 +9101,7 @@ loc_7AA4:
 	BNE.w	loc_7B82
 	MOVE.w	$1E(A0), $FFFF8F80.w
 	MOVE.w	#$FFFF, $FFFF8FA0.w
-	MOVE.w	player_speed.w, $26(A0)
+	MOVE.w	Player_speed.w, $26(A0)
 	TST.w	$FFFFFCA0.w
 	BEQ.b	loc_7B76
 	TST.w	$38(A0)
@@ -9113,12 +9114,12 @@ loc_7AA4:
 	ADDQ.w	#1, $38(A0)
 	MOVE.w	#1, $FFFFFCA4.w
 loc_7B30:
-	CMPI.w	#$00FF, player_speed.w
+	CMPI.w	#$00FF, Player_speed.w
 	BCS.b	loc_7B42
 	CLR.w	$FFFFFCA6.w
 	MOVE.w	#1, $FFFFFC76.w
 loc_7B42:
-	CMPI.w	#$0080, player_speed.w
+	CMPI.w	#$0080, Player_speed.w
 	BCC.b	loc_7B54
 	MOVE.w	#1, $FFFFFCA6.w
 	CLR.w	$FFFFFC76.w
@@ -9260,7 +9261,7 @@ loc_7CDE:
 	MOVE.w	$1A(A0), D0
 	JSR	loc_80C4(PC)
 	MOVEQ	#0, D7
-	MOVE.w	player_speed.w, D0
+	MOVE.w	Player_speed.w, D0
 	BEQ.b	loc_7D16
 	SUBQ.w	#1, $8(A0)
 	BPL.b	loc_7D16
@@ -9599,7 +9600,7 @@ loc_8142:
 	MOVE.w	$FFFFFC5C.w, D3
 	OR.w	$FFFFFCBE.w, D3
 	BNE.w	loc_8244
-	MOVE.w	player_speed.w, D3
+	MOVE.w	Player_speed.w, D3
 	BEQ.w	loc_8244
 	MOVE.l	#$01900000, D6
 	CMPI.w	#2, $FFFF9238.w
@@ -9688,7 +9689,7 @@ loc_822A:
 	CMPI.l	#$0000C000, D1
 	BGT.b	loc_8244
 loc_8236:
-	CMPI.w	#$0020, player_speed.w
+	CMPI.w	#$0020, Player_speed.w
 	BCS.b	loc_8244
 	MOVE.w	#$FFFF, $FFFF910E.w
 loc_8244:
@@ -11215,7 +11216,7 @@ loc_94C4:
 	NEG.w	D0
 	CMPI.w	#$0064, D0
 	BCC.b	loc_94EA
-	MOVE.w	player_speed.w, D0
+	MOVE.w	Player_speed.w, D0
 	CMP.w	$26(A0), D0
 	BCS.b	loc_94EA
 	MOVE.w	D0, $26(A0)
@@ -11330,7 +11331,7 @@ loc_9630:
 	MOVEQ	#-4, D6
 loc_964E:
 	MOVE.w	D6, $FFFFFCBA.w
-	MOVE.w	player_speed.w, D0
+	MOVE.w	Player_speed.w, D0
 	LSR.w	#2, D0
 	MOVE.w	D0, $FFFFFCB4.w
 loc_965C:
@@ -11354,7 +11355,7 @@ loc_967C:
 	MOVE.w	$FFFFFF62.w, $34(A0)
 	CLR.b	$2B(A0)
 loc_96A6:
-	MOVE.w	player_speed.w, D1
+	MOVE.w	Player_speed.w, D1
 	MOVE.w	$26(A0), D0
 	MOVE.w	D1, D2
 	SUB.w	D0, D2
@@ -11799,7 +11800,7 @@ loc_9B1E:
 	CLR.w	$FFFFFC50.w
 loc_9B34:
 	CLR.w	$FFFFFC56.w
-	MOVE.w	player_speed.w, D0
+	MOVE.w	Player_speed.w, D0
 	BEQ.b	loc_9B94
 	SUBQ.w	#1, $FFFFFC50.w
 	BPL.b	loc_9B94
@@ -13417,7 +13418,7 @@ loc_B290:
 	MOVE.w	$FFFFAE12.w, D0
 	CMP.w	$34(A0), D0
 	SGT	$FFFFFC9C.w
-	CMPI.w	#$00F7, player_speed.w
+	CMPI.w	#$00F7, Player_speed.w
 	BCS.b	loc_B2BA
 	CMPI.w	#$0038, D7
 	BLS.b	loc_B2BA
