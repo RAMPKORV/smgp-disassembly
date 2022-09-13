@@ -6483,17 +6483,17 @@ loc_5BC4:
 	MOVE.w	#0, $FFFF9102.w
 	BRA.b	loc_5BF6
 loc_5BD2:
-	CMPI.w	#1500, $FFFF9102.w
+	CMPI.w	#Engine_rpm_max, $FFFF9102.w
 	BCC.b	loc_5BF0
 	ADD.w	D1, $FFFF9102.w
 	BPL.b	loc_5BE8
 	MOVE.w	#0, $FFFF9102.w
 	BRA.b	loc_5BF6
 loc_5BE8:
-	CMPI.w	#1500, $FFFF9102.w
+	CMPI.w	#Engine_rpm_max, $FFFF9102.w
 	BCS.b	loc_5BF6
 loc_5BF0:
-	ADDI.w	#$FFCE, $FFFF9102.w
+	ADDI.w	#-50, $FFFF9102.w
 loc_5BF6:
 	MOVE.w	$FFFF9102.w, D0
 	ADDQ.w	#1, D0
@@ -6740,7 +6740,7 @@ loc_6062:
 	MOVE.b	$FFFFFF23.w, D6
 	BTST.b	D6, $FFFFFF04.w
 	BEQ.b	loc_60BE
-	CMPI.w	#1500, $FFFF9102.w
+	CMPI.w	#Engine_rpm_max, $FFFF9102.w
 	BCS.b	loc_6080
 	ADDI.w	#-40, $FFFF9102.w
 loc_6080:
@@ -9341,18 +9341,18 @@ loc_7D78:
 	MOVE.w	#$0090, $18(A0)
 	MOVE.w	#$FFFF, $28(A0)
 	MOVE.w	$FFFF9104.w, D0
-	CMPI.w	#1500, D0
-	BCS.b	loc_7DD8
-	MOVE.w	#1500, D0
+	CMPI.w	#Engine_rpm_max, D0 ; ...
+	BCS.b	loc_7DD8            ; ...
+	MOVE.w	#Engine_rpm_max, D0 ; D0 = max(D0, Engine_rpm_max)
 loc_7DD8:
 	CMPI.w	#700, D0
-	BCC.b	loc_7DE4
-	DIVS.w	#100, D0
+	BCC.b	loc_7DE4 ; if D0 < 700
+	DIVS.w	#100, D0 ; then D0 = D0/100
 	BRA.b	loc_7DEA
-loc_7DE4:
-	DIVS.w	#50, D0
-	SUBQ.w	#7, D0
-loc_7DEA:
+loc_7DE4:            ; else
+	DIVS.w	#50, D0  ; ...
+	SUBQ.w	#7, D0   ; D0 = D0/50-7
+loc_7DEA:            ; endif
 	LEA	loc_3C9FB, A1
 	LEA	$FFFFFCD2.w, A2
 loc_7DF4:
