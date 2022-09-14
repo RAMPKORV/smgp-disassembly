@@ -25513,13 +25513,19 @@ loc_32D20:
 loc_32D36:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0A, $FF, $00
 loc_32D3E:
-	dc.b	$E8, $86, $1C, $11, $12, $0F, $1D, $FA, $0D, $18, $20, $17, $FA, $FF
+	dc.b	$E8, $86
+  txt "SHIFT", $FA
+  txt "DOWN", $FA, $FF
 loc_32D4C:
-	dc.b	$EB, $86, $1C, $11, $12, $0F, $1D, $FA, $1E, $19, $FA, $FA, $FA, $FF
+	dc.b	$EB, $86
+  txt "SHIFT", $FA
+  txt "UP", $FA, $FA, $FA, $FF
 loc_32D5A:
-	dc.b	$EB, $B2, $FA, $FA, $FA, $FA, $FA, $FA, $0B, $1B, $0A, $14, $0E, $FF
+	dc.b	$EB, $B2, $FA, $FA, $FA, $FA, $FA, $FA
+  txt "BRAKE", $FF
 loc_32D68:
-	dc.b	$EA, $B2, $0A, $0C, $0C, $0E, $15, $0E, $1B, $0A, $1D, $18, $1B, $FF
+	dc.b	$EA, $B2
+  txt "ACCELERATOR", $FF
 loc_32D76:
 	dc.b	$00, $04
 	dc.l	loc_32D8C
