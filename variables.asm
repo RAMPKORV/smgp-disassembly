@@ -6,7 +6,7 @@
 ; 0x5b01: Track data (curves)
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
 ; 0x9030: List of driver points awarded, by team order
-; 0x9043: Current team
+; 0x9043: Player team
 ; 0x9044: Drivers and teams mapping
 ; 0x905E: ???
 ; 0x906E: The placement (this round) of each team during the results

@@ -4058,7 +4058,7 @@ loc_36B6: ; Suspected in-game loop
 loc_36D8:
 	JSR	loc_704C(PC)
 	JSR	loc_1B80(PC)
-	TST.w	$FFFFFC54.w
+	TST.w	Retire_flag.w
 	BEQ.b	loc_36F4
 	CLR.w	$FFFF9100.w
 	CLR.l	$FFFF9102.w
@@ -9134,7 +9134,7 @@ loc_7B6C:
 	JSR	loc_EF0
 	BRA.w	loc_7CDE
 loc_7B76:
-	TST.w	$FFFFFC54.w
+	TST.w	Retire_flag.w
 	BEQ.b	loc_7BE2
 	TST.w	$36(A0)
 	BEQ.b	loc_7B84
@@ -9527,7 +9527,7 @@ loc_806C:
 	ADDQ.w	#1, D0
 	MOVE.w	D0, $FFFFFC74.w
 	MOVE.w	$FFFFFCA8.w, D0
-	OR.w	$FFFFFC54.w, D0
+	OR.w	Retire_flag.w, D0
 	BNE.b	loc_80C2
 	SUBQ.w	#1, $1C(A0)
 	BPL.b	loc_80AE
@@ -9832,7 +9832,7 @@ loc_83BE:
 	MOVE.w	#1, $FFFFFCAC.w
 	MOVE.l	#$0000853E, D1
 	JSR	loc_8AE8
-	TST.w	$FFFFFC54.w
+	TST.w	Retire_flag.w
 	BNE.b	loc_8456
 	MOVE.w	#1, $FFFFFC6E.w
 	MOVE.w	#1, $FFFFFC80.w
@@ -9861,7 +9861,7 @@ loc_843E:
 	SUBQ.w	#1, $FFFFFCAE.w
 	BPL.b	loc_8456
 	MOVE.w	D1, $FFFFFCAE.w
-	TST.w	$FFFFFC54.w
+	TST.w	Retire_flag.w
 	BNE.b	loc_8456
 	MOVE.w	#6, $00FF5AE0
 loc_8456:
@@ -11949,7 +11949,7 @@ loc_9D1A:
 	MOVE.w	D1, $2C(A0)
 	MOVE.w	D2, $2E(A0)
 	MOVE.w	$FFFFFC80.w, D0
-	OR.w	$FFFFFC54.w, D0
+	OR.w	Retire_flag.w, D0
 	BNE.b	loc_9CCA
 	MOVEA.l	$30(A0), A1
 	MOVE.b	$10(A1), D0
@@ -12232,7 +12232,7 @@ loc_A0BC:
 	MOVE.b	#1, $24(A0)
 	MOVE.w	#9, $36(A0)
 	MOVE.w	$FFFFFC80.w, D0
-	OR.w	$FFFFFC54.w, D0
+	OR.w	Retire_flag.w, D0
 	BNE.b	loc_A12C
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
@@ -13459,7 +13459,7 @@ loc_B290:
 	BCS.b	loc_B2BA
 	CMPI.w	#$0038, D7
 	BLS.b	loc_B2BA
-	MOVE.w	#1, $FFFFFC54.w
+	MOVE.w	#1, Retire_flag.w
 loc_B2BA:
 	RTS
 loc_B2BC:
