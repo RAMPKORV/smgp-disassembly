@@ -25662,7 +25662,9 @@ loc_32F68:
 	dc.l	loc_330C8
 	dc.l	loc_330E0
 loc_32FA4:
-	dc.b	$E4, $28, $FB, $07, $C0, $27, $0E, $21, $1D, $1B, $0E, $16, $0E, $FA, $1D, $0E, $17, $1C, $12, $18, $17, $27, $FA, $FF
+	dc.b	$E4, $28, $FB, $07, $C0
+  txt '"EXTREME', $FA
+  txt 'TENSION"', $FA, $FF
 loc_32FBC:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1D, $11, $0E, $FA, $0C, $11, $0E, $0C, $14, $0E, $1B, $FA, $0F, $15, $0A, $10, $27, $FF
 loc_32FD4:
