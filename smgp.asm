@@ -3727,32 +3727,32 @@ loc_3130:
 	dc.w	loc_3106
 	dc.w	loc_311E
 loc_3148:
-	dc.b	$14
-	dc.b	$06
-	dc.l	$00003170
+	dc.b	$14, $06
+	dc.l	loc_3170
 	dc.l	$681E0003
-	dc.b	$0A
-	dc.b	$02
-	dc.l	$000031B8
+	dc.b	$0A, $02
+	dc.l	loc_31B8
 	dc.l	$69280003
-	dc.b	$0E
-	dc.b	$06
-	dc.l	$000031C8
+	dc.b	$0E, $06
+	dc.l	loc_31C8
 	dc.l	$682A0003
-	dc.b	$08
-	dc.b	$00
-	dc.l	$000031F8
+	dc.b	$08, $00
+	dc.l	loc_31F8
 	dc.l	$69B00003
+loc_3170:
   txt "SUPER MONACO GP   "
   txt "WORLD CHAMPIONSHIP"
   txt "FREE PRACTICE     "
   txt "OPTIONS           "
+loc_31B8:
   txt "NEW GAME"
   txt "PASSWORD"
+loc_31C8:
   txt "WARM UP     "
   txt "RACE        "
   txt "MACHINE     "
   txt "TRANSMISSION"
+loc_31F8:
   txt "LAPS  "
 	JSR	loc_396
 	JSR	loc_D5C
