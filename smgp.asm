@@ -1595,7 +1595,7 @@ loc_13F6:
 	TST.w	$FFFF9148.w
 	BNE.b	loc_1446
 	MOVEQ	#$0000000F, D7
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	LEA	$FFFFE98C.w, A1
 	BSR.b	loc_145C
 	TST.w	$FFFF9142.w
@@ -1611,7 +1611,7 @@ loc_1418:
 	MOVE.b	$FFFF9042.w, D6
 	AND.w	D7, D6
 loc_1430:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	AND.w	D7, D0
 	ADDQ.w	#1, D0
 	AND.w	D7, D0
@@ -3679,7 +3679,7 @@ loc_307C:
 	CLR.w	$FFFF9144.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
-	CLR.b	$FFFF9043.w
+	CLR.b	Player_team.w
 	JSR	loc_13016
 	MOVE.l	#$0000D6E2, $FFFFFF10.w
 	RTS
@@ -3690,7 +3690,7 @@ loc_30AC:
 	CLR.w	$FFFF9144.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
-	CLR.b	$FFFF9043.w
+	CLR.b	Player_team.w
 	JSR	loc_13016
 	MOVE.l	#$0000293C, $FFFFFF2A.w
 	MOVE.l	#$0000F2DE, $FFFFFF10.w
@@ -3705,7 +3705,7 @@ loc_30F0:
 	MOVE.l	#$00003800, $FFFFFF10.w
 	RTS
 loc_3106:
-	BSET.b	#7, $FFFF9043.w
+	BSET.b	#7, Player_team.w
 	MOVE.l	#$0000293C, $FFFFFF2A.w
 	MOVE.l	#$0000D2B0, $FFFFFF10.w
 	RTS
@@ -4203,7 +4203,7 @@ loc_3948:
 loc_395C:
 	TST.w	$FFFF9140.w
 	BNE.w	loc_3A80
-	CLR.b	$FFFF9043.w
+	CLR.b	Player_team.w
 	MOVE.l	#$00008C9E, D2
 	MOVE.w	#$0068, D0
 	LEA	loc_4141(PC), A1
@@ -4220,7 +4220,7 @@ loc_3986:
 	MOVEQ	#0, D3
 	MOVE.w	$FFFFFF30.w, D4
 loc_3998:
-	MOVE.b	$FFFF9043.w, D7
+	MOVE.b	Player_team.w, D7
 	ANDI.w	#$000F, D7
 	CMP.w	D6, D7
 	BNE.b	loc_39A8
@@ -4296,7 +4296,7 @@ loc_3A1E:
 loc_3A7E:
 	RTS
 loc_3A80:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LSR.w	#2, D0
 	NEG.w	D0
@@ -4319,7 +4319,7 @@ loc_3AAC:
 	MOVE.w	$FFFFFF3A.w, D2
 	MOVE.w	$FFFFFF30.w, D4
 loc_3AC6:
-	MOVE.b	$FFFF9043.w, D7
+	MOVE.b	Player_team.w, D7
 	ANDI.w	#$000F, D7
 	CMP.w	D7, D6
 	BNE.b	loc_3AD6
@@ -4471,7 +4471,7 @@ loc_3CB8:
 	RTS
 loc_3CC2:
 	MOVE.w	$FFFFFF30.w, $FFFFFF34.w
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$0030, D0
 	BEQ.b	loc_3D26
 	MOVE.w	#1, $FFFFFF4E.w
@@ -4483,7 +4483,7 @@ loc_3CC2:
 	LEA	$FFFF9044.w, A0
 	MOVE.b	(A0,D0.w), D0
 	ANDI.w	#$000F, D0
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_3D02
 	SUBQ.w	#1, D0
 loc_3D02:
@@ -5916,7 +5916,7 @@ loc_5156:
 	MOVEQ	#0, D5
 loc_516C:
 	MOVE.w	#$87C0, D4
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	CMP.w	D0, D5
 	BNE.b	loc_5184
@@ -5927,7 +5927,7 @@ loc_5184:
 	LEA	$FFFF9044.w, A0
 	MOVE.b	(A0,D5.w), D0
 	ANDI.w	#$000F, D0
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_519A
 	SUBQ.w	#1, D0
 loc_519A:
@@ -5959,7 +5959,7 @@ loc_51E4:
 	LEA	$FFFF8FA0.w, A0
 	LEA	$FFFF8FC0.w, A1
 	LEA	$FFFF9044.w, A2
-	MOVE.b	$FFFF9043.w, D7
+	MOVE.b	Player_team.w, D7
 	ANDI.w	#$00F0, D7
 	MOVEQ	#0, D0
 loc_51FE:
@@ -5967,7 +5967,7 @@ loc_51FE:
 	MOVE.b	(A0)+, D1
 	BPL.b	loc_520E
 	OR.w	D0, D7
-	MOVE.b	D7, $FFFF9043.w
+	MOVE.b	D7, Player_team.w
 	MOVEQ	#0, D1
 	BRA.b	loc_5216
 loc_520E:
@@ -6125,7 +6125,7 @@ loc_567C:
 	MOVE.w	$FFFFFF28.w, $FFFF9144.w
 	MOVE.w	#$000F, $FFFFFC04.w
 	RTS
-	MOVE.b	#0, $FFFF9043.w
+	MOVE.b	#0, Player_team.w
 	JSR	loc_8C0
 	JSR	loc_656
 	JSR	loc_F16
@@ -10905,7 +10905,7 @@ loc_912C:
 loc_9132:
 	MOVE.w	D0, $12(A0)
 	RTS
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LSR.w	#2, D0
 	MOVE.b	$FFFF9042.w, D1
@@ -13687,7 +13687,7 @@ loc_B5F4:
 	JSR	loc_F756
 	JSR	loc_F54A
 	JSR	loc_F780
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_B626
 	JSR	loc_F576
 	JSR	loc_F780
@@ -13705,7 +13705,7 @@ loc_B638:
 loc_B646:
 	RTS
 loc_B648:
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BNE.b	loc_B66E
 	LEA	loc_1453C, A6
 	ORI	#$0700, SR
@@ -13736,7 +13736,7 @@ loc_B6A0:
 	MOVE.l	#$0000E94C, $FFFFFF10.w
 	RTS
 loc_B6B8:
-	ANDI.b	#$CF, $FFFF9043.w
+	ANDI.b	#$CF, Player_team.w
 	MOVE.l	#$00003800, $FFFFFF10.w
 	RTS
 loc_B6C8:
@@ -13783,7 +13783,7 @@ loc_B792:
 	BNE.b	loc_B7E0
 	CLR.l	D0
 	LEA	$FFFF9030.w, A6
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	(A6,D0.w), D1
 	MOVE.w	#$0010, D0
@@ -13791,7 +13791,7 @@ loc_B7B4:
 	CMP.b	(A6)+, D1
 	BCS.b	loc_B7E0
 	DBF	D0, loc_B7B4
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_B7CE
 	MOVE.l	#$000135C6, $FFFFFF10.w
 	RTS
@@ -13805,7 +13805,7 @@ loc_B7E0:
 	BEQ.w	loc_B8A6
 	BTST.b	#5, $FFFF9042.w
 	BNE.b	loc_B810
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -14081,7 +14081,7 @@ loc_BBC4:
 	MOVE.l	#$0000293C, $FFFFFF2A.w
 	RTS
 loc_BBD4:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -14092,7 +14092,7 @@ loc_BBD4:
 	RTS
 loc_BBF8:
 	MOVE.w	#1, $FFFF9142.w
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_BC10
 	MOVE.l	#$0000D2B0, $FFFFFF10.w
 	RTS
@@ -14195,7 +14195,7 @@ loc_BD92:
 	MOVE.w	#$0800, $FFFFE9C6.w
 	MOVE.l	#$0000B3C0, $FFFFFF10.w
 	MOVE.w	#$000D, $FFFFFF4C.w
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_BDE0
 	MOVE.w	#$000B, $FFFFFF4C.w
 loc_BDE0:
@@ -14245,7 +14245,7 @@ loc_BE6C:
 	BSR.w	loc_12E60
 	JSR	loc_C324(PC)
 	JSR	loc_C1B4(PC)
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_BECC
 	MOVE.w	#$000D, $FFFFFF4C.w
 	MOVE.b	$FFFFFF35.w, D0
@@ -14256,7 +14256,7 @@ loc_BE6C:
 loc_BECC:
 	CLR.l	D0
 	LEA	loc_F736, A2
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	ADD.l	D0, D0
 	MOVE.b	(A2,D0.w), D1
@@ -14361,7 +14361,7 @@ loc_C074:
 	LEA	loc_149C8, A6
 	JSR	loc_6DA
 	CLR.l	D0
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MULS.w	#$0038, D0
 	ADDI.w	#$000A, D0
@@ -14792,14 +14792,14 @@ loc_C6EE:
 	MOVEQ	#3, D1
 	MOVE.b	(A3), D0
 	ANDI.w	#$000F, D0
-	MOVE.b	$FFFF9043.w, D2
+	MOVE.b	Player_team.w, D2
 	ANDI.w	#$000F, D2
 	CMP.w	D2, D0
 	BEQ.b	loc_C72E
 	LEA	$FFFF9044.w, A1
 	MOVE.b	(A1,D0.w), D0
 	ANDI.w	#$000F, D0
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_C72A
 	SUBQ.w	#1, D0
 loc_C72A:
@@ -14854,7 +14854,7 @@ loc_C7A0:
 	MOVE.w	#$87DE, (A6)
 	LEA	$10(A6), A6
 	MOVE.w	#$C7F4, (A6)+
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	JSR	loc_C6C4(PC)
 	ADDQ.w	#1, A2
@@ -14907,7 +14907,7 @@ loc_C844:
 	LEA	$FFFF9044.w, A1
 	MOVE.b	(A1,D0.w), D0
 	ANDI.w	#$000F, D0
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_C85A
 	SUBQ.w	#1, D0
 loc_C85A:
@@ -14928,7 +14928,7 @@ loc_C864:
 	MOVEQ	#0, D0
 	MOVE.b	(A3)+, D0
 	BPL.b	loc_C88C
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 loc_C88C:
 	JSR	loc_C6C4(PC)
@@ -14971,7 +14971,7 @@ loc_C8E6:
 	DBF	D0, loc_C8E6
 	LEA	loc_C610(PC), A5
 	ADDQ.w	#2, A6
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LEA	$FFFF9030.w, A0
 	TST.b	(A0,D0.w)
@@ -14992,7 +14992,7 @@ loc_C918:
 	LEA	$10(A6), A6
 	MOVE.w	#$C7F4, (A6)+
 	MOVE.w	D1, D2
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	JSR	loc_C6C4(PC)
 	ADDQ.w	#1, A2
@@ -15043,7 +15043,7 @@ loc_C9A8:
 	ADDQ.w	#1, D0
 	CMPI.w	#$0010, D0
 	BNE.b	loc_C9A8
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	MOVE.b	#$FF, (A0,D0.w)
 	LEA	$FFFF8F8F.w, A0
@@ -15342,12 +15342,12 @@ loc_CE52:
 	MOVE.b	$FFFFFC16.w, D0
 	ANDI.b	#$0E, D0
 	BNE.b	loc_CEA6
-	BTST.b	#7, $FFFF9043.w
+	BTST.b	#7, Player_team.w
 	BEQ.b	loc_CE6C
 	ADDI.w	#$0010, $FFFFFC1E.w
 	RTS
 loc_CE6C:
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_CEA2
 loc_CE74:
 	MOVE.b	$FFFF9042.w, D0
@@ -15480,16 +15480,16 @@ loc_D02A:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	loc_D066
-	BTST.b	#7, $FFFF9043.w
+	BTST.b	#7, Player_team.w
 	BEQ.b	loc_D04A
-	BCLR.b	#7, $FFFF9043.w
+	BCLR.b	#7, Player_team.w
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 	RTS
 loc_D04A:
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BNE.b	loc_D05E
-	BCLR.b	#5, $FFFF9043.w
-	BSET.b	#4, $FFFF9043.w
+	BCLR.b	#5, Player_team.w
+	BSET.b	#4, Player_team.w
 loc_D05E:
 	MOVE.l	#$00003800, $FFFFFF10.w
 loc_D066:
@@ -15671,9 +15671,9 @@ loc_D2AA:
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
-	BTST.b	#7, $FFFF9043.w
+	BTST.b	#7, Player_team.w
 	BEQ.b	loc_D2F6
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	D0, $FFFFFC18.w
 	MOVE.b	#$10, $FFFFFC19.w
@@ -15687,7 +15687,7 @@ loc_D2F6:
 	MOVE.b	(A1,D0.w), D1
 	ANDI.b	#$0F, D1
 	MOVE.b	D1, $FFFFFC19.w
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_D320
 	SUBQ.b	#1, $FFFFFC19.w
 loc_D320:
@@ -15761,9 +15761,9 @@ loc_D320:
 	CLR.l	D1
 	LEA	$FFFF9044.w, A1
 	MOVE.b	$FFFF9042.w, D0
-	BTST.b	#7, $FFFF9043.w
+	BTST.b	#7, Player_team.w
 	BEQ.b	loc_D484
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 loc_D484:
 	ANDI.b	#$0F, D0
 	LEA	$FFFF9030.w, A1
@@ -15787,11 +15787,11 @@ loc_D484:
 	LEA	loc_19664, A6
 	ADDA.l	D0, A6
 	JSR	loc_6DA
-	BTST.b	#7, $FFFF9043.w
+	BTST.b	#7, Player_team.w
 	BEQ.b	loc_D50A
 	CLR.l	D0
 	LEA	loc_D632, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
@@ -15900,7 +15900,7 @@ loc_D6E0:
 	BEQ.w	loc_D8A2
 	BTST.b	#7, $FFFF9042.w
 	BEQ.w	loc_D7D0
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -15910,7 +15910,7 @@ loc_D6E0:
 	CLR.l	D1
 	CLR.l	D2
 	LEA	$FFFF9030.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	MOVE.b	D1, D2
 	ADDQ.b	#1, D2
@@ -15927,7 +15927,7 @@ loc_D6E0:
 	CLR.l	D1
 	LEA	$FFFF9044.w, A1
 	LEA	$FFFF9040.w, A2
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -15943,15 +15943,15 @@ loc_D7B2:
 	BNE.b	loc_D7B2
 	MOVE.b	(A1,D3.w), D4
 	MOVE.b	D4, (A1,D1.w)
-	ANDI.b	#$40, $FFFF9043.w
-	ADD.b	D3, $FFFF9043.w
+	ANDI.b	#$40, Player_team.w
+	ADD.b	D3, Player_team.w
 	CLR.b	(A1,D3.w)
 	BRA.b	loc_D826
 loc_D7D0:
 	CLR.l	D0
 	CLR.l	D1
 	LEA	$FFFF9030.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -15962,19 +15962,19 @@ loc_D7D0:
 	CLR.l	D0
 	CLR.l	D1
 	LEA	$FFFF9044.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	MOVE.b	(A1,D1.w), D2
 	MOVE.b	D2, (A1,D0.w)
-	ANDI.b	#$40, $FFFF9043.w
-	ADD.b	D1, $FFFF9043.w
+	ANDI.b	#$40, Player_team.w
+	ADD.b	D1, Player_team.w
 	CLR.b	(A1,D1.w)
 loc_D826:
 	MOVE.w	#$FFFF, D0
 	MOVE.b	#$0C, D1
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_D838
 	ADDQ.b	#1, D1
 loc_D838:
@@ -15985,7 +15985,7 @@ loc_D840:
 	CMP.b	(A1,D0.w), D1
 	BNE.b	loc_D840
 	MOVE.b	D0, D7
-	MOVE.b	$FFFF9043.w, D1
+	MOVE.b	Player_team.w, D1
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
 	BCC.b	loc_D87E
@@ -16001,8 +16001,8 @@ loc_D840:
 	MOVE.b	D1, -$1(A2,D7.w)
 	MOVE.b	D0, (A2,D7.w)
 loc_D87E:
-	BCLR.b	#5, $FFFF9043.w
-	BSET.b	#4, $FFFF9043.w
+	BCLR.b	#5, Player_team.w
+	BSET.b	#4, Player_team.w
 	CLR.b	$FFFF9042.w
 	LEA	$FFFF9044.w, A1
 	MOVE.w	#$000F, D0
@@ -16039,7 +16039,7 @@ loc_D904:
 	MOVEM.w	(A7)+, D1
 	DBF	D1, loc_D904
 	CLR.l	D0
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	LSL.w	#2, D0
 	LEA	loc_2132E, A1
@@ -16060,7 +16060,7 @@ loc_D940:
 	DBF	D1, loc_D940
 	CLR.l	D0
 	LEA	loc_21B7C, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	LSL.b	#2, D0
 	MOVEA.l	(A1,D0.w), A6
@@ -16074,7 +16074,7 @@ loc_D940:
 	LEA	loc_20F2E, A6
 	JSR	loc_6DA
 	CLR.l	D0
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MULS.w	#$0038, D0
 	LEA	loc_20FAE, A2
@@ -16857,11 +16857,11 @@ loc_E5F4:
 	MOVE.w	#$001B, D5
 	JSR	loc_7AA
 	MOVE.l	#$00033756, $FFFFFC18.w
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_E6C8
 	CLR.l	D0
 	LEA	$FFFF9030.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	(A1,D0.w), D1
 	MOVE.w	#$0010, D0
@@ -16873,7 +16873,7 @@ loc_E6B0:
 	MOVE.b	#$FF, $FFFFFC12.w
 	BRA.b	loc_E6CE
 loc_E6C8:
-	BSET.b	#6, $FFFF9043.w
+	BSET.b	#6, Player_team.w
 loc_E6CE:
 	JSR	loc_2B52
 	JSR	loc_13016
@@ -16901,13 +16901,13 @@ loc_E72A:
 	BSR.w	loc_E790
 	RTS
 loc_E790:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFFFC00.w, D1
 	ANDI.b	#$0F, D0
-	BCLR.b	#7, $FFFF9043.w
+	BCLR.b	#7, Player_team.w
 	CMP.b	D0, D1
 	BNE.b	loc_E7AC
-	BSET.b	#7, $FFFF9043.w
+	BSET.b	#7, Player_team.w
 loc_E7AC:
 	MOVE.b	$FFFFFF05.w, D0
 	BEQ.w	loc_E8B2
@@ -16975,7 +16975,7 @@ loc_E894:
 	EORI.b	#8, $FFFFFC00.w
 	RTS
 loc_E8A4:
-	ANDI.b	#$CF, $FFFF9043.w
+	ANDI.b	#$CF, Player_team.w
 	MOVE.l	#$00003800, $FFFFFF10.w
 loc_E8B2:
 	RTS
@@ -17050,11 +17050,11 @@ loc_E94A:
 	MOVE.b	#1, $FFFFFC01.w
 	MOVE.l	#$0000E77A, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	BCLR.b	#5, $FFFF9043.w
+	BCLR.b	#5, Player_team.w
 	MOVE.b	$FFFF9042.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	D0, $FFFFFC00.w
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.w	#$E388, D7
 	BTST.l	#3, D0
@@ -17754,10 +17754,10 @@ loc_F46A:
 	LEA	$FFFF9044.w, A1
 	MOVE.b	$FFFF9042.w, D0
 	ANDI.b	#$0F, D0
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_F498
 	SUBI.l	#$00000024, D6
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BNE.b	loc_F498
 	ADDI.l	#$00000010, D6
 loc_F498:
@@ -17770,7 +17770,7 @@ loc_F498:
 	BEQ.b	loc_F4B8
 	ADDA.l	#$00000240, A1
 loc_F4B8:
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_F4C6
 	MOVEA.l	$20(A1,D7.w), A6
 	RTS
@@ -17787,7 +17787,7 @@ loc_F4C6:
 	CLR.l	D1
 	LEA	$FFFF9044.w, A2
 	MOVE.b	$FFFF9042.w, D0
-	MOVE.b	$FFFF9043.w, D1
+	MOVE.b	Player_team.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
@@ -17805,7 +17805,7 @@ loc_F512:
 	RTS
 loc_F518:
 	CLR.l	D7
-	MOVE.b	$FFFF9043.w, D7
+	MOVE.b	Player_team.w, D7
 	ANDI.b	#$0F, D7
 	LSL.l	#2, D7
 	LEA	loc_3B07E, A1
@@ -17813,7 +17813,7 @@ loc_F518:
 	BEQ.b	loc_F536
 	ADDA.l	#$00000080, A1
 loc_F536:
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_F544
 	ADDA.l	#$00000040, A1
 loc_F544:
@@ -17825,7 +17825,7 @@ loc_F54A:
 	BEQ.b	loc_F55C
 	ADDA.l	#$00000044, A1
 loc_F55C:
-	BTST.b	#5, $FFFF9043.w
+	BTST.b	#5, Player_team.w
 	BEQ.b	loc_F568
 	MOVEA.l	(A1), A6
 	RTS
@@ -17849,7 +17849,7 @@ loc_F588:
 	RTS
 loc_F59A:
 	CLR.l	D7
-	MOVE.b	$FFFF9043.w, D7
+	MOVE.b	Player_team.w, D7
 	ANDI.b	#$0F, D7
 	MULS.w	#$0028, D7
 	LEA	loc_3BB14, A1
@@ -17865,7 +17865,7 @@ loc_F5BA:
 	ANDI.b	#$F8, $FFFF902F.w
 	CLR.l	D0
 	LEA	$FFFF9030.w, A6
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	(A6,D0.w), D1
 	MOVE.w	#$0010, D0
@@ -17881,14 +17881,14 @@ loc_F5F8:
 loc_F5FE:
 	BTST.b	#1, $FFFF902F.w
 	BNE.w	loc_F708
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
 	BNE.b	loc_F664
 	CMPI.w	#$FFFF, $FFFFFF34.w
 	BEQ.b	loc_F640
 	CLR.l	D0
 	LEA	loc_F736, A2
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	ADD.l	D0, D0
 	MOVE.b	(A2,D0.w), D1
@@ -17914,7 +17914,7 @@ loc_F664:
 	BNE.b	loc_F6C8
 	BTST.b	#7, $FFFF9042.w
 	BNE.b	loc_F6E8
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -17944,7 +17944,7 @@ loc_F6C2:
 	MOVEA.l	$C(A1,D7.w), A6
 	RTS
 loc_F6C8:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -17956,7 +17956,7 @@ loc_F6E2:
 	MOVEA.l	$20(A1,D7.w), A6
 	RTS
 loc_F6E8:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -17968,13 +17968,13 @@ loc_F702:
 	MOVEA.l	$1C(A1,D7.w), A6
 	RTS
 loc_F708:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
 	BCC.b	loc_F728
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	D0, $FFFF9042.w
 loc_F728:
@@ -19133,17 +19133,17 @@ loc_12BF8:
 	BCLR.b	#2, $FFFF902F.w
 	BSET.b	#3, $FFFF902F.w
 	MOVE.b	#8, $FFFF9042.w ; You get challenged by Bullets (Team #8)
-	BCLR.b	#4, $FFFF9043.w
-	BSET.b	#5, $FFFF9043.w
+	BCLR.b	#4, Player_team.w
+	BSET.b	#5, Player_team.w
 	RTS
 loc_12C20:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	BNE.w	loc_12CB0
 	BTST.b	#6, $FFFF9042.w
 	BEQ.b	loc_12C42
-	BCLR.b	#4, $FFFF9043.w
-	BSET.b	#5, $FFFF9043.w
+	BCLR.b	#4, Player_team.w
+	BSET.b	#5, Player_team.w
 	RTS
 loc_12C42:
 	CLR.l	D0
@@ -19183,31 +19183,31 @@ loc_12C94:
 	ANDI.b	#$F0, D1
 	ADD.b	D3, D1
 	MOVE.b	D1, $FFFF9042.w
-	BCLR.b	#4, $FFFF9043.w
-	BSET.b	#5, $FFFF9043.w
+	BCLR.b	#4, Player_team.w
+	BSET.b	#5, Player_team.w
 	RTS
 loc_12CB0:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
 	BNE.b	loc_12CF6
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	CMPI.b	#$0F, D0
 	BEQ.w	loc_12D64
 	CLR.l	D0
 	LEA	$FFFF9044.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	ADDQ.b	#1, D0
 	MOVE.b	(A1,D0.w), D1
 	ANDI.b	#$F0, D1
 	ADD.b	D0, D1
 	MOVE.b	D1, $FFFF9042.w
-	BCLR.b	#4, $FFFF9043.w
-	BSET.b	#5, $FFFF9043.w
+	BCLR.b	#4, Player_team.w
+	BSET.b	#5, Player_team.w
 	RTS
 loc_12CF6:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -19215,30 +19215,30 @@ loc_12CF6:
 	BCC.b	loc_12D4E
 	BTST.b	#7, $FFFF9042.w
 	BEQ.w	loc_12D64
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	CMPI.b	#$0F, D0
 	BEQ.b	loc_12D64
 	CLR.l	D0
 	LEA	$FFFF9044.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	ADDQ.b	#1, D0
 	MOVE.b	(A1,D0.w), D1
 	ANDI.b	#$F0, D1
 	ADD.b	D0, D1
 	MOVE.b	D1, $FFFF9042.w
-	BCLR.b	#4, $FFFF9043.w
-	BSET.b	#5, $FFFF9043.w
+	BCLR.b	#4, Player_team.w
+	BSET.b	#5, Player_team.w
 	RTS
 loc_12D4E:
 	BTST.b	#6, $FFFF9042.w
 	BEQ.b	loc_12D64
-	BCLR.b	#4, $FFFF9043.w
-	BSET.b	#5, $FFFF9043.w
+	BCLR.b	#4, Player_team.w
+	BSET.b	#5, Player_team.w
 	RTS
 loc_12D64:
-	BCLR.b	#5, $FFFF9043.w
+	BCLR.b	#5, Player_team.w
 	RTS
 loc_12D6C:
 	CMPI.w	#$FFFF, $FFFFFF34.w
@@ -19250,7 +19250,7 @@ loc_12D6C:
 loc_12D84:
 	BSET.b	#1, $FFFF902F.w
 loc_12D8A:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
 	BEQ.b	loc_12DFA
 	MOVE.b	$FFFFFF35.w, D0
@@ -19291,7 +19291,7 @@ loc_12DFC:
 	BEQ.w	loc_12E54
 	BTST.b	#7, $FFFF9042.w
 	BEQ.b	loc_12E54
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFF9042.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
@@ -19339,7 +19339,7 @@ loc_12E7A:
 	LEA	$FFFF9044.w, A1
 	MOVE.b	(A1,D7.w), D2
 	ANDI.b	#$0F, D2
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_12EA4
 	ADDQ.b	#1, D2
 loc_12EA4:
@@ -19359,10 +19359,10 @@ loc_12ECE:
 	DBF	D0, loc_12ECE
 	CLR.l	D0
 	LEA	$FFFF905E.w, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	CLR.b	(A1,D0.w)
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
 	BEQ.b	loc_12EFC
 	MOVE.b	$FFFF9042.w, D0
@@ -19388,7 +19388,7 @@ loc_12F22:
 	ADDQ.w	#1, A2
 	DBF	D1, loc_12F08
 	DBF	D0, loc_12EFE
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
 	BNE.b	loc_12F3E
 	BSR.b	loc_12F58
@@ -19417,7 +19417,7 @@ loc_12F58:
 loc_12F76:
 	MOVE.b	-(A2), -(A3)
 	DBF	D1, loc_12F76
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MOVE.b	D0, (A1)
 	RTS
@@ -19475,9 +19475,9 @@ loc_1301E:
 	CLR.b	(A1)+
 	DBF	D0, loc_1301E
 	CLR.b	$FFFF9042.w
-	LEA	$FFFF9043.w, A1
+	LEA	Player_team.w, A1
 	LEA	InitialDriversAndTeamMap, A2
-	BTST.b	#6, $FFFF9043.w
+	BTST.b	#6, Player_team.w
 	BEQ.b	loc_13040
 	LEA	SecondYearDriversAndTeamsMap, A2
 loc_13040:
@@ -19489,7 +19489,7 @@ loc_13044:
 loc_1304C:
 	CLR.w	D0
 	LEA	TeamMachineScreenStats, A1
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0
 	MULS.w	#7, D0
 	ADDA.l	D0, A1
@@ -19508,7 +19508,7 @@ loc_1304C:
 	MOVE.b	$1(A1), $FFFF9025.w
 	MOVE.b	$1(A1), $FFFF9027.w
 	MOVE.b	$1(A1), $FFFF902B.w
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LEA	loc_133A4(PC), A0
 	MOVE.b	(A0,D0.w), D0
@@ -19531,7 +19531,7 @@ loc_130DA:
 	BNE.b	loc_130F6
 	ADD.w	D0, $FFFF9152.w
 loc_130F6:
-	MOVE.b	$FFFF9043.w, D0
+	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	MULU.w	#5, D0
 	LEA	loc_133B4(PC), A0
