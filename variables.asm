@@ -11,7 +11,7 @@
 ; 0x905E: ???
 ; 0x906E: The placement (this round) of each team during the results
 ; 0x907E: Points awarded (this round) per team during results
-; 0x9100.w: Current shift
+; 0x9100: Current shift
 ; 0x9102: Engine RPM (why two?)
 ; 0x9104: Engine RPM (why two?)
 ; 0x9106: Speed (why two?)

@@ -4060,7 +4060,7 @@ loc_36D8:
 	JSR	loc_1B80(PC)
 	TST.w	Retire_flag.w
 	BEQ.b	loc_36F4
-	CLR.w	$FFFF9100.w
+	CLR.w	Player_shift.w
 	CLR.l	$FFFF9102.w
 	CLR.l	$FFFF9106.w
 	BRA.b	loc_3708
@@ -4428,7 +4428,7 @@ loc_3C16:
 	BCS.b	loc_3C26
 	BCLR.b	#3, $FFFF902F.w
 loc_3C26:
-	LEA	$FFFF9100.w, A0
+	LEA	Player_shift.w, A0
 	MOVEQ	#$0000001F, D0
 	JSR	loc_3D28(PC)
 	LEA	$FFFF9200.w, A0
@@ -4511,7 +4511,7 @@ loc_3D2A:
 	DBF	D0, loc_3D2A
 	RTS
 loc_3D32:
-	LEA	$FFFF9100.w, A0
+	LEA	Player_shift.w, A0
 	MOVEQ	#$0000001F, D0
 	JSR	loc_3D28(PC)
 	MOVE.l	$FFFF9232.w, D7
@@ -6311,7 +6311,7 @@ loc_59DA:
 	CMPI.w	#1300, $FFFF9102.w
 	BCC.b	loc_5A44
 	LEA	loc_59FE, A1
-	MOVE.w	$FFFF9100.w, D0
+	MOVE.w	Player_shift.w, D0
 	ASL.w	#2, D0
 	JMP	(A1,D0.w)
 loc_59FE:
@@ -6344,23 +6344,23 @@ loc_5A36:
 	BNE.b	loc_5A62
 	RTS
 loc_5A44:
-	CMP.w	$FFFF9100.w, D0
+	CMP.w	Player_shift.w, D0
 	BEQ.b	loc_5A2A
-	ADDQ.w	#1, $FFFF9100.w
+	ADDQ.w	#1, Player_shift.w
 	MOVE.w	$FFFF9102.w, D0
-	MOVE.w	$FFFF9100.w, D1
+	MOVE.w	Player_shift.w, D1
 	MULS.w	D1, D0
 	ADDQ.w	#1, D1
 	DIVS.w	D1, D0
 	MOVE.w	D0, $FFFF9102.w
 	BRA.b	loc_5A82
 loc_5A62:
-	CMPI.w	#0, $FFFF9100.w
+	CMPI.w	#0, Player_shift.w
 	BEQ.b	loc_5A2A
 loc_5A6A:
-	SUBQ.w	#1, $FFFF9100.w
+	SUBQ.w	#1, Player_shift.w
 	MOVE.w	$FFFF9102.w, D0
-	MOVE.w	$FFFF9100.w, D1
+	MOVE.w	Player_shift.w, D1
 	ADDQ.w	#2, D1
 	MULS.w	D1, D0
 	SUBQ.w	#1, D1
@@ -6376,7 +6376,7 @@ loc_5A82:
 	BEQ.b	loc_5A98
 	MOVEQ	#2, D5
 loc_5A98:
-	MOVE.w	$FFFF9100.w, D0
+	MOVE.w	Player_shift.w, D0
 	LSL.w	#2, D0
 	LEA	loc_5848E, A1
 	MOVEA.l	(A1,D0.w), A6
@@ -6384,14 +6384,14 @@ loc_5A98:
 loc_5AAE:
 	RTS
 loc_5AB0:
-	SUBI.w	#$001E, $FFFF9102.w
+	SUBI.w	#30, $FFFF9102.w
 	BCC.b	loc_5ABE
 	CLR.w	$FFFF9102.w
 	BRA.b	loc_5ACE
 loc_5ABE:
 	CMPI.w	#700, $FFFF9102.w
 	BCC.b	loc_5ACE
-	TST.w	$FFFF9100.w
+	TST.w	Player_shift.w
 	BEQ.b	loc_5ACE
 	BSR.b	loc_5A6A
 loc_5ACE:
@@ -6434,7 +6434,7 @@ loc_5B34:
 	MOVE.w	$FFFFFF2E.w, D0
 	LSL.l	#7, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFF9100.w, D0
+	MOVE.w	Player_shift.w, D0
 	LSL.w	#5, D0
 	ADDA.l	D0, A1
 	MOVE.w	$FFFF9102.w, D0
@@ -6465,11 +6465,11 @@ loc_5B7E:
 	SUB.w	D2, D1
 	CMPI.w	#2, $FFFF9208.w
 	BNE.b	loc_5B9E
-	MOVE.w	$FFFF9100.w, D2
+	MOVE.w	Player_shift.w, D2
 	LSL.w	#2, D2
 	SUB.w	D2, D1
 loc_5B9E:
-	MOVE.w	$FFFF9100.w, D2
+	MOVE.w	Player_shift.w, D2
 	SUBQ.w	#8, D2
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_5BD2
@@ -6609,7 +6609,7 @@ loc_5CFC:
 	MOVE.w	$FFFFFF2E.w, D0
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFF9100.w, D0
+	MOVE.w	Player_shift.w, D0
 	LSL.l	#1, D0
 	MOVE.w	(A1,D0.w), D1
 	MOVE.w	$FFFF9106.w, D0
@@ -6678,17 +6678,17 @@ loc_5F10:
 	BEQ.b	loc_5F58
 	CMPI.w	#700, $FFFF9102.w
 	BCC.b	loc_5F2C
-	CMPI.w	#0, $FFFF9100.w
+	CMPI.w	#0, Player_shift.w
 	BEQ.b	loc_5F58
 	BRA.b	loc_5F4C
 loc_5F2C:
 	CMPI.w	#1300, $FFFF9102.w
 	BCS.b	loc_5F58
-	CMPI.w	#6, $FFFF9100.w
+	CMPI.w	#6, Player_shift.w
 	BEQ.b	loc_5F58
 	CMPI.w	#2, $FFFFFF2E.w
 	BEQ.b	loc_5F4C
-	CMPI.w	#3, $FFFF9100.w
+	CMPI.w	#3, Player_shift.w
 	BEQ.b	loc_5F58
 loc_5F4C:
 	BTST.b	#2, $FFFFFC20.w
@@ -6698,7 +6698,7 @@ loc_5F58:
 	MOVE.w	D0, $FFFFE996.w
 	RTS
 ;loc_5F5E
-Update_speed: ; Suspected update speed
+Update_speed:
 	CLR.l	D0
 	LEA	loc_5FAE, A1 ; engine data
 	MOVE.w	$FFFF9180.w, D0
@@ -6706,7 +6706,7 @@ Update_speed: ; Suspected update speed
 	MOVE.w	$FFFFFF2E.w, D0 ; gear shift type
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFF9100.w, D0 ; current shift
+	MOVE.w	Player_shift.w, D0
 	LSL.l	#1, D0
 	MOVE.w	(A1,D0.w), D1
 	MOVE.w	$FFFF9102.w, D0
@@ -6748,7 +6748,7 @@ loc_6080:
 	LEA	loc_60C0, A1
 	MOVE.w	$FFFFFF2E.w, D0
 	LSL.w	#2, D0
-	ADD.w	$FFFF9100.w, D0
+	ADD.w	Player_shift.w, D0
 	MOVE.b	(A1,D0.w), D1
 	TST.w	$FFFF9140.w
 	BEQ.b	loc_60B2
