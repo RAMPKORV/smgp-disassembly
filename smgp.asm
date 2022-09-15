@@ -4061,7 +4061,7 @@ loc_36D8:
 	TST.w	Retire_flag.w
 	BEQ.b	loc_36F4
 	CLR.w	Player_shift.w
-	CLR.l	$FFFF9102.w
+	CLR.l	Player_rpm.w
 	CLR.l	$FFFF9106.w
 	BRA.b	loc_3708
 loc_36F4:
@@ -4524,7 +4524,7 @@ loc_3D32:
 	JSR	loc_1304C
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
 	MOVE.b	#$80, $FFFF910B.w
-	MOVE.w	#$044C, $FFFF9102.w
+	MOVE.w	#$044C, Player_rpm.w
 	MOVE.w	#$044C, $FFFF9104.w
 	MOVE.w	#1, $FFFFFCA6.w
 	RTS
@@ -6294,7 +6294,7 @@ loc_5996:
 	MOVE.l	(A3)+, VDP_data_port
 	MOVE.l	(A3)+, VDP_data_port
 	RTS
-loc_59BC:
+loc_59BC: ; Suspected shift update
 	MOVE.b	$FFFFFF20.w, D5
 	MOVE.b	$FFFFFF21.w, D6
 	MOVE.w	Shift_type.w, D0
@@ -6308,7 +6308,7 @@ loc_59DA: ; Jump to when shift type is Automatic
 	BTST.b	D5, $FFFFFF04.w
 	BNE.w	loc_5A62
 	MOVE.w	#3, D0
-	CMPI.w	#1300, $FFFF9102.w
+	CMPI.w	#1300, Player_rpm.w
 	BCC.b	loc_5A44
 	LEA	loc_59FE, A1
 	MOVE.w	Player_shift.w, D0
@@ -6320,15 +6320,15 @@ loc_59FE:
 	BRA.w	loc_5A18
 	BRA.w	loc_5A22
 loc_5A0E:
-	CMPI.w	#$0289, $FFFF9102.w
+	CMPI.w	#$0289, Player_rpm.w
 	BCS.b	loc_5A62
 	RTS
 loc_5A18:
-	CMPI.w	#$0361, $FFFF9102.w
+	CMPI.w	#$0361, Player_rpm.w
 	BCS.b	loc_5A62
 	RTS
 loc_5A22:
-	CMPI.w	#$03CE, $FFFF9102.w
+	CMPI.w	#$03CE, Player_rpm.w
 	BCS.b	loc_5A62
 loc_5A2A:
 	RTS
@@ -6344,28 +6344,28 @@ loc_5A36:
 	BNE.b	loc_5A62
 	RTS
 loc_5A44:
-	CMP.w	Player_shift.w, D0
-	BEQ.b	loc_5A2A
-	ADDQ.w	#1, Player_shift.w
-	MOVE.w	$FFFF9102.w, D0
+	CMP.w	Player_shift.w, D0 ; if not max shift
+	BEQ.b	loc_5A2A ; RTS
+	ADDQ.w	#1, Player_shift.w ; then shift up
+	MOVE.w	Player_rpm.w, D0
 	MOVE.w	Player_shift.w, D1
 	MULS.w	D1, D0
 	ADDQ.w	#1, D1
 	DIVS.w	D1, D0
-	MOVE.w	D0, $FFFF9102.w
+	MOVE.w	D0, Player_rpm.w ; new_rpm = old_rpm * new_shift / (new_shift + 1)
 	BRA.b	loc_5A82
 loc_5A62:
-	CMPI.w	#0, Player_shift.w
-	BEQ.b	loc_5A2A
+	CMPI.w	#0, Player_shift.w ; if not shift 0
+	BEQ.b	loc_5A2A ; RTS
 loc_5A6A:
-	SUBQ.w	#1, Player_shift.w
-	MOVE.w	$FFFF9102.w, D0
+	SUBQ.w	#1, Player_shift.w ; then shift down
+	MOVE.w	Player_rpm.w, D0
 	MOVE.w	Player_shift.w, D1
 	ADDQ.w	#2, D1
 	MULS.w	D1, D0
 	SUBQ.w	#1, D1
 	DIVS.w	D1, D0
-	MOVE.w	D0, $FFFF9102.w
+	MOVE.w	D0, Player_rpm.w
 loc_5A82:
 	MOVE.w	Shift_type.w, D0
 	BEQ.b	loc_5AAE
@@ -6384,33 +6384,33 @@ loc_5A98:
 loc_5AAE:
 	RTS
 loc_5AB0:
-	SUBI.w	#30, $FFFF9102.w
+	SUBI.w	#30, Player_rpm.w
 	BCC.b	loc_5ABE
-	CLR.w	$FFFF9102.w
+	CLR.w	Player_rpm.w
 	BRA.b	loc_5ACE
 loc_5ABE:
-	CMPI.w	#700, $FFFF9102.w
+	CMPI.w	#700, Player_rpm.w
 	BCC.b	loc_5ACE
 	TST.w	Player_shift.w
 	BEQ.b	loc_5ACE
 	BSR.b	loc_5A6A
 loc_5ACE:
-	MOVE.w	$FFFF9102.w, $FFFF9104.w
+	MOVE.w	Player_rpm.w, $FFFF9104.w
 	RTS
 loc_5AD6:
 	LEA	$FFFF9104.w, A1
-	ADDI.w	#$FFC4, (A1)
-	CMPI.w	#$0321, (A1)
-	BCC.b	loc_5AE8
-	MOVE.w	#$0321, (A1)
+	ADDI.w	#-60, (A1)
+	CMPI.w	#$0321, (A1) ; ...
+	BCC.b	loc_5AE8     ; ...
+	MOVE.w	#$0321, (A1) ; (A1) = max((A1), $0321 == 801 rpm)
 loc_5AE8:
 	MOVE.b	$FFFFFF22.w, D5
 	BTST.b	D5, $FFFFFF04.w
 	BEQ.b	loc_5B00
 	ADDI.w	#$0078, (A1)
-	CMPI.w	#$04E3, (A1)
-	BCS.b	loc_5B00
-	MOVE.w	#$04E3, (A1)
+	CMPI.w	#$04E3, (A1) ; ...
+	BCS.b	loc_5B00     ; ...
+	MOVE.w	#$04E3, (A1) ; (A1) = min((A1), $04E3 == 1251 rpm)
 loc_5B00:
 	RTS
 loc_5B02:
@@ -6437,7 +6437,7 @@ loc_5B34:
 	MOVE.w	Player_shift.w, D0
 	LSL.w	#5, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFF9102.w, D0
+	MOVE.w	Player_rpm.w, D0
 	DIVS.w	#50, D0
 	MOVE.w	#$FF00, D1
 	MOVE.b	(A1,D0.w), D1
@@ -6478,24 +6478,24 @@ loc_5B9E:
 	BRA.b	loc_5BC4
 	dc.b	$4A, $78, $91, $00, $67, $EC, $D4, $42, $0C, $78, $00, $01, $92, $08, $67, $02, $D4, $42
 loc_5BC4:
-	ADD.w	D2, $FFFF9102.w
+	ADD.w	D2, Player_rpm.w
 	BPL.b	loc_5BE8
-	MOVE.w	#0, $FFFF9102.w
+	MOVE.w	#0, Player_rpm.w
 	BRA.b	loc_5BF6
 loc_5BD2:
-	CMPI.w	#Engine_rpm_max, $FFFF9102.w
+	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCC.b	loc_5BF0
-	ADD.w	D1, $FFFF9102.w
+	ADD.w	D1, Player_rpm.w
 	BPL.b	loc_5BE8
-	MOVE.w	#0, $FFFF9102.w
+	MOVE.w	#0, Player_rpm.w
 	BRA.b	loc_5BF6
 loc_5BE8:
-	CMPI.w	#Engine_rpm_max, $FFFF9102.w
+	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCS.b	loc_5BF6
 loc_5BF0:
-	ADDI.w	#-50, $FFFF9102.w
+	ADDI.w	#-50, Player_rpm.w
 loc_5BF6:
-	MOVE.w	$FFFF9102.w, D0
+	MOVE.w	Player_rpm.w, D0
 	ADDQ.w	#1, D0
 	SUB.w	$FFFF9104.w, D0
 	BMI.b	loc_5C0E
@@ -6523,9 +6523,9 @@ loc_5C26:
 loc_5C34:
 	MOVE.w	D0, $FFFF9110.w
 	LSR.w	#4, D0
-	SUB.w	D0, $FFFF9102.w
+	SUB.w	D0, Player_rpm.w
 	BCC.b	loc_5C44
-	ADD.w	D0, $FFFF9102.w
+	ADD.w	D0, Player_rpm.w
 loc_5C44:
 	RTS
 loc_5C46:
@@ -6566,7 +6566,7 @@ loc_5C90:
 	SUBI.w	#$0060, D7
 	LSR.w	#5, D7
 	ADDQ.w	#1, D7
-	ADD.w	D7, $FFFF9102.w
+	ADD.w	D7, Player_rpm.w
 loc_5CA8:
 	RTS
 loc_5CAA:
@@ -6574,9 +6574,9 @@ loc_5CAA:
 	BEQ.b	loc_5CC2
 	BTST.b	#0, $FFFFFC20.w
 	BNE.b	loc_5CC2
-	ADD.w	D0, $FFFF9102.w
+	ADD.w	D0, Player_rpm.w
 	BPL.b	loc_5CC2
-	CLR.w	$FFFF9102.w
+	CLR.w	Player_rpm.w
 loc_5CC2:
 	RTS
 loc_5CC4:
@@ -6615,7 +6615,7 @@ loc_5CFC:
 	MOVE.w	$FFFF9106.w, D0
 	MULS.w	D1, D0
 	DIVS.w	#100, D0
-	MOVE.w	D0, $FFFF9102.w
+	MOVE.w	D0, Player_rpm.w
 loc_5D30:
 	RTS
 loc_5D32:
@@ -6676,13 +6676,13 @@ loc_5F10:
 	MOVE.w	#$022E, D0
 	MOVE.w	Shift_type.w, D1
 	BEQ.b	loc_5F58
-	CMPI.w	#700, $FFFF9102.w
+	CMPI.w	#700, Player_rpm.w
 	BCC.b	loc_5F2C
 	CMPI.w	#0, Player_shift.w
 	BEQ.b	loc_5F58
 	BRA.b	loc_5F4C
 loc_5F2C:
-	CMPI.w	#1300, $FFFF9102.w
+	CMPI.w	#1300, Player_rpm.w
 	BCS.b	loc_5F58
 	CMPI.w	#6, Player_shift.w
 	BEQ.b	loc_5F58
@@ -6709,7 +6709,7 @@ Update_speed:
 	MOVE.w	Player_shift.w, D0
 	LSL.l	#1, D0
 	MOVE.w	(A1,D0.w), D1 ; RPM for 100km/h for current shift
-	MOVE.w	$FFFF9102.w, D0 ; Current RPM
+	MOVE.w	Player_rpm.w, D0 ; Current RPM
 	MULS.w	#100, D0 ; D0 = D0 * 100
 	DIVS.w	D1, D0 ; D0 = D0 / D1
 	MOVE.w	D0, $FFFF9106.w ; new speed before acceleration min/max check. ($9102)/D1*100
@@ -6742,9 +6742,9 @@ loc_6062:
 	MOVE.b	$FFFFFF23.w, D6
 	BTST.b	D6, $FFFFFF04.w
 	BEQ.b	loc_60BE
-	CMPI.w	#Engine_rpm_max, $FFFF9102.w
+	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCS.b	loc_6080
-	ADDI.w	#-40, $FFFF9102.w
+	ADDI.w	#-40, Player_rpm.w
 loc_6080:
 	CLR.l	D1
 	LEA	loc_60C0, A1
@@ -6762,9 +6762,9 @@ loc_6080:
 	BPL.b	loc_60B2
 	MOVEQ	#0, D1
 loc_60B2:
-	SUB.w	D1, $FFFF9102.w
+	SUB.w	D1, Player_rpm.w
 	BPL.b	loc_60BE
-	MOVE.w	#0, $FFFF9102.w
+	MOVE.w	#0, Player_rpm.w
 loc_60BE:
 	RTS
 loc_60C0:
@@ -11795,10 +11795,10 @@ loc_9ADC:
 	BEQ.b	loc_9AF4
 	TST.w	$FFFF9146.w
 	BEQ.b	loc_9B1E
-	MOVE.w	$FFFF9102.w, D0
+	MOVE.w	Player_rpm.w, D0
 	BRA.b	loc_9B02
 loc_9AF4:
-	MOVE.w	$FFFF9102.w, D0
+	MOVE.w	Player_rpm.w, D0
 	TST.w	$FFFF9146.w
 	BNE.b	loc_9B02
 	MOVE.w	$FFFF9104.w, D0
