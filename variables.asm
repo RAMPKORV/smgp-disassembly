@@ -12,7 +12,7 @@
 ; 0x906E: The placement (this round) of each team during the results
 ; 0x907E: Points awarded (this round) per team during results
 ; 0x9100: Current shift
-; 0x9102: Engine RPM (why two?)
+; 0x9102: Engine RPM (why two?) When meter is 10, value is 1000
 ; 0x9104: Engine RPM (why two?)
 ; 0x9106: Speed (why two?)
 ; 0x9108: Speed

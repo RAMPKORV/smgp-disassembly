@@ -6708,11 +6708,11 @@ Update_speed:
 	ADDA.l	D0, A1
 	MOVE.w	Player_shift.w, D0
 	LSL.l	#1, D0
-	MOVE.w	(A1,D0.w), D1
-	MOVE.w	$FFFF9102.w, D0
+	MOVE.w	(A1,D0.w), D1 ; RPM for 100km/h for current shift
+	MOVE.w	$FFFF9102.w, D0 ; Current RPM
 	MULS.w	#100, D0 ; D0 = D0 * 100
 	DIVS.w	D1, D0 ; D0 = D0 / D1
-	MOVE.w	D0, $FFFF9106.w ; new speed before acceleration min/max check (=($9102)*100/D1)
+	MOVE.w	D0, $FFFF9106.w ; new speed before acceleration min/max check. ($9102)/D1*100
 	SUB.w	Player_speed.w, D0 ; delta speed
 	BMI.b	loc_5F9E ; if negative, go to max deacceleration check
 	CMPI.w	#2, D0
@@ -6729,7 +6729,9 @@ loc_5FA8:
 loc_5FAE: ; 180 bytes (engine characteristics?)
 	dc.b	$06, $8A, $03, $37, $02, $48, $01, $D3, $06, $8A, $03, $30, $02, $3A, $01, $BE, $07, $42, $03, $9B, $02, $7F, $01, $FB, $01, $BF, $01, $A2, $01, $7F, $06, $7E
 	dc.b	$03, $1F, $02, $24, $01, $A3, $06, $7E, $03, $18, $02, $16, $01, $8E, $07, $3A, $03, $8B, $02, $67, $01, $DB, $01, $97, $01, $72, $01, $47
-	dc.w	$067C, $031B, $021E, $019B, $067C, $0314, $0210, $0186, $0739, $0389, $0264, $01D7, $0192, $016C, $0140
+	dc.w	$067C, $031B, $021E, $019B                      ; RPM for 100km/h for automatic
+	dc.w	$067C, $0314, $0210, $0186                      ; RPM for 100km/h for 4-shift
+	dc.w	$0739, $0389, $0264, $01D7, $0192, $016C, $0140 ; RPM for 100km/h for 7-shift
 	dc.b	$06, $7A, $03, $17, $02, $18, $01, $93, $06, $74, $03, $10, $02, $0A, $01, $7E
 	dc.w	$0738, $0387, $0261, $01D3, $018D, $0166, $0139
 	dc.b	$06, $78, $03, $13, $02, $12, $01, $8B, $06, $72, $03, $0C, $02, $04, $01, $76, $07, $37, $03, $85, $02, $5E, $01, $CF, $01, $88, $01, $60, $01, $32, $06, $76
