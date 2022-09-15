@@ -1484,12 +1484,12 @@ loc_11E8:
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	loc_584AA, A6
-	TST.w	$FFFFFF2E.w
+	TST.w	Shift_type.w
 	BEQ.b	loc_1262
 	MOVE.l	#$63820003, D7
 	MOVEQ	#5, D6
 	LEA	loc_584CA, A6
-	CMPI.w	#1, $FFFFFF2E.w
+	CMPI.w	#1, Shift_type.w
 	BEQ.b	loc_1262
 	MOVEQ	#2, D5
 loc_1262:
@@ -2724,7 +2724,7 @@ loc_22F2:
 	BRA.w	loc_2350
 	BRA.w	loc_237C
 	BRA.w	loc_2350
-	MOVE.w	#1, $FFFFFF2E.w
+	MOVE.w	#1, Shift_type.w
 	CLR.w	$FFFF9140.w
 	MOVE.w	#1, $FFFF9142.w
 	CLR.w	$FFFF9144.w
@@ -3648,7 +3648,7 @@ loc_2FD0:
 	BSET.b	#1, $FFFF900F.w
 	RTS
 loc_300E:
-	CLR.w	$FFFFFF2E.w
+	CLR.w	Shift_type.w
 	CLR.w	$FFFF9140.w
 	CLR.w	$FFFF9142.w
 	CLR.w	$FFFF9144.w
@@ -3674,7 +3674,7 @@ loc_3072:
 	MOVE.l	#$0000ED90, $FFFFFF10.w
 	RTS
 loc_307C:
-	MOVE.w	$FFFFFF36.w, $FFFFFF2E.w
+	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFF9140.w
 	CLR.w	$FFFF9144.w
 	MOVE.w	#1, $FFFFFF18.w
@@ -3685,7 +3685,7 @@ loc_307C:
 	RTS
 loc_30AC:
 	CLR.b	$FFFFFC10.w
-	MOVE.w	$FFFFFF36.w, $FFFFFF2E.w
+	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFF9140.w
 	CLR.w	$FFFF9144.w
 	MOVE.w	#1, $FFFFFF18.w
@@ -3798,10 +3798,10 @@ loc_3284:
 	BEQ.b	loc_32CA
 	LEA	VDP_data_port, A5
 	MOVE.w	#$E786, D6
-	TST.w	$FFFFFF2E.w
+	TST.w	Shift_type.w
 	BEQ.b	loc_32AE
 	MOVE.w	#$E7A0, D6
-	CMPI.w	#1, $FFFFFF2E.w
+	CMPI.w	#1, Shift_type.w
 	BEQ.b	loc_32AE
 	MOVE.w	#$E7BA, D6
 loc_32AE:
@@ -3814,13 +3814,13 @@ loc_32AE:
 loc_32CA:
 	RTS
 loc_32CC:
-	MOVE.w	$FFFFFF2E.w, $FFFFFF36.w
-	MOVE.w	$FFFFFF2E.w, $FFFFFF4A.w
+	MOVE.w	Shift_type.w, $FFFFFF36.w
+	MOVE.w	Shift_type.w, $FFFFFF4A.w
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 	RTS
 	JSR	loc_8C0
 	JSR	loc_62E
-	MOVE.w	$FFFFFF36.w, $FFFFFF2E.w
+	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFFFC1C.w
 	BRA.b	loc_3306
 	JSR	loc_8C0
@@ -3969,7 +3969,7 @@ loc_35A2:
 	MOVE.l	#$000035C8, (A0)
 	MOVE.l	#$00012912, $4(A0)
 	MOVE.w	#$0140, $16(A0)
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	ADD.w	D0, D0
 	MOVE.w	loc_35A2(PC,D0.w), $18(A0)
 	MOVE.w	$2A(A0), D0
@@ -3986,7 +3986,7 @@ loc_35DC:
 loc_35E6:
 	TST.w	$FFFFFC04.w
 	BNE.b	loc_3620
-	LEA	$FFFFFF2E.w, A3
+	LEA	Shift_type.w, A3
 	BTST.b	#3, $FFFFFF05.w
 	BEQ.b	loc_3606
 	CMPI.w	#2, (A3)
@@ -4017,7 +4017,7 @@ loc_3638:
 	MOVE.l	(A1)+, (A2)+
 	MOVE.l	(A1), (A2)
 	MOVEQ	#2, D0
-	SUB.w	$FFFFFF2E.w, D0
+	SUB.w	Shift_type.w, D0
 	ADD.w	D0, D0
 	LEA	loc_369E, A1
 	ADDA.w	D0, A1
@@ -4239,10 +4239,10 @@ loc_39B6:
 	MOVE.b	(A1)+, D7
 	LSL.w	#8, D7
 	MOVE.b	(A1)+, D7
-	TST.w	$FFFFFF2E.w
+	TST.w	Shift_type.w
 	BEQ.b	loc_39DC
 	ADDI.w	#$0016, D7
-	CMPI.w	#1, $FFFFFF2E.w
+	CMPI.w	#1, Shift_type.w
 	BEQ.b	loc_39DC
 	ADDI.w	#$0044, D7
 loc_39DC:
@@ -4351,10 +4351,10 @@ loc_3B02:
 	MOVE.b	(A1)+, D7
 	LSL.w	#8, D7
 	MOVE.b	(A1)+, D7
-	TST.w	$FFFFFF2E.w
+	TST.w	Shift_type.w
 	BEQ.b	loc_3B2C
 	ADDI.w	#$0016, D7
-	CMPI.w	#1, $FFFFFF2E.w
+	CMPI.w	#1, Shift_type.w
 	BEQ.b	loc_3B2C
 	ADDI.w	#$0044, D7
 loc_3B2C:
@@ -6179,7 +6179,7 @@ loc_578E:
 	JSR	loc_6DA
 	MOVE.w	#$0014, $FFFFFC00.w
 	MOVE.w	#7, $FFFFFC04.w
-	MOVE.w	$FFFFFF36.w, $FFFFFF2E.w
+	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFF9140.w
 	CLR.w	$FFFF9142.w
 	MOVE.w	#1, $FFFF9148.w
@@ -6297,14 +6297,14 @@ loc_5996:
 loc_59BC:
 	MOVE.b	$FFFFFF20.w, D5
 	MOVE.b	$FFFFFF21.w, D6
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	ASL.w	#2, D0
-	JMP	loc_59CE(PC,D0.w)
+	JMP	loc_59CE(PC,D0.w) ; Jump based on shift type
 loc_59CE:
 	BRA.w	loc_59DA
 	BRA.w	loc_5A2C
 	BRA.w	loc_5A32
-loc_59DA:
+loc_59DA: ; Jump to when shift type is Automatic
 	BTST.b	D5, $FFFFFF04.w
 	BNE.w	loc_5A62
 	MOVE.w	#3, D0
@@ -6332,11 +6332,11 @@ loc_5A22:
 	BCS.b	loc_5A62
 loc_5A2A:
 	RTS
-loc_5A2C:
-	MOVE.w	#3, D0
+loc_5A2C: ; Jump to when shift type is 4-shift
+	MOVE.w	#3, D0 ; Max shift
 	BRA.b	loc_5A36
-loc_5A32:
-	MOVE.w	#6, D0
+loc_5A32: ; Jum to when shift type is 7-shift
+	MOVE.w	#6, D0 ; Max shift
 loc_5A36:
 	BTST.b	D6, $FFFFFF05.w
 	BNE.b	loc_5A44
@@ -6367,7 +6367,7 @@ loc_5A6A:
 	DIVS.w	D1, D0
 	MOVE.w	D0, $FFFF9102.w
 loc_5A82:
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	BEQ.b	loc_5AAE
 	MOVE.l	#$63820003, D7
 	MOVEQ	#5, D6
@@ -6431,7 +6431,7 @@ loc_5B02:
 loc_5B34:
 	LEA	loc_5D32, A1
 	CLR.l	D0
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	LSL.l	#7, D0
 	ADDA.l	D0, A1
 	MOVE.w	Player_shift.w, D0
@@ -6606,7 +6606,7 @@ loc_5CFC:
 	LEA	loc_5FAE, A1
 	MOVE.w	$FFFF9180.w, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
 	MOVE.w	Player_shift.w, D0
@@ -6674,7 +6674,7 @@ loc_5D32:
 	dc.b	$FD, $FB, $F9
 loc_5F10:
 	MOVE.w	#$022E, D0
-	MOVE.w	$FFFFFF2E.w, D1
+	MOVE.w	Shift_type.w, D1
 	BEQ.b	loc_5F58
 	CMPI.w	#700, $FFFF9102.w
 	BCC.b	loc_5F2C
@@ -6686,7 +6686,7 @@ loc_5F2C:
 	BCS.b	loc_5F58
 	CMPI.w	#6, Player_shift.w
 	BEQ.b	loc_5F58
-	CMPI.w	#2, $FFFFFF2E.w
+	CMPI.w	#2, Shift_type.w
 	BEQ.b	loc_5F4C
 	CMPI.w	#3, Player_shift.w
 	BEQ.b	loc_5F58
@@ -6703,7 +6703,7 @@ Update_speed:
 	LEA	loc_5FAE, A1 ; engine data
 	MOVE.w	$FFFF9180.w, D0
 	ADDA.l	D0, A1
-	MOVE.w	$FFFFFF2E.w, D0 ; gear shift type
+	MOVE.w	Shift_type.w, D0 ; gear shift type
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
 	MOVE.w	Player_shift.w, D0
@@ -6748,7 +6748,7 @@ loc_6062:
 loc_6080:
 	CLR.l	D1
 	LEA	loc_60C0, A1
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	LSL.w	#2, D0
 	ADD.w	Player_shift.w, D0
 	MOVE.b	(A1,D0.w), D1
@@ -7018,7 +7018,7 @@ loc_632E:
 	MOVEQ	#$00000060, D4
 	MOVEQ	#$00000040, D3
 	MOVEQ	#1, D2
-	MOVE.w	$FFFFFF2E.w, D0
+	MOVE.w	Shift_type.w, D0
 	BEQ.b	loc_635A
 	MOVEQ	#0, D7
 	MOVEQ	#4, D6
@@ -10925,10 +10925,10 @@ loc_9132:
 	MOVE.b	(A1)+, D0
 	LSL.w	#8, D0
 	MOVE.b	(A1)+, D0
-	TST.w	$FFFFFF2E.w
+	TST.w	Shift_type.w
 	BEQ.b	loc_9188
 	ADDI.w	#$0016, D0
-	CMPI.w	#1, $FFFFFF2E.w
+	CMPI.w	#1, Shift_type.w
 	BEQ.b	loc_9188
 	ADDI.w	#$0044, D0
 loc_9188:
@@ -12565,7 +12565,7 @@ loc_A6BA:
 	TST.w	D1
 	BEQ.b	loc_A6DC
 	LEA	loc_B2DA(PC), A6
-	TST.w	$FFFFFF2E.w
+	TST.w	Shift_type.w
 	BEQ.b	loc_A6DC
 	LEA	loc_B2F8(PC), A6
 loc_A6DC:

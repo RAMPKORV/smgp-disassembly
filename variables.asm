@@ -19,7 +19,7 @@
 ; 0x9144.w: Current track idx to be loaded
 ; 0x915C.w: Car characteristics
 ; 0x9161: steering
-; 0x9180.w: engine characteristics offset (?)
+; 0x9180: RPM for current shift offset (always $003C, could have been constant?)
 ; 0x9206: ?
 ; 0x9222: ?
 ; 0x9226; ?
