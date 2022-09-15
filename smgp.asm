@@ -4065,7 +4065,7 @@ loc_36D8:
 	CLR.l	$FFFF9106.w
 	BRA.b	loc_3708
 loc_36F4:
-	JSR	loc_59BC(PC)
+	JSR	Update_shift(PC)
 	JSR	loc_5B02(PC)
 	JSR	loc_6062(PC)
 	JSR	loc_5F10(PC)
@@ -6294,7 +6294,8 @@ loc_5996:
 	MOVE.l	(A3)+, VDP_data_port
 	MOVE.l	(A3)+, VDP_data_port
 	RTS
-loc_59BC: ; Suspected shift update
+;loc_59BC
+Update_shift:
 	MOVE.b	$FFFFFF20.w, D5
 	MOVE.b	$FFFFFF21.w, D6
 	MOVE.w	Shift_type.w, D0
@@ -6308,45 +6309,45 @@ loc_59DA: ; Jump to when shift type is Automatic
 	BTST.b	D5, $FFFFFF04.w
 	BNE.w	loc_5A62
 	MOVE.w	#3, D0
-	CMPI.w	#1300, Player_rpm.w
-	BCC.b	loc_5A44
-	LEA	loc_59FE, A1
+	CMPI.w	#1300, Player_rpm.w ; if rpm > 1300
+	BCC.b	loc_5A44            ; then shift up (and RTS)
+	LEA	loc_59FE, A1            ; else perform shift down check ...
 	MOVE.w	Player_shift.w, D0
 	ASL.w	#2, D0
 	JMP	(A1,D0.w)
 loc_59FE:
-	BRA.w	loc_5A2A
-	BRA.w	loc_5A0E
-	BRA.w	loc_5A18
-	BRA.w	loc_5A22
+	BRA.w	loc_5A2A ; shift is 0 (RTS)
+	BRA.w	loc_5A0E ; shift is 1
+	BRA.w	loc_5A18 ; shift is 2
+	BRA.w	loc_5A22 ; shift is 3
 loc_5A0E:
-	CMPI.w	#$0289, Player_rpm.w
+	CMPI.w	#649, Player_rpm.w ; automatic shift down RPM threshold for shift 1
 	BCS.b	loc_5A62
 	RTS
 loc_5A18:
-	CMPI.w	#$0361, Player_rpm.w
+	CMPI.w	#865, Player_rpm.w ; automatic shift down RPM threshold for shift 2
 	BCS.b	loc_5A62
 	RTS
 loc_5A22:
-	CMPI.w	#$03CE, Player_rpm.w
+	CMPI.w	#974, Player_rpm.w ; automatic shift down RPM threshold for shift 3
 	BCS.b	loc_5A62
 loc_5A2A:
 	RTS
 loc_5A2C: ; Jump to when shift type is 4-shift
 	MOVE.w	#3, D0 ; Max shift
 	BRA.b	loc_5A36
-loc_5A32: ; Jum to when shift type is 7-shift
+loc_5A32: ; Jump to when shift type is 7-shift
 	MOVE.w	#6, D0 ; Max shift
 loc_5A36:
-	BTST.b	D6, $FFFFFF05.w
-	BNE.b	loc_5A44
-	BTST.b	D5, $FFFFFF05.w
-	BNE.b	loc_5A62
+	BTST.b	D6, $FFFFFF05.w ; if shift up requested
+	BNE.b	loc_5A44        ; then shift up
+	BTST.b	D5, $FFFFFF05.w ; else if shift down requested
+	BNE.b	loc_5A62        ; then shift down
 	RTS
 loc_5A44:
-	CMP.w	Player_shift.w, D0 ; if not max shift
-	BEQ.b	loc_5A2A ; RTS
-	ADDQ.w	#1, Player_shift.w ; then shift up
+	CMP.w	Player_shift.w, D0 ; if max shift
+	BEQ.b	loc_5A2A           ; then RTS
+	ADDQ.w	#1, Player_shift.w ; else shift up
 	MOVE.w	Player_rpm.w, D0
 	MOVE.w	Player_shift.w, D1
 	MULS.w	D1, D0
@@ -6355,21 +6356,21 @@ loc_5A44:
 	MOVE.w	D0, Player_rpm.w ; new_rpm = old_rpm * new_shift / (new_shift + 1)
 	BRA.b	loc_5A82
 loc_5A62:
-	CMPI.w	#0, Player_shift.w ; if not shift 0
-	BEQ.b	loc_5A2A ; RTS
+	CMPI.w	#0, Player_shift.w ; if shift 0
+	BEQ.b	loc_5A2A           ; then RTS
 loc_5A6A:
-	SUBQ.w	#1, Player_shift.w ; then shift down
+	SUBQ.w	#1, Player_shift.w ; else shift down
 	MOVE.w	Player_rpm.w, D0
 	MOVE.w	Player_shift.w, D1
 	ADDQ.w	#2, D1
 	MULS.w	D1, D0
 	SUBQ.w	#1, D1
 	DIVS.w	D1, D0
-	MOVE.w	D0, Player_rpm.w
+	MOVE.w	D0, Player_rpm.w ; new_rpm = old_rpm * (old_shift + 1) / old_shift
 loc_5A82:
-	MOVE.w	Shift_type.w, D0
-	BEQ.b	loc_5AAE
-	MOVE.l	#$63820003, D7
+	MOVE.w	Shift_type.w, D0 ; if automatic shift
+	BEQ.b	loc_5AAE         ; then RTS
+	MOVE.l	#$63820003, D7   ; else ...
 	MOVEQ	#5, D6
 	MOVEQ	#1, D5
 	SUBQ.w	#1, D0
@@ -6382,7 +6383,7 @@ loc_5A98:
 	MOVEA.l	(A1,D0.w), A6
 	JSR	loc_146C
 loc_5AAE:
-	RTS
+	RTS ; end of Update_shift
 loc_5AB0:
 	SUBI.w	#30, Player_rpm.w
 	BCC.b	loc_5ABE
