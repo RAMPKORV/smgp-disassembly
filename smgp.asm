@@ -229,12 +229,14 @@ loc_388:
 	DBF	D7, loc_388
 loc_394:
 	BRA.b	loc_394
+
 loc_396:
 	CLR.w	$FFFFFC22.w
 loc_39A:
 	TST.w	$FFFFFC22.w
 	BEQ.b	loc_39A
 	RTS
+
 loc_3A2:
 	JSR	loc_396(PC)
 	CMPI.w	#$000C, $FFFFFC24.w
@@ -259,6 +261,7 @@ loc_3C4:
 loc_3E6:
 	JSR	loc_5A6
 	JMP	loc_6F0
+
 loc_3F2:
 	LEA	loc_406(PC), A0
 	LEA	$FFFFFFD2.w, A1
@@ -269,6 +272,7 @@ loc_3FE:
 	RTS
 loc_406:
 	dc.w	$0C39, $00DE, $00C0, $0008, $6608, $33FC, $8AFF, $00C0, $0004, $23FC, $4002, $0010, $00C0, $0004, $33F8, $9D40, $00C0, $0000, $5478, $FFF0, $4E73
+
 loc_430:
 	LEA	loc_570CA, A0
 	MOVE.l	#$78000003, VDP_control_port
@@ -279,6 +283,7 @@ loc_430:
 	LEA	loc_3CEB0, A0
 	LEA	$00FF0100, A4
 	JMP	loc_982
+
 loc_46A:
 	MOVE.w	#$0100, $00A11100
 	BSR.b	loc_49A
@@ -291,6 +296,7 @@ loc_484:
 	BSR.b	loc_49A
 	MOVE.w	#0, $00A11100
 	JMP	loc_75C4A
+
 loc_49A:
 	MOVE.w	#0, $00A11200
 	MOVEQ	#$0000000D, D0
@@ -311,6 +317,7 @@ loc_4B4:
 	dc.b	$04, $14, $30, $3C, $07, $6C, $00, $00, $00, $00, $FF, $00, $81, $37, $00, $01, $01, $00, $00, $FF, $FF, $00, $00, $80, $AF, $01, $D7, $1F, $11, $29, $00, $21
 	dc.b	$28, $00, $F9, $77, $ED, $B0, $DD, $E1, $FD, $E1, $ED, $47, $ED, $4F, $08, $D9, $F1, $C1, $D1, $E1, $08, $D9, $F1, $D1, $E1, $F9, $F3, $ED, $56, $36, $E9, $E9
 	dc.b	$9F, $BF, $DF, $FF
+
 loc_518:
 	MOVEQ	#0, D0
 	SWAP	D5
@@ -323,6 +330,7 @@ loc_518:
 	SWAP	D7
 	MOVE.w	D0, D7
 	RTS
+
 loc_52E:
 	MOVE.w	(A1)+, D0
 loc_530:
@@ -334,10 +342,12 @@ loc_530:
 	DBF	D0, loc_530
 	RTS
 	dc.b	$30, $19, $49, $F9, $00, $00, $07, $70, $60, $12
+
 loc_552:
 	MOVE.w	(A1)+, D0
 	LEA	loc_778, A4
 	BRA.b	loc_564
+
 loc_55C:
 	MOVE.w	(A1)+, D0
 	LEA	loc_780, A4
@@ -352,6 +362,7 @@ loc_564:
 	JSR	(A4)
 	DBF	D0, loc_564
 	RTS
+
 loc_57C:
 	MOVE.l	$FFFFFF00.w, D1
 	TST.w	D1
@@ -371,6 +382,7 @@ loc_58A:
 	SWAP	D1
 	MOVE.l	D1, $FFFFFF00.w
 	RTS
+
 loc_5A6:
 	MOVE.w	#$0100, $00A11100
 	BTST.b	#0, $00A11100
@@ -382,6 +394,7 @@ loc_5A6:
 	JSR	loc_5D6(PC)
 	MOVE.w	#0, $00A11100
 	RTS
+
 loc_5D6:
 	MOVE.b	#$40, (A1)
 	NOP
@@ -402,6 +415,7 @@ loc_5D6:
 	AND.w	D1, D0
 	MOVE.b	D0, (A0)+
 	RTS
+
 loc_604:
 	LEA	loc_D36(PC), A0
 	MOVEQ	#$00000012, D0
@@ -414,6 +428,7 @@ loc_620:
 	MOVE.w	#0, VDP_data_port
 	DBF	D7, loc_620
 	RTS
+
 loc_62E:
 	LEA	VDP_control_port, A0
 	MOVE.w	#$857A, (A0)
@@ -424,6 +439,7 @@ loc_62E:
 	MOVE.w	#$01C0, $FFFFFF24.w
 	MOVE.l	#$943793FF, D6
 	BRA.b	loc_67C
+
 loc_656:
 	LEA	VDP_control_port, A0
 	MOVE.w	#$8576, (A0)
@@ -436,6 +452,7 @@ loc_656:
 loc_67C:
 	MOVE.l	#$40000083, D7
 	JMP	loc_944(PC)
+
 loc_686:
 	ORI	#$0700, SR
 	MOVE.w	#$8134, VDP_control_port
@@ -455,11 +472,13 @@ loc_6CC:
 	DBF	D0, loc_6CC
 	CLR.w	$00FF5AC6
 	RTS
+
 loc_6DA:
 	MOVEQ	#0, D0
 	MOVEQ	#0, D1
 	MOVE.b	(A6)+, D0
 	MOVE.b	(A6)+, D1
+
 loc_6E2:
 	LEA	$FFFFE980.w, A5
 	ADDA.w	D0, A5
@@ -467,6 +486,7 @@ loc_6E8:
 	MOVE.w	(A6)+, (A5)+
 	DBF	D1, loc_6E8
 	RTS
+
 loc_6F0:
 	MOVE.w	#$0400, D0
 	TST.b	$FFFFFF1B.w
@@ -479,6 +499,7 @@ loc_6FE:
 	MOVE.l	#$96F495C0, D6
 	MOVE.l	#$C0000080, $FFFFFF08.w
 	JMP	loc_914(PC)
+
 loc_71A:
 	MOVE.w	#$0320, D0
 	TST.b	$FFFFFF1B.w
@@ -491,10 +512,12 @@ loc_728:
 	MOVE.l	#$96F495C0, D6
 	MOVE.l	#$C0000080, $FFFFFF08.w
 	JMP	loc_914(PC)
+
 loc_744:
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$74000083, $FFFFFF08.w
 	BRA.b	loc_762
+
 loc_754:
 	MOVE.l	#$94019300, D5
 	MOVE.l	#$6C000083, $FFFFFF08.w
@@ -502,12 +525,15 @@ loc_762:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CD9560, D6
 	JMP	loc_914(PC)
+
 loc_770:
 	MOVE.l	#$01000000, D3
 	BRA.b	loc_786
+
 loc_778:
 	MOVE.l	#$00800000, D3
 	BRA.b	loc_786
+
 loc_780:
 	MOVE.l	#$00400000, D3
 loc_786:
@@ -521,24 +547,29 @@ loc_792:
 	ADD.l	D3, D7
 	DBF	D5, loc_78C
 	RTS
+
 loc_7A0:
 	JSR	loc_AB0(PC)
 	LEA	$FFFFEA00.w, A6
 	BRA.b	loc_770
+
 loc_7AA:
 	JSR	loc_AB0(PC)
 	LEA	$FFFFEA00.w, A6
 	BRA.b	loc_778
 	dc.b	$4E, $BA, $02, $FA, $4D, $F8, $EA, $00, $60, $C2
+
 loc_7BE:
 	MOVE.l	#$01000000, D3
 	BRA.b	loc_7D4
 	dc.b	$26, $3C, $00, $80, $00, $00, $60, $06
+
 loc_7CE:
 	MOVE.l	#$00400000, D3
 loc_7D4:
 	JSR	loc_AB0(PC)
 	LEA	$FFFFEA00.w, A6
+
 loc_7DC:
 	LEA	VDP_data_port, A5
 loc_7E2:
@@ -569,6 +600,7 @@ loc_7F6:
 	dc.b	$4E, $BA, $FF, $86	; JSR *+$7A0
 	dc.b	$51, $C9, $FF, $E8	; DBF D1, *+$FFE8
 	dc.b	$4E, $75		; RTS [ This is an unreached (possibly unused?) routine. ]
+
 loc_822:
 	MOVE.w	#$0180, D3
 loc_826:
@@ -587,9 +619,11 @@ loc_838:
 	ADDA.w	D3, A5
 	DBF	D5, loc_826
 	RTS
+
 loc_846:
 	LEA	VDP_data_port, A5
 	MOVE.w	(A6)+, D6
+
 loc_84E:
 	MOVE.w	D6, D7
 	JSR	loc_8AE(PC)
@@ -627,13 +661,16 @@ loc_896:
 loc_89A:
 	ADDI.w	#$0040, D6
 	BRA.b	loc_84E
+
 loc_8A0:
 	MOVE.w	(A1)+, D2
+
 loc_8A2:
 	MOVEA.l	(A1)+, A6
 	JSR	loc_846(PC)
 	DBF	D2, loc_8A2
 	RTS
+
 loc_8AE:
 	ANDI.l	#$0000FFFF, D7
 	LSL.l	#2, D7
@@ -641,6 +678,7 @@ loc_8AE:
 	ORI.w	#$4000, D7
 	SWAP	D7
 	RTS
+
 loc_8C0:
 	ANDI	#$F8FF, SR
 	JSR	loc_396
@@ -665,6 +703,7 @@ loc_8D2:
 loc_8FA:
 	DBF	D0, loc_8CC
 	RTS
+
 loc_900:
 	LSL.w	#4, D5
 	ROL.w	#4, D2
@@ -676,6 +715,7 @@ loc_900:
 loc_910:
 	OR.w	D3, D5
 	RTS
+
 loc_914:
 	MOVE.w	#$0100, $00A11100
 	BTST.b	#0, $00A11100
@@ -688,6 +728,7 @@ loc_914:
 	MOVE.w	$FFFFFF0A.w, (A5)
 	MOVE.w	#0, $00A11100
 	RTS
+
 loc_944:
 	MOVEQ	#0, D5
 	MOVE.w	#$8F01, VDP_control_port
@@ -702,11 +743,13 @@ loc_960:
 	BNE.b	loc_960
 	MOVE.w	#$8F02, VDP_control_port
 	RTS
+
 loc_972:
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A32(PC), A3
 	LEA	VDP_data_port, A4
 	BRA.b	loc_98A
+
 loc_982:
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A48(PC), A3
@@ -730,6 +773,7 @@ loc_998:
 	JSR	loc_9BA(PC)
 	MOVEM.l	(A7)+, D0/D1/D2/D3/D4/D5/D6/D7/A0/A1/A3/A4/A5
 	RTS
+
 loc_9BA:
 	MOVE.w	D6, D7
 	SUBQ.w	#8, D7
@@ -760,6 +804,7 @@ loc_9F2:
 	SUBQ.w	#1, D3
 	BNE.b	loc_A00
 	JMP	(A3)
+
 loc_9FC:
 	MOVEQ	#0, D4
 	MOVEQ	#8, D3
@@ -810,6 +855,7 @@ loc_A48:
 	MOVE.w	A5, D4
 	BNE.b	loc_9FC
 	RTS
+
 loc_A5E:
 	MOVE.b	(A0)+, D0
 loc_A60:
@@ -849,6 +895,7 @@ loc_AA4:
 	ADDQ.w	#2, D0
 	DBF	D5, loc_AA4
 	BRA.b	loc_A6A
+
 loc_AB0:
 	MOVEM.l	A5/A4/A3/A2/A1/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	MOVEA.w	D0, A3
@@ -947,6 +994,7 @@ loc_B6C:
 loc_B74:
 	MOVEM.l	(A7)+, D0/D1/D2/D3/D4/D5/D6/D7/A1/A2/A3/A4/A5
 	RTS
+
 loc_B7A:
 	MOVE.w	A3, D3
 	SWAP	D4
@@ -1000,6 +1048,7 @@ loc_BDC:
 	BRA.b	loc_BB6
 	dc.w	$0001, $0003, $0007, $000F, $001F, $003F, $007F, $00FF, $01FF, $03FF
 	dc.b	$07, $FF, $0F, $FF, $1F, $FF, $3F, $FF, $7F, $FF, $FF, $FF
+
 loc_BFE:
 	SUB.w	D0, D6
 	CMPI.w	#9, D6
@@ -1009,6 +1058,7 @@ loc_BFE:
 	MOVE.b	(A0)+, D5
 loc_C0C:
 	RTS
+
 loc_C0E:
 	MOVEM.l	A2/A1, -(A7)
 	LEA	loc_D2C, A1
@@ -1030,6 +1080,7 @@ loc_C36:
 loc_C3E:
 	MOVEM.l	(A7)+, A1/A2
 	RTS
+
 loc_C44:
 	TST.l	$FFFFC080.w
 	BEQ.b	loc_C98
@@ -1111,6 +1162,7 @@ loc_D36:
 	dc.w	$8004, $8134, $8238, $8338, $8406
 loc_D40:
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
+
 loc_D5C:
 	MOVEQ	#-1, D0
 	MOVE.l	D0, $FFFF9288.w
@@ -1277,6 +1329,7 @@ loc_EE6:
 loc_EEA:
 	LEA	$FFFFA7B0.w, A1
 	BRA.b	loc_EF4
+
 loc_EF0:
 	LEA	$FFFFA280.w, A1
 loc_EF4:
@@ -1293,14 +1346,17 @@ loc_EF4:
 loc_F10:
 	ADDI.w	#$FFFF, D1
 	RTS
+
 loc_F16:
 	LEA	$FFFFAD80.w, A0
 	MOVEQ	#$0000004B, D1
 	BRA.b	loc_F2C
+
 loc_F1E:
 	LEA	$FFFFAD80.w, A0
 	MOVEQ	#$0000000B, D1
 	BRA.b	loc_F2C
+
 loc_F26:
 	LEA	$FFFFB840.w, A0
 	MOVEQ	#$00000020, D1
@@ -1309,6 +1365,7 @@ loc_F2C:
 	LEA	$40(A0), A0
 	DBF	D1, loc_F2C
 	RTS
+
 loc_F38:
 	LEA	(A0), A1
 	MOVEQ	#$0000000F, D0
@@ -1378,6 +1435,7 @@ loc_105A:
 	dc.w	$87D9, $87DB, $87CE, $87DC, $87DC, $0000, $87DC, $87DD, $87CA, $87DB, $87DD, $0000, $87CB, $87DE, $87DD, $87DD, $87D8, $87D7
 loc_107E:
 	dc.w	$87B1, $87B2, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
+
 loc_10A2:
 	LEA	loc_1E50(PC), A1
 	JSR	loc_52E
@@ -1419,6 +1477,7 @@ loc_1132:
 	JSR	loc_972
 loc_1142:
 	RTS
+
 loc_1144:
 	LEA	loc_21FA(PC), A6
 	JSR	loc_6DA
@@ -1565,6 +1624,7 @@ loc_1382:
 	JSR	loc_84D0
 	LEA	loc_1F08(PC), A1
 	JMP	loc_8A0
+
 loc_139C:
 	MOVE.w	$FFFF9232.w, D0
 	ADD.w	D0, D0
@@ -1589,6 +1649,7 @@ loc_13CC:
 	SUBQ.w	#1, $FFFFFC00.w
 	BPL.b	loc_13CC
 	RTS
+
 loc_13F6:
 	TST.w	$FFFF9140.w
 	BEQ.b	loc_1446
@@ -1628,6 +1689,7 @@ loc_1446:
 	MOVE.l	$FFFFE9CC.w, (A0)+
 	MOVE.l	$FFFFE9D0.w, (A0)+
 	RTS
+
 loc_145C:
 	AND.w	D7, D0
 	LSL.w	#3, D0
@@ -1636,6 +1698,7 @@ loc_145C:
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0), (A1)
 	RTS
+
 loc_146C:
 	MOVEA.l	$FFFFFC62.w, A5
 	MOVE.l	D7, (A5)+
@@ -1645,6 +1708,7 @@ loc_146C:
 	MOVE.l	A5, $FFFFFC62.w
 	ADDQ.w	#1, $FFFFFC60.w
 	RTS
+
 loc_1482:
 	MOVE.w	$FFFFFC60.w, D0
 	BEQ.b	loc_14A4
@@ -1661,9 +1725,11 @@ loc_148E:
 	DBF	D0, loc_148E
 loc_14A4:
 	RTS
+
 loc_14A6:
 	TST.w	$FFFFFC8A.w
 	BEQ.b	loc_14F0
+
 loc_14AC:
 	CLR.w	$FFFFFC8A.w
 	LEA	$FFFFE8AC.w, A1
@@ -1680,6 +1746,7 @@ loc_14AC:
 	MOVEQ	#0, D5
 	LEA	$FFFFE8AC.w, A6
 	JMP	loc_146C(PC)
+
 loc_14DA:
 	ROL.w	#4, D0
 	MOVE.w	D0, D1
@@ -1696,6 +1763,7 @@ loc_14EE:
 	MOVE.w	D1, (A1)+
 loc_14F0:
 	RTS
+
 loc_14F2:
 	ROL.w	#4, D0
 	MOVE.w	D0, D1
@@ -1703,6 +1771,7 @@ loc_14F2:
 	ADD.w	D4, D1
 	MOVE.w	D1, (A1)+
 	RTS
+
 loc_14FE:
 	MOVE.w	Player_speed.w, D0
 	JSR	loc_157C(PC)
@@ -1717,6 +1786,7 @@ loc_14FE:
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
 	JMP	loc_146C(PC)
+
 loc_152A:
 	MOVEQ	#$0000000F, D4
 	MOVE.w	D0, D3
@@ -1730,9 +1800,11 @@ loc_1530:
 	LSR.w	#4, D1
 	DBF	D0, loc_1530
 	RTS
+
 loc_1544:
 	MOVEQ	#0, D2
 	BRA.b	loc_154A
+
 loc_1548:
 	MOVEQ	#-1, D2
 loc_154A:
@@ -1758,6 +1830,7 @@ loc_1568:
 	MOVE.w	$2(A2,D3.w), -$2(A1,D1.w)
 	DBF	D0, loc_1556
 	RTS
+
 loc_157C:
 	CLR.l	$FFFFFCFC.w
 	LEA	loc_15D6(PC), A1
@@ -1780,6 +1853,7 @@ loc_159C:
 	dc.b	$03, $27, $68, $01, $63, $84, $00, $81, $92
 	dc.b	$00, $40, $96, $00, $20, $48, $00, $10, $24, $00, $05, $12, $00, $02, $56, $00, $01, $28, $00, $00, $64, $00, $00, $32, $00, $00, $16, $00, $00, $08, $00, $00
 	dc.b	$04, $00, $00, $02, $00, $00, $01
+
 loc_15D6:
 	MOVEQ	#$0000000F, D2
 	ADDI.w	#$07C0, D3
@@ -1821,6 +1895,7 @@ loc_15D6:
 loc_1622:
 	MOVE.w	D1, -(A3)
 	RTS
+
 loc_1626:
 	MOVEQ	#$0000000F, D2
 	MOVE.w	D0, D1
@@ -1852,6 +1927,7 @@ loc_1626:
 loc_1662:
 	MOVE.w	D1, -(A1)
 	RTS
+
 loc_1666:
 	LEA	$FFFFFCD2.w, A0
 	MOVE.w	(A0), D7
@@ -1921,6 +1997,7 @@ loc_1766:
 	JSR	loc_780
 loc_1776:
 	RTS
+
 loc_1778:
 	MOVE.w	$FFFFFCA2.w, D0
 	BEQ.b	loc_17B6
@@ -2071,6 +2148,7 @@ loc_1972:
 	CLR.w	$FFFFFC7E.w
 loc_1998:
 	RTS
+
 loc_199A:
 	ADDQ.w	#1, D0
 	MOVE.w	#$000A, D1
@@ -2081,6 +2159,7 @@ loc_199A:
 	MOVE.w	D1, D4
 loc_19AA:
 	RTS
+
 loc_19AC:
 	ADD.w	D4, D4
 	ADD.w	D4, D4
@@ -2092,6 +2171,7 @@ loc_19C2:
 	SWAP	D6
 	MOVE.b	$3(A0,D4.w), D6
 	RTS
+
 loc_19CA:
 	MOVE.w	#$057F, D1
 	MOVEQ	#$0000001F, D6
@@ -2133,6 +2213,7 @@ loc_1A42:
 	BSR.b	loc_1A5A
 	LEA	$FFFFCF40.w, A1
 	LEA	$FFFFC880.w, A0
+
 loc_1A5A:
 	MOVEQ	#3, D0
 loc_1A5C:
@@ -2148,6 +2229,7 @@ loc_1A62:
 	LEA	$180(A1), A1
 	DBF	D0, loc_1A5C
 	RTS
+
 loc_1A7C:
 	MOVE.w	$FFFF9220.w, D0
 loc_1A80:
@@ -2181,6 +2263,7 @@ loc_1AC2:
 	BSR.b	loc_1AF8
 	BSR.b	loc_1B44
 	BRA.w	loc_1B62
+
 loc_1AE0:
 	MOVEQ	#8, D2
 	CMPI.w	#2, $FFFF927E.w
@@ -2190,6 +2273,7 @@ loc_1AE0:
 	CMPI.w	#8, D0
 	BHI.b	loc_1AF8
 	MOVE.w	D0, D2
+
 loc_1AF8:
 	MOVE.w	$FFFF9220.w, D0
 	NEG.w	D0
@@ -2223,18 +2307,21 @@ loc_1B28:
 	DBF	D2, loc_1B26
 loc_1B42:
 	RTS
+
 loc_1B44:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96C59580, D6
 	MOVE.l	#$940193C0, D5
 	MOVE.l	#$42800083, $FFFFFF08.w
 	JMP	loc_914
+
 loc_1B62:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96C79540, D6
 	MOVE.l	#$94009380, D5
 	MOVE.l	#$46000083, $FFFFFF08.w
 	JMP	loc_914
+
 loc_1B80:
 	MOVE.w	$FFFF9220.w, D0
 	MOVE.w	$FFFF9266.w, D1
@@ -2319,6 +2406,7 @@ loc_1C5C:
 	MOVE.w	#2, $FFFF9276.w
 loc_1C62:
 	RTS
+
 loc_1C64:
 	AND.w	D4, D2
 	LEA	(A0,D2.w), A1
@@ -2334,6 +2422,7 @@ loc_1C64:
 	ADD.w	D5, D2
 	DBF	D0, loc_1C64
 	RTS
+
 loc_1C94:
 	ADDI.w	#$0100, D0
 	LSR.w	#2, D0
@@ -2344,6 +2433,7 @@ loc_1C94:
 	ANDI.w	#$007E, D1
 	MOVE.w	D1, (A1)+
 	RTS
+
 loc_1CAC:
 	SUBQ.w	#8, D0
 	LSR.w	#2, D0
@@ -2358,6 +2448,7 @@ loc_1CC0:
 	ANDI.w	#$007E, D1
 	MOVE.w	D1, (A1)+
 	RTS
+
 loc_1CCC:
 	LEA	VDP_data_port, A6
 	TST.w	$FFFF927C.w
@@ -2435,6 +2526,7 @@ loc_1D82:
 	MOVE.w	#$8F02, VDP_control_port
 	CLR.w	$FFFF9276.w
 	RTS
+
 loc_1DB6:
 	TST.w	$FFFF9264.w
 	BEQ.b	loc_1E30
@@ -2476,6 +2568,7 @@ loc_1DDA:
 	ADDI.w	#$03C0, $FFFF9260.w
 loc_1E30:
 	RTS
+
 loc_1E32:
 	LEA	$FFFFE9B6.w, A0
 	LEA	$FFFFAD00.w, A1
@@ -2973,6 +3066,7 @@ loc_264E:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_269A:
 	MOVEA.l	#VDP_data_port, A1
 	MOVE.w	#$030F, D1
@@ -2981,6 +3075,7 @@ loc_26AC:
 	MOVE.w	(A0)+, (A1)
 	DBF	D1, loc_26AC
 	RTS
+
 loc_26B4:
 	CLR.b	$FFFFFB12.w
 	MOVE.w	$6(A6), D5
@@ -3065,6 +3160,7 @@ loc_276E:
 	SWAP	D6
 	SWAP	D7
 	BRA.w	loc_26C6
+
 loc_2776:
 	MOVE.w	$0(A6), D2
 	MOVE.w	$2(A6), D3
@@ -3101,6 +3197,7 @@ loc_27A8:
 	SUBI.w	#$0180, D4
 loc_27B2:
 	RTS
+
 loc_27B4:
 	ADDQ.w	#1, D2
 	CMPI.w	#8, D2
@@ -3117,6 +3214,7 @@ loc_27C4:
 	ADDI.w	#$0180, D4
 loc_27D2:
 	RTS
+
 loc_27D4:
 	SUBQ.w	#1, D2
 	BCC.b	loc_27DE
@@ -3142,6 +3240,7 @@ loc_2840:
 	MOVE.w	$FFFFFC04.w, D0
 	JSR	loc_284E(PC,D0.w)
 	RTS
+
 loc_284E:
 	BRA.w	loc_2856
 	BRA.w	loc_290E
@@ -3188,6 +3287,7 @@ loc_28B0:
 loc_28CE:
 	ADDQ.w	#4, $FFFFFC04.w
 	RTS
+
 loc_28D4:
 	LEA	$FFFFB080.w, A0
 loc_28D8:
@@ -3318,6 +3418,7 @@ loc_2B20:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_2B52:
 	LEA	$FFFF9030.w, A1
 	MOVE.w	#$000F, D0
@@ -3406,6 +3507,7 @@ loc_2C4E:
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$00A1, $E(A0)
 	JMP	loc_EF0
+
 loc_2CB2:
 	BTST.b	#0, $FFFF900F.w
 	BEQ.w	loc_2DB8
@@ -3475,6 +3577,7 @@ loc_2DBA:
 	BSR.b	loc_2E34
 	CMPI.w	#3, $FFFF9000.w
 	BEQ.b	loc_2E12
+
 loc_2DC4:
 	MOVE.l	$FFFF9006.w, D7
 	CLR.w	D0
@@ -3505,6 +3608,7 @@ loc_2E12:
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_2E34:
 	MOVE.b	$FFFFFF05.w, D0
 	BEQ.b	loc_2E66
@@ -3606,6 +3710,7 @@ loc_2F5C:
 	MOVE.w	#$000A, $FFFFFF4C.w
 	MOVE.l	#$00003800, $FFFFFF10.w
 	RTS
+
 loc_2F8A:
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D2, D3
@@ -3618,6 +3723,7 @@ loc_2F92:
 	ADDI.l	#$01000000, D7
 	DBF	D1, loc_2F8A
 	RTS
+
 loc_2FB0:
 	TST.b	D0
 	BNE.b	loc_2FD0
@@ -4159,6 +4265,7 @@ loc_385C:
 	JSR	loc_3A2(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_38AE:
 	JSR	loc_F16(PC)
 	MOVE.l	#$00000F44, $FFFFAF00.w
@@ -4389,6 +4496,7 @@ loc_3B56:
 	NEG.w	$FFFFFC14.w
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
 	RTS
+
 loc_3B96:
 	JSR	loc_F1E(PC)
 	JSR	loc_F26(PC)
@@ -4415,13 +4523,16 @@ loc_3BA4:
 	MOVE.w	D1, $FFFFAE1A.w
 	MOVE.w	D0, $FFFFAE1E.w
 	RTS
+
 loc_3C02:
 	MOVE.w	$FFFFFF1E.w, D0
+
 loc_3C06:
 	LSL.w	#2, D0
 	LEA	loc_EE60, A2
 	MOVE.l	(A2,D0.w), $FFFFFF20.w
 	RTS
+
 loc_3C16:
 	BSR.b	loc_3C02
 	CMPI.w	#2, $FFFF9144.w
@@ -4504,12 +4615,14 @@ loc_3D22:
 	MOVE.w	D7, $FFFFFF3A.w
 loc_3D26:
 	RTS
+
 loc_3D28:
 	MOVEQ	#0, D1
 loc_3D2A:
 	MOVE.w	D1, (A0)+
 	DBF	D0, loc_3D2A
 	RTS
+
 loc_3D32:
 	LEA	Player_shift.w, A0
 	MOVEQ	#$0000001F, D0
@@ -4612,6 +4725,7 @@ loc_3ECE:
 	MOVE.w	D0, $FFFFFFF0.w
 	MOVE.w	#$8A00, VDP_control_port
 	RTS
+
 loc_3EE4:
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_3F0C
@@ -4629,6 +4743,7 @@ loc_3EE4:
 	MOVE.l	A1, $FFFFFF58.w
 loc_3F0C:
 	RTS
+
 loc_3F0E:
 	BTST.b	#7, $FFFFFF05.w
 	BEQ.b	loc_3F30
@@ -4697,6 +4812,7 @@ loc_3FD2:
 	MOVEQ	#8, D6
 	MOVEQ	#0, D5
 	JMP	loc_146C(PC)
+
 loc_3FE0:
 	MOVEQ	#0, D7
 	TST.w	$FFFF9140.w
@@ -4744,9 +4860,11 @@ loc_4056:
 	MOVE.w	#$0016, $FFFFFC58.w
 loc_4064:
 	RTS
+
 loc_4066:
 	MOVE.w	$FFFF9158.w, D0
 	BRA.b	loc_4072
+
 loc_406C:
 	MOVE.w	$FFFF9158.w, D0
 	LSR.w	#1, D0
@@ -4764,6 +4882,7 @@ loc_407C:
 	CLR.w	$FFFF9162.w
 loc_4094:
 	RTS
+
 loc_4096:
 	MOVE.w	$FFFF9156.w, D0
 	ADD.w	D0, D0
@@ -4896,6 +5015,7 @@ loc_43A4:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_43E2:
 	MOVE.w	#$000D, D0
 	SUB.w	$FFFFFF30.w, D0
@@ -4912,6 +5032,7 @@ loc_43FA:
 	LEA	$FFFFAD40.w, A0
 	MOVE.l	$FFFF92E0.w, (A0,D0.w)
 	RTS
+
 loc_440E:
 	LEA	VDP_data_port, A1
 	LEA	$FFFFAD40.w, A0
@@ -5160,6 +5281,7 @@ loc_47CA:
 	MOVE.l	#$0000293C, $FFFFFF10.w
 loc_481C:
 	RTS
+
 loc_481E:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.w	#$0070, D0
@@ -5193,6 +5315,7 @@ loc_486C:
 	SUBQ.b	#1, $FFFFFC12.w
 loc_4884:
 	RTS
+
 loc_4886:
 	MOVEA.l	$FFFFFC0C.w, A0
 	TST.w	$FFFFFC18.w
@@ -5211,6 +5334,7 @@ loc_48A6:
 	ADDI.l	#$00300000, D0
 	MOVE.l	D0, $4(A5)
 	JMP	loc_4DFA
+
 loc_48C0:
 	MOVEA.l	$FFFFFC0C.w, A0
 	MOVEQ	#2, D0
@@ -5222,6 +5346,7 @@ loc_48CE:
 	ADDQ.w	#1, A0
 	DBF	D0, loc_48C6
 	RTS
+
 loc_48D6:
 	MOVE.b	$FFFFFF04.w, D0
 	ANDI.w	#$000C, D0
@@ -5258,6 +5383,7 @@ loc_4926:
 loc_4928:
 	MOVE.b	D1, $FFFFFC10.w
 	RTS
+
 loc_492E:
 	MOVEQ	#0, D0
 	MOVE.b	$FFFFFC10.w, D0
@@ -5274,6 +5400,7 @@ loc_492E:
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
 	RTS
+
 loc_4968:
 	JSR	loc_8AE
 	MOVE.l	D7, VDP_control_port
@@ -5318,6 +5445,7 @@ loc_49CA:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_4A2C:
 	LEA	loc_570CA, A0
 	LEA	$00FF5B00, A4
@@ -5346,6 +5474,7 @@ loc_4A58:
 	MOVE.l	D1, (A1)
 	DBF	D0, loc_4A58
 	RTS
+
 loc_4A7E:
 	MOVE.w	$FFFFFC04.w, D7
 	JSR	loc_8AE
@@ -5364,6 +5493,7 @@ loc_4AA8:
 	MOVE.w	D2, (A0)+
 	DBF	D1, loc_4AA8
 	RTS
+
 loc_4AB8:
 	MOVE.l	$FFFFFC04.w, D0
 	BEQ.b	loc_4AE0
@@ -5380,6 +5510,7 @@ loc_4ADA:
 	DBF	D0, loc_4ADA
 loc_4AE0:
 	RTS
+
 loc_4AE2:
 	LEA	$FFFFC080.w, A0
 	MOVE.w	$FFFFFF38.w, (A0)+
@@ -5470,6 +5601,7 @@ loc_4BE2:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_4C2A:
 	LEA	$FFFF9700.w, A0
 	LEA	$FFFF9600.w, A1
@@ -5495,6 +5627,7 @@ loc_4C44:
 	MOVE.w	#$6194, D0
 	LEA	loc_2EF7A, A0
 	JMP	loc_AB0
+
 loc_4C8A:
 	MOVE.w	$FFFFFC02.w, D0
 	MULU.w	#$02B4, D0
@@ -5517,6 +5650,7 @@ loc_4C8A:
 	CLR.w	$FFFFFC02.w
 loc_4CD4:
 	RTS
+
 loc_4CD6:
 	LEA	loc_532E(PC), A4
 	LEA	$FFFFFD90.w, A0
@@ -5533,6 +5667,7 @@ loc_4CF2:
 	MOVE.w	#$E184, D6
 	MOVE.w	#5, $FFFFFC0A.w
 	BRA.b	loc_4D66
+
 loc_4CFE:
 	LEA	loc_533A(PC), A4
 	LEA	$FFFFFDD0.w, A0
@@ -5560,11 +5695,13 @@ loc_4D34:
 	BMI.b	loc_4D8E
 	LEA	loc_53E9(PC), A6
 	BRA.b	loc_4D8E
+
 loc_4D54:
 	LEA	loc_532E(PC), A4
 	LEA	$FFFFFD90.w, A0
 	MOVE.w	#$E204, D6
 	MOVE.w	#9, $FFFFFC0A.w
+
 loc_4D66:
 	LEA	VDP_data_port, A5
 	LEA	loc_5349(PC), A6
@@ -5594,6 +5731,7 @@ loc_4D8E:
 	BNE.b	loc_4D76
 	LEA	loc_5412(PC), A6
 	JMP	loc_84E
+
 loc_4DCC:
 	MOVE.w	D6, D7
 	ADDI.w	#$FF82, D7
@@ -5609,6 +5747,7 @@ loc_4DE4:
 	MOVE.w	D2, (A5)
 	DBF	D0, loc_4DDC
 	RTS
+
 loc_4DEC:
 	MOVE.w	D6, D7
 	ADDI.w	#$FFBA, D7
@@ -5642,6 +5781,7 @@ loc_4E2A:
 	DBF	D0, loc_4E14
 	ADDQ.w	#1, A0
 	RTS
+
 loc_4E34:
 	MOVEQ	#0, D0
 	MOVE.b	(A0)+, D0
@@ -5656,6 +5796,7 @@ loc_4E34:
 	MOVE.w	D6, D7
 	ADDI.w	#$FFAA, D7
 	MOVE.w	#$002C, D2
+
 loc_4E58:
 	MOVEM.w	D7/D0, -(A7)
 	MOVE.b	(A0)+, D0
@@ -5698,6 +5839,7 @@ loc_4EBE:
 	JSR	loc_84E
 	MOVE.w	D5, D6
 	RTS
+
 loc_4EC8:
 	MOVEQ	#0, D0
 	MOVE.b	(A0)+, D0
@@ -5713,6 +5855,7 @@ loc_4EDA:
 	MOVEQ	#2, D1
 	MOVEQ	#$00000014, D2
 	JMP	loc_4F08(PC)
+
 loc_4EEC:
 	LEA	loc_52F6(PC), A1
 	MOVEQ	#0, D0
@@ -5726,11 +5869,13 @@ loc_4F00:
 	JSR	loc_4968(PC)
 	MOVE.l	(A1), (A5)
 	RTS
+
 loc_4F08:
 	MOVE.w	D6, D7
 	SUBI.w	#$0080, D7
 	ADD.w	D2, D7
 	MOVE.w	#$C7C0, D4
+
 loc_4F14:
 	JSR	loc_4968(PC)
 	LEA	$FFFFFCB0.w, A1
@@ -5753,6 +5898,7 @@ loc_4F38:
 	BSR.b	loc_4F40
 	DBF	D1, loc_4F2E
 	RTS
+
 loc_4F40:
 	ROR.b	#4, D0
 	MOVE.w	D0, D5
@@ -5871,6 +6017,7 @@ loc_5104:
 	MOVE.w	D0, $FFFFFC1C.w
 loc_5108:
 	RTS
+
 loc_510A:
 	LEA	loc_553E(PC), A0
 	LEA	$FFFFFD00.w, A1
@@ -5886,12 +6033,14 @@ loc_5122:
 	MOVE.l	(A0)+, (A1)+
 	DBF	D0, loc_5122
 	RTS
+
 loc_512A:
 	JSR	loc_8AE
 	MOVE.l	D7, $4(A5)
 	ADDQ.w	#1, A2
 	SUBQ.w	#1, D1
 	RTS
+
 loc_513A:
 	MOVEQ	#0, D0
 	MOVE.b	(A2)+, D0
@@ -5908,6 +6057,7 @@ loc_514E:
 	DBF	D1, loc_513A
 loc_5154:
 	RTS
+
 loc_5156:
 	LEA	loc_5232(PC), A6
 	JSR	loc_846
@@ -5954,6 +6104,7 @@ loc_519A:
 	CMPI.w	#$0010, D5
 	BNE.b	loc_516C
 	RTS
+
 loc_51E4:
 	JSR	loc_C994(PC)
 	LEA	$FFFF8FA0.w, A0
@@ -6094,6 +6245,7 @@ loc_553E:
 	SUBQ.w	#1, $FFFFFC08.w
 	BSR.b	loc_562A
 	RTS
+
 loc_562A:
 	MOVE.w	$FFFFFC04.w, D0
 	BPL.b	loc_5660
@@ -6199,6 +6351,7 @@ loc_578E:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_5826:
 	MOVEM.w	D7/D2/D1/D0, -(A7)
 	LSL.w	#6, D1
@@ -6240,6 +6393,7 @@ loc_58A8:
 	BEQ.b	loc_58C4
 loc_58C2:
 	RTS
+
 loc_58C4:
 	JSR	loc_F848
 	MOVEA.l	(A1)+, A0
@@ -6285,6 +6439,7 @@ loc_58C4:
 	MOVE.l	#$636A0003, VDP_control_port
 	MOVEA.l	$3C(A1), A2
 	MOVE.w	#$2000, D3
+
 loc_5996:
 	MOVE.l	(A2), D0
 	LEA	$FFFFE85C.w, A3
@@ -6294,6 +6449,7 @@ loc_5996:
 	MOVE.l	(A3)+, VDP_data_port
 	MOVE.l	(A3)+, VDP_data_port
 	RTS
+
 ;loc_59BC
 Update_shift:
 	MOVE.b	$FFFFFF20.w, D5
@@ -6358,6 +6514,7 @@ loc_5A44:
 loc_5A62:
 	CMPI.w	#0, Player_shift.w ; if shift 0
 	BEQ.b	loc_5A2A           ; then RTS
+
 loc_5A6A:
 	SUBQ.w	#1, Player_shift.w ; else shift down
 	MOVE.w	Player_rpm.w, D0
@@ -6414,6 +6571,7 @@ loc_5AE8:
 	MOVE.w	#$04E3, (A1) ; (A1) = min((A1), $04E3 == 1251 rpm)
 loc_5B00:
 	RTS
+
 loc_5B02:
 	TST.w	$FFFF9146.w
 	BEQ.b	loc_5AD6
@@ -6511,6 +6669,7 @@ loc_5C0E:
 loc_5C18:
 	ADD.w	D0, $FFFF9104.w
 	RTS
+
 loc_5C1E:
 	MOVE.w	$FFFF9110.w, D0
 	BEQ.b	loc_5C26
@@ -6529,6 +6688,7 @@ loc_5C34:
 	ADD.w	D0, Player_rpm.w
 loc_5C44:
 	RTS
+
 loc_5C46:
 	MOVE.w	Player_speed.w, D4
 	BEQ.b	loc_5CA8
@@ -6570,6 +6730,7 @@ loc_5C90:
 	ADD.w	D7, Player_rpm.w
 loc_5CA8:
 	RTS
+
 loc_5CAA:
 	MOVE.w	$FFFF920A.w, D0
 	BEQ.b	loc_5CC2
@@ -6580,6 +6741,7 @@ loc_5CAA:
 	CLR.w	Player_rpm.w
 loc_5CC2:
 	RTS
+
 loc_5CC4:
 	MOVE.w	$FFFFFC5A.w, D0
 	BEQ.b	loc_5CF0
@@ -6673,6 +6835,7 @@ loc_5D32:
 	dc.b	$00
 	dc.b	$01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $FF
 	dc.b	$FD, $FB, $F9
+
 loc_5F10:
 	MOVE.w	#$022E, D0
 	MOVE.w	Shift_type.w, D1
@@ -6698,6 +6861,7 @@ loc_5F4C:
 loc_5F58:
 	MOVE.w	D0, $FFFFE996.w
 	RTS
+
 ;loc_5F5E
 Update_speed:
 	CLR.l	D0
@@ -6727,6 +6891,7 @@ loc_5F9E:
 loc_5FA8:
 	ADD.w	D0, Player_speed.w; Add delta speed and return
 	RTS
+
 ;loc_5FAE
 Engine_data: ; Defines RPM at 100km/h for each shift and shift type. Has 6 different variants for some reason, third one most commonly used
 	dc.w	1674, 823, 584, 467
@@ -6752,6 +6917,7 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type. Has 6 diffe
 	dc.w	1654, 783, 524, 387
 	dc.w	1648, 776, 510, 366
 	dc.w	1846, 899, 603, 459, 387, 346, 299
+
 loc_6062:
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_60BE
@@ -6793,6 +6959,7 @@ loc_60D0:
 	dc.b	$FF, $FA, $FF, $FE
 	dc.w	$0000
 	dc.b	$00, $02, $00, $04, $00, $06
+
 loc_60DC:
 	MOVEQ	#9, D3
 	MOVEQ	#$0000000F, D4
@@ -6912,6 +7079,7 @@ loc_61F6:
 	RTS
 loc_61FC:
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008
+
 loc_6224: ; Suspected: Level initialization
 	JSR	loc_F848
 	LEA	$20(A1), A1
@@ -7086,6 +7254,7 @@ loc_63DA:
 	MOVE.w	(A6)+, $FFFFFC7A.w
 	MOVE.l	A6, $FFFF9284.w
 	RTS
+
 loc_63E8:
 	LEA	$FFFF9700.w, A0
 	MOVEQ	#$0000003B, D0
@@ -7110,6 +7279,7 @@ loc_6404:
 	MOVE.w	(A0,D0.w), D0
 	MOVE.w	D0, $FFFF9222.w
 	RTS
+
 loc_6428:
 	LEA	$FFFFD900.w, A0
 	MOVE.w	#$04F9, D0
@@ -7202,6 +7372,7 @@ loc_6516:
 	LEA	$FFFFD900.w, A0
 	LEA	$FFFFE000.w, A1
 	MOVE.w	#$01BF, D0
+
 loc_6564:
 	MOVE.l	(A0), D3
 	OR.l	D1, D3
@@ -7211,6 +7382,7 @@ loc_6564:
 	MOVE.l	D3, (A1)+
 	DBF	D0, loc_6564
 	RTS
+
 loc_6576:
 	LEA	(A5), A3
 	LEA	(A6), A4
@@ -7222,6 +7394,7 @@ loc_657C:
 	ADDA.w	D4, A6
 	DBF	D5, loc_6576
 	RTS
+
 loc_658C:
 	LEA	$FFFF9658.w, A0
 	LEA	$FFFF91BA.w, A1
@@ -7263,6 +7436,7 @@ loc_6622:
 	JSR	loc_665C(PC)
 	MOVE.w	#$2000, D0
 	MOVE.l	#$4D000003, VDP_control_port
+
 loc_663C:
 	MOVE.w	#$02FF, D1
 	MOVE.w	#$9FFF, D2
@@ -7275,6 +7449,7 @@ loc_664E:
 	MOVE.w	D3, (A1)
 	DBF	D1, loc_664E
 	RTS
+
 loc_665C:
 	LEA	$FFFFF600.w, A2
 	MOVEM.l	(A0)+, D0/D1/D2/D3/D4/D5/D6/D7/A3/A4/A5/A6
@@ -7345,6 +7520,7 @@ loc_672A:
 	DBF	D0, loc_6716
 loc_674C:
 	RTS
+
 loc_674E:
 	TST.w	$FFFFFC80.w
 	BNE.b	loc_674C
@@ -7740,6 +7916,7 @@ loc_6B5A:
 loc_6B60:
 	MOVE.w	#$FFFF, $FFFF9200.w
 	RTS
+
 loc_6B68:
 	LEA	$FFFFAE00.w, A0
 	JSR	loc_80E0
@@ -7940,6 +8117,7 @@ loc_6D5A:
 	ADDQ.w	#4, A0
 	DBF	D0, loc_6D5A
 	RTS
+
 loc_6D66:
 	MOVE.w	$FFFFAE1A.w, D0
 	LSR.w	#2, D0
@@ -8167,6 +8345,7 @@ loc_6F1A:
   dc.w	$0000
   dc.w	$0000
   dc.w	$0001
+
 loc_6F5E:
 	CMP.b	D2, D1
 	BEQ.b	loc_6F82
@@ -8212,6 +8391,7 @@ loc_6FB0:
 loc_6FB4:
 	ORI	#1, CCR
 	RTS
+
 loc_6FBA:
 	MOVE.w	(A4)+, D6
 	BEQ.b	loc_700A
@@ -8257,6 +8437,7 @@ loc_700A:
 loc_700E:
 	ORI	#1, CCR
 	RTS
+
 loc_7014:
 	MOVE.w	(A5), D1
 	BEQ.b	loc_7046
@@ -8287,6 +8468,7 @@ loc_7046:
 loc_7048:
 	ADDQ.w	#2, A5
 	RTS
+
 loc_704C:
 	TST.w	$FFFF9280.w
 	BEQ.w	loc_7114
@@ -8501,6 +8683,7 @@ loc_7282:
 	ADDI.w	#$0100, D0
 	DBF	D2, loc_7128
 	RTS
+
 loc_7298:
 	CMPI.w	#2, $FFFF9276.w
 	BNE.b	loc_72A6
@@ -8517,6 +8700,7 @@ loc_72A6:
 	RTS
 loc_72D0:
 	JMP	loc_1DB6
+
 loc_72D6:
 	MOVE.l	#$49800003, D0
 	LEA	$FFFF91BC.w, A0
@@ -8558,6 +8742,7 @@ loc_7334:
 	LEA	$180(A2), A2
 	DBF	D1, loc_72EC
 	RTS
+
 loc_7348:
 	AND.w	D4, D2
 	MOVE.l	D3, (A0,D2.w)
@@ -8601,6 +8786,7 @@ loc_73CA:
 loc_73DC:
 	dc.w	$000B
 	dc.b	$00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05, $00, $03, $00, $02
+
 loc_73EE:
 	TST.w	$FFFFFCB6.w
 	BNE.b	loc_73FE
@@ -8765,6 +8951,7 @@ loc_75B0:
 	JSR	loc_146C
 loc_7612:
 	RTS
+
 loc_7614:
 	MOVEA.l	$4(A0), A1
 	MOVE.l	$FFFF92E0.w, D0
@@ -8787,6 +8974,7 @@ loc_7648:
 	JSR	loc_146C
 loc_7654:
 	RTS
+
 loc_7656:
 	MOVEA.l	$4(A0), A1
 	ADDQ.w	#4, A1
@@ -8804,6 +8992,7 @@ loc_7656:
 	JSR	loc_146C
 loc_7686:
 	RTS
+
 loc_7688:
 	MOVEQ	#0, D0
 	ADDI.w	#0, D0
@@ -8925,6 +9114,7 @@ loc_77D0:
 	MOVE.w	$2A(A0), D0
 	BEQ.b	loc_77E4
 	MOVE.w	D0, $00FF5AC2
+
 loc_77E4:
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
@@ -8945,6 +9135,7 @@ loc_77FA:
 	JSR	loc_146C
 loc_7820:
 	RTS
+
 loc_7822:
 	TST.w	$FFFF9140.w
 	BNE.b	loc_785A
@@ -8966,6 +9157,7 @@ loc_7844:
 	MOVE.w	#1, $FFFFFC8A.w
 loc_785A:
 	RTS
+
 loc_785C:
 	TST.w	$FFFFFCA8.w
 	BNE.b	loc_7874
@@ -9299,6 +9491,7 @@ loc_7CFE:
 loc_7D10:
 	MOVE.w	D0, $A(A0)
 	ADDQ.w	#1, D7
+
 loc_7D16:
 	MOVEQ	#0, D2
 	MOVE.b	$FFFF910A.w, D0
@@ -9385,6 +9578,7 @@ loc_7DF4:
 	JSR	loc_7E14(PC)
 loc_7E0E:
 	JMP	loc_EF0
+
 loc_7E14:
 	MOVE.b	#$97, (A2)+
 	MOVE.b	(A1)+, (A2)+
@@ -9558,16 +9752,19 @@ loc_80AE:
 	MOVE.l	#$000042F8, $FFFFFF10.w
 loc_80C2:
 	RTS
+
 loc_80C4:
 	MOVEQ	#0, D1
 	MOVEQ	#0, D2
 	LSR.w	#5, D0
 	ANDI.w	#$FFFE, D0
+
 loc_80CE:
 	MOVEA.l	$FFFF9226.w, A1
 	MOVE.b	(A1,D0.w), $2C(A0)
 	MOVE.b	$1(A1,D0.w), $2E(A0)
 	RTS
+
 loc_80E0:
 	MOVE.w	#$05AF, D0
 	MOVE.w	$1A(A0), D1
@@ -9612,6 +9809,7 @@ loc_8130:
 	MOVE.w	(A1,D1.w), D0
 loc_8140:
 	RTS
+
 loc_8142:
 	CLR.w	$FFFF910E.w
 	LEA	$FFFFFF52.w, A0
@@ -9716,6 +9914,7 @@ loc_8244:
 	NEG.w	D0
 	MOVE.w	D0, $FFFF9204.w
 	RTS
+
 loc_8250:
 	MOVE.w	$FFFF914A.w, D0
 	OR.w	$FFFF9148.w, D0
@@ -9889,6 +10088,7 @@ loc_8456:
 	JSR	loc_8656(PC)
 loc_8464:
 	RTS
+
 loc_8466:
 	TST.w	$FFFFFCA8.w
 	BNE.b	loc_8464
@@ -9925,6 +10125,7 @@ loc_84AC:
 	TST.w	$FFFFFCBC.w
 	BNE.b	loc_84E2
 	MOVE.l	#$625C0003, D7
+
 loc_84D0:
 	LSL.w	#4, D1
 	LEA	loc_8898(PC), A6
@@ -10028,6 +10229,7 @@ loc_85E2:
 	MOVE.w	$2A(A0), D0
 	BEQ.b	loc_85F6
 	MOVE.w	D0, $00FF5AC2
+
 loc_85F6:
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
@@ -10046,6 +10248,7 @@ loc_860C:
 	JSR	loc_146C
 loc_862C:
 	RTS
+
 loc_862E:
 	LEA	$FFFFFF3A.w, A1
 	LEA	loc_873A(PC), A2
@@ -10062,6 +10265,7 @@ loc_8642:
 	MOVE.w	#1, $FFFFFC8A.w
 loc_8654:
 	RTS
+
 loc_8656:
 	MOVE.w	$FFFFFF34.w, D0
 	CMP.w	$FFFFFC78.w, D0
@@ -10075,6 +10279,7 @@ loc_866A:
 	JSR	loc_DDB6
 	MOVE.w	D0, $FFFFFF38.w
 	BRA.b	loc_8642
+
 loc_867C:
 	MOVE.w	$FFFFFC8E.w, D0
 	CMP.w	$FFFFAE1E.w, D0
@@ -10157,6 +10362,7 @@ loc_8722:
 loc_8730:
 	dc.w	$A7D8, $A7DF, $A7CE, $A7DB
 	dc.w	$0010
+
 loc_873A:
 	TST.w	$FFFF9140.w
 	BEQ.w	loc_87D0
@@ -10205,6 +10411,7 @@ loc_87BC:
 	JSR	loc_146C
 loc_87D0:
 	RTS
+
 loc_87D2:
 	TST.w	$FFFF9140.w
 	BEQ.w	loc_886E
@@ -10272,6 +10479,7 @@ loc_8998:
 	dc.w	$0000
 	dc.w	$0000
 	dc.b	$FF, $FE, $FF, $FA, $FF, $FC, $FF, $F4
+
 loc_89AC:
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
@@ -10300,6 +10508,7 @@ loc_89E4:
 	MOVE.w	#$FFFF, (A1)
 loc_89F2:
 	RTS
+
 loc_89F4:
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
@@ -10385,9 +10594,11 @@ loc_8ACE:
 	ADD.w	D1, D1
 	MOVE.l	loc_8B1C-2(PC,D1.w), D1
 	ADD.w	$FFFFFF56.w, D0
+
 loc_8AE8:
 	LEA	$FFFFB840.w, A1
 	MOVEQ	#$00000020, D2
+
 loc_8AEE:
 	TST.l	(A1)
 	BEQ.b	loc_8AFE
@@ -10903,10 +11114,12 @@ loc_90D8:
 	MOVE.w	D0, $26(A1)
 loc_910E:
 	RTS
+
 loc_9110:
 	ANDI.w	#$0040, D4
 	BNE.b	loc_9118
 	NEG.w	D0
+
 loc_9118:
 	ADD.w	$12(A0), D0
 	SMI	D1
@@ -11328,6 +11541,7 @@ loc_95CE:
 	BEQ.w	loc_9086
 	JSR	loc_95DE(PC)
 	BRA.w	loc_9086
+
 loc_95DE:
 	TST.b	$10(A0)
 	BNE.b	loc_965C
@@ -11439,6 +11653,7 @@ loc_96FC:
 	CLR.w	$28(A0)
 loc_970E:
 	RTS
+
 loc_9710:
 	TST.w	$FFFFFCB6.w
 	BEQ.b	loc_971A
@@ -11537,6 +11752,7 @@ loc_97EA:
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	loc_EEA
+
 loc_980C:
 	LEA	$FFFF9600.w, A1
 	MOVE.w	(A1,D0.w), D1
@@ -11635,6 +11851,7 @@ loc_98E6:
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	loc_EF0
+
 loc_9914:
 	MOVEA.w	#0, A6
 	MOVE.w	$FFFF9206.w, D5
@@ -11756,6 +11973,7 @@ loc_9A42:
 	ADD.w	D4, D3
 	MOVE.w	D3, $E(A0)
 	RTS
+
 loc_9A58:
 	MOVE.w	$FFFF9206.w, D5
 	MOVE.w	$1A(A0), D1
@@ -11797,6 +12015,7 @@ loc_9AB2:
 	SUB.w	D2, D4
 	MOVE.w	#$8000, D3
 	BRA.b	loc_9A9C
+
 loc_9AC4:
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_9ADC
@@ -11888,6 +12107,7 @@ loc_9BA4:
 	ADDQ.w	#4, A4
 	ADDQ.w	#2, A5
 	ADDQ.w	#2, A6
+
 loc_9BBA:
 	MOVE.w	(A5), D0
 	BPL.b	loc_9BC4
@@ -12015,6 +12235,7 @@ loc_9DB6:
 	BSR.b	loc_9DD0
 	MOVE.l	#$0000BD56, $1E(A0)
 	BRA.b	loc_9E26
+
 loc_9DD0:
 	MOVE.w	$FFFF9142.w, D0
 	ADD.w	D0, D0
@@ -12080,6 +12301,7 @@ loc_9EA0:
 	dc.w	$007F
 loc_9EA4:
 	dc.w	$AD80
+
 loc_9EA6:
 	ADD.w	D1, D0
 	BPL.b	loc_9EB0
@@ -12214,6 +12436,7 @@ loc_9FF8:
 	JSR	loc_A068(PC)
 loc_A066:
 	RTS
+
 loc_A068:
 	MOVEM.l	(A1)+, D0/D1/D2/D3/D4/D5/D6/D7/A3/A4/A5/A6
 	MOVEM.l	D0/D1/D2/D3/D4/D5/D6/D7/A3/A4/A5/A6, (A2)
@@ -12233,10 +12456,12 @@ loc_A068:
 	MOVEM.l	(A1), D0/D1/D2/D3/D4/D5/D6/D7/A3/A4/A5/A6
 	MOVEM.l	D0/D1/D2/D3/D4/D5/D6/D7/A3/A4/A5/A6, (A2)
 	RTS
+
 loc_A0AE:
 	MOVE.w	$10(A0), D0
 	ADDI.w	#$0020, D0
 	BRA.b	loc_A0BC
+
 loc_A0B8:
 	MOVE.w	$10(A0), D0
 loc_A0BC:
@@ -12274,9 +12499,11 @@ loc_A12C:
 	JMP	loc_F38
 loc_A132:
 	RTS
+
 loc_A134:
 	LEA	$FFFFB840.w, A1
 	MOVEQ	#$00000020, D2
+
 loc_A13A:
 	TST.l	(A1)
 	BEQ.b	loc_A14A
@@ -12289,6 +12516,7 @@ loc_A14A:
 	MOVE.w	D0, $1A(A1)
 loc_A150:
 	RTS
+
 loc_A152:
 	TST.w	$FFFF9146.w
 	BEQ.b	loc_A172
@@ -12379,6 +12607,7 @@ loc_A234:
 	ADD.w	D1, D0
 	SUB.w	D0, $16(A0)
 	RTS
+
 loc_A278:
 	LEA	$FFFF8FA0.w, A0
 	MOVEQ	#$0000000D, D7
@@ -12573,6 +12802,7 @@ loc_A6AE:
 	MOVE.l	#$00000EF0, (A0)
 loc_A6B4:
 	JMP	loc_EF0
+
 loc_A6BA:
 	MOVE.l	#$65520003, D7
 	MOVEQ	#$0000000E, D6
@@ -12766,6 +12996,7 @@ loc_A964:
 	MOVE.b	(A1,D0.w), D0
 	SUB.w	D0, $16(A0)
 	RTS
+
 loc_A9DE:
 	MOVE.w	$FFFF9238.w, D1
 	BNE.b	loc_A9EC
@@ -12856,6 +13087,7 @@ loc_AAD0:
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	loc_EF0
+
 loc_AAEA:
 	MOVE.w	$1E(A0), D0
 	SUB.w	$FFFFAE1E.w, D0
@@ -13130,9 +13362,11 @@ loc_AE40:
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
 	BRA.w	loc_B254
+
 loc_AE56:
 	MOVE.l	#$0006E9D8, $30(A0)
 	BRA.b	loc_AE68
+
 loc_AE60:
 	MOVE.l	#$0006E894, $30(A0)
 loc_AE68:
@@ -13142,6 +13376,7 @@ loc_AE68:
 	MOVE.w	D3, $34(A0)
 	MOVE.w	#2, $24(A0)
 	RTS
+
 loc_AE7E:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
@@ -13436,9 +13671,11 @@ loc_B240:
 loc_B246:
 	MOVE.w	#$FFFF, $FFFF927C.w
 	RTS
+
 loc_B24E:
 	MOVE.w	#$00D8, D7
 	BRA.b	loc_B258
+
 loc_B254:
 	MOVE.w	#$0118, D7
 loc_B258:
@@ -13578,6 +13815,7 @@ loc_B454:
 	dc.l	loc_BBB6
 	dc.l	loc_CA44
 	dc.l	loc_CA94
+
 loc_B480:
 	LEA	$FFFF9D40.w, A1
 	MOVE.w	$FFFFFC04.w, D1
@@ -13777,6 +14015,7 @@ loc_B706:
 	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_B734:
 	ORI	#$0700, SR
 	MOVE.l	#$4E160000, VDP_control_port
@@ -13975,6 +14214,7 @@ loc_B9DC:
 	ANDI	#$F8FF, SR
 	ADDQ.w	#8, $FFFFFC1C.w
 	RTS
+
 loc_B9FE:
 	LSL.w	#4, D5
 	ROL.w	#4, D2
@@ -14028,6 +14268,7 @@ loc_BAAA:
 	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_BAD8:
 	ORI	#$0700, SR
 	MOVE.l	#$52120000, VDP_control_port
@@ -14307,6 +14548,7 @@ loc_BF08:
 	MOVE.l	#$68000083, $FFFFFF08.w
 	JSR	loc_914
 	JMP	loc_1666
+
 loc_BF66:
 	JSR	loc_8C0
 	JSR	loc_656
@@ -14404,12 +14646,14 @@ loc_C0E8:
 	CLR.l	$FFFFFF2A.w
 	BCLR.b	#4, $FFFF902F.w
 	RTS
+
 loc_C11A:
 	LEA	$FFFF9010.w, A1
 	LEA	loc_C480, A2
 	BSR.b	loc_C144
 	MOVE.b	#$FF, $FFFF902E.w
 	RTS
+
 loc_C12E:
 	LEA	$FFFF901A.w, A1
 	LEA	loc_C48A, A2
@@ -14417,6 +14661,7 @@ loc_C12E:
 	BSR.b	loc_C144
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_C144:
 	MOVE.w	#4, D0
 loc_C148:
@@ -14431,6 +14676,7 @@ loc_C148:
 	MOVEM.w	(A7)+, D0
 	DBF	D0, loc_C148
 	RTS
+
 loc_C16E:
 	JSR	loc_8AE
 	MOVE.l	D7, VDP_control_port
@@ -14443,8 +14689,10 @@ loc_C16E:
 	MOVE.b	(A1)+, D0
 	BSR.b	loc_C18E
 	MOVEQ	#1, D3
+
 loc_C18E:
 	ROR.b	#4, D0
+
 loc_C190:
 	MOVE.w	D0, D5
 	AND.w	D2, D5
@@ -14461,6 +14709,7 @@ loc_C1A4:
 	MOVE.w	D5, VDP_data_port
 	RTS
 	dc.b	$3A, $9E, $51, $C8, $FF, $FC, $4E, $75
+
 loc_C1B4:
 	LEA	loc_C618(PC), A6
 	JSR	loc_846
@@ -14502,6 +14751,7 @@ loc_C202: ; Track names
 	dc.l	loc_C690
 	dc.l	loc_C698
 	dc.l	loc_C6A2
+
 loc_C242:
 	MOVE.w	#$FFFF, $FFFFFCBC.w
 	JSR	loc_F1E
@@ -14533,6 +14783,7 @@ loc_C2AA:
 	MOVE.w	D1, (A0)+
 	DBF	D0, loc_C2AA
 	RTS
+
 loc_C2B2:
 	TST.w	$FFFFFF4E.w
 	BEQ.b	loc_C2C4
@@ -14542,6 +14793,7 @@ loc_C2B2:
 loc_C2C4:
 	MOVE.w	$FFFFFF34.w, D1
 	MOVE.l	#$441C0000, D7
+
 loc_C2CE:
 	LSL.w	#4, D1
 	LEA	loc_8898, A6
@@ -14549,6 +14801,7 @@ loc_C2CE:
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
 	JMP	loc_770
+
 loc_C2E2:
 	MOVE.w	$FFFF9232.w, D0
 	LSL.w	#2, D0
@@ -14558,6 +14811,7 @@ loc_C2E2:
 	MOVEQ	#1, D5
 	MOVE.l	#$44360000, D7
 	JMP	loc_770
+
 loc_C300:
 	MOVE.l	$FFFF92F8.w, D0
 	MOVE.w	#$C000, D3
@@ -14568,6 +14822,7 @@ loc_C300:
 	MOVEQ	#0, D5
 	LEA	(A3), A6
 	JMP	loc_770
+
 loc_C324:
 	LEA	$FFFFC080.w, A0
 	MOVE.w	#$013F, D0
@@ -14580,6 +14835,7 @@ loc_C32E:
 	MOVE.l	#$FFFFC080, $FFFFC48A.w
 	MOVE.w	#$0406, $FFFFC482.w
 	RTS
+
 loc_C34C:
 	MOVE.w	$FFFFC480.w, D0
 	JMP	loc_C354(PC,D0.w)
@@ -14773,10 +15029,12 @@ loc_C698:
 loc_C6A2:
 	dc.b	$16, $18, $17, $0A, $0C, $18, $FF
 	dc.b	$00
+
 loc_C6AA:
 	MOVE.w	(A5)+, (A6)+
 	DBF	D7, loc_C6AA
 	RTS
+
 loc_C6B2:
 	LEA	loc_193BE, A1
 	MULS.w	#$000C, D0
@@ -14784,6 +15042,7 @@ loc_C6B2:
 	MOVEA.l	(A1)+, A2
 	MOVE.w	(A1)+, D1
 	RTS
+
 loc_C6C4:
 	LEA	loc_19114, A1
 	MULS.w	#$0012, D0
@@ -14791,6 +15050,7 @@ loc_C6C4:
 	MOVEA.l	(A1)+, A2
 	MOVE.w	(A1)+, D1
 	RTS
+
 loc_C6D6:
 	LEA	$FFFFC080.w, A6
 	LEA	loc_C5A4(PC), A5
@@ -14886,6 +15146,7 @@ loc_C7CC:
 	MOVE.w	#$C7F5, (A6)
 loc_C7DE:
 	RTS
+
 loc_C7E0:
 	JSR	loc_C994(PC)
 	LEA	$FFFF8F90.w, A6
@@ -15037,6 +15298,7 @@ loc_C946:
 	JSR	loc_C97C(PC)
 loc_C97A:
 	RTS
+
 loc_C97C:
 	ANDI.w	#$000F, D0
 	BNE.b	loc_C988
@@ -15049,6 +15311,7 @@ loc_C988:
 loc_C990:
 	MOVE.w	D0, (A6)+
 	RTS
+
 loc_C994:
 	LEA	$FFFF8F80.w, A6
 	LEA	$FFFF9030.w, A5
@@ -15151,6 +15414,7 @@ loc_CAEC:
 	dc.b	$10, $12, $FB, $43, $1D, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FC, $3A, $32, $32, $17, $0E, $21, $1D, $32, $22, $0E, $0A, $1B
 	dc.b	$32, $3B, $FC, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FC, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $32, $32, $3B
 	dc.b	$FC, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF
+
 loc_CB3C:
 	LEA	loc_CA96, A6
 	CMPI.w	#$0010, $FFFF9144.w
@@ -15161,6 +15425,7 @@ loc_CB50:
 	JSR	loc_846
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_CB60:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.b	#$F3, D0
@@ -15183,6 +15448,7 @@ loc_CB94:
 	MOVE.l	#$0000F288, $FFFFFF10.w
 loc_CBAA:
 	RTS
+
 loc_CBAC:
 	MOVE.l	#$51160000, D7
 	BTST.b	#0, $FFFFFC18.w
@@ -15220,6 +15486,7 @@ loc_CC2C:
 	dc.l	loc_CCC8
 	dc.l	loc_CCD0
 	dc.b	$4E, $75
+
 loc_CC3A:
 	BTST.b	#7, $FFFFFF05.w
 	BEQ.b	loc_CC50
@@ -15386,6 +15653,7 @@ loc_CEA6:
 	RTS
 loc_CEA8:
 	LEA	loc_18D40, A1
+
 loc_CEAE:
 	TST.w	$FFFFFF26.w
 	BEQ.b	loc_CEBA
@@ -15512,6 +15780,7 @@ loc_D05E:
 	MOVE.l	#$00003800, $FFFFFF10.w
 loc_D066:
 	RTS
+
 loc_D068:
 	SUBQ.b	#1, $FFFFFC02.w
 	BNE.w	loc_D0FA
@@ -15555,6 +15824,7 @@ loc_D0F2:
 	ADDQ.w	#1, $FFFFFC0A.w
 loc_D0FA:
 	RTS
+
 loc_D0FC:
 	SUBQ.b	#1, $FFFFB88E.w
 	BNE.b	loc_D122
@@ -15586,6 +15856,7 @@ loc_D124:
 	CLR.w	$FFFFB8D6.w
 	ADDQ.w	#1, $FFFFB892.w
 	RTS
+
 loc_D164:
 	SUBQ.b	#1, $FFFFB90E.w
 	BNE.b	loc_D18A
@@ -15617,6 +15888,7 @@ loc_D18C:
 	CLR.w	$FFFFB956.w
 	ADDQ.w	#1, $FFFFB912.w
 	RTS
+
 loc_D1CC:
 	ADDI.l	#$00020000, D7
 	ADDA.l	#1, A1
@@ -15633,6 +15905,7 @@ loc_D1EA:
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_D204:
 	LEA	loc_18C00, A1
 	TST.w	$FFFFFF26.w
@@ -15895,6 +16168,7 @@ loc_D632:
 	SUBQ.w	#1, $FFFFFC00.w
 	BEQ.b	loc_D6D2
 	RTS
+
 loc_D6C8:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.b	#$F0, D0
@@ -16171,6 +16445,7 @@ loc_DB12:
 	JSR	loc_D5C
 	BSR.b	loc_DB42
 	RTS
+
 loc_DB42:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.w	#$00F0, D0
@@ -16179,6 +16454,7 @@ loc_DB42:
 loc_DB4E:
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 	RTS
+
 loc_DB56:
 	LEA	loc_DE36, A1
 	MOVE.w	$FFFFFC08.w, D0
@@ -16304,6 +16580,7 @@ loc_DD64:
 	DBF	D0, loc_DD64
 	CLR.l	$FFFFB840.w
 	RTS
+
 loc_DD70:
 	LEA	$FFFFEA00.w, A6
 	MOVE.w	#$00A8, D1
@@ -16311,6 +16588,7 @@ loc_DD78:
 	MOVE.w	(A6)+, (A5)+
 	DBF	D1, loc_DD78
 	RTS
+
 loc_DD80:
 	MOVEQ	#0, D0
 	MOVEQ	#0, D1
@@ -16333,6 +16611,7 @@ loc_DD80:
 	BSR.b	loc_DDB6
 	MOVE.w	D0, $FFFFFF38.w
 	RTS
+
 loc_DDB6:
 	ADDI.w	#0, D0
 	ABCD	D2, D0
@@ -16456,6 +16735,7 @@ loc_DF16:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_DFDA:
 	CMPI.w	#4, $FFFFFC00.w
 	BEQ.b	loc_E05E
@@ -16603,6 +16883,7 @@ loc_E1EE:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_E236:
 	LEA	loc_21B2, A6
 	MOVE.w	$FFFFFC00.w, D7
@@ -16634,6 +16915,7 @@ loc_E29C:
 	LEA	loc_20F2, A0
 	MOVE.l	(A0,D0.w), VDP_data_port
 	RTS
+
 loc_E2C0:
 	MOVEA.l	(A3)+, A6
 	MOVE.l	(A6), D0
@@ -16650,6 +16932,7 @@ loc_E2C0:
 	SUBQ.w	#1, $FFFFFC00.w
 	BNE.b	loc_E2C0
 	RTS
+
 loc_E2F4:
 	LEA	$FFFFE800.w, A1
 	MOVE.w	$FFFFFF38.w, D1
@@ -16829,6 +17112,7 @@ loc_E584:
 	MOVE.l	#$0000F288, $FFFFFF10.w
 loc_E5AA:
 	RTS
+
 loc_E5AC:
 	MOVE.l	#$6B320003, D7
 	BTST.b	#0, $FFFFFC11.w
@@ -16849,6 +17133,7 @@ loc_E5D0:
 loc_E5EA:
 	MOVE.l	#$00002592, $FFFFFF10.w
 	RTS
+
 loc_E5F4:
 	MOVE.w	#$0050, $FFFFFC08.w
 	ADDQ.w	#4, $FFFFFC04.w
@@ -16918,6 +17203,7 @@ loc_E72A:
 	BSR.w	loc_E8B4
 	BSR.w	loc_E790
 	RTS
+
 loc_E790:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	$FFFFFC00.w, D1
@@ -16997,6 +17283,7 @@ loc_E8A4:
 	MOVE.l	#$00003800, $FFFFFF10.w
 loc_E8B2:
 	RTS
+
 loc_E8B4:
 	SUBQ.b	#1, $FFFFFC01.w
 	BNE.w	loc_E94A
@@ -17115,6 +17402,7 @@ loc_EA58:
 	BSR.w	loc_ED56
 	ADDQ.b	#1, $FFFFFC04.w
 	RTS
+
 loc_EAA0:
 	MOVE.b	$FFFFFF05.w, D0
 	BEQ.b	loc_EAE2
@@ -17170,6 +17458,7 @@ loc_EB46:
 	CMPI.w	#6, $FFFFFF1E.w
 	BNE.b	loc_EB56
 	CLR.w	$FFFFFF1E.w
+
 loc_EB56:
 	MOVE.w	$FFFFFF1E.w, D0
 	ASL.w	#2, D0
@@ -17183,6 +17472,7 @@ loc_EB76:
 	ANDI.b	#$0C, D0
 	BEQ.w	loc_EAE2
 	ADDQ.w	#1, $FFFFFF1C.w
+
 loc_EB82:
 	ANDI.w	#1, $FFFFFF1C.w
 	MOVE.w	$FFFFFF1C.w, D0
@@ -17197,6 +17487,7 @@ loc_EBA8:
 	ANDI.b	#$0C, D0
 	BEQ.w	loc_EAE2
 	ADDQ.w	#1, $FFFFFF26.w
+
 loc_EBB4:
 	ANDI.w	#1, $FFFFFF26.w
 	LEA	loc_32F44, A2
@@ -17224,6 +17515,7 @@ loc_EBFC:
 	CMPI.w	#$000F, $FFFFFC14.w
 	BNE.b	loc_EC0C
 	CLR.w	$FFFFFC14.w
+
 loc_EC0C:
 	MOVE.w	$FFFFFC14.w, D0
 	ASL.w	#2, D0
@@ -17253,6 +17545,7 @@ loc_EC5A:
 	CMPI.w	#$0011, $FFFFFC18.w
 	BNE.b	loc_EC6A
 	CLR.w	$FFFFFC18.w
+
 loc_EC6A:
 	MOVE.w	$FFFFFC18.w, D0
 	JSR	loc_157C
@@ -17287,6 +17580,7 @@ loc_ECD0:
 	CMPI.w	#6, $FFFFFC1C.w
 	BNE.b	loc_ECE0
 	CLR.w	$FFFFFC1C.w
+
 loc_ECE0:
 	MOVE.w	$FFFFFC1C.w, D0
 	ASL.w	#2, D0
@@ -17319,6 +17613,7 @@ loc_ED3A:
 	dc.l	loc_EC3A
 	dc.l	loc_ECB0
 	dc.l	loc_ED1E
+
 loc_ED56:
 	BTST.b	#2, $FFFFFC04.w
 	BEQ.b	loc_ED64
@@ -17380,6 +17675,7 @@ loc_EE60:
 	BSR.w	loc_EE88
 	BSR.w	loc_EF04
 	RTS
+
 loc_EE88:
 	MOVE.b	$FFFFFF05.w, D0
 	ANDI.b	#$F3, D0
@@ -17417,6 +17713,7 @@ loc_EEFC:
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 loc_EF02:
 	RTS
+
 loc_EF04:
 	MOVE.l	#$4FAA0003, D7
 	BTST.b	#0, $FFFFFC0D.w
@@ -17440,6 +17737,7 @@ loc_EF28:
 	BSR.w	loc_F1CA
 	BSR.w	loc_F21C
 	RTS
+
 loc_EF5C:
 	MOVE.b	$FFFFFF05.w, D0
 	BEQ.w	loc_F182
@@ -17614,6 +17912,7 @@ loc_F19E:
 	RTS
 loc_F1B6:
 	dc.b	$04, $44, $04, $46, $04, $44, $04, $48, $02, $22, $04, $4A, $02, $22, $04, $4C, $00, $00, $04, $4E
+
 loc_F1CA:
 	MOVE.w	#0, D6
 	BTST.b	#2, $FFFFFC0B.w
@@ -17639,6 +17938,7 @@ loc_F1DA:
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, $FFFFFC0A.w
 	RTS
+
 loc_F21C:
 	LEA	loc_F232, A1
 	LEA	$FFFFE9B0.w, A2
@@ -17699,6 +17999,7 @@ loc_F262:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_F336:
 	JSR	loc_8C0
 	JSR	loc_656
@@ -17724,6 +18025,7 @@ loc_F336:
 	BSR.w	loc_F414
 	MOVE.l	#$000003E0, $FFFFFF0C.w
 	RTS
+
 loc_F3DE:
 	MOVE.w	#$C302, D6
 	MOVE.l	#$0000600A, D0
@@ -17740,6 +18042,7 @@ loc_F3FE:
 	ADDI.w	#$0100, D6
 	DBF	D1, loc_F3EC
 	RTS
+
 loc_F414:
 	LEA	$FFFFFF80.w, A1
 	MOVE.w	#$600A, D0
@@ -17765,6 +18068,7 @@ loc_F43E:
 	ADDI.w	#$0100, D6
 	DBF	D1, loc_F424
 	RTS
+
 loc_F46A:
 	CLR.l	D0
 	CLR.l	D6
@@ -17821,6 +18125,7 @@ loc_F50C:
 loc_F512:
 	MOVEA.l	$8(A1,D7.w), A6
 	RTS
+
 loc_F518:
 	CLR.l	D7
 	MOVE.b	Player_team.w, D7
@@ -17837,6 +18142,7 @@ loc_F536:
 loc_F544:
 	MOVEA.l	(A1,D7.w), A6
 	RTS
+
 loc_F54A:
 	LEA	loc_3B524, A1
 	TST.w	$FFFFFF26.w
@@ -17853,6 +18159,7 @@ loc_F568:
 	LSL.l	#2, D0
 	MOVEA.l	$4(A1,D0.w), A6
 	RTS
+
 loc_F576:
 	LEA	loc_3B9A2, A1
 	TST.w	$FFFFFF26.w
@@ -17865,6 +18172,7 @@ loc_F588:
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A6
 	RTS
+
 loc_F59A:
 	CLR.l	D7
 	MOVE.b	Player_team.w, D7
@@ -18010,6 +18318,7 @@ loc_F736:
 	dc.b	$08
 	dc.b	$0C
 	dc.b	$08, $0D
+
 loc_F756:
 	LEA	$FFFFF6F0.w, A1
 	MOVE.w	#$0083, D0
@@ -18024,6 +18333,7 @@ loc_F770:
 	MOVE.w	D1, (A1)+
 	DBF	D0, loc_F770
 	RTS
+
 loc_F780:
 	LEA	$FFFFF74A.w, A1
 	TST.w	$FFFFFF26.w
@@ -18093,14 +18403,17 @@ loc_F810:
 	ADD.w	$FFFF905A.w, D2
 	MOVE.w	D2, (A3)
 	BRA.b	loc_F7CE
+
 loc_F81C:
 	BSR.b	loc_F830
 	JSR	loc_778
 	RTS
+
 loc_F826:
 	BSR.b	loc_F830
 	JSR	loc_770
 	RTS
+
 loc_F830:
 	LEA	$FFFFF6F0.w, A6
 	MOVE.w	#5, D5
@@ -18110,6 +18423,7 @@ loc_F830:
 loc_F842:
 	MOVE.w	#$0015, D6
 	RTS
+
 loc_F848:
 	MOVE.w	$FFFF9140.w, D0
 	EORI.w	#1, D0
@@ -19145,6 +19459,7 @@ loc_12BF1:
 loc_12BF5:
 	dc.b	$02, $9C
 	dc.b	$D4
+
 loc_12BF8:
 	BTST.b	#2, $FFFF902F.w
 	BEQ.b	loc_12C20
@@ -19258,6 +19573,7 @@ loc_12D4E:
 loc_12D64:
 	BCLR.b	#5, Player_team.w
 	RTS
+
 loc_12D6C:
 	CMPI.w	#$FFFF, $FFFFFF34.w
 	BNE.b	loc_12D8A
@@ -19303,6 +19619,7 @@ loc_12DF2:
 	RTS
 loc_12DFA:
 	RTS
+
 loc_12DFC:
 	MOVE.b	$FFFF9042.w, D0
 	ANDI.b	#$A0, D0
@@ -19337,6 +19654,7 @@ loc_12E56:
 	MOVE.w	#$0024, $FFFFFC1C.w
 	MOVE.l	(A7)+, D0
 	RTS
+
 loc_12E60:
 	LEA	$FFFF906E.w, A1
 	MOVE.w	#$000F, D0
@@ -19422,6 +19740,7 @@ loc_12F50:
 	BSR.b	loc_12F58
 	BSR.b	loc_12F88
 	BRA.w	loc_12FB8
+
 loc_12F58:
 	CLR.l	D0
 	LEA	$FFFF906E.w, A1
@@ -19439,6 +19758,7 @@ loc_12F76:
 	ANDI.b	#$0F, D0
 	MOVE.b	D0, (A1)
 	RTS
+
 loc_12F88:
 	CLR.l	D0
 	LEA	$FFFF906E.w, A1
@@ -19486,6 +19806,7 @@ loc_12FFE:
 	ADDQ.w	#1, D3
 	DBF	D0, loc_12FFE
 	RTS
+
 loc_13016:
 	LEA	$FFFF9030.w, A1
 	MOVE.w	#$000F, D0
@@ -19504,6 +19825,7 @@ loc_13044:
 	MOVE.b	(A2)+, (A1)+
 	DBF	D0, loc_13044
 	RTS
+
 loc_1304C:
 	CLR.w	D0
 	LEA	TeamMachineScreenStats, A1
@@ -19573,6 +19895,7 @@ loc_1310E:
 	BEQ.b	loc_1316E
 	TST.w	$FFFF9148.w
 	BNE.b	loc_1316E
+
 loc_13152:
 	MOVE.w	$FFFF915C.w, D0
 	LEA	loc_13404(PC), A1
@@ -19582,6 +19905,7 @@ loc_13152:
 	MOVE.w	(A1,D0.w), Engine_data_variant.w
 loc_1316E:
 	RTS
+
 loc_13170:
 	LEA	$FFFFFF80.w, A1
 	MOVE.w	#$003F, D7
@@ -19640,6 +19964,7 @@ loc_131EC:
 	MOVE.b	D2, $FFFFFFBC.w
 	ANDI.b	#$0F, $FFFF902F.w
 	RTS
+
 loc_13218:
 	LEA	$FFFF902F.w, A1
 	MOVE.w	#$0024, D7
@@ -19687,6 +20012,7 @@ loc_13298:
 	MOVE.l	#$0000D6E2, $FFFFFF2A.w
 loc_132A0:
 	RTS
+
 loc_132A2:
 	LEA	$FFFFFF80.w, A0
 	MOVE.w	#$001C, D0
@@ -19715,6 +20041,7 @@ loc_132B2:
 loc_132E4:
 	DBF	D0, loc_132B2
 	RTS
+
 ;loc_132EA:
 PointsAwardedPerPlacement:
 	dc.b	$09 ; 1st place
@@ -19817,10 +20144,12 @@ loc_13476:
 	BSR.w	loc_13586
 loc_13484:
 	RTS
+
 loc_13486:
 	BTST.b	#3, $FFFFFC06.w
 	BEQ.w	loc_134A2
 	BRA.w	loc_13512
+
 loc_13494:
 	BTST.b	#4, $FFFFFC06.w
 	BEQ.w	loc_134DC
@@ -19895,6 +20224,7 @@ loc_1354E:
 	BSET.b	#2, $FFFFFC06.w
 loc_13584:
 	RTS
+
 loc_13586:
 	LEA	$FFFF9F00.w, A1
 	MOVE.w	$FFFFFC0C.w, D0
@@ -20000,6 +20330,7 @@ loc_1372C:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
 loc_13760:
 	MOVE.w	#$000F, D0
 loc_13764:
@@ -20035,6 +20366,7 @@ loc_137CE:
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC03.w
 	RTS
+
 loc_137EC:
 	BTST.b	#1, $FFFFFC06.w
 	BNE.b	loc_13826
@@ -20065,6 +20397,7 @@ loc_13826:
 	CLR.b	$FFFFFC01.w
 loc_13856:
 	RTS
+
 loc_13858:
 	CLR.l	D0
 	CLR.l	D1
@@ -20077,6 +20410,7 @@ loc_13858:
 	MOVE.b	$FFFFFC01.w, D1
 	MULS.w	#$0040, D1
 	RTS
+
 loc_1387E:
 	ADD.w	D1, D0
 	JSR	loc_AB0
@@ -20093,6 +20427,7 @@ loc_138A0:
 	JSR	loc_770
 	ANDI	#$F8FF, SR
 	RTS
+
 loc_138B0:
 	CLR.l	D0
 	MOVE.b	$FFFFFC01.w, D0
@@ -21399,6 +21734,7 @@ loc_19594:
 loc_195A0:
   txt "YOUR", $FF
 	txt "COUNTRY"
+
 ;loc_195AC:
 TeamMachineScreenStats:
   ; ENG., T.M, SUS., TIRE, BRA., ?, ?
@@ -21474,6 +21810,7 @@ loc_19664:
 	dc.w	$0000, $0240, $068C, $0ACE, $0248, $0888, $0EEE, $04CE, $008C, $0444, $08AC, $046A, $0024, $0664, $0480
 	dc.b	$02, $0E, $00, $00, $00, $00, $06, $8C, $08, $88, $02, $48, $04, $44, $0C, $CC, $0A, $22, $00, $AC, $0E, $66, $08, $AC, $04, $6A, $00, $24, $08, $02, $02, $44
 	dc.b	$02, $0E, $00, $00, $00, $00, $06, $8C, $08, $88, $02, $48, $04, $44, $0C, $CC, $0A, $22, $00, $AC, $0E, $66, $08, $AC, $04, $6A, $00, $24, $08, $02, $02, $44
+
 ;loc_198A4:
 DriverPortraitTileMappings:
 	dc.l	loc_199B8 ; G. Ceara
@@ -21528,6 +21865,7 @@ loc_19A12:
 	dc.b	$06, $00, $00, $00, $00, $06, $19, $01, $90, $19, $01, $51, $15, $13, $C7, $FE
 loc_19A22:
 	dc.b	$06, $00, $00, $00, $00, $00, $15, $21, $51, $15, $11, $51, $15, $11, $50, $3C, $0F, $E0
+
 ;loc_19A34:
 DriverPortraitTiles:
 	dc.l	loc_1C3B6 ; G. Ceara
@@ -39144,18 +39482,22 @@ loc_73DEA:
 	dc.b	$F6, $FA, $DB, $2C, $72, $72, $32, $32, $1F, $16, $1F, $1F, $00, $0F, $00, $0F, $00, $09, $00, $09, $06, $36, $06, $36, $15, $80, $14, $80, $2C, $26, $26, $23
 	dc.b	$23, $1F, $15, $1F, $14, $10, $10, $12, $09, $03, $03, $03, $03, $4F, $4F, $4F, $4F, $15, $90, $14, $80, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $33, $C0, $00, $FF, $5A, $E0, $80, $40, $4E, $75
+
 loc_75C4A:
 	MOVE.w	#$8000, $00FF5AE2
 	OR.w	D0, D0
 	RTS
+
 loc_75C56:
 	MOVE.b	#1, $00FF5AE4
 	OR.w	D0, D0
 	RTS
+
 loc_75C62:
 	MOVE.b	#$80, $00FF5AE4
 	OR.w	D0, D0
 	RTS
+
 loc_75C6E:
 	LEA	$00FF5AC0, A6
 	LEA	$00FF5AF0, A4
@@ -39230,6 +39572,7 @@ loc_75D4A:
 	JSR	loc_75F06(PC)
 	JSR	loc_75F58(PC)
 	RTS
+
 loc_75D60:
 	MOVE.w	$26(A6), D0
 	BNE.b	loc_75D6E
@@ -39380,6 +39723,7 @@ loc_75EE2:
 	MOVEQ	#2, D7
 	LEA	$00A01FC6, A3
 	BRA.w	loc_761DA
+
 loc_75F06:
 	MOVEA.l	A4, A5
 	MOVE.w	$8(A6), D0
@@ -39407,6 +39751,7 @@ loc_75F4C:
 	LEA	$00A01FA0, A3
 	MOVEQ	#5, D7
 	BRA.w	loc_761DA
+
 loc_75F58:
 	MOVEA.l	A4, A5
 	MOVE.w	$C(A6), D0
@@ -39434,6 +39779,7 @@ loc_75F9E:
 	LEA	$00A01FC0, A3
 	MOVEQ	#5, D7
 	BRA.w	loc_761DA
+
 loc_75FAA:
 	MOVE.w	$1C(A6), D0
 	ANDI.w	#$000F, D0
@@ -39445,6 +39791,7 @@ loc_75FBE:
 	LSL.w	#3, D0
 	ADDI.w	#$0010, D0
 	RTS
+
 loc_75FC6:
 	ANDI.w	#$007F, D0
 	LSR.w	#1, D0
@@ -39458,6 +39805,7 @@ loc_75FC6:
 	ADDQ.w	#1, D1
 	ADD.b	(A1,D1.w), D7
 	RTS
+
 loc_75FEA:
 	ANDI.w	#$007F, D0
 	LSL.w	#4, D0
@@ -39467,6 +39815,7 @@ loc_75FEA:
 	RTS
 loc_75FFC:
 	dc.b	$00, $00, $00, $04, $00, $08, $00, $0C, $00, $10, $00, $14, $00, $18, $00, $1C, $00, $00, $04, $00, $08, $00, $0C, $00, $10, $00, $14, $00, $18, $00, $1C, $00
+
 loc_7601C:
 	MOVE.w	D1, D3
 	LSR.w	#8, D1
@@ -39526,10 +39875,13 @@ loc_761C4:
 	LEA	$00A01C10, A3
 	BRA.b	loc_761D8
 	dc.b	$7E, $01, $60, $02
+
 loc_761D8:
 	MOVEQ	#0, D7
+
 loc_761DA:
 	MOVEA.l	A4, A5
+
 loc_761DC:
 	MOVE.w	#$0100, $00A11100
 loc_761E4:
@@ -39542,6 +39894,7 @@ loc_761EE:
 	RTS
 loc_761FE:
 	dc.b	$7F, $00, $00, $7F, $00, $00, $00, $00, $00, $00, $00, $00, $7F, $00, $00, $7F
+
 loc_7620E:
 	MOVEQ	#0, D2
 	MOVE.b	$29(A6), D0
