@@ -2732,7 +2732,7 @@ loc_22F2:
 	CLR.w	$FFFF914A.w
 	CLR.w	$FFFFFF18.w
 	MOVE.w	#2, $FFFFFF30.w
-	MOVE.w	#$003C, $FFFF9180.w
+	MOVE.w	#$003C, Engine_data_variant.w
 	CLR.w	$FFFF9182.w
 	MOVE.l	#$00003D98, $FFFFFF10.w
 	RTS
@@ -3655,7 +3655,7 @@ loc_300E:
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
-	MOVE.w	#$003C, $FFFF9180.w
+	MOVE.w	#$003C, Engine_data_variant.w
 	CLR.w	$FFFF9182.w
 	MOVE.l	#$00003800, $FFFFFF2A.w
 	MOVE.l	#$000032FA, $FFFFFF10.w
@@ -6185,7 +6185,7 @@ loc_578E:
 	MOVE.w	#1, $FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
-	MOVE.w	#$003C, $FFFF9180.w
+	MOVE.w	#$003C, Engine_data_variant.w
 	CLR.w	$FFFF9182.w
 	MOVE.l	#$00005616, $FFFFFF10.w
 	MOVE.l	#$0000584E, $FFFFFF0C.w
@@ -6604,8 +6604,8 @@ loc_5CF0:
 loc_5CFC:
 	MOVE.w	$FFFF9106.w, Player_speed.w ; Deacceleration from non-lethal obstacle collision
 	CLR.l	D0
-	LEA	loc_5FAE, A1
-	MOVE.w	$FFFF9180.w, D0
+	LEA	Engine_data, A1
+	MOVE.w	Engine_data_variant.w, D0
 	ADDA.l	D0, A1
 	MOVE.w	Shift_type.w, D0
 	LSL.l	#3, D0
@@ -6701,10 +6701,10 @@ loc_5F58:
 ;loc_5F5E
 Update_speed:
 	CLR.l	D0
-	LEA	loc_5FAE, A1 ; engine data
-	MOVE.w	$FFFF9180.w, D0
+	LEA	Engine_data, A1
+	MOVE.w	Engine_data_variant.w, D0
 	ADDA.l	D0, A1
-	MOVE.w	Shift_type.w, D0 ; gear shift type
+	MOVE.w	Shift_type.w, D0
 	LSL.l	#3, D0
 	ADDA.l	D0, A1
 	MOVE.w	Player_shift.w, D0
@@ -6727,16 +6727,31 @@ loc_5F9E:
 loc_5FA8:
 	ADD.w	D0, Player_speed.w; Add delta speed and return
 	RTS
-loc_5FAE: ; 180 bytes (engine characteristics?)
-	dc.b	$06, $8A, $03, $37, $02, $48, $01, $D3, $06, $8A, $03, $30, $02, $3A, $01, $BE, $07, $42, $03, $9B, $02, $7F, $01, $FB, $01, $BF, $01, $A2, $01, $7F, $06, $7E
-	dc.b	$03, $1F, $02, $24, $01, $A3, $06, $7E, $03, $18, $02, $16, $01, $8E, $07, $3A, $03, $8B, $02, $67, $01, $DB, $01, $97, $01, $72, $01, $47
-	dc.w	$067C, $031B, $021E, $019B                      ; RPM for 100km/h for automatic
-	dc.w	$067C, $0314, $0210, $0186                      ; RPM for 100km/h for 4-shift
-	dc.w	$0739, $0389, $0264, $01D7, $0192, $016C, $0140 ; RPM for 100km/h for 7-shift
-	dc.b	$06, $7A, $03, $17, $02, $18, $01, $93, $06, $74, $03, $10, $02, $0A, $01, $7E
+;loc_5FAE
+Engine_data: ; Defines RPM at 100km/h for each shift and shift type. Has 6 different variants for some reason, third one most commonly used
+	dc.w	$068A, $0337, $0248, $01D3
+	dc.w	$068A, $0330, $023A, $01BE
+	dc.w	$0742, $039B, $027F, $01FB, $01BF, $01A2, $017F
+
+	dc.w	$067E, $031F, $0224, $01A3
+	dc.w	$067E, $0318, $0216, $018E
+	dc.w	$073A, $038B, $0267, $01DB, $0197, $0172, $0147
+
+	dc.w	$067C, $031B, $021E, $019B                      ; RPM at 100km/h for automatic
+	dc.w	$067C, $0314, $0210, $0186                      ; RPM at 100km/h for 4-shift
+	dc.w	$0739, $0389, $0264, $01D7, $0192, $016C, $0140 ; RPM at 100km/h for 7-shift
+
+	dc.w	$067A, $0317, $0218, $0193
+	dc.w	$0674, $0310, $020A, $017E
 	dc.w	$0738, $0387, $0261, $01D3, $018D, $0166, $0139
-	dc.b	$06, $78, $03, $13, $02, $12, $01, $8B, $06, $72, $03, $0C, $02, $04, $01, $76, $07, $37, $03, $85, $02, $5E, $01, $CF, $01, $88, $01, $60, $01, $32, $06, $76
-	dc.b	$03, $0F, $02, $0C, $01, $83, $06, $70, $03, $08, $01, $FE, $01, $6E, $07, $36, $03, $83, $02, $5B, $01, $CB, $01, $83, $01, $5A, $01, $2B
+
+	dc.w	$0678, $0313, $0212, $018B
+	dc.w	$0672, $030C, $0204, $0176
+	dc.w	$0737, $0385, $025E, $01CF, $0188, $0160, $0132
+
+	dc.w	$0676, $030F, $020C, $0183
+	dc.w	$0670, $0308, $01FE, $016E
+	dc.w	$0736, $0383, $025B, $01CB, $0183, $015A, $012B
 loc_6062:
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_60BE
@@ -19564,7 +19579,7 @@ loc_13152:
 	MOVE.w	(A1,D0.w), $FFFF9182.w
 	MOVE.w	$FFFF915E.w, D0
 	LEA	loc_1340C(PC), A1
-	MOVE.w	(A1,D0.w), $FFFF9180.w
+	MOVE.w	(A1,D0.w), Engine_data_variant.w
 loc_1316E:
 	RTS
 loc_13170:
@@ -19767,11 +19782,11 @@ loc_13404:
 	dc.w	$0001
 loc_1340C:
 	dc.w	$0000
-  dc.w	$001E
+	dc.w	$001E
 	dc.w	$003C
 	dc.w	$005A
 	dc.w	$0078
-  dc.w	$0096
+	dc.w	$0096
 	JSR	loc_396
 	SUBQ.w	#1, $FFFFFC16.w
 	BCC.b	loc_13484
