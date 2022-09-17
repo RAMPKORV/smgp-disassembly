@@ -4637,8 +4637,8 @@ loc_3D32:
 	JSR	loc_1304C
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
 	MOVE.b	#$80, $FFFF910B.w
-	MOVE.w	#$044C, Player_rpm.w
-	MOVE.w	#$044C, $FFFF9104.w
+	MOVE.w	#1100, Player_rpm.w
+	MOVE.w	#1100, $FFFF9104.w
 	MOVE.w	#1, $FFFFFCA6.w
 	RTS
 	JSR	loc_36B6(PC)
@@ -6572,7 +6572,7 @@ loc_5AE8:
 loc_5B00:
 	RTS
 
-loc_5B02:
+loc_5B02: ; Suspected update rpm
 	TST.w	$FFFF9146.w
 	BEQ.b	loc_5AD6
 	TST.w	$FFFFFC76.w
@@ -6671,7 +6671,7 @@ loc_5C18:
 	RTS
 
 loc_5C1E:
-	MOVE.w	$FFFF9110.w, D0
+	MOVE.w	$FFFF9110.w, D0 ; Suspected derivative of rpm
 	BEQ.b	loc_5C26
 	SUBQ.w	#1, D0
 loc_5C26:
@@ -6781,6 +6781,7 @@ loc_5CFC:
 	MOVE.w	D0, Player_rpm.w
 loc_5D30:
 	RTS
+
 loc_5D32:
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $2A, $2A, $2A, $2C, $2C, $2E, $2E, $2F, $30, $32, $26, $16, $08
 	dc.b	$FF, $FD, $FB, $00, $00
@@ -6859,7 +6860,7 @@ loc_5F4C:
 	BEQ.b	loc_5F58
 	MOVE.w	#$0E86, D0
 loc_5F58:
-	MOVE.w	D0, $FFFFE996.w
+	MOVE.w	D0, $FFFFE996.w ; Either $022E (558) or $0E86 (3718), only side effect of function. $FFFFE996 never read?
 	RTS
 
 ;loc_5F5E
@@ -6925,8 +6926,8 @@ loc_6062:
 	BTST.b	D6, $FFFFFF04.w
 	BEQ.b	loc_60BE
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
-	BCS.b	loc_6080
-	ADDI.w	#-40, Player_rpm.w
+	BCS.b	loc_6080           ; if rpm > max
+	ADDI.w	#-40, Player_rpm.w ; then rpm = rpm-40
 loc_6080:
 	CLR.l	D1
 	LEA	loc_60C0, A1
@@ -6949,6 +6950,7 @@ loc_60B2:
 	MOVE.w	#0, Player_rpm.w
 loc_60BE:
 	RTS
+
 loc_60C0:
 	dc.b	$32
 	dc.b	$28
@@ -17669,8 +17671,7 @@ loc_ED70:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 loc_EE60:
-	dc.l	$00010406
-	dc.b	$01, $00, $04, $06, $00, $01, $06, $04, $01, $00, $06, $04, $06, $04, $01, $00, $06, $04, $00, $01
+	dc.l	$00010406, $01000406, $00010604, $01000604, $06040100, $06040001
 	JSR	loc_396
 	BSR.w	loc_EE88
 	BSR.w	loc_EF04
