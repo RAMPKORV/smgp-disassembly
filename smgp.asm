@@ -4820,7 +4820,7 @@ loc_3FE0:
 	TST.w	$FFFF9142.w
 	BEQ.b	loc_4056
 	MOVE.b	$FFFFFF23.w, D0
-	BTST.b	D0, Input_click_bitset.w
+	BTST.b	D0, Input_click_bitset.w ; if break key clicked
 	BEQ.b	loc_4026
 	CMPI.w	#$0080, Player_speed.w
 	BCS.b	loc_4026
@@ -6462,12 +6462,12 @@ loc_59CE:
 	BRA.w	loc_5A2C
 	BRA.w	loc_5A32
 loc_59DA: ; Jump to when shift type is Automatic
-	BTST.b	D5, Input_state_bitset.w
-	BNE.w	loc_5A62
+	BTST.b	D5, Input_state_bitset.w ; if shift down key pressed
+	BNE.w	loc_5A62                 ; then shift down (even in automatic!)
 	MOVE.w	#3, D0
-	CMPI.w	#1300, Player_rpm.w ; if rpm > 1300
-	BCC.b	loc_5A44            ; then shift up (and RTS)
-	LEA	loc_59FE, A1            ; else perform shift down check ...
+	CMPI.w	#1300, Player_rpm.w      ; else if rpm > 1300
+	BCC.b	loc_5A44                 ; then shift up
+	LEA	loc_59FE, A1                 ; else perform automatic shift down check ...
 	MOVE.w	Player_shift.w, D0
 	ASL.w	#2, D0
 	JMP	(A1,D0.w)
@@ -6495,9 +6495,9 @@ loc_5A2C: ; Jump to when shift type is 4-shift
 loc_5A32: ; Jump to when shift type is 7-shift
 	MOVE.w	#6, D0 ; Max shift
 loc_5A36:
-	BTST.b	D6, Input_click_bitset.w ; if shift up requested
+	BTST.b	D6, Input_click_bitset.w ; if shift up key clicked
 	BNE.b	loc_5A44        ; then shift up
-	BTST.b	D5, Input_click_bitset.w ; else if shift down requested
+	BTST.b	D5, Input_click_bitset.w ; else if shift down key clicked
 	BNE.b	loc_5A62        ; then shift down
 	RTS
 loc_5A44:
@@ -6541,6 +6541,7 @@ loc_5A98:
 	JSR	loc_146C
 loc_5AAE:
 	RTS ; end of Update_shift
+
 loc_5AB0:
 	SUBI.w	#30, Player_rpm.w
 	BCC.b	loc_5ABE
@@ -6555,6 +6556,7 @@ loc_5ABE:
 loc_5ACE:
 	MOVE.w	Player_rpm.w, $FFFF9104.w
 	RTS
+
 loc_5AD6:
 	LEA	$FFFF9104.w, A1
 	ADDI.w	#-60, (A1)
@@ -6563,7 +6565,7 @@ loc_5AD6:
 	MOVE.w	#$0321, (A1) ; (A1) = max((A1), $0321 == 801 rpm)
 loc_5AE8:
 	MOVE.b	$FFFFFF22.w, D5
-	BTST.b	D5, Input_state_bitset.w
+	BTST.b	D5, Input_state_bitset.w ; if accelerate key pressed
 	BEQ.b	loc_5B00
 	ADDI.w	#$0078, (A1)
 	CMPI.w	#$04E3, (A1) ; ...
@@ -6585,7 +6587,7 @@ loc_5B02: ; Suspected update rpm
 	MOVE.b	$FFFFFF23.w, D6
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_5B34
-	BTST.b	D6, Input_state_bitset.w
+	BTST.b	D6, Input_state_bitset.w ; if break key pressed
 	BNE.w	loc_5BF6
 loc_5B34:
 	LEA	loc_5D32, A1
@@ -6632,7 +6634,7 @@ loc_5B9E:
 	SUBQ.w	#8, D2
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_5BD2
-	BTST.b	D5, Input_state_bitset.w
+	BTST.b	D5, Input_state_bitset.w ; if accelerate key pressed
 	BNE.b	loc_5BD2
 	BRA.b	loc_5BC4
 	dc.b	$4A, $78, $91, $00, $67, $EC, $D4, $42, $0C, $78, $00, $01, $92, $08, $67, $02, $D4, $42
@@ -6923,7 +6925,7 @@ loc_6062:
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_60BE
 	MOVE.b	$FFFFFF23.w, D6
-	BTST.b	D6, Input_state_bitset.w
+	BTST.b	D6, Input_state_bitset.w ; if break key pressed
 	BEQ.b	loc_60BE
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCS.b	loc_6080           ; if rpm > max

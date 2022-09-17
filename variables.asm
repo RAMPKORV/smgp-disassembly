@@ -17,6 +17,7 @@
 ; 0x9106: Speed (why two?)
 ; 0x9108: Speed
 ; 0x9144.w: Current track idx to be loaded
+; 0x9146.w: Usually 1. When 0, several code paths are skipped and RPM calculation becomes dumb
 ; 0x915C.w: Car characteristics
 ; 0x9161: steering
 ; 0x9180: RPM for current shift offset (commonly $003C, when are others used?)
