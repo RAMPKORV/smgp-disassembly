@@ -38,7 +38,7 @@
 ; 0xfc80: Disables speed update (boolean)
 ; 0xFF04: Input key state bitset: start, A, C, B, right, left, down, up
 ; 0xFF05: Input key click bitset: Set for one frame if key clicked?
-; 0xFF20: Input key mapping ("Control type" in settings)
+; 0xFF20.l: Input key mapping ("Control type" in settings)
 ; 0xff26: Language. 0 = Japanese, 1 = English
 ; 0xffae: Copy of speed (useless, only written to?)
 ; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)

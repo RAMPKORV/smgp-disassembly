@@ -387,7 +387,7 @@ loc_5A6:
 	MOVE.w	#$0100, $00A11100
 	BTST.b	#0, $00A11100
 	BNE.b	loc_5A6
-	LEA	$FFFFFF04.w, A0
+	LEA	Input_state_bitset.w, A0
 	LEA	$00A10003, A1
 	JSR	loc_5D6(PC)
 	ADDQ.w	#2, A1
@@ -2807,7 +2807,7 @@ loc_2250: ; Teams in-game palette
 	JSR	loc_396
 	JSR	loc_C44
 	JSR	loc_D5C
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BNE.b	loc_2340
 	MOVE.w	$FFFFFC04.w, D0
 	JMP	loc_22F2(PC,D0.w)
@@ -2891,7 +2891,7 @@ loc_237C:
 	JSR	loc_6F0
 	JMP	loc_C9A
 	JSR	loc_396
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BEQ.b	loc_2476
 	MOVE.w	#9, $FFFFFF4C.w
 	MOVE.l	#$0000293C, $FFFFFF10.w
@@ -3231,7 +3231,7 @@ loc_27E8: ; Suspected main menu loop
 	JSR	loc_D5C
 	BTST.b	#0, $FFFF900F.w
 	BNE.b	loc_2840
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BNE.w	loc_2918
 	BTST.b	#3, $FFFF900F.w
 	BNE.w	loc_2920
@@ -3610,22 +3610,22 @@ loc_2E12:
 	RTS
 
 loc_2E34:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	BEQ.b	loc_2E66
 	ANDI.b	#$E0, D0
 	BNE.w	loc_2EE2
-	BTST.b	#4, $FFFFFF05.w
+	BTST.b	#4, Input_click_bitset.w
 	BNE.b	loc_2EB8
-	BTST.b	#0, $FFFFFF05.w
+	BTST.b	#0, Input_click_bitset.w
 	BNE.w	loc_2F00
-	BTST.b	#1, $FFFFFF05.w
+	BTST.b	#1, Input_click_bitset.w
 	BNE.w	loc_2F2E
 	CMPI.w	#3, $FFFF9000.w
 	BEQ.b	loc_2E68
 loc_2E66:
 	RTS
 loc_2E68:
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BNE.b	loc_2E94
 	CMPI.w	#3, $FFFF9000.w
 	BNE.b	loc_2E80
@@ -3899,7 +3899,7 @@ loc_3256:
 	LEA	$FFFFE800.w, A6
 	JSR	loc_778
 loc_3284:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	loc_32CA
 	LEA	VDP_data_port, A5
@@ -4093,7 +4093,7 @@ loc_35E6:
 	TST.w	$FFFFFC04.w
 	BNE.b	loc_3620
 	LEA	Shift_type.w, A3
-	BTST.b	#3, $FFFFFF05.w
+	BTST.b	#3, Input_click_bitset.w
 	BEQ.b	loc_3606
 	CMPI.w	#2, (A3)
 	BEQ.b	loc_3620
@@ -4101,7 +4101,7 @@ loc_35E6:
 	CLR.w	$2C(A0)
 	BRA.b	loc_361A
 loc_3606:
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BEQ.b	loc_3620
 	TST.w	(A3)
 	BEQ.b	loc_3620
@@ -4729,7 +4729,7 @@ loc_3ECE:
 loc_3EE4:
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_3F0C
-	LEA	$FFFFFF04.w, A0
+	LEA	Input_state_bitset.w, A0
 	MOVE.b	$1(A0), D7
 	ANDI.b	#$80, D7
 	MOVEA.l	$FFFFFF58.w, A1
@@ -4745,7 +4745,7 @@ loc_3F0C:
 	RTS
 
 loc_3F0E:
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BEQ.b	loc_3F30
 	NOT.w	$FFFFFC66.w
 	TST.w	$FFFFFF18.w
@@ -4796,7 +4796,7 @@ loc_3F8E:
 	BNE.b	loc_3FB0
 	MOVE.l	#$0000293C, D0
 loc_3FB0:
-	MOVE.b	$FFFFFF04.w, D1
+	MOVE.b	Input_state_bitset.w, D1
 	ANDI.w	#$0070, D1
 	CMPI.w	#$0070, D1
 	BNE.b	loc_3FC2
@@ -4820,7 +4820,7 @@ loc_3FE0:
 	TST.w	$FFFF9142.w
 	BEQ.b	loc_4056
 	MOVE.b	$FFFFFF23.w, D0
-	BTST.b	D0, $FFFFFF05.w
+	BTST.b	D0, Input_click_bitset.w
 	BEQ.b	loc_4026
 	CMPI.w	#$0080, Player_speed.w
 	BCS.b	loc_4026
@@ -4948,7 +4948,7 @@ loc_42B4:
 loc_42C0:
 	MOVE.w	(A0)+, VDP_data_port
 	DBF	D0, loc_42C0
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_42DA
 	SUBQ.w	#1, $FFFFFC2C.w
@@ -5098,7 +5098,7 @@ loc_4498:
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
 	JSR	loc_778
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_451A
 	SUBQ.w	#1, $FFFFFC2C.w
@@ -5272,7 +5272,7 @@ loc_47CA:
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
 	JSR	loc_778
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BEQ.b	loc_481C
 	MOVE.w	#$FFFF, $FFFFFC18.w
 	JSR	loc_48C0(PC)
@@ -5283,7 +5283,7 @@ loc_481C:
 	RTS
 
 loc_481E:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$0070, D0
 	BEQ.b	loc_486A
 	MOVEQ	#0, D0
@@ -5348,7 +5348,7 @@ loc_48CE:
 	RTS
 
 loc_48D6:
-	MOVE.b	$FFFFFF04.w, D0
+	MOVE.b	Input_state_bitset.w, D0
 	ANDI.w	#$000C, D0
 	BNE.b	loc_48E6
 	CLR.b	$FFFFFC11.w
@@ -5567,7 +5567,7 @@ loc_4B5A:
 	JSR	loc_4C8A(PC)
 	JSR	loc_4AB8(PC)
 	JSR	loc_D5C
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BEQ.b	loc_4BA2
 	MOVE.w	#9, $FFFFFF4C.w
 	MOVE.l	#$0000293C, $FFFFFF10.w
@@ -5992,13 +5992,13 @@ loc_503A:
 	MOVE.w	$FFFFFC1C.w, D0
 	TST.w	$FFFFFC18.w
 	BEQ.b	loc_50F8
-	MOVE.b	$FFFFFF05.w, D1
+	MOVE.b	Input_click_bitset.w, D1
 	ANDI.w	#$00F0, D1
 	BEQ.b	loc_50DC
 	MOVE.l	#$0000D6E2, $FFFFFF10.w
 	RTS
 loc_50DC:
-	BTST.b	#0, $FFFFFF04.w
+	BTST.b	#0, Input_state_bitset.w
 	BEQ.b	loc_50F0
 	ADDQ.w	#1, D0
 	CMPI.w	#$0060, D0
@@ -6006,7 +6006,7 @@ loc_50DC:
 	SUBQ.w	#1, D0
 	BRA.b	loc_5104
 loc_50F0:
-	BTST.b	#1, $FFFFFF04.w
+	BTST.b	#1, Input_state_bitset.w
 	BEQ.b	loc_5108
 loc_50F8:
 	SUBQ.w	#1, D0
@@ -6249,10 +6249,10 @@ loc_553E:
 loc_562A:
 	MOVE.w	$FFFFFC04.w, D0
 	BPL.b	loc_5660
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	MOVE.b	D0, D1
 	BEQ.b	loc_5660
-	BTST.b	#4, $FFFFFF05.w
+	BTST.b	#4, Input_click_bitset.w
 	BNE.b	loc_5662
 	ANDI.b	#9, D0
 	BNE.b	loc_5672
@@ -6462,7 +6462,7 @@ loc_59CE:
 	BRA.w	loc_5A2C
 	BRA.w	loc_5A32
 loc_59DA: ; Jump to when shift type is Automatic
-	BTST.b	D5, $FFFFFF04.w
+	BTST.b	D5, Input_state_bitset.w
 	BNE.w	loc_5A62
 	MOVE.w	#3, D0
 	CMPI.w	#1300, Player_rpm.w ; if rpm > 1300
@@ -6495,9 +6495,9 @@ loc_5A2C: ; Jump to when shift type is 4-shift
 loc_5A32: ; Jump to when shift type is 7-shift
 	MOVE.w	#6, D0 ; Max shift
 loc_5A36:
-	BTST.b	D6, $FFFFFF05.w ; if shift up requested
+	BTST.b	D6, Input_click_bitset.w ; if shift up requested
 	BNE.b	loc_5A44        ; then shift up
-	BTST.b	D5, $FFFFFF05.w ; else if shift down requested
+	BTST.b	D5, Input_click_bitset.w ; else if shift down requested
 	BNE.b	loc_5A62        ; then shift down
 	RTS
 loc_5A44:
@@ -6563,7 +6563,7 @@ loc_5AD6:
 	MOVE.w	#$0321, (A1) ; (A1) = max((A1), $0321 == 801 rpm)
 loc_5AE8:
 	MOVE.b	$FFFFFF22.w, D5
-	BTST.b	D5, $FFFFFF04.w
+	BTST.b	D5, Input_state_bitset.w
 	BEQ.b	loc_5B00
 	ADDI.w	#$0078, (A1)
 	CMPI.w	#$04E3, (A1) ; ...
@@ -6585,7 +6585,7 @@ loc_5B02: ; Suspected update rpm
 	MOVE.b	$FFFFFF23.w, D6
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_5B34
-	BTST.b	D6, $FFFFFF04.w
+	BTST.b	D6, Input_state_bitset.w
 	BNE.w	loc_5BF6
 loc_5B34:
 	LEA	loc_5D32, A1
@@ -6632,7 +6632,7 @@ loc_5B9E:
 	SUBQ.w	#8, D2
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_5BD2
-	BTST.b	D5, $FFFFFF04.w
+	BTST.b	D5, Input_state_bitset.w
 	BNE.b	loc_5BD2
 	BRA.b	loc_5BC4
 	dc.b	$4A, $78, $91, $00, $67, $EC, $D4, $42, $0C, $78, $00, $01, $92, $08, $67, $02, $D4, $42
@@ -6923,7 +6923,7 @@ loc_6062:
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_60BE
 	MOVE.b	$FFFFFF23.w, D6
-	BTST.b	D6, $FFFFFF04.w
+	BTST.b	D6, Input_state_bitset.w
 	BEQ.b	loc_60BE
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCS.b	loc_6080           ; if rpm > max
@@ -6982,7 +6982,7 @@ loc_60DC:
 	ADD.w	(A0)+, D6
 loc_6106:
 	MOVE.b	$FFFF910B.w, D7
-	MOVE.b	$FFFFFF04.w, D0
+	MOVE.b	Input_state_bitset.w, D0
 	TST.w	$FFFFFCA8.w
 	BNE.w	loc_61A8
 	TST.w	$FFFFAE38.w
@@ -10383,7 +10383,7 @@ loc_873A:
 	CMP.w	$FFFFAE1A.w, D0
 	BCS.b	loc_8788
 	MOVE.w	#1, $FFFFFC9E.w
-	BTST.b	#5, $FFFFFF04.w
+	BTST.b	#5, Input_state_bitset.w
 	BEQ.b	loc_8788
 	MOVE.w	#1, $FFFFFCA0.w
 loc_8788:
@@ -13956,7 +13956,7 @@ loc_B626:
 loc_B636:
 	RTS
 loc_B638:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	loc_B646
 	ADDQ.w	#4, $FFFFFC1C.w
@@ -13978,7 +13978,7 @@ loc_B66E:
 loc_B674:
 	ADDQ.b	#2, $FFFFFC1A.w
 	MOVE.w	#1, $FFFF9142.w
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.b	loc_B6C8
 	MOVE.w	#$000E, $00FF5AE0
@@ -14230,7 +14230,7 @@ loc_BA0E:
 	RTS
 loc_BA12:
 	ADDQ.b	#2, $FFFFFC1A.w
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.w	loc_BA6C
 	MOVE.w	#$000E, $00FF5AE0
@@ -14851,7 +14851,7 @@ loc_C354:
 	ADDQ.w	#4, $FFFFFC1C.w
 	RTS
 loc_C372:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BEQ.b	loc_C380
 loc_C37C:
@@ -15429,7 +15429,7 @@ loc_CB50:
 	RTS
 
 loc_CB60:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F3, D0
 	BEQ.b	loc_CBAA
 	MOVE.w	#$000E, $00FF5AE0
@@ -15490,7 +15490,7 @@ loc_CC2C:
 	dc.b	$4E, $75
 
 loc_CC3A:
-	BTST.b	#7, $FFFFFF05.w
+	BTST.b	#7, Input_click_bitset.w
 	BEQ.b	loc_CC50
 	MOVE.w	#9, $FFFFFF4C.w
 	MOVE.l	#$0000293C, $FFFFFF10.w
@@ -15732,13 +15732,13 @@ loc_CFA2:
 	RTS
 loc_CFA4:
 	BSR.w	loc_D204
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.w	loc_CFFE
 	MOVE.w	#$000E, $00FF5AE0
 	ANDI.b	#$0C, D0
 	BNE.w	loc_CFF0
-	BTST.b	#4, $FFFFFF05.w
+	BTST.b	#4, Input_click_bitset.w
 	BNE.w	loc_CFE6
 	BTST.b	#0, $FFFFFC0D.w
 	BNE.b	loc_CFE6
@@ -15765,7 +15765,7 @@ loc_D000:
 	ADDQ.w	#4, $FFFFFC1E.w
 	RTS
 loc_D02A:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	loc_D066
 	BTST.b	#7, Player_team.w
@@ -16172,7 +16172,7 @@ loc_D632:
 	RTS
 
 loc_D6C8:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	loc_D6E0
 loc_D6D2:
@@ -16399,7 +16399,7 @@ loc_D940:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 	JSR	loc_396
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_DA52
 	SUBQ.w	#1, $FFFFFC00.w
@@ -16449,7 +16449,7 @@ loc_DB12:
 	RTS
 
 loc_DB42:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_DB4E
 	RTS
@@ -16568,7 +16568,7 @@ loc_DCF2:
 	MOVE.w	#2, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
-	CMPI.b	#$70, $FFFFFF04.w
+	CMPI.b	#$70, Input_state_bitset.w
 	BEQ.b	loc_DD4E
 	RTS
 loc_DD4E:
@@ -16654,7 +16654,7 @@ loc_DE36:
 	dc.l	$FFFFEB52
 	JSR	loc_396
 	JSR	loc_D5C
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.w	loc_E05E
 	RTS
@@ -16797,7 +16797,7 @@ loc_E0A6:
 	JSR	loc_778
 loc_E0B6:
 	JSR	loc_D5C
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_E0CC
 	SUBQ.w	#1, $FFFFFC2C.w
@@ -17095,7 +17095,7 @@ loc_E55C:
 	RTS
 loc_E55E:
 	BSR.b	loc_E5AC
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E3, D0
 	BEQ.b	loc_E5AC
 	MOVE.w	#$000E, $00FF5AE0
@@ -17215,7 +17215,7 @@ loc_E790:
 	BNE.b	loc_E7AC
 	BSET.b	#7, Player_team.w
 loc_E7AC:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	BEQ.w	loc_E8B2
 	ANDI.b	#$E0, D0
 	BNE.b	loc_E7FA
@@ -17224,15 +17224,15 @@ loc_E7AC:
 	MOVE.b	#1, $FFFFFC01.w
 	BSR.w	loc_E8B4
 loc_E7CC:
-	BTST.b	#0, $FFFFFF05.w
+	BTST.b	#0, Input_click_bitset.w
 	BNE.b	loc_E838
-	BTST.b	#1, $FFFFFF05.w
+	BTST.b	#1, Input_click_bitset.w
 	BNE.b	loc_E856
 	CMPI.b	#$18, $FFFFFC00.w
 	BEQ.b	loc_E7F8
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BNE.w	loc_E894
-	BTST.b	#3, $FFFFFF05.w
+	BTST.b	#3, Input_click_bitset.w
 	BNE.w	loc_E894
 loc_E7F8:
 	RTS
@@ -17406,15 +17406,15 @@ loc_EA58:
 	RTS
 
 loc_EAA0:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	BEQ.b	loc_EAE2
 	JSR	loc_75C4A
-	MOVE.b	$FFFFFF05.w, D0
-	BTST.b	#4, $FFFFFF05.w
+	MOVE.b	Input_click_bitset.w, D0
+	BTST.b	#4, Input_click_bitset.w
 	BNE.w	loc_ED1E
-	BTST.b	#0, $FFFFFF05.w
+	BTST.b	#0, Input_click_bitset.w
 	BNE.w	loc_EAE4
-	BTST.b	#1, $FFFFFF05.w
+	BTST.b	#1, Input_click_bitset.w
 	BNE.w	loc_EB08
 	LEA	loc_ED3A, A1
 	MOVE.w	$FFFFFC00.w, D1
@@ -17506,7 +17506,7 @@ loc_EBCC:
 loc_EBE0:
 	ANDI.b	#$E0, D0
 	BNE.b	loc_EC2C
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BEQ.b	loc_EBFC
 	SUBQ.w	#1, $FFFFFC14.w
 	BCC.b	loc_EC0C
@@ -17533,10 +17533,10 @@ loc_EC2C:
 	MOVE.w	D0, $00FF5AC0
 	RTS
 loc_EC3A:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E0, D0
 	BNE.b	loc_EC98
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BEQ.b	loc_EC5A
 	SUBQ.w	#1, $FFFFFC18.w
 	BCC.b	loc_EC6A
@@ -17568,10 +17568,10 @@ loc_EC98:
 	MOVE.w	D1, $00FF5AE0
 	RTS
 loc_ECB0:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E0, D0
 	BNE.b	loc_ED00
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BEQ.b	loc_ECD0
 	SUBQ.w	#1, $FFFFFC1C.w
 	BCC.b	loc_ECE0
@@ -17601,7 +17601,7 @@ loc_ED00:
 	MOVE.w	D1, $00FF5AC2
 	RTS
 loc_ED1E:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.w	loc_EAE2
 	MOVE.w	#9, $FFFFFF4C.w
@@ -17678,7 +17678,7 @@ loc_EE60:
 	RTS
 
 loc_EE88:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F3, D0
 	BEQ.b	loc_EF02
 	MOVE.w	#$000E, $00FF5AE0
@@ -17740,19 +17740,19 @@ loc_EF28:
 	RTS
 
 loc_EF5C:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	BEQ.w	loc_F182
 	MOVE.w	#9, D7
 	MOVE.l	#$04440444, $FFFFE982.w
 	ANDI.b	#$E0, D0
 	BNE.w	loc_F03E
-	BTST.b	#4, $FFFFFF04.w
+	BTST.b	#4, Input_state_bitset.w
 	BNE.w	loc_F00A
-	BTST.b	#0, $FFFFFF05.w
+	BTST.b	#0, Input_click_bitset.w
 	BNE.b	loc_EFB6
-	BTST.b	#1, $FFFFFF05.w
+	BTST.b	#1, Input_click_bitset.w
 	BNE.b	loc_EFD2
-	BTST.b	#3, $FFFFFF05.w
+	BTST.b	#3, Input_click_bitset.w
 	BNE.b	loc_EFEE
 	MOVE.w	#$000E, $00FF5AE0
 	MOVE.w	$FFFFFC00.w, D0
@@ -17790,16 +17790,16 @@ loc_F004:
 	CLR.w	$FFFFFC00.w
 	RTS
 loc_F00A:
-	MOVE.b	$FFFFFF05.w, D0
+	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$0F, D0
 	BEQ.b	loc_F03C
-	BTST.b	#0, $FFFFFF05.w
+	BTST.b	#0, Input_click_bitset.w
 	BNE.w	loc_F102
-	BTST.b	#1, $FFFFFF05.w
+	BTST.b	#1, Input_click_bitset.w
 	BNE.w	loc_F11E
-	BTST.b	#2, $FFFFFF05.w
+	BTST.b	#2, Input_click_bitset.w
 	BNE.w	loc_F0D2
-	BTST.b	#3, $FFFFFF05.w
+	BTST.b	#3, Input_click_bitset.w
 	BNE.w	loc_F0A0
 loc_F03C:
 	RTS
@@ -17956,7 +17956,7 @@ loc_F232:
 	MOVE.w	#$02AE, (A2)+
 	MOVE.w	#$028E, (A2)+
 	SUBQ.w	#1, $FFFFFC08.w
-	BTST.b	#4, $FFFFFF04.w
+	BTST.b	#4, Input_state_bitset.w
 	BEQ.b	loc_F262
 	ADDQ.w	#2, $FFFFFC08.w
 loc_F262:
