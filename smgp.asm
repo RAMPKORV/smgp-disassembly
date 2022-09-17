@@ -2807,7 +2807,7 @@ loc_2250: ; Teams in-game palette
 	JSR	loc_396
 	JSR	loc_C44
 	JSR	loc_D5C
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BNE.b	loc_2340
 	MOVE.w	$FFFFFC04.w, D0
 	JMP	loc_22F2(PC,D0.w)
@@ -2891,7 +2891,7 @@ loc_237C:
 	JSR	loc_6F0
 	JMP	loc_C9A
 	JSR	loc_396
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_2476
 	MOVE.w	#9, $FFFFFF4C.w
 	MOVE.l	#$0000293C, $FFFFFF10.w
@@ -3231,7 +3231,7 @@ loc_27E8: ; Suspected main menu loop
 	JSR	loc_D5C
 	BTST.b	#0, $FFFF900F.w
 	BNE.b	loc_2840
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BNE.w	loc_2918
 	BTST.b	#3, $FFFF900F.w
 	BNE.w	loc_2920
@@ -3614,18 +3614,18 @@ loc_2E34:
 	BEQ.b	loc_2E66
 	ANDI.b	#$E0, D0
 	BNE.w	loc_2EE2
-	BTST.b	#4, Input_click_bitset.w
+	BTST.b	#KEY_B, Input_click_bitset.w
 	BNE.b	loc_2EB8
-	BTST.b	#0, Input_click_bitset.w
+	BTST.b	#KEY_UP, Input_click_bitset.w
 	BNE.w	loc_2F00
-	BTST.b	#1, Input_click_bitset.w
+	BTST.b	#KEY_DOWN, Input_click_bitset.w
 	BNE.w	loc_2F2E
 	CMPI.w	#3, $FFFF9000.w
 	BEQ.b	loc_2E68
 loc_2E66:
 	RTS
 loc_2E68:
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BNE.b	loc_2E94
 	CMPI.w	#3, $FFFF9000.w
 	BNE.b	loc_2E80
@@ -4093,7 +4093,7 @@ loc_35E6:
 	TST.w	$FFFFFC04.w
 	BNE.b	loc_3620
 	LEA	Shift_type.w, A3
-	BTST.b	#3, Input_click_bitset.w
+	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BEQ.b	loc_3606
 	CMPI.w	#2, (A3)
 	BEQ.b	loc_3620
@@ -4101,7 +4101,7 @@ loc_35E6:
 	CLR.w	$2C(A0)
 	BRA.b	loc_361A
 loc_3606:
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BEQ.b	loc_3620
 	TST.w	(A3)
 	BEQ.b	loc_3620
@@ -4529,7 +4529,7 @@ loc_3C02:
 
 loc_3C06:
 	LSL.w	#2, D0
-	LEA	loc_EE60, A2
+	LEA	Control_type, A2
 	MOVE.l	(A2,D0.w), $FFFFFF20.w
 	RTS
 
@@ -4745,7 +4745,7 @@ loc_3F0C:
 	RTS
 
 loc_3F0E:
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_3F30
 	NOT.w	$FFFFFC66.w
 	TST.w	$FFFFFF18.w
@@ -4797,7 +4797,7 @@ loc_3F8E:
 	MOVE.l	#$0000293C, D0
 loc_3FB0:
 	MOVE.b	Input_state_bitset.w, D1
-	ANDI.w	#$0070, D1
+	ANDI.w	#$0070, D1 ; Keys A+B+C pressed
 	CMPI.w	#$0070, D1
 	BNE.b	loc_3FC2
 	MOVE.l	D0, $FFFFFF10.w
@@ -5272,7 +5272,7 @@ loc_47CA:
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
 	JSR	loc_778
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_481C
 	MOVE.w	#$FFFF, $FFFFFC18.w
 	JSR	loc_48C0(PC)
@@ -5349,7 +5349,7 @@ loc_48CE:
 
 loc_48D6:
 	MOVE.b	Input_state_bitset.w, D0
-	ANDI.w	#$000C, D0
+	ANDI.w	#$000C, D0 ; Keys left+right? (assuming D0 high was 0)
 	BNE.b	loc_48E6
 	CLR.b	$FFFFFC11.w
 loc_48E4:
@@ -5567,7 +5567,7 @@ loc_4B5A:
 	JSR	loc_4C8A(PC)
 	JSR	loc_4AB8(PC)
 	JSR	loc_D5C
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_4BA2
 	MOVE.w	#9, $FFFFFF4C.w
 	MOVE.l	#$0000293C, $FFFFFF10.w
@@ -5993,12 +5993,12 @@ loc_503A:
 	TST.w	$FFFFFC18.w
 	BEQ.b	loc_50F8
 	MOVE.b	Input_click_bitset.w, D1
-	ANDI.w	#$00F0, D1
+	ANDI.w	#$00F0, D1 ; Keys A+B+C+Start
 	BEQ.b	loc_50DC
 	MOVE.l	#$0000D6E2, $FFFFFF10.w
 	RTS
 loc_50DC:
-	BTST.b	#0, Input_state_bitset.w
+	BTST.b	#KEY_UP, Input_state_bitset.w
 	BEQ.b	loc_50F0
 	ADDQ.w	#1, D0
 	CMPI.w	#$0060, D0
@@ -6006,7 +6006,7 @@ loc_50DC:
 	SUBQ.w	#1, D0
 	BRA.b	loc_5104
 loc_50F0:
-	BTST.b	#1, Input_state_bitset.w
+	BTST.b	#KEY_DOWN, Input_state_bitset.w
 	BEQ.b	loc_5108
 loc_50F8:
 	SUBQ.w	#1, D0
@@ -6252,7 +6252,7 @@ loc_562A:
 	MOVE.b	Input_click_bitset.w, D0
 	MOVE.b	D0, D1
 	BEQ.b	loc_5660
-	BTST.b	#4, Input_click_bitset.w
+	BTST.b	#KEY_B, Input_click_bitset.w
 	BNE.b	loc_5662
 	ANDI.b	#9, D0
 	BNE.b	loc_5672
@@ -6989,18 +6989,18 @@ loc_6106:
 	BEQ.b	loc_6136
 	CMPI.w	#1, $FFFFAE38.w
 	BNE.b	loc_612E
-	BSET.l	#3, D0
-	BCLR.l	#2, D0
+	BSET.l	#KEY_RIGHT, D0
+	BCLR.l	#KEY_LEFT, D0
 	BRA.b	loc_6136
 loc_612E:
-	BCLR.l	#3, D0
-	BSET.l	#2, D0
+	BCLR.l	#KEY_RIGHT, D0
+	BSET.l	#KEY_LEFT, D0
 loc_6136:
-	ANDI.b	#$0C, D0
-	BEQ.b	loc_61A8
+	ANDI.b	#$0C, D0 ; Reset keys except left+right
+	BEQ.b	loc_61A8 ; Jump if no key pressed?
 	CMP.b	$FFFF910C.w, D0
 	BEQ.b	loc_6188
-	BTST.l	#2, D0
+	BTST.l	#KEY_LEFT, D0
 	BNE.b	loc_6164
 	CMPI.b	#$55, D7
 	BCC.b	loc_6180
@@ -7026,7 +7026,7 @@ loc_6180:
 loc_6188:
 	MOVE.b	$FFFF910D.w, D1
 loc_618C:
-	BTST.l	#3, D0
+	BTST.l	#KEY_RIGHT, D0
 	BNE.b	loc_6194
 	NEG.b	D1
 loc_6194:
@@ -10383,7 +10383,7 @@ loc_873A:
 	CMP.w	$FFFFAE1A.w, D0
 	BCS.b	loc_8788
 	MOVE.w	#1, $FFFFFC9E.w
-	BTST.b	#5, Input_state_bitset.w
+	BTST.b	#KEY_C, Input_state_bitset.w
 	BEQ.b	loc_8788
 	MOVE.w	#1, $FFFFFCA0.w
 loc_8788:
@@ -15490,7 +15490,7 @@ loc_CC2C:
 	dc.b	$4E, $75
 
 loc_CC3A:
-	BTST.b	#7, Input_click_bitset.w
+	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_CC50
 	MOVE.w	#9, $FFFFFF4C.w
 	MOVE.l	#$0000293C, $FFFFFF10.w
@@ -15738,7 +15738,7 @@ loc_CFA4:
 	MOVE.w	#$000E, $00FF5AE0
 	ANDI.b	#$0C, D0
 	BNE.w	loc_CFF0
-	BTST.b	#4, Input_click_bitset.w
+	BTST.b	#KEY_B, Input_click_bitset.w
 	BNE.w	loc_CFE6
 	BTST.b	#0, $FFFFFC0D.w
 	BNE.b	loc_CFE6
@@ -16568,7 +16568,7 @@ loc_DCF2:
 	MOVE.w	#2, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
-	CMPI.b	#$70, Input_state_bitset.w
+	CMPI.b	#$70, Input_state_bitset.w ; Keys A+B+C
 	BEQ.b	loc_DD4E
 	RTS
 loc_DD4E:
@@ -17224,15 +17224,15 @@ loc_E7AC:
 	MOVE.b	#1, $FFFFFC01.w
 	BSR.w	loc_E8B4
 loc_E7CC:
-	BTST.b	#0, Input_click_bitset.w
+	BTST.b	#KEY_UP, Input_click_bitset.w
 	BNE.b	loc_E838
-	BTST.b	#1, Input_click_bitset.w
+	BTST.b	#KEY_DOWN, Input_click_bitset.w
 	BNE.b	loc_E856
 	CMPI.b	#$18, $FFFFFC00.w
 	BEQ.b	loc_E7F8
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BNE.w	loc_E894
-	BTST.b	#3, Input_click_bitset.w
+	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BNE.w	loc_E894
 loc_E7F8:
 	RTS
@@ -17410,11 +17410,11 @@ loc_EAA0:
 	BEQ.b	loc_EAE2
 	JSR	loc_75C4A
 	MOVE.b	Input_click_bitset.w, D0
-	BTST.b	#4, Input_click_bitset.w
+	BTST.b	#KEY_B, Input_click_bitset.w
 	BNE.w	loc_ED1E
-	BTST.b	#0, Input_click_bitset.w
+	BTST.b	#KEY_UP, Input_click_bitset.w
 	BNE.w	loc_EAE4
-	BTST.b	#1, Input_click_bitset.w
+	BTST.b	#KEY_DOWN, Input_click_bitset.w
 	BNE.w	loc_EB08
 	LEA	loc_ED3A, A1
 	MOVE.w	$FFFFFC00.w, D1
@@ -17506,7 +17506,7 @@ loc_EBCC:
 loc_EBE0:
 	ANDI.b	#$E0, D0
 	BNE.b	loc_EC2C
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BEQ.b	loc_EBFC
 	SUBQ.w	#1, $FFFFFC14.w
 	BCC.b	loc_EC0C
@@ -17536,7 +17536,7 @@ loc_EC3A:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E0, D0
 	BNE.b	loc_EC98
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BEQ.b	loc_EC5A
 	SUBQ.w	#1, $FFFFFC18.w
 	BCC.b	loc_EC6A
@@ -17571,7 +17571,7 @@ loc_ECB0:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E0, D0
 	BNE.b	loc_ED00
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BEQ.b	loc_ECD0
 	SUBQ.w	#1, $FFFFFC1C.w
 	BCC.b	loc_ECE0
@@ -17670,8 +17670,16 @@ loc_ED70:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-loc_EE60:
-	dc.l	$00010406, $01000406, $00010604, $01000604, $06040100, $06040001
+
+;loc_EE60:
+Control_type: ; keys for Shift down, Shift up, Accelerate, Break
+	dc.b	KEY_UP, KEY_DOWN, KEY_B, KEY_A ; =$00010406, Type A
+	dc.b	KEY_DOWN, KEY_UP, KEY_B, KEY_A ; =$01000406, Type B
+	dc.b	KEY_UP, KEY_DOWN, KEY_A, KEY_B ; =$00010604, Type C
+	dc.b	KEY_DOWN, KEY_UP, KEY_A, KEY_B ; =$01000604, Type D
+	dc.b	KEY_A, KEY_B, KEY_DOWN, KEY_UP ; =$06040100, Type E
+	dc.b	KEY_A, KEY_B, KEY_UP, KEY_DOWN ; =$06040001, Type F
+
 	JSR	loc_396
 	BSR.w	loc_EE88
 	BSR.w	loc_EF04
@@ -17746,13 +17754,13 @@ loc_EF5C:
 	MOVE.l	#$04440444, $FFFFE982.w
 	ANDI.b	#$E0, D0
 	BNE.w	loc_F03E
-	BTST.b	#4, Input_state_bitset.w
+	BTST.b	#KEY_B, Input_state_bitset.w
 	BNE.w	loc_F00A
-	BTST.b	#0, Input_click_bitset.w
+	BTST.b	#KEY_UP, Input_click_bitset.w
 	BNE.b	loc_EFB6
-	BTST.b	#1, Input_click_bitset.w
+	BTST.b	#KEY_DOWN, Input_click_bitset.w
 	BNE.b	loc_EFD2
-	BTST.b	#3, Input_click_bitset.w
+	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BNE.b	loc_EFEE
 	MOVE.w	#$000E, $00FF5AE0
 	MOVE.w	$FFFFFC00.w, D0
@@ -17793,13 +17801,13 @@ loc_F00A:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$0F, D0
 	BEQ.b	loc_F03C
-	BTST.b	#0, Input_click_bitset.w
+	BTST.b	#KEY_UP, Input_click_bitset.w
 	BNE.w	loc_F102
-	BTST.b	#1, Input_click_bitset.w
+	BTST.b	#KEY_DOWN, Input_click_bitset.w
 	BNE.w	loc_F11E
-	BTST.b	#2, Input_click_bitset.w
+	BTST.b	#KEY_LEFT, Input_click_bitset.w
 	BNE.w	loc_F0D2
-	BTST.b	#3, Input_click_bitset.w
+	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BNE.w	loc_F0A0
 loc_F03C:
 	RTS
@@ -17956,7 +17964,7 @@ loc_F232:
 	MOVE.w	#$02AE, (A2)+
 	MOVE.w	#$028E, (A2)+
 	SUBQ.w	#1, $FFFFFC08.w
-	BTST.b	#4, Input_state_bitset.w
+	BTST.b	#KEY_B, Input_state_bitset.w
 	BEQ.b	loc_F262
 	ADDQ.w	#2, $FFFFFC08.w
 loc_F262:
