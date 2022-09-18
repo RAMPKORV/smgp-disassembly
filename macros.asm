@@ -24,6 +24,10 @@ escape = 1
 				dc.b    $2D
 		elseif ("\c"=" ")
 			dc.b	$32
+		elseif ("\c"="(")
+			dc.b	$34
+		elseif ("\c"=")")
+			dc.b	$35
 		elseif ("\c">="0")&("\c"<="9")
 			dc.b	("\c"-"0")
 		elseif ("\c">="A")&("\c"<="Z")
