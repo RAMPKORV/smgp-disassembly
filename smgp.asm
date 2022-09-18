@@ -3420,7 +3420,7 @@ loc_2B20:
 	RTS
 
 loc_2B52:
-	LEA	$FFFF9030.w, A1
+	LEA	Driver_points_by_team.w, A1
 	MOVE.w	#$000F, D0
 loc_2B5A:
 	CLR.b	(A1)+
@@ -4316,7 +4316,7 @@ loc_395C:
 	LEA	loc_4141(PC), A1
 	TST.w	$FFFFFF18.w
 	BEQ.b	loc_3986
-	TST.w	$FFFFFF1C.w
+	TST.w	Easy_flag.w
 	BEQ.b	loc_3986
 	LEA	loc_418D(PC), A1
 loc_3986:
@@ -5964,7 +5964,7 @@ loc_4FCE:
 loc_5030:
 	JSR	loc_5156(PC)
 	MOVEQ	#$0000000F, D0
-	LEA	$FFFF9030.w, A0
+	LEA	Driver_points_by_team.w, A0
 loc_503A:
 	CLR.b	(A0)+
 	DBF	D0, loc_503A
@@ -14043,7 +14043,7 @@ loc_B792:
 	CMPI.w	#$0010, $FFFF9144.w
 	BNE.b	loc_B7E0
 	CLR.l	D0
-	LEA	$FFFF9030.w, A6
+	LEA	Driver_points_by_team.w, A6
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	(A6,D0.w), D1
@@ -15256,7 +15256,7 @@ loc_C8E6:
 	ADDQ.w	#2, A6
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
-	LEA	$FFFF9030.w, A0
+	LEA	Driver_points_by_team.w, A0
 	TST.b	(A0,D0.w)
 	BEQ.b	loc_C918
 	LEA	$FFFF8FB0.w, A0
@@ -15318,7 +15318,7 @@ loc_C990:
 
 loc_C994:
 	LEA	$FFFF8F80.w, A6
-	LEA	$FFFF9030.w, A5
+	LEA	Driver_points_by_team.w, A5
 	MOVEQ	#7, D7
 	JSR	loc_C6AA(PC)
 	LEA	$FFFF8FA0.w, A0
@@ -16061,7 +16061,7 @@ loc_D320:
 	MOVE.b	Player_team.w, D0
 loc_D484:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
-	LEA	$FFFF9030.w, A1
+	LEA	Driver_points_by_team.w, A1
 	MOVE.b	(A1,D0.w), D0
 	JSR	loc_157C
 	MOVE.w	D1, D0
@@ -16205,7 +16205,7 @@ loc_D6E0:
 	CLR.l	D0
 	CLR.l	D1
 	CLR.l	D2
-	LEA	$FFFF9030.w, A1
+	LEA	Driver_points_by_team.w, A1
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	MOVE.b	D1, D2
@@ -16246,7 +16246,7 @@ loc_D7B2:
 loc_D7D0:
 	CLR.l	D0
 	CLR.l	D1
-	LEA	$FFFF9030.w, A1
+	LEA	Driver_points_by_team.w, A1
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
@@ -16275,7 +16275,7 @@ loc_D826:
 	ADDQ.b	#1, D1
 loc_D838:
 	LEA	Drivers_and_teams_map.w, A1
-	LEA	$FFFF9030.w, A2
+	LEA	Driver_points_by_team.w, A2
 loc_D840:
 	ADDQ.w	#1, D0
 	CMP.b	(A1,D0.w), D1
@@ -16542,7 +16542,7 @@ loc_DC66:
 	JSR	loc_E2C0
 	MOVE.w	#$EC3A, $FFFFFC00.w
 	JSR	loc_E2F4
-	MOVE.w	$FFFFFF1C.w, D0
+	MOVE.w	Easy_flag.w, D0
 	OR.w	$FFFFFF44.w, D0
 	BNE.b	loc_DCDE
 	CMPI.w	#2, $FFFFFF4A.w
@@ -17167,7 +17167,7 @@ loc_E5F4:
 	BTST.b	#6, Player_team.w
 	BEQ.b	loc_E6C8
 	CLR.l	D0
-	LEA	$FFFF9030.w, A1
+	LEA	Driver_points_by_team.w, A1
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	(A1,D0.w), D1
@@ -17475,11 +17475,11 @@ loc_EB56:
 loc_EB76:
 	ANDI.b	#$0C, D0
 	BEQ.w	loc_EAE2
-	ADDQ.w	#1, $FFFFFF1C.w
+	ADDQ.w	#1, Easy_flag.w
 
 loc_EB82:
-	ANDI.w	#1, $FFFFFF1C.w
-	MOVE.w	$FFFFFF1C.w, D0
+	ANDI.w	#1, Easy_flag.w
+	MOVE.w	Easy_flag.w, D0
 	ASL.w	#2, D0
 	LEA	loc_32F24, A1
 	MOVEA.l	(A1,D0.w), A6
@@ -18201,7 +18201,7 @@ loc_F5BA:
 	MOVE.b	D0, Rival_team.w
 	ANDI.b	#$F8, $FFFF902F.w
 	CLR.l	D0
-	LEA	$FFFF9030.w, A6
+	LEA	Driver_points_by_team.w, A6
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	(A6,D0.w), D1
@@ -19807,7 +19807,7 @@ loc_12FDA:
 	CLR.l	D3
 	LEA	$FFFF907E.w, A1
 	LEA	Drivers_and_teams_map.w, A2
-	LEA	$FFFF9030.w, A3
+	LEA	Driver_points_by_team.w, A3
 	MOVE.w	#$000F, D0
 loc_12FFE:
 	MOVE.b	(A2,D3.w), D2
@@ -19819,7 +19819,7 @@ loc_12FFE:
 	RTS
 
 loc_13016:
-	LEA	$FFFF9030.w, A1
+	LEA	Driver_points_by_team.w, A1
 	MOVE.w	#$000F, D0
 loc_1301E:
 	CLR.b	(A1)+
