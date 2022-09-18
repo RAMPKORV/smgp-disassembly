@@ -3956,7 +3956,7 @@ loc_3360:
 	MOVE.w	#$2000, D0
 	LEA	loc_60DC6, A0
 	JSR	loc_AB0
-	MOVE.w	$FFFFFF1E.w, D0
+	MOVE.w	Control_type.w, D0
 	LSL.w	#2, D0
 	LEA	loc_3524(PC), A1
 	MOVEA.l	(A1,D0.w), A1
@@ -4525,11 +4525,11 @@ loc_3BA4:
 	RTS
 
 loc_3C02:
-	MOVE.w	$FFFFFF1E.w, D0
+	MOVE.w	Control_type.w, D0
 
 loc_3C06:
 	LSL.w	#2, D0
-	LEA	Control_type, A2
+	LEA	Control_types, A2
 	MOVE.l	(A2,D0.w), $FFFFFF20.w
 	RTS
 
@@ -17453,18 +17453,18 @@ loc_EB2C:
 	BEQ.b	loc_EAE2
 	BTST.l	#2, D0
 	BEQ.b	loc_EB46
-	SUBQ.w	#1, $FFFFFF1E.w
+	SUBQ.w	#1, Control_type.w
 	BCC.b	loc_EB56
-	MOVE.w	#5, $FFFFFF1E.w
+	MOVE.w	#5, Control_type.w
 	BRA.b	loc_EB56
 loc_EB46:
-	ADDQ.w	#1, $FFFFFF1E.w
-	CMPI.w	#6, $FFFFFF1E.w
+	ADDQ.w	#1, Control_type.w
+	CMPI.w	#6, Control_type.w
 	BNE.b	loc_EB56
-	CLR.w	$FFFFFF1E.w
+	CLR.w	Control_type.w
 
 loc_EB56:
-	MOVE.w	$FFFFFF1E.w, D0
+	MOVE.w	Control_type.w, D0
 	ASL.w	#2, D0
 	LEA	loc_32D08, A4
 	MOVEA.l	(A4,D0.w), A1
@@ -17674,7 +17674,7 @@ loc_ED70:
 	RTS
 
 ;loc_EE60:
-Control_type: ; keys for Shift down, Shift up, Accelerate, Break
+Control_types: ; keys for Shift down, Shift up, Accelerate, Break
 	dc.b	KEY_UP, KEY_DOWN, KEY_B, KEY_A ; =$00010406, Type A
 	dc.b	KEY_DOWN, KEY_UP, KEY_B, KEY_A ; =$01000406, Type B
 	dc.b	KEY_UP, KEY_DOWN, KEY_A, KEY_B ; =$00010604, Type C
