@@ -9,6 +9,7 @@ Drivers_and_teams_map = $FFFF9044;
 Engine_data_variant = $FFFF9180
 Engine_rpm_max = 1500
 Retire_flag = $FFFFFC54
+English_flag = $FFFFFF26 ; 0 = Japanese, 1 = English
 Shift_type = $FFFFFF2E ; 0 = automatic, 1 = 4-shift, 2 = 7-shift
 
 Input_state_bitset = $FFFFFF04

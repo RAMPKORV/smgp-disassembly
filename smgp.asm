@@ -14084,7 +14084,7 @@ loc_B810:
 	MOVE.w	#9, D1
 	MOVE.w	#$0014, D6
 	MOVE.l	#$4B0C0000, D7
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_B862
 	LEA	loc_1446C, A1
 	ADDA.l	#$00000090, A2
@@ -14170,7 +14170,7 @@ loc_B93E:
 	MOVE.w	#9, D1
 	MOVE.w	#$0014, D6
 	MOVE.l	#$4B0C0000, D7
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_B99C
 	LEA	loc_1446C, A1
 	ADDA.l	#$00000090, A2
@@ -15659,7 +15659,7 @@ loc_CEA8:
 	LEA	loc_18D40, A1
 
 loc_CEAE:
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_CEBA
 	ADDA.l	#8, A1
 loc_CEBA:
@@ -15694,7 +15694,7 @@ loc_CEEC:
 	LEA	$FFFFF6F0.w, A2
 	ADDA.l	#$0000008C, A2
 	MOVE.w	#3, D1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_CF3C
 	LEA	loc_18D28, A1
 	ADDA.l	#8, A2
@@ -15912,7 +15912,7 @@ loc_D1EA:
 
 loc_D204:
 	LEA	loc_18C00, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_D216
 	ADDA.l	#8, A1
 loc_D216:
@@ -17490,13 +17490,13 @@ loc_EB82:
 loc_EBA8:
 	ANDI.b	#$0C, D0
 	BEQ.w	loc_EAE2
-	ADDQ.w	#1, $FFFFFF26.w
+	ADDQ.w	#1, English_flag.w
 
 loc_EBB4:
-	ANDI.w	#1, $FFFFFF26.w
+	ANDI.w	#1, English_flag.w
 	LEA	loc_32F44, A2
 	CLR.w	D0
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_EBCC
 	MOVE.b	#4, D0
 loc_EBCC:
@@ -18099,7 +18099,7 @@ loc_F498:
 	MULS.w	#$0024, D7
 	ADD.l	D6, D7
 	LEA	loc_3A27A, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F4B8
 	ADDA.l	#$00000240, A1
 loc_F4B8:
@@ -18143,7 +18143,7 @@ loc_F518:
 	ANDI.b	#$0F, D7 ; isolate the player's team number
 	LSL.l	#2, D7
 	LEA	loc_3B07E, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F536
 	ADDA.l	#$00000080, A1
 loc_F536:
@@ -18156,7 +18156,7 @@ loc_F544:
 
 loc_F54A:
 	LEA	loc_3B524, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F55C
 	ADDA.l	#$00000044, A1
 loc_F55C:
@@ -18173,7 +18173,7 @@ loc_F568:
 
 loc_F576:
 	LEA	loc_3B9A2, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F588
 	ADDA.l	#$00000040, A1
 loc_F588:
@@ -18190,7 +18190,7 @@ loc_F59A:
 	ANDI.b	#$0F, D7 ; isolate the player's team number
 	MULS.w	#$0028, D7
 	LEA	loc_3BB14, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F5BA
 	ADDA.l	#$00000280, A1
 loc_F5BA:
@@ -18334,7 +18334,7 @@ loc_F756:
 	LEA	$FFFFF6F0.w, A1
 	MOVE.w	#$0083, D0
 	LEA	loc_18C10, A2
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F770
 	LEA	loc_18C94, A2
 loc_F770:
@@ -18347,7 +18347,7 @@ loc_F770:
 
 loc_F780:
 	LEA	$FFFFF74A.w, A1
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F78E
 	LEA	$FFFFF71E.w, A1
 loc_F78E:
@@ -18428,7 +18428,7 @@ loc_F826:
 loc_F830:
 	LEA	$FFFFF6F0.w, A6
 	MOVE.w	#5, D5
-	TST.w	$FFFFFF26.w
+	TST.w	English_flag.w
 	BEQ.b	loc_F842
 	MOVE.w	#4, D5
 loc_F842:
