@@ -16199,7 +16199,7 @@ loc_D6E0:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
-	ANDI.b	#$0F, D1 ; isolate the rovaö's team number
+	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
 	BCS.w	loc_D7D0
 	CLR.l	D0
