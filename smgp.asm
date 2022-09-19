@@ -230,7 +230,7 @@ loc_388:
 loc_394:
 	BRA.b	loc_394
 
-loc_396:
+loc_396: ; Set $FFFFFC22 and loop until it changes, some kind of synchronization?
 	CLR.w	$FFFFFC22.w
 loc_39A:
 	TST.w	$FFFFFC22.w
@@ -248,7 +248,7 @@ loc_3B4:
 	TST.w	$FFFFFC2A.w
 	BEQ.b	loc_3C4
 	MOVEA.l	$FFFFFF0C.w, A0
-	JSR	(A0)
+	JSR	(A0) ; =loc_3E2A in practice mode
 loc_3C4:
 	ANDI	#$F8FF, SR
 	JSR	loc_75C6E
@@ -259,7 +259,7 @@ loc_3C4:
 	BRA.b	loc_3E6
 	JSR	loc_754
 loc_3E6:
-	JSR	loc_5A6
+	JSR	Update_input_bitset
 	JMP	loc_6F0
 
 loc_3F2:
@@ -287,7 +287,7 @@ loc_430:
 loc_46A:
 	MOVE.w	#$0100, $00A11100
 	BSR.b	loc_49A
-	LEA	loc_763F0, A5
+	LEA	Z80_data, A5
 	LEA	$00A00000, A6
 	MOVE.w	#$1C0F, D0
 loc_484:
@@ -383,14 +383,15 @@ loc_58A:
 	MOVE.l	D1, $FFFFFF00.w
 	RTS
 
-loc_5A6:
+;loc_5A6
+Update_input_bitset:
 	MOVE.w	#$0100, $00A11100
 	BTST.b	#0, $00A11100
-	BNE.b	loc_5A6
+	BNE.b	Update_input_bitset
 	LEA	Input_state_bitset.w, A0
-	LEA	$00A10003, A1
+	LEA	$00A10003, A1 ; Controller 1 data
 	JSR	loc_5D6(PC)
-	ADDQ.w	#2, A1
+	ADDQ.w	#2, A1 ; Controller 2 data
 	JSR	loc_5D6(PC)
 	MOVE.w	#0, $00A11100
 	RTS
@@ -2887,7 +2888,7 @@ loc_237C:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 	JSR	loc_744
-	JSR	loc_5A6
+	JSR	Update_input_bitset
 	JSR	loc_6F0
 	JMP	loc_C9A
 	JSR	loc_396
@@ -4616,7 +4617,7 @@ loc_3D22:
 loc_3D26:
 	RTS
 
-loc_3D28:
+loc_3D28: ; Copy D0 zeros to A0 upwards
 	MOVEQ	#0, D1
 loc_3D2A:
 	MOVE.w	D1, (A0)+
@@ -4676,9 +4677,11 @@ loc_3D96:
 	JSR	loc_3A2(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+
+loc_3E2A:
 	MOVE.l	#$40020010, VDP_control_port
 	MOVE.w	#0, VDP_data_port
-	MOVE.w	$FFFFFC24.w, D0
+	MOVE.w	$FFFFFC24.w, D0 ; Values are 0, 4, 8 cycling. After running with 0, HUD updates. After 4, car moves. After 8, no visual update
 	ADDQ.w	#4, D0
 	CMPI.w	#$0014, D0
 	BCS.b	loc_3E4A
@@ -4715,7 +4718,7 @@ loc_3EB0:
 	JSR	loc_1DB6(PC)
 	BRA.b	loc_3ECE
 loc_3EBE:
-	JSR	loc_5A6(PC)
+	JSR	Update_input_bitset(PC) ; Update_input_bitset called from multiple locations, from here during practice mode
 	JSR	loc_3EE4(PC)
 	JSR	loc_1778(PC)
 	JSR	loc_1482(PC)
@@ -6365,7 +6368,7 @@ loc_583A:
 	DBF	D1, loc_5826
 	RTS
 	JSR	loc_754
-	JSR	loc_5A6
+	JSR	Update_input_bitset
 	JSR	loc_6F0
 	MOVE.l	#$6A400003, VDP_control_port
 	MOVE.w	$FFFFFC08.w, D0
@@ -14544,7 +14547,7 @@ loc_BF08:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 	JSR	loc_754
-	JSR	loc_5A6
+	JSR	Update_input_bitset
 	JSR	loc_6F0
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CE95A0, D6
@@ -16129,7 +16132,7 @@ loc_D534:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 	JSR	loc_744
-	JSR	loc_5A6
+	JSR	Update_input_bitset
 	JSR	loc_6F0
 	SUBQ.b	#1, $FFFFFC00.w
 	BNE.b	loc_D604
@@ -20452,7 +20455,7 @@ loc_138C6:
 	DBF	D0, loc_138C6
 	RTS
 	JSR	loc_744
-	JSR	loc_5A6
+	JSR	Update_input_bitset
 	JSR	loc_6F0
 	SUBQ.b	#1, $FFFFFC02.w
 	BNE.b	loc_138F2
@@ -40016,7 +40019,8 @@ loc_76308:
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-loc_763F0:
+;loc_763F0:
+Z80_data:
 	dc.b	$F3, $F3, $ED, $56, $18, $40, $00, $00, $3A, $00, $40, $CB, $7F, $20, $F9, $C9, $DD, $CB, $01, $7E, $C0, $C3, $00, $06, $C3, $0E, $06, $00, $00, $00, $00, $00
 	dc.b	$2A, $02, $1C, $06, $00, $C3, $22, $01, $4F, $06, $00, $09, $09, $00, $00, $00, $7E, $23, $66, $6F, $C9, $00, $00, $00, $F5, $3A, $FF, $1F, $B7, $28, $04, $3D
 	dc.b	$32, $FF, $1F, $F1, $FB, $C9, $31, $7D, $1F, $3E, $03, $32, $FF, $1F, $FB, $3A, $FF, $1F, $B7, $20, $F9, $F3, $CD, $AC, $08, $CD, $D0, $07, $CD, $D1, $00, $CD
