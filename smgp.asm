@@ -2826,8 +2826,8 @@ loc_22F2:
 	CLR.w	$FFFF914A.w
 	CLR.w	$FFFFFF18.w
 	MOVE.w	#2, $FFFFFF30.w
-	MOVE.w	#$003C, Engine_data_variant.w
-	CLR.w	$FFFF9182.w
+	MOVE.w	#$003C, Engine_data_offset.w
+	CLR.w	Acceleration_modifier.w
 	MOVE.l	#$00003D98, $FFFFFF10.w
 	RTS
 loc_2340:
@@ -3762,8 +3762,8 @@ loc_300E:
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
-	MOVE.w	#$003C, Engine_data_variant.w
-	CLR.w	$FFFF9182.w
+	MOVE.w	#$003C, Engine_data_offset.w
+	CLR.w	Acceleration_modifier.w
 	MOVE.l	#$00003800, $FFFFFF2A.w
 	MOVE.l	#$000032FA, $FFFFFF10.w
 	MOVE.w	#1, $FFFFFF4C.w
@@ -4173,7 +4173,7 @@ loc_36D8:
 	BRA.b	loc_3708
 loc_36F4:
 	JSR	Update_shift(PC)
-	JSR	loc_5B02(PC)
+	JSR	Update_rpm(PC)
 	JSR	loc_6062(PC)
 	JSR	loc_5F10(PC)
 	JSR	Update_speed(PC)
@@ -4550,7 +4550,7 @@ loc_3C26:
 	CLR.w	$FFFFFF5E.w
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
 	MOVE.b	#$80, $FFFF910B.w
-	MOVE.w	#$0322, $FFFF9104.w
+	MOVE.w	#802, Visual_rpm.w
 	MOVE.b	#$14, $FFFF92F8.w
 	MOVE.w	#$E12C, D7
 	TST.w	$FFFF9140.w
@@ -4639,7 +4639,7 @@ loc_3D32:
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
 	MOVE.b	#$80, $FFFF910B.w
 	MOVE.w	#1100, Player_rpm.w
-	MOVE.w	#1100, $FFFF9104.w
+	MOVE.w	#1100, Visual_rpm.w
 	MOVE.w	#1, $FFFFFCA6.w
 	RTS
 	JSR	loc_36B6(PC)
@@ -6340,8 +6340,8 @@ loc_578E:
 	MOVE.w	#1, $FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
-	MOVE.w	#$003C, Engine_data_variant.w
-	CLR.w	$FFFF9182.w
+	MOVE.w	#$003C, Engine_data_offset.w
+	CLR.w	Acceleration_modifier.w
 	MOVE.l	#$00005616, $FFFFFF10.w
 	MOVE.l	#$0000584E, $FFFFFF0C.w
 	JSR	loc_75C4A
@@ -6557,27 +6557,28 @@ loc_5ABE:
 	BEQ.b	loc_5ACE
 	BSR.b	loc_5A6A
 loc_5ACE:
-	MOVE.w	Player_rpm.w, $FFFF9104.w
+	MOVE.w	Player_rpm.w, Visual_rpm.w
 	RTS
 
 loc_5AD6:
-	LEA	$FFFF9104.w, A1
+	LEA	Visual_rpm.w, A1
 	ADDI.w	#-60, (A1)
-	CMPI.w	#$0321, (A1) ; ...
-	BCC.b	loc_5AE8     ; ...
-	MOVE.w	#$0321, (A1) ; (A1) = max((A1), $0321 == 801 rpm)
+	CMPI.w	#801, (A1)
+	BCC.b	loc_5AE8   ; if visual rpm < 801
+	MOVE.w	#801, (A1) ; then visual rpm = 801
 loc_5AE8:
 	MOVE.b	$FFFFFF22.w, D5
 	BTST.b	D5, Input_state_bitset.w ; if accelerate key pressed
 	BEQ.b	loc_5B00
-	ADDI.w	#$0078, (A1)
-	CMPI.w	#$04E3, (A1) ; ...
-	BCS.b	loc_5B00     ; ...
-	MOVE.w	#$04E3, (A1) ; (A1) = min((A1), $04E3 == 1251 rpm)
+	ADDI.w	#120, (A1)
+	CMPI.w	#1251, (A1)
+	BCS.b	loc_5B00    ; if visual rpm >= 1251
+	MOVE.w	#1251, (A1) ; then visual rpm = 1251
 loc_5B00:
 	RTS
 
-loc_5B02: ; Suspected update rpm
+;loc_5B02:
+Update_rpm:
 	TST.w	$FFFF9146.w
 	BEQ.b	loc_5AD6
 	TST.w	$FFFFFC76.w
@@ -6604,22 +6605,22 @@ loc_5B34:
 	MOVE.w	Player_rpm.w, D0
 	DIVS.w	#50, D0
 	MOVE.w	#$FF00, D1
-	MOVE.b	(A1,D0.w), D1
+	MOVE.b	(A1,D0.w), D1 ; D1 = $FF00 + value from Acceleration_data
 	BTST.l	#7, D1
-	BNE.b	loc_5B7E
-	ANDI.w	#$00FF, D1
-	MOVE.w	$FFFF9182.w, D0
-	BEQ.b	loc_5B7E
-	BMI.b	loc_5B76
+	BNE.b	loc_5B7E ; Jump if max rpm for shift?
+	ANDI.w	#$00FF, D1 ; D1 = value from Acceleration_data (acc)
+	MOVE.w	Acceleration_modifier.w, D0; # Either of $FFFF(-1), $0000, $0001, $0002
+	BEQ.b	loc_5B7E ; D0 == 0
+	BMI.b	loc_5B76 ; D0 < 0
 	MOVE.w	D1, D2
-	LSR.w	D0, D2
-	ADD.w	D2, D1
+	LSR.w	D0, D2 ; D2 = 0.5x or 0.25x acc
+	ADD.w	D2, D1 ; acc = acc*1.25 or acc*1.5
 	BRA.b	loc_5B7E
 loc_5B76:
 	MOVE.w	D1, D2
-	NEG.w	D0
-	LSR.w	D0, D2
-	SUB.w	D2, D1
+	NEG.w	D0 ; $FFFF -> $0001 (only possible value)
+	LSR.w	D0, D2 ; D2 = acc/2
+	SUB.w	D2, D1 ; acc = acc/2
 loc_5B7E:
 	TST.w	$FFFF9208.w
 	BEQ.b	loc_5B9E
@@ -6648,31 +6649,31 @@ loc_5BC4:
 	BRA.b	loc_5BF6
 loc_5BD2:
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
-	BCC.b	loc_5BF0
-	ADD.w	D1, Player_rpm.w
+	BCC.b	loc_5BF0 ; Jump if rpm >= max
+	ADD.w	D1, Player_rpm.w ; Actual RPM update from calculated acceleration
 	BPL.b	loc_5BE8
 	MOVE.w	#0, Player_rpm.w
 	BRA.b	loc_5BF6
 loc_5BE8:
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
-	BCS.b	loc_5BF6
+	BCS.b	loc_5BF6 ; Jump if rpm < max
 loc_5BF0:
 	ADDI.w	#-50, Player_rpm.w
 loc_5BF6:
 	MOVE.w	Player_rpm.w, D0
 	ADDQ.w	#1, D0
-	SUB.w	$FFFF9104.w, D0
-	BMI.b	loc_5C0E
-	CMPI.w	#$0050, D0
-	BCS.b	loc_5C18
-	MOVE.w	#$0050, D0
+	SUB.w	Visual_rpm.w, D0 ; D0 = (rpm+1) - visual_rpm == delta between rpm and visual (but +1)
+	BMI.b	loc_5C0E ; Jump if (rpm+1) - visual_rpm < 0, meaning rpm+1 < visual_rpm (rpm is at least 2 less than visual)
+	CMPI.w	#80, D0
+	BCS.b	loc_5C18 ; if delta > 80
+	MOVE.w	#80, D0  ; then delta = 80
 	BRA.b	loc_5C18
 loc_5C0E:
-	CMPI.w	#$FF6A, D0
-	BCC.b	loc_5C18
-	MOVE.w	#$FF6A, D0
+	CMPI.w	#-150, D0
+	BCC.b	loc_5C18  ; if delta < -150
+	MOVE.w	#-150, D0 ; then delta = -150
 loc_5C18:
-	ADD.w	D0, $FFFF9104.w
+	ADD.w	D0, Visual_rpm.w ; Add capped delta to visual rpm, making it approach actual rpm (but +1)
 	RTS
 
 loc_5C1E:
@@ -6772,7 +6773,7 @@ loc_5CFC:
 	MOVE.w	$FFFF9106.w, Player_speed.w ; Deacceleration from non-lethal obstacle collision
 	CLR.l	D0
 	LEA	Engine_data, A1
-	MOVE.w	Engine_data_variant.w, D0
+	MOVE.w	Engine_data_offset.w, D0
 	ADDA.l	D0, A1
 	MOVE.w	Shift_type.w, D0
 	LSL.l	#3, D0
@@ -6788,7 +6789,7 @@ loc_5D30:
 	RTS
 
 ;loc_5D32:
-Acceleration_data:
+Acceleration_data: ; Derivative of RPM during acceleration
 ; Each "column" correspond to intervals of 50 engine RPM. [0-49], [50-59], ... [1550, 1599]
 ; Automatic
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $2A, $2A, $2A, $2C, $2C, $2E, $2E, $2F, $30, $32, $26, $16, $08, $FF, $FD, $FB, $00, $00 ; shift 0
@@ -6841,7 +6842,7 @@ loc_5F58:
 Update_speed:
 	CLR.l	D0
 	LEA	Engine_data, A1
-	MOVE.w	Engine_data_variant.w, D0
+	MOVE.w	Engine_data_offset.w, D0
 	ADDA.l	D0, A1
 	MOVE.w	Shift_type.w, D0
 	LSL.l	#3, D0
@@ -6868,7 +6869,7 @@ loc_5FA8:
 	RTS
 
 ;loc_5FAE
-Engine_data: ; Defines RPM at 100km/h for each shift and shift type. Has 6 different variants for some reason, third one most commonly used
+Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different variants for different teams
 	dc.w	1674, 823, 584, 467
 	dc.w	1674, 816, 570, 446
 	dc.w	1858, 923, 639, 507, 447, 418, 383
@@ -6876,7 +6877,7 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type. Has 6 diffe
 	dc.w	1662, 799, 548, 419
 	dc.w	1662, 792, 534, 398
 	dc.w	1850, 907, 615, 475, 407, 370, 327
-
+; Practice mode:
 	dc.w	1660, 795, 542, 411                ; RPM at 100km/h for automatic
 	dc.w	1660, 788, 528, 390                ; RPM at 100km/h for 4-shift
 	dc.w	1849, 905, 612, 471, 402, 364, 320 ; RPM at 100km/h for 7-shift
@@ -9528,10 +9529,10 @@ loc_7D78:
 	MOVE.w	#$0128, $16(A0)
 	MOVE.w	#$0090, $18(A0)
 	MOVE.w	#$FFFF, $28(A0)
-	MOVE.w	$FFFF9104.w, D0
+	MOVE.w	Visual_rpm.w, D0
 	CMPI.w	#Engine_rpm_max, D0 ; ...
-	BCS.b	loc_7DD8            ; ...
-	MOVE.w	#Engine_rpm_max, D0 ; D0 = max(D0, Engine_rpm_max)
+	BCS.b	loc_7DD8            ; if D0 >= max
+	MOVE.w	#Engine_rpm_max, D0 ; then D0 = max
 loc_7DD8:
 	CMPI.w	#700, D0
 	BCC.b	loc_7DE4 ; if D0 < 700
@@ -10417,9 +10418,9 @@ loc_8818:
 	BCC.b	loc_8830
 	ADDI.w	#$0014, $FFFF9168.w
 	MOVEQ	#2, D7
-	SUBQ.w	#2, $FFFF915E.w
+	SUBQ.w	#2, Team_car_engine_data.w
 	BCC.b	loc_8830
-	CLR.w	$FFFF915E.w
+	CLR.w	Team_car_engine_data.w
 loc_8830:
 	MOVE.w	$FFFF9152.w, D0
 	SUB.w	D0, $FFFF901E.w
@@ -10430,9 +10431,9 @@ loc_883E:
 	BCC.b	loc_8856
 	ADDI.w	#$0014, $FFFF9166.w
 	MOVEQ	#2, D7
-	SUBQ.w	#2, $FFFF915C.w
+	SUBQ.w	#2, Team_car_acceleration.w
 	BCC.b	loc_8856
-	CLR.w	$FFFF915C.w
+	CLR.w	Team_car_acceleration.w
 loc_8856:
 	TST.w	D7
 	BEQ.b	loc_886E
@@ -10440,7 +10441,7 @@ loc_8856:
 	MOVE.w	#$0016, $FFFFFC58.w
 	SUBQ.w	#2, D7
 	BNE.b	loc_886E
-	JSR	loc_13152
+	JSR	Load_team_car_data
 loc_886E:
 	RTS
 loc_8870:
@@ -12012,12 +12013,12 @@ loc_9AF4:
 	MOVE.w	Player_rpm.w, D0
 	TST.w	$FFFF9146.w
 	BNE.b	loc_9B02
-	MOVE.w	$FFFF9104.w, D0
+	MOVE.w	Visual_rpm.w, D0
 loc_9B02:
-	MOVE.w	#$0600, D1
+	MOVE.w	#1536, D1 ; visual rpm max?
 	CMP.w	D1, D0
 	BLS.b	loc_9B0C
-	MOVE.w	D1, D0
+	MOVE.w	D1, D0 ; D0 = 1536
 loc_9B0C:
 	MOVE.w	D0, $00FF5AC4
 	MOVE.w	$FFFF923A.w, D0
@@ -19934,14 +19935,14 @@ loc_130F6:
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	MULU.w	#5, D0
-	LEA	loc_133B4(PC), A0
+	LEA	Team_car_characteristics(PC), A0
 	ADDA.w	D0, A0
-	LEA	$FFFF915C.w, A1
+	LEA	Team_car_acceleration.w, A1
 	MOVEQ	#4, D0
 loc_1310E:
 	MOVEQ	#0, D1
 	MOVE.b	(A0)+, D1
-	MOVE.w	D1, (A1)+
+	MOVE.w	D1, (A1)+ ; Writes $FFFF915C(Team_car_acceleration), $FFFF915E(Team_car_engine_data), $FFFF9160, $FFFF9162, $FFFF9164
 	DBF	D0, loc_1310E
 	MOVE.w	#$0014, $FFFF9166.w
 	MOVE.w	#$0014, $FFFF9168.w
@@ -19956,13 +19957,14 @@ loc_1310E:
 	TST.w	$FFFF9148.w
 	BNE.b	loc_1316E
 
-loc_13152:
-	MOVE.w	$FFFF915C.w, D0
-	LEA	loc_13404(PC), A1
-	MOVE.w	(A1,D0.w), $FFFF9182.w
-	MOVE.w	$FFFF915E.w, D0
-	LEA	loc_1340C(PC), A1
-	MOVE.w	(A1,D0.w), Engine_data_variant.w
+;locx_13152:
+Load_team_car_data:
+	MOVE.w	Team_car_acceleration.w, D0
+	LEA	Acceleration_modifiers(PC), A1
+	MOVE.w	(A1,D0.w), Acceleration_modifier.w
+	MOVE.w	Team_car_engine_data.w, D0
+	LEA	Engine_data_offset_table(PC), A1
+	MOVE.w	(A1,D0.w), Engine_data_offset.w
 loc_1316E:
 	RTS
 
@@ -20139,7 +20141,8 @@ SecondYearDriversAndTeamsMap:
 
 loc_133A4:
 	dc.b	$01, $01, $01, $01, $02, $01, $02, $02, $02, $01, $02, $01, $02, $02, $02, $02
-loc_133B4: ; Team car characteristics
+;loc_133B4:
+Team_car_characteristics:
   ; Suspected
   ; 1st byte: Affects acceleration
   ; 2nd byte: Affects max speed
@@ -20162,12 +20165,14 @@ loc_133B4: ; Team car characteristics
   dc.b  $04, $04, $04, $02, $04 ; Comet
   dc.b  $02, $04, $02, $04, $04 ; Orchis
   dc.b  $04, $04, $04, $04, $02 ; Zero Force
-loc_13404:
+;loc_13404:
+Acceleration_modifiers:
 	dc.w	$FFFF
-  dc.w  $0000
+	dc.w	$0000
 	dc.w	$0002
 	dc.w	$0001
-loc_1340C:
+;locx_1340C:
+Engine_data_offset_table:
 	dc.w	$0000
 	dc.w	$001E
 	dc.w	$003C

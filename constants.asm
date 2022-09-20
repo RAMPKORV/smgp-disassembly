@@ -1,14 +1,22 @@
 VDP_control_port = $C00004
 VDP_data_port = $C00000
+
 Player_shift = $FFFF9100
 Player_rpm = $FFFF9102
+Visual_rpm = $FFFF9104 ; Rendered to gauge
 Player_speed = $FFFF9108
+
 Driver_points_by_team = $FFFF9030
 Rival_team = $FFFF9042
 Player_team = $FFFF9043
 Drivers_and_teams_map = $FFFF9044;
-Engine_data_variant = $FFFF9180
+
+Team_car_acceleration = $FFFF915C
+Team_car_engine_data = $FFFF915E
+Engine_data_offset = $FFFF9180
+Acceleration_modifier = $FFFF9182
 Engine_rpm_max = 1500
+
 Retire_flag = $FFFFFC54
 English_flag = $FFFFFF26 ; 0 = Japanese, 1 = English
 Shift_type = $FFFFFF2E ; 0 = automatic, 1 = 4-shift, 2 = 7-shift

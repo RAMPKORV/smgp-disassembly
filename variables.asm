@@ -13,15 +13,22 @@
 ; 0x907E: Points awarded (this round) per team during results
 ; 0x9100: Current shift
 ; 0x9102: Engine RPM. When meter is 10, value is 1000
-; 0x9104: Engine RPM (why two?)
+; 0x9104: Engine RPM to be rendered (used for smooth gauge movement)
 ; 0x9106: Speed (why two?)
 ; 0x9108: Speed
 ; 0x9144.w: Current track idx to be loaded
 ; 0x9146.w: Usually 1. When 0, several code paths are skipped and RPM calculation becomes dumb
-; 0x915C.w: Car characteristics
+; Data written from Team_car_characteristics:
+; - 0x915C: Acceleration selector
+; - 0x915E: Engine_data_offset selector
+; - 0x9160: steering?
+; - 0x9162: breaks?
+; - 0x9164: rpm?
 ; 0x9161: steering
-; 0x9180: RPM for current shift offset (commonly $003C, when are others used?)
+; 0x9180: "Engine_data_variant" - RPM for current shift offset (based on Player_team, practice mode is $003C)
+; 0x9182: Acceleration modifier based on Player_team (0 in practice mode)
 ; 0x9206: ?
+; 0x9208: Controls acceleration. 0 in practice mode, can be 1 or 2.
 ; 0x9222: ?
 ; 0x9226; ?
 ; 0x9240: Pointer to start of signs data for current track
@@ -37,6 +44,7 @@
 ; 0xfc50: crash recoil from signs (word)
 ; 0xfc54: Set last bit to crash/retire (word)
 ; 0xfc80: Disables speed update (boolean)
+; 0xFCA6: Typically false, setting to true makes car almost always accelerate
 ; 0xFF04: Input key state bitset: start, A, C, B, right, left, down, up
 ; 0xFF05: Input key click bitset: Set for one frame if key clicked?
 ; 0xFF20: Input key mapping ("Control type" in settings)
