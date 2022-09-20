@@ -19421,24 +19421,24 @@ loc_12A61:
   dc.l	loc_51988
   dc.l	loc_51868
   dc.l	loc_51868
-	dc.l	$00051DC8
-  dc.l	$00051DC8
-  dc.l	$00051DC8
+	dc.l	loc_51DC8
+  dc.l	loc_51DC8
+  dc.l	loc_51DC8
 	dc.l	loc_51DA8
-  dc.l	$00051D88
-  dc.l	$00051D08
-  dc.l	$00051C48
-  dc.l	$00051B28
-  dc.l	$00051B28
-	dc.l	$000520E8
-  dc.l	$000520E8
-  dc.l	$000520E8
-	dc.l	$000520C8
-  dc.l	$000520A8
-  dc.l	$00052028
-  dc.l	$00051F08
-  dc.l	$00051DE8
-  dc.l	$00051DE8
+  dc.l	loc_51D88
+  dc.l	loc_51D08
+  dc.l	loc_51C48
+  dc.l	loc_51B28
+  dc.l	loc_51B28
+	dc.l	loc_520E8
+  dc.l	loc_520E8
+  dc.l	loc_520E8
+	dc.l	loc_520C8
+  dc.l	loc_520A8
+  dc.l	loc_52028
+  dc.l	loc_51F08
+  dc.l	loc_51DE8
+  dc.l	loc_51DE8
 	dc.l	$000523A8
   dc.l	$000523A8
   dc.l	$000523A8
@@ -31539,6 +31539,7 @@ loc_51B08:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
+loc_51B28:
 	dc.l	$0000000F	;D0
 	dc.l	$0000000F	;D1
 	dc.l	$000000FF	;D2
@@ -31611,7 +31612,8 @@ loc_51B08:
 	dc.l	$04444410	;A4
 	dc.l	$00444410	;A5
 	dc.l	$00011110	;A6
-	dc.l	$00000000	;D0
+loc_51C48:
+  dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000FFF	;D3
@@ -31659,7 +31661,8 @@ loc_51B08:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-	dc.l	$00000000	;D0
+loc_51D08:
+  dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000FFF	;D2
 	dc.l	$0000FFFF	;D3
@@ -31691,7 +31694,8 @@ loc_51B08:
 	dc.l	$00011000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-	dc.l	$00FF4000	;D0
+loc_51D88:
+  dc.l	$00FF4000	;D0
 	dc.l	$0FFFF100	;D1
 	dc.l	$0F44F400	;D2
 	dc.l	$FFFFFF00	;D3
@@ -31708,7 +31712,8 @@ loc_51DA8:
 	dc.l	$0F10F500	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-	dc.l	$00000000	;A3
+loc_51DC8:
+  dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$004F0000	;A5
 	dc.l	$00FF1000	;A6
@@ -31716,6 +31721,7 @@ loc_51DA8:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
+loc_51DE8:
 	dc.l	$0FFFF000	;D4
 	dc.l	$0FFFFF00	;D5
 	dc.l	$0FFFFF50	;D6
@@ -31788,6 +31794,7 @@ loc_51DA8:
 	dc.l	$00444441	;A4
 	dc.l	$00044441	;A5
 	dc.l	$00001111	;A6
+loc_51F08:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -31860,6 +31867,7 @@ loc_51DA8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
+loc_52028:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00FF5000	;D2
@@ -31892,6 +31900,7 @@ loc_51DA8:
 	dc.l	$00001100	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
+loc_520A8:
 	dc.l	$FF000FF1	;D0
 	dc.l	$FF40FFF1	;D1
 	dc.l	$FFFFFFF1	;D2
@@ -31900,6 +31909,7 @@ loc_51DA8:
 	dc.l	$F4011FF1	;D5
 	dc.l	$F4000FF1	;D6
 	dc.l	$01000001	;D7
+loc_520C8:
 	dc.l	$00000000	;D0
 	dc.l	$0F4FFF00	;D1
 	dc.l	$0FFFFF00	;D2
@@ -31908,7 +31918,8 @@ loc_51DA8:
 	dc.l	$0400FF00	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-	dc.l	$00000000	;A3
+loc_520E8:
+  dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00FFF000	;A5
 	dc.l	$00F5F000	;A6
