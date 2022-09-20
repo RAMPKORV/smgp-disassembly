@@ -19412,19 +19412,19 @@ loc_12A41:
 loc_12A61:
 	dc.b	$02, $27
 	dc.b	$E4
-	dc.l	$00051B08
-  dc.l	$00051B08
-  dc.l	$00051B08
-	dc.l	$00051AE8
-  dc.l	$00051AC8
-  dc.l	$00051A48
-  dc.l	$00051988
-  dc.l	$00051868
-  dc.l	$00051868
+	dc.l	loc_51B08
+  dc.l	loc_51B08
+  dc.l	loc_51B08
+	dc.l	loc_51AE8
+  dc.l	loc_51AC8
+  dc.l	loc_51A48
+  dc.l	loc_51988
+  dc.l	loc_51868
+  dc.l	loc_51868
 	dc.l	$00051DC8
   dc.l	$00051DC8
   dc.l	$00051DC8
-	dc.l	$00051DA8
+	dc.l	loc_51DA8
   dc.l	$00051D88
   dc.l	$00051D08
   dc.l	$00051C48
@@ -31357,6 +31357,7 @@ loc_40001:
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $00, $00, $00, $00, $FF, $FF, $FF, $F0, $FF, $FF, $FF, $F0, $FF, $44, $FF, $F0, $FF, $44, $FF, $F0, $FF, $44, $FF, $F0, $FF
 	dc.b	$44, $FF, $F0, $FF, $44, $FF, $F0, $4F, $44, $FF, $F0, $4F, $44, $FF, $F0, $4F, $44, $FF, $F0, $FF, $44, $FF, $F0, $4F, $44, $FF, $F0, $FF, $44, $FF, $F0, $FF
 	dc.b	$FF, $FF, $F0, $FF, $FF, $FF, $F0
+  loc_51868:
 	dc.l	$0000000F	;D0
 	dc.l	$00000FFF	;D1
 	dc.l	$0000FFFF	;D2
@@ -31429,6 +31430,7 @@ loc_40001:
 	dc.l	$44444100	;A4
 	dc.l	$44444100	;A5
 	dc.l	$11111100	;A6
+loc_51988:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -31477,6 +31479,7 @@ loc_40001:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
+loc_51A48:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$0000FFFF	;D2
@@ -31509,6 +31512,7 @@ loc_40001:
 	dc.l	$11111000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
+loc_51AC8:
 	dc.l	$FFFFF440	;D0
 	dc.l	$F5411110	;D1
 	dc.l	$F4FFF000	;D2
@@ -31517,7 +31521,8 @@ loc_40001:
 	dc.l	$FFFFF440	;D5
 	dc.l	$0FFFF440	;D6
 	dc.l	$00011110	;D7
-	dc.l	$00000000	;A3
+loc_51AE8:
+  dc.l	$00000000	;A3
 	dc.l	$0FFF4100	;A4
 	dc.l	$0F400000	;A5
 	dc.l	$0FFF4100	;A6
@@ -31525,7 +31530,8 @@ loc_40001:
 	dc.l	$0FFF4100	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-	dc.l	$00000000	;D4
+loc_51B08:
+  dc.l	$00000000	;D4
 	dc.l	$00000000	;D5
 	dc.l	$00FF0000	;D6
 	dc.l	$000F4000	;D7
@@ -31692,8 +31698,9 @@ loc_40001:
 	dc.l	$FFFFFF10	;D4
 	dc.l	$F4111F50	;D5
 	dc.l	$F4100FF0	;D6
-	dc.l	$01000010	;D7
-	dc.l	$00000000	;D0
+  dc.l	$01000010	;D7
+loc_51DA8:
+  dc.l	$00000000	;D0
 	dc.l	$00FF0000	;D1
 	dc.l	$0F4F1000	;D2
 	dc.l	$0FFF4100	;D3
