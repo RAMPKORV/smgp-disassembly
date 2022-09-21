@@ -1539,7 +1539,7 @@ loc_11E8:
 	JSR	loc_1E32(PC)
 	JSR	loc_658C
 	JSR	loc_1A7C(PC)
-	JSR	loc_14FE(PC)
+	JSR	Render_speed(PC)
 	MOVE.l	#$63800003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
@@ -1773,9 +1773,10 @@ loc_14F2:
 	MOVE.w	D1, (A1)+
 	RTS
 
-loc_14FE:
+;loc_14FE:
+Render_speed:
 	MOVE.w	Player_speed.w, D0
-	JSR	Binary_to_decimal(PC) ; Output value D1 used to render speed
+	JSR	Binary_to_decimal(PC) ; Output value D1 is $0123 if speed is 123km/h
 	LEA	$FFFFE800.w, A1
 	MOVEQ	#2, D0
 	MOVEQ	#0, D7
@@ -4189,23 +4190,23 @@ loc_36D8:
 loc_36F4:
 	JSR	Update_shift(PC)
 	JSR	Update_rpm(PC)
-	JSR	loc_6062(PC)
+	JSR	Update_breaking(PC)
 	JSR	loc_5F10(PC)
 	JSR	Update_speed(PC)
 loc_3708:
-	JSR	loc_14FE(PC)
+	JSR	Render_speed(PC)
 	JSR	loc_867C(PC)
 	JSR	loc_14A6(PC)
-	JSR	loc_60DC(PC)
-	JSR	loc_8142(PC)
-	JSR	loc_6B68(PC)
+	JSR	loc_60DC(PC) ; Commenting out disables left/right movement
+	JSR	loc_8142(PC) ; Commenting out disables left/right movement (but visually wheels still turn)
+	JSR	loc_6B68(PC) ; Commenting out disables visual forward movement (also map) but physically still moves as collisions eventually occur
 	JSR	loc_6D66(PC)
 	JSR	loc_73EE(PC)
 	JSR	loc_8250(PC)
 	JSR	loc_785C(PC)
 	JSR	loc_A152(PC)
-	JSR	loc_89AC(PC)
-	JSR	loc_89F4(PC)
+	JSR	loc_89AC(PC) ; Commeiting out makes signs have the wrong textures
+	JSR	loc_89F4(PC) ; Commenting out makes signs and obstacles disappear (physical and visual)
 	JSR	loc_873A(PC)
 	JSR	loc_3FE0(PC)
 	JSR	loc_A278(PC)
@@ -6607,7 +6608,7 @@ Update_rpm:
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_5B34
 	BTST.b	D6, Input_state_bitset.w ; if break key pressed
-	BNE.w	loc_5BF6
+	BNE.w	Update_visual_rpm        ; then only update visual rpm, Update_breaking will do RPM update instead
 loc_5B34:
 	LEA	Acceleration_data, A1
 	CLR.l	D0
@@ -6661,20 +6662,21 @@ loc_5BC4:
 	ADD.w	D2, Player_rpm.w
 	BPL.b	loc_5BE8
 	MOVE.w	#0, Player_rpm.w
-	BRA.b	loc_5BF6
+	BRA.b	Update_visual_rpm
 loc_5BD2:
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCC.b	loc_5BF0 ; Jump if rpm >= max
 	ADD.w	D1, Player_rpm.w ; Actual RPM update from calculated acceleration
 	BPL.b	loc_5BE8
 	MOVE.w	#0, Player_rpm.w
-	BRA.b	loc_5BF6
+	BRA.b	Update_visual_rpm
 loc_5BE8:
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
-	BCS.b	loc_5BF6 ; Jump if rpm < max
+	BCS.b	Update_visual_rpm ; Jump if rpm < max
 loc_5BF0:
 	ADDI.w	#-50, Player_rpm.w
-loc_5BF6:
+;loc_5BF6:
+Update_visual_rpm:
 	MOVE.w	Player_rpm.w, D0
 	ADDQ.w	#1, D0
 	SUB.w	Visual_rpm.w, D0 ; D0 = (rpm+1) - visual_rpm == delta between rpm and visual (but +1)
@@ -6909,12 +6911,13 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different
 	dc.w	1648, 776, 510, 366
 	dc.w	1846, 899, 603, 459, 387, 346, 299
 
-loc_6062:
+;loc_6062:
+Update_breaking:
 	TST.w	$FFFFFCA6.w
 	BNE.b	loc_60BE
 	MOVE.b	$FFFFFF23.w, D6
-	BTST.b	D6, Input_state_bitset.w ; if break key pressed
-	BEQ.b	loc_60BE
+	BTST.b	D6, Input_state_bitset.w ; if break key pressed, then continue
+	BEQ.b	loc_60BE                 ; else exit early
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCS.b	loc_6080           ; if rpm > max
 	ADDI.w	#-40, Player_rpm.w ; then rpm = rpm-40
