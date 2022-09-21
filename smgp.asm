@@ -1775,7 +1775,7 @@ loc_14F2:
 
 loc_14FE:
 	MOVE.w	Player_speed.w, D0
-	JSR	loc_157C(PC)
+	JSR	Binary_to_decimal(PC) ; Output value D1 used to render speed
 	LEA	$FFFFE800.w, A1
 	MOVEQ	#2, D0
 	MOVEQ	#0, D7
@@ -1832,18 +1832,19 @@ loc_1568:
 	DBF	D0, loc_1556
 	RTS
 
-loc_157C:
-	CLR.l	$FFFFFCFC.w
+;loc_157C:
+Binary_to_decimal: ; For instance: input D0 = $007B yields output D1 = $0123
+	CLR.l	$FFFFFCFC.w ; clears bytes referenced from A2 below
 	LEA	loc_15D6(PC), A1
 	MOVEQ	#$0000000F, D2
-loc_1586:
+loc_1586: ; iterate through each bit in D0
 	ROR.w	#1, D0
-	BCS.b	loc_158E
+	BCS.b	loc_158E ; if current bit in D0 was set, jump to perform decimal addition (ABCD)
 	SUBQ.w	#3, A1
 	BRA.b	loc_159C
-loc_158E:
+loc_158E:            ; then add corresponding value from byte table below
 	LEA	$FFFFFD00.w, A2
-	ADDI.w	#0, D0
+	ADDI.w	#0, D0 ; clear extend bit
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
@@ -1851,9 +1852,23 @@ loc_159C:
 	DBF	D2, loc_1586
 	MOVE.l	$FFFFFCFC.w, D1
 	RTS
-	dc.b	$03, $27, $68, $01, $63, $84, $00, $81, $92
-	dc.b	$00, $40, $96, $00, $20, $48, $00, $10, $24, $00, $05, $12, $00, $02, $56, $00, $01, $28, $00, $00, $64, $00, $00, $32, $00, $00, $16, $00, $00, $08, $00, $00
-	dc.b	$04, $00, $00, $02, $00, $00, $01
+; Table used by ABCD instructions above, input bits determine which rows to include in binary summation
+	dc.b	$03, $27, $68
+	dc.b	$01, $63, $84
+	dc.b	$00, $81, $92
+	dc.b	$00, $40, $96
+	dc.b	$00, $20, $48
+	dc.b	$00, $10, $24
+	dc.b	$00, $05, $12
+	dc.b	$00, $02, $56
+	dc.b	$00, $01, $28
+	dc.b	$00, $00, $64
+	dc.b	$00, $00, $32
+	dc.b	$00, $00, $16
+	dc.b	$00, $00, $08
+	dc.b	$00, $00, $04
+	dc.b	$00, $00, $02
+	dc.b	$00, $00, $01
 
 loc_15D6:
 	MOVEQ	#$0000000F, D2
@@ -5853,7 +5868,7 @@ loc_4EC8:
 	BRA.b	loc_4F00
 loc_4EDA:
 	ADDQ.w	#1, D0
-	JSR	loc_157C
+	JSR	Binary_to_decimal
 	MOVE.w	D1, D0
 	MOVEQ	#2, D1
 	MOVEQ	#$00000014, D2
@@ -6760,10 +6775,10 @@ loc_5CC4:
 	MULS.w	D1, D0
 	MOVE.w	#2, D1
 	LSL.w	D1, D0
-	ADDI.w	#$0050, D0
+	ADDI.w	#80, D0
 	SUB.w	D0, $FFFF9106.w
-	BCC.b	loc_5CFC
-	CLR.w	$FFFF9106.w
+	BCC.b	loc_5CFC    ; if speed < 0
+	CLR.w	$FFFF9106.w ; then speed = 0
 	BRA.b	loc_5CFC
 loc_5CF0:
 	TST.w	$FFFFFC9A.w
@@ -9172,7 +9187,7 @@ loc_78A8:
 	BRA.b	loc_78A8
 loc_78B4:
 	ADD.w	D4, D0
-	JSR	loc_157C
+	JSR	Binary_to_decimal
 	MOVE.w	D5, D0
 	SWAP	D0
 	MOVE.w	D1, D0
@@ -13687,7 +13702,7 @@ loc_B290:
 	MOVE.w	$FFFFAE12.w, D0
 	CMP.w	$34(A0), D0
 	SGT	$FFFFFC9C.w
-	CMPI.w	#$00F7, Player_speed.w
+	CMPI.w	#247, Player_speed.w
 	BCS.b	loc_B2BA
 	CMPI.w	#$0038, D7
 	BLS.b	loc_B2BA
@@ -14646,7 +14661,7 @@ loc_C148:
 	MOVE.w	(A1)+, D0
 	MOVE.w	(A2)+, D7
 	MOVEM.l	A2/A1, -(A7)
-	JSR	loc_157C
+	JSR	Binary_to_decimal
 	MOVE.w	#$431D, D4
 	BSR.b	loc_C16E
 	MOVEM.l	(A7)+, A1/A2
@@ -15132,7 +15147,7 @@ loc_C7E0:
 loc_C7EE:
 	MOVEQ	#0, D0
 	MOVE.b	-(A6), D0
-	JSR	loc_157C
+	JSR	Binary_to_decimal
 	MOVE.w	D1, -(A5)
 	DBF	D7, loc_C7EE
 	LEA	$FFFFC280.w, A6
@@ -16036,7 +16051,7 @@ loc_D484:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	LEA	Driver_points_by_team.w, A1
 	MOVE.b	(A1,D0.w), D0
-	JSR	loc_157C
+	JSR	Binary_to_decimal
 	MOVE.w	D1, D0
 	MOVE.w	#4, D1
 	MOVE.w	#$47C0, D4
@@ -17525,7 +17540,7 @@ loc_EC5A:
 
 loc_EC6A:
 	MOVE.w	$FFFFFC18.w, D0
-	JSR	loc_157C
+	JSR	Binary_to_decimal
 	LEA	VDP_data_port, A5
 	MOVE.w	D1, D0
 	MOVE.w	#2, D1
