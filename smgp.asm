@@ -1451,7 +1451,7 @@ loc_10A2:
 	MOVE.w	#$6000, D0
 	JSR	loc_AB0
 	JSR	loc_19CA(PC)
-	CMPI.w	#$000C, $FFFF9144.w
+	CMPI.w	#$000C, Track_index.w
 	BNE.b	loc_110A
 	MOVE.w	#$00FF, D0
 	MOVE.w	#$DDDD, D1
@@ -2837,7 +2837,7 @@ loc_22F2:
 	MOVE.w	#1, Shift_type.w
 	CLR.w	$FFFF9140.w
 	MOVE.w	#1, $FFFF9142.w
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
 	CLR.w	$FFFFFF18.w
@@ -3072,7 +3072,7 @@ loc_264E:
 	LEA	$8(A1), A1
 	DBF	D2, loc_264E
 	MOVE.w	#$000D, $FFFFFC04.w
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	CLR.b	$FFFF900F.w
 	CLR.w	$FFFF9000.w
 	MOVE.l	#$00002458, $FFFFFF10.w
@@ -3387,13 +3387,13 @@ loc_2952:
 	MOVE.w	#3, D5
 	JSR	loc_778
 	LEA	loc_308BE, A1
-	MOVE.w	$FFFF9144.w, D0
+	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.l	#$4E600001, VDP_control_port
 	JSR	loc_972
 	LEA	loc_3087E, A1
-	MOVE.w	$FFFF9144.w, D0
+	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.w	#$E273, D0
@@ -3774,7 +3774,7 @@ loc_300E:
 	CLR.w	Shift_type.w
 	CLR.w	$FFFF9140.w
 	CLR.w	$FFFF9142.w
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
@@ -3799,7 +3799,7 @@ loc_3072:
 loc_307C:
 	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFF9140.w
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	Player_team.w
@@ -3810,7 +3810,7 @@ loc_30AC:
 	CLR.b	$FFFFFC10.w
 	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFF9140.w
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	Player_team.w
@@ -4387,7 +4387,7 @@ loc_3A00:
 	TST.w	$FFFF9140.w
 	BEQ.b	loc_3A12
 	ADD.w	(A6)+, D7
-	CMPI.w	#3, $FFFF9144.w
+	CMPI.w	#3, Track_index.w
 	BNE.b	loc_3A12
 	SUBQ.w	#6, D7
 loc_3A12:
@@ -4490,7 +4490,7 @@ loc_3B2C:
 	LSL.w	#8, D7
 	MOVE.b	(A1)+, D7
 	ADD.w	(A6)+, D7
-	CMPI.w	#3, $FFFF9144.w
+	CMPI.w	#3, Track_index.w
 	BNE.b	loc_3B4A
 	SUBQ.w	#6, D7
 loc_3B4A:
@@ -4552,7 +4552,7 @@ loc_3C06:
 
 loc_3C16:
 	BSR.b	loc_3C02
-	CMPI.w	#2, $FFFF9144.w
+	CMPI.w	#2, Track_index.w
 	BCS.b	loc_3C26
 	BCLR.b	#3, $FFFF902F.w
 loc_3C26:
@@ -5987,7 +5987,7 @@ loc_5030:
 loc_503A:
 	CLR.b	(A0)+
 	DBF	D0, loc_503A
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	MOVE.b	$FFFF902F.w, D0
 	ANDI.b	#$FC, D0
 	MOVE.b	D0, $FFFF902F.w
@@ -6293,7 +6293,7 @@ loc_5678:
 	SUBQ.w	#1, $FFFFFF28.w
 loc_567C:
 	ANDI.w	#$000F, $FFFFFF28.w
-	MOVE.w	$FFFFFF28.w, $FFFF9144.w
+	MOVE.w	$FFFFFF28.w, Track_index.w
 	MOVE.w	#$000F, $FFFFFC04.w
 	RTS
 	MOVE.b	#0, Player_team.w
@@ -6303,7 +6303,7 @@ loc_567C:
 	MOVE.w	#$000E, $FFFFFF4C.w
 	MOVE.w	#$9003, VDP_control_port
 	MOVE.w	#1, $FFFF9140.w
-	MOVE.w	$FFFFFF28.w, $FFFF9144.w
+	MOVE.w	$FFFFFF28.w, Track_index.w
 	MOVE.w	#8, D0
 loc_56C6:
 	MOVE.l	#0, VDP_data_port
@@ -11168,7 +11168,7 @@ loc_9194:
 	LSL.w	#8, D0
 	MOVE.b	(A1)+, D0
 	ADD.w	(A6)+, D0
-	CMPI.w	#3, $FFFF9144.w
+	CMPI.w	#3, Track_index.w
 	BNE.b	loc_91B2
 	SUBQ.w	#6, D0
 loc_91B2:
@@ -14030,8 +14030,8 @@ loc_B762:
 	ADDQ.w	#4, $FFFFFC1C.w
 	RTS
 loc_B792:
-	ADDQ.w	#1, $FFFF9144.w
-	CMPI.w	#$0010, $FFFF9144.w
+	ADDQ.w	#1, Track_index.w
+	CMPI.w	#$0010, Track_index.w
 	BNE.b	loc_B7E0
 	CLR.l	D0
 	LEA	Driver_points_by_team.w, A6
@@ -14708,7 +14708,7 @@ loc_C1A4:
 loc_C1B4:
 	LEA	loc_C618(PC), A6
 	JSR	loc_846
-	MOVE.w	$FFFF9144.w, D0
+	MOVE.w	Track_index.w, D0
 	ADDQ.w	#1, D0
 	MOVE.w	#$C7C1, D1
 	SUBI.w	#$000A, D0
@@ -14719,7 +14719,7 @@ loc_C1D4:
 	MOVE.w	D1, (A5)
 	ADDI.w	#$C7C0, D0
 	MOVE.w	D0, (A5)
-	MOVE.w	$FFFF9144.w, D0
+	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
 	MOVEA.l	loc_C202(PC,D0.w), A6
 	MOVE.w	#$021A, D6
@@ -15412,7 +15412,7 @@ loc_CAEC:
 
 loc_CB3C:
 	LEA	loc_CA96, A6
-	CMPI.w	#$0010, $FFFF9144.w
+	CMPI.w	#$0010, Track_index.w
 	BNE.b	loc_CB50
 	LEA	loc_CAEC, A6
 loc_CB50:
@@ -15433,7 +15433,7 @@ loc_CB60:
 	ADDQ.b	#1, $FFFFFC18.w
 	RTS
 loc_CB84:
-	CMPI.w	#$0010, $FFFF9144.w
+	CMPI.w	#$0010, Track_index.w
 	BNE.b	loc_CB94
 	MOVE.l	#$00004FDC, $FFFFFF2A.w
 loc_CB94:
@@ -18157,7 +18157,7 @@ loc_F55C:
 	RTS
 loc_F568:
 	CLR.l	D0
-	MOVE.w	$FFFF9144.w, D0
+	MOVE.w	Track_index.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	$4(A1,D0.w), A6
 	RTS
@@ -18185,7 +18185,7 @@ loc_F59A:
 	BEQ.b	loc_F5BA
 	ADDA.l	#$00000280, A1
 loc_F5BA:
-	CMPI.w	#$000F, $FFFF9144.w
+	CMPI.w	#$000F, Track_index.w
 	BNE.b	loc_F5FE
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
@@ -18435,13 +18435,15 @@ loc_F848:
 	MULU.w	#$0048, D1
 	ADD.w	D1, D0
 loc_F860:
-	MOVE.w	$FFFF9144.w, D1
-	MULU.w	#$0048, D1
-	ADD.w	D1, D0
-	LEA	loc_F872(PC), A1
-	ADDA.w	D0, A1
+	MOVE.w	Track_index.w, D1
+	MULU.w	#$0048, D1 ; Multiply by 72. Each track in Track_data is 18*4=72 bytes.
+	ADD.w	D1, D0 ; D0 = row offset? (before adding D1)
+	LEA	Track_data(PC), A1
+	ADDA.w	D0, A1 ; A1 = A1 + 72*track_idx + row_offset?
 	RTS
-loc_F872:
+
+;loc_F872:
+Track_data:
 	dc.l	loc_55032 ; San Marino tiles used for minimap
 	dc.l	loc_68F4A ; San Marino tiles used for background
 	dc.l	loc_68DC6 ; San Marino background tile mapping
@@ -19937,7 +19939,7 @@ loc_1304C:
 	ADD.w	D1, D1
 	ADD.w	D1, D1
 	MOVE.w	D1, $FFFF9158.w
-	CMPI.w	#1, $FFFF9144.w
+	CMPI.w	#1, Track_index.w
 	BNE.b	loc_130DA
 	ADD.w	D0, $FFFF9158.w
 	ADD.w	D0, $FFFF9158.w
@@ -19946,7 +19948,7 @@ loc_130DA:
 	MOVE.w	D0, $FFFF9152.w
 	ADD.w	D0, $FFFF9152.w
 	ADD.w	D0, $FFFF9152.w
-	CMPI.w	#$000B, $FFFF9144.w
+	CMPI.w	#$000B, Track_index.w
 	BNE.b	loc_130F6
 	ADD.w	D0, $FFFF9152.w
 loc_130F6:
@@ -20051,7 +20053,7 @@ loc_13218:
 loc_13220:
 	CLR.b	(A1)+
 	DBF	D7, loc_13220
-	CLR.w	$FFFF9144.w
+	CLR.w	Track_index.w
 	CLR.l	$FFFFFF2A.w
 	LEA	$FFFFFF80.w, A1
 	LEA	$FFFF902F.w, A2

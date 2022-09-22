@@ -16,7 +16,7 @@
 ; 0x9104: Engine RPM to be rendered (used for smooth gauge movement)
 ; 0x9106: Speed (why two?)
 ; 0x9108: Speed
-; 0x9144.w: Current track idx to be loaded
+; 0x9144.w: Current track idx to be loaded from Track_data
 ; 0x9146.w: Usually 1. When 0, several code paths are skipped and RPM calculation becomes dumb
 ; Data written from Team_car_characteristics:
 ; - 0x915C: Acceleration selector

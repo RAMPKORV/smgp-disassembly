@@ -10,6 +10,7 @@ Driver_points_by_team = $FFFF9030
 Rival_team = $FFFF9042
 Player_team = $FFFF9043
 Drivers_and_teams_map = $FFFF9044;
+Track_index = $FFFF9144
 
 Team_car_acceleration = $FFFF915C
 Team_car_engine_data = $FFFF915E
