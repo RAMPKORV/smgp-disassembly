@@ -9,7 +9,10 @@ Player_team = $FFFF9043
 Drivers_and_teams_map = $FFFF9044;
 Engine_data_variant = $FFFF9180
 Engine_rpm_max = 1500
+Retire_flash_flag = $FFFFFC32;
 Retire_flag = $FFFFFC54
+Pause_flag = $FFFFFC66;
+Pit_in_flag = $FFFFFCA0;
 English_flag = $FFFFFF26 ; 0 = Japanese, 1 = English
 Shift_type = $FFFFFF2E ; 0 = automatic, 1 = 4-shift, 2 = 7-shift
 Easy_flag = $FFFFFF1C ; 0 = normal, 1 = easy

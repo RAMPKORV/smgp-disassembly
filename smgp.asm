@@ -4159,7 +4159,7 @@ loc_36B6: ; Suspected in-game loop
 	TST.w	$FFFFFC80.w
 	BNE.b	loc_3748
 	JSR	loc_3F0E(PC)
-	TST.w	$FFFFFC66.w
+	TST.w	Pause_flag.w
 	BEQ.b	loc_36D8
 	RTS
 loc_36D8:
@@ -4750,7 +4750,7 @@ loc_3F0C:
 loc_3F0E:
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_3F30
-	NOT.w	$FFFFFC66.w
+	NOT.w	Pause_flag.w
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_3F30
 	MOVE.w	#9, $FFFFFF4C.w
@@ -4758,7 +4758,7 @@ loc_3F0E:
 	RTS
 loc_3F30:
 	MOVE.w	$FFFFFC68.w, D1
-	MOVE.w	$FFFFFC66.w, D0
+	MOVE.w	Pause_flag.w, D0
 	MOVE.w	D0, $FFFFFC68.w
 	BNE.b	loc_3F62
 	TST.w	D1
@@ -7667,7 +7667,7 @@ loc_691E:
 	MOVE.w	$FFFF9202.w, D7
 	EORI.w	#$01C0, D7
 	ADDA.w	D7, A0
-	TST.w	$FFFFFC32.w
+	TST.w	Retire_flash_flag.w
 	BEQ.b	loc_6966
 	BTST.b	#0, $FFFFFC20.w
 	BEQ.b	loc_6966
@@ -9289,7 +9289,7 @@ loc_7AA4:
 	MOVE.w	$1E(A0), $FFFF8F80.w
 	MOVE.w	#$FFFF, $FFFF8FA0.w
 	MOVE.w	Player_speed.w, $26(A0)
-	TST.w	$FFFFFCA0.w
+	TST.w	Pit_in_flag.w
 	BEQ.b	loc_7B76
 	TST.w	$38(A0)
 	BNE.b	loc_7B30
@@ -9575,7 +9575,7 @@ loc_7E38:
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0170, $16(A0)
 	MOVE.w	#$000F, $30(A0)
-	MOVE.w	#1, $FFFFFC32.w
+	MOVE.w	#1, Retire_flash_flag.w
 	SUBI.l	#$0000F000, $30(A0)
 	MOVE.w	$30(A0), D0
 	SUB.w	D0, $16(A0)
@@ -9592,7 +9592,7 @@ loc_7E38:
 	MOVE.w	D0, $2E(A0)
 	CMPI.w	#3, D0
 	BCS.b	loc_7EB0
-	CLR.w	$FFFFFC32.w
+	CLR.w	Retire_flash_flag.w
 	MOVE.l	#$00007FA8, (A0)
 	CLR.w	$36(A0)
 	MOVE.w	#3, $34(A0)
@@ -10359,11 +10359,11 @@ loc_873A:
 	MOVE.w	#1, $FFFFFC9E.w
 	BTST.b	#KEY_C, Input_state_bitset.w
 	BEQ.b	loc_8788
-	MOVE.w	#1, $FFFFFCA0.w
+	MOVE.w	#1, Pit_in_flag.w
 loc_8788:
 	LEA	loc_8870(PC), A6
 	MOVEQ	#1, D0
-	TST.w	$FFFFFCA0.w
+	TST.w	Pit_in_flag.w
 	BNE.b	loc_87BC
 	TST.w	$FFFFFC9E.w
 	BEQ.b	loc_87A4
@@ -26940,7 +26940,7 @@ loc_391AC:
   txt "COMET\n"
   txt "ORCHIS\n"
   txt "ZEROFORCE\n", $FD
-  dc.b $0E, $21, $12, $1D, $FF
+  txt "EXIT", $FF
 loc_391F0:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $F7, $DE, $3C, $67, $D0, $3C, $77, $CF, $1D, $F0, $A7, $A5, $42, $4A, $01, $90, $27, $A6, $4F, $4C, $88, $98, $8C, $14, $C0
 	dc.b	$66, $27, $01, $05, $30, $19, $8A, $20, $41, $4C, $46, $0A, $60, $0C, $0B, $05, $30, $06, $2A, $2A, $01, $05, $31, $18, $29, $9C, $14, $D8, $13, $9A, $CA, $62
