@@ -1470,7 +1470,7 @@ loc_1118:
 	LEA	loc_56B4C, A0
 	BRA.b	loc_1132
 loc_1126:
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_1142
 	LEA	loc_56A1C, A0
 loc_1132:
@@ -1513,7 +1513,7 @@ loc_11B6:
 	MOVE.w	#$8000, D0
 	MOVE.w	#$04C9, D1
 	MOVE.l	#$63B00003, D7
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_11E8
 	MOVE.l	#$63700003, D7
 loc_11E8:
@@ -1554,9 +1554,9 @@ loc_11E8:
 	MOVEQ	#2, D5
 loc_1262:
 	JSR	loc_780
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_12D2
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_1296
 loc_1274:
 	MOVE.l	#$61460003, VDP_control_port
@@ -1598,7 +1598,7 @@ loc_12D2:
 loc_131A:
 	TST.w	$FFFF9148.w
 	BNE.w	loc_1274
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.w	loc_1274
 	MOVE.l	#$61040003, VDP_control_port
 	MOVEA.l	$FFFF92FC.w, A2
@@ -1652,7 +1652,7 @@ loc_13CC:
 	RTS
 
 loc_13F6:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_1446
 	TST.w	$FFFF9148.w
 	BNE.b	loc_1446
@@ -1660,7 +1660,7 @@ loc_13F6:
 	MOVE.b	Player_team.w, D0
 	LEA	$FFFFE98C.w, A1
 	BSR.b	loc_145C
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_1418
 	CLR.w	$FFFFFF4E.w
 loc_1418:
@@ -2034,7 +2034,7 @@ loc_178E:
 	MOVE.l	#$52400082, $FFFFFF08.w
 	JMP	loc_914
 loc_17B6:
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.w	loc_184C
 	TST.w	$FFFFFC74.w
 loc_17C2:
@@ -2835,8 +2835,8 @@ loc_22F2:
 	BRA.w	loc_237C
 	BRA.w	loc_2350
 	MOVE.w	#1, Shift_type.w
-	CLR.w	$FFFF9140.w
-	MOVE.w	#1, $FFFF9142.w
+	CLR.w	Use_world_championship_tracks.w
+	MOVE.w	#1, Track_index_arcade_mode.w
 	CLR.w	Track_index.w
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
@@ -3720,7 +3720,7 @@ loc_2F56:
 loc_2F5C:
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	$FFFF900F.w
-	CLR.w	$FFFF9142.w
+	CLR.w	Track_index_arcade_mode.w
 	CLR.w	$FFFF9148.w
 	MOVE.w	#1, $FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
@@ -3772,8 +3772,8 @@ loc_2FD0:
 	RTS
 loc_300E:
 	CLR.w	Shift_type.w
-	CLR.w	$FFFF9140.w
-	CLR.w	$FFFF9142.w
+	CLR.w	Use_world_championship_tracks.w
+	CLR.w	Track_index_arcade_mode.w
 	CLR.w	Track_index.w
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
@@ -3798,7 +3798,7 @@ loc_3072:
 	RTS
 loc_307C:
 	MOVE.w	$FFFFFF36.w, Shift_type.w
-	MOVE.w	#1, $FFFF9140.w
+	MOVE.w	#1, Use_world_championship_tracks.w
 	CLR.w	Track_index.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
@@ -3809,7 +3809,7 @@ loc_307C:
 loc_30AC:
 	CLR.b	$FFFFFC10.w
 	MOVE.w	$FFFFFF36.w, Shift_type.w
-	MOVE.w	#1, $FFFF9140.w
+	MOVE.w	#1, Use_world_championship_tracks.w
 	CLR.w	Track_index.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
@@ -3822,7 +3822,7 @@ loc_30E8:
 	MOVE.w	#3, $FFFF9000.w
 	RTS
 loc_30F0:
-	CLR.w	$FFFF9142.w
+	CLR.w	Track_index_arcade_mode.w
 	CLR.w	$FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.l	#$00003800, $FFFFFF10.w
@@ -3890,7 +3890,7 @@ loc_321A:
 	BNE.w	loc_32CA
 	BRA.w	loc_32CC
 loc_322C:
-	MOVE.w	$FFFF9140.w, D0
+	MOVE.w	Use_world_championship_tracks.w, D0
 	OR.w	$FFFFFC1C.w, D0
 	BNE.b	loc_3284
 	MOVEQ	#1, D1
@@ -4264,7 +4264,7 @@ loc_3748:
 	JSR	loc_D5C(PC)
 	JSR	loc_10A2(PC)
 	JSR	loc_1144(PC)
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_385C
 	MOVE.w	#$0010, $FFFFFC82.w
 loc_385C:
@@ -4300,7 +4300,7 @@ loc_38E0:
 	MOVE.w	$FFFF914A.w, D0
 	OR.w	$FFFF9148.w, D0
 	BNE.b	loc_3948
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_395C
 	MOVE.w	#$0050, D0
 	MOVE.w	D0, $FFFFAE12.w
@@ -4325,7 +4325,7 @@ loc_3948:
 	MOVE.w	D0, $FFFFAE1A.w
 	RTS
 loc_395C:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.w	loc_3A80
 	CLR.b	Player_team.w
 	MOVE.l	#$00008C9E, D2
@@ -4370,7 +4370,7 @@ loc_39B6:
 	BEQ.b	loc_39DC
 	ADDI.w	#$0044, D7
 loc_39DC:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_39E4
 	ADD.w	(A6)+, D7
 loc_39E4:
@@ -4380,11 +4380,11 @@ loc_39E4:
 	MOVE.b	(A1)+, D7
 	LSL.w	#8, D7
 	MOVE.b	(A1)+, D7
-	CMPI.w	#2, $FFFF9142.w
+	CMPI.w	#2, Track_index_arcade_mode.w
 	BNE.b	loc_3A00
 	SUBI.w	#$000F, D7
 loc_3A00:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_3A12
 	ADD.w	(A6)+, D7
 	CMPI.w	#3, Track_index.w
@@ -4405,7 +4405,7 @@ loc_3A1E:
 	MOVE.w	$FFFFFC18.w, $FFFFAE1A.w
 	NEG.w	$FFFFFC14.w
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_3A7E
 	MOVE.w	$FFFFB0B0.w, D0
 	ADDI.w	#$000F, D0
@@ -4569,14 +4569,14 @@ loc_3C26:
 	MOVE.w	#802, Visual_rpm.w
 	MOVE.b	#$14, $FFFF92F8.w
 	MOVE.w	#$E12C, D7
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_3C6A
 	MOVE.w	#$E0AC, D7
 loc_3C6A:
 	MOVE.w	D7, $FFFFFF32.w
 	CLR.w	$FFFF9146.w
 	JSR	loc_1304C
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_3C94
 	CLR.w	$FFFFFF30.w
 	CLR.w	$FFFFFF38.w
@@ -4585,9 +4585,9 @@ loc_3C6A:
 	RTS
 loc_3C94:
 	CLR.w	$FFFFFF4E.w
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_3CC2
-	CMPI.w	#2, $FFFF9142.w
+	CMPI.w	#2, Track_index_arcade_mode.w
 	BEQ.b	loc_3CAE
 	MOVE.w	$FFFFFF30.w, $FFFFFF34.w
 	BRA.b	loc_3CB8
@@ -4834,9 +4834,9 @@ loc_3FD2:
 
 loc_3FE0:
 	MOVEQ	#0, D7
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_4056
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_4056
 	MOVE.b	$FFFFFF23.w, D0
 	BTST.b	D0, Input_click_bitset.w ; if break key clicked
@@ -4974,10 +4974,10 @@ loc_42C0:
 	BNE.b	loc_42F6
 loc_42DA:
 	MOVE.l	#$0000BD56, D0
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_42F2
 	MOVE.l	#$00003800, D0
-	MOVE.w	#1, $FFFF9142.w
+	MOVE.w	#1, Track_index_arcade_mode.w
 loc_42F2:
 	MOVE.l	D0, $FFFFFF10.w
 loc_42F6:
@@ -5131,7 +5131,7 @@ loc_4508:
 	MOVE.w	#5, $00FF5AC2
 	BRA.b	loc_4528
 loc_451A:
-	MOVE.w	#2, $FFFF9142.w
+	MOVE.w	#2, Track_index_arcade_mode.w
 	MOVE.l	#$00003800, $FFFFFF10.w
 loc_4528:
 	RTS
@@ -6302,7 +6302,7 @@ loc_567C:
 	JSR	loc_F16
 	MOVE.w	#$000E, $FFFFFF4C.w
 	MOVE.w	#$9003, VDP_control_port
-	MOVE.w	#1, $FFFF9140.w
+	MOVE.w	#1, Use_world_championship_tracks.w
 	MOVE.w	$FFFFFF28.w, Track_index.w
 	MOVE.w	#8, D0
 loc_56C6:
@@ -6351,8 +6351,8 @@ loc_578E:
 	MOVE.w	#$0014, $FFFFFC00.w
 	MOVE.w	#7, $FFFFFC04.w
 	MOVE.w	$FFFFFF36.w, Shift_type.w
-	MOVE.w	#1, $FFFF9140.w
-	CLR.w	$FFFF9142.w
+	MOVE.w	#1, Use_world_championship_tracks.w
+	CLR.w	Track_index_arcade_mode.w
 	MOVE.w	#1, $FFFF9148.w
 	CLR.w	$FFFF914A.w
 	MOVE.w	#1, $FFFFFF18.w
@@ -6928,7 +6928,7 @@ loc_6080:
 	LSL.w	#2, D0
 	ADD.w	Player_shift.w, D0
 	MOVE.b	(A1,D0.w), D1
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_60B2
 	TST.w	$FFFF9148.w
 	BNE.b	loc_60B2
@@ -6960,7 +6960,7 @@ loc_60DC:
 	MOVEQ	#$0000000F, D4
 	MOVEQ	#$00000013, D5
 	MOVEQ	#$00000018, D6
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_6106
 	TST.w	$FFFF9148.w
 	BNE.b	loc_6106
@@ -7189,7 +7189,7 @@ loc_632E:
 	MOVE.b	(A2)+, (A3)+
 	MOVE.b	(A2)+, (A3)+
 	DBF	D0, loc_632E
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_63B8
 	MOVEQ	#$00000050, D7
 	MOVEQ	#6, D6
@@ -7241,7 +7241,7 @@ loc_63B8:
 	MOVE.w	$FFFF9206.w, $FFFF922C.w
 	MOVE.l	loc_FDCA, $FFFF922E.w
 	LEA	loc_73CA(PC), A6
-	CMPI.w	#1, $FFFF9142.w
+	CMPI.w	#1, Track_index_arcade_mode.w
 	BEQ.b	loc_63DA
 	LEA	loc_73DC(PC), A6
 loc_63DA:
@@ -7631,9 +7631,9 @@ loc_6884:
 	LEA	loc_7360(PC), A0
 	BRA.b	loc_68D4
 loc_68A2:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_68CA
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_68CA
 	TST.w	$FFFFFC86.w
 	BEQ.b	loc_68CA
@@ -7928,9 +7928,9 @@ loc_6B68:
 loc_6B96:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_6C06
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_6C06
 	MOVE.w	$FFFFAE1A.w, D4
 	MOVE.w	#$00A0, D1
@@ -8837,7 +8837,7 @@ loc_7464:
 	MOVE.l	#$000076C2, $FFFFAD80.w
 	CLR.l	(A0)
 	MOVE.b	#$14, (A0)
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_74B2
 	ADD.w	D1, D1
 	ADD.w	D1, D1
@@ -8848,7 +8848,7 @@ loc_74B2:
 	LEA	$FFFF92E4.w, A1
 	LEA	$FFFF92E0.w, A2
 	JSR	loc_7688(PC)
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_74EA
 	TST.w	$FFFF914A.w
 	BNE.b	loc_74DC
@@ -8863,7 +8863,7 @@ loc_74DC:
 	BEQ.b	loc_74FC
 	BRA.b	loc_750E
 loc_74EA:
-	MOVE.w	$FFFF9140.w, D0
+	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#3, D0
 	CMP.w	$FFFF9232.w, D0
@@ -8874,7 +8874,7 @@ loc_74FC:
 	JSR	loc_8AE8
 	MOVE.w	#1, $FFFFFC6E.w
 loc_750E:
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_758E
 	MOVE.l	(A0), D0
 	TST.w	$FFFFFC6E.w
@@ -8928,7 +8928,7 @@ loc_75B0:
 	MOVEQ	#0, D5
 	LEA	(A3), A6
 	JSR	loc_146C
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_7612
 	MOVE.l	$FFFF92DC.w, $FFFF92D8.w
 	LEA	$FFFF92FC.w, A1
@@ -8959,7 +8959,7 @@ loc_7614:
 	LEA	$FFFFE85C.w, A3
 	JSR	loc_15D6
 	MOVE.l	#$61460003, D7
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_7648
 	MOVE.l	#$61040003, D7
 loc_7648:
@@ -9034,14 +9034,14 @@ loc_76C0:
 loc_76F8:
 	TST.w	$FFFF9148.w
 	BNE.b	loc_776C
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_770A
 loc_7704:
 	JMP	loc_F38
 loc_770A:
 	JSR	loc_7822(PC)
 	JSR	loc_8656
-	MOVE.w	$FFFF9140.w, D0
+	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#2, D0
 	MOVE.w	$FFFF9232.w, D1
@@ -9063,7 +9063,7 @@ loc_772A:
 	MOVEQ	#3, D7
 	TST.w	$36(A0)
 	BNE.b	loc_7768
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_776C
 	MOVEQ	#2, D7
 	MOVE.w	$FFFFFC78.w, D0
@@ -9132,7 +9132,7 @@ loc_7820:
 	RTS
 
 loc_7822:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_785A
 	LEA	loc_7968(PC), A1
 	MOVE.w	$FFFF9232.w, D0
@@ -9163,10 +9163,10 @@ loc_785C:
 loc_7874:
 	RTS
 loc_7876:
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_7874
 	MOVEA.w	$FFFFFC90.w, A0
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_7890
 	TST.w	$FFFFFF4E.w
 	BEQ.b	loc_7890
@@ -9685,9 +9685,9 @@ loc_7FA2:
 	BNE.b	loc_8032
 	TST.w	$FFFF9148.w
 	BNE.w	loc_8054
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_8004
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_7FEC
 	MOVE.l	#$00009E08, D1
 	JSR	loc_8AE8
@@ -9849,7 +9849,7 @@ loc_81BC:
 	LSL.w	#6, D1
 	EXT.l	D1
 	MOVE.w	(A0), D2
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_81D8
 	TST.w	$FFFF9148.w
 	BNE.b	loc_81D8
@@ -9917,9 +9917,9 @@ loc_8250:
 loc_825A:
 	RTS
 loc_825C:
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_825A
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.w	loc_8466
 	MOVE.w	$FFFFFF34.w, D1
 	TST.w	$FFFFFCA8.w
@@ -10253,9 +10253,9 @@ loc_862E:
 	BCC.b	loc_8642
 	CLR.w	(A1)
 loc_8642:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_8654
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_8654
 	MOVE.w	#1, $FFFFFC8A.w
 loc_8654:
@@ -10359,9 +10359,9 @@ loc_8730:
 	dc.w	$0010
 
 loc_873A:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.w	loc_87D0
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.w	loc_87D0
 	CLR.w	$FFFFFC9E.w
 	TST.w	$FFFF9150.w
@@ -10408,9 +10408,9 @@ loc_87D0:
 	RTS
 
 loc_87D2:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.w	loc_886E
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 loc_87DE:
 	BEQ.w	loc_886E
 	MOVEQ	#0, D7
@@ -10510,13 +10510,13 @@ loc_89F4:
 	MOVE.w	$FFFF914A.w, D0
 	OR.w	$FFFF9148.w, D0
 	BNE.b	loc_8A44
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_8A12
 	TST.w	$FFFF9232.w
 	BEQ.b	loc_8A20
 	BRA.b	loc_8A44
 loc_8A12:
-	MOVE.w	$FFFF9140.w, D0
+	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#2, D0
 	CMP.w	$FFFF9232.w, D0
@@ -11592,7 +11592,7 @@ loc_965E:
 	MOVE.l	A0, $30(A1)
 loc_967C:
 	MOVE.l	#$00240014, D3
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_96A6
 	MOVE.l	#$003C0024, D3
 	MOVE.w	$FFFFFF60.w, D0
@@ -12021,7 +12021,7 @@ loc_9ACA:
 loc_9ADC:
 	TST.w	$FFFFFC80.w
 	BNE.b	loc_9ACA
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_9AF4
 	TST.w	$FFFF9146.w
 	BEQ.b	loc_9B1E
@@ -12232,7 +12232,7 @@ loc_9DB6:
 	BRA.b	loc_9E26
 
 loc_9DD0:
-	MOVE.w	$FFFF9142.w, D0
+	MOVE.w	Track_index_arcade_mode.w, D0
 	ADD.w	D0, D0
 	MOVE.w	D0, D1
 	ADD.w	D0, D0
@@ -12689,10 +12689,10 @@ loc_A502:
 	TST.w	$FFFF914A.w
 	BNE.b	loc_A560
 	MOVE.l	#$000042F8, D1
-	MOVE.w	$FFFF9142.w, D0
+	MOVE.w	Track_index_arcade_mode.w, D0
 	BEQ.b	loc_A560
 	MOVE.l	#$0000BD56, D1
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_A560
 	MOVE.l	#$0000E0D4, D1
 	SUBQ.w	#1, D0
@@ -12712,9 +12712,9 @@ loc_A564:
 	MOVE.w	#$009F, $FFFFFC2E.w
 	MOVE.l	#$0000A5DC, (A0)
 loc_A592:
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_A5AA
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_A5AA
 	CMPA.w	#$B480, A0
 	BNE.b	loc_A5AA
@@ -12728,7 +12728,7 @@ loc_A5B6:
 	MOVE.w	D1, $2A(A0)
 	MOVE.w	$FFFFFC2E.w, $E(A0)
 	SUBQ.w	#4, $FFFFFC2E.w
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_A5D4
 	MOVE.w	#8, $2C(A0)
 loc_A5D4:
@@ -12755,7 +12755,7 @@ loc_A5DC:
 	TST.w	$FFFF9148.w
 	BNE.b	loc_A634
 	MOVE.l	#$0001287C, D0
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_A634
 	JMP	loc_F38
 loc_A634:
@@ -13970,7 +13970,7 @@ loc_B66E:
 	RTS
 loc_B674:
 	ADDQ.b	#2, $FFFFFC1A.w
-	MOVE.w	#1, $FFFF9142.w
+	MOVE.w	#1, Track_index_arcade_mode.w
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.b	loc_B6C8
@@ -14326,7 +14326,7 @@ loc_BBA8:
 	SUB.l	D0, $FFFFFC0C.w
 	RTS
 loc_BBB6:
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_BBF8
 	BTST.b	#7, Rival_team.w
 	BNE.b	loc_BBD4
@@ -14345,7 +14345,7 @@ loc_BBD4:
 	MOVE.l	#$0000D6E2, $FFFFFF2A.w
 	RTS
 loc_BBF8:
-	MOVE.w	#1, $FFFF9142.w
+	MOVE.w	#1, Track_index_arcade_mode.w
 	BTST.b	#5, Player_team.w
 	BEQ.b	loc_BC10
 	MOVE.l	#$0000D2B0, $FFFFFF10.w
@@ -14425,7 +14425,7 @@ loc_BD26:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 	JSR	loc_F16
-	TST.w	$FFFF9142.w
+	TST.w	Track_index_arcade_mode.w
 	BNE.w	loc_BE12
 	BSR.w	loc_BF66
 	JSR	loc_12BF8
@@ -18427,11 +18427,11 @@ loc_F842:
 	RTS
 
 loc_F848:
-	MOVE.w	$FFFF9140.w, D0
+	MOVE.w	Use_world_championship_tracks.w, D0
 	EORI.w	#1, D0
-	BEQ.b	loc_F860
-	MOVE.w	#$0480, D0
-	MOVE.w	$FFFF9142.w, D1
+	BEQ.b	loc_F860 ; jump if Use_world_championship_tracks == 1
+	MOVE.w	#$0480, D0 ; $0480 = 1152 = 72*16 = offset from Track_data to arcade tracks
+	MOVE.w	Track_index_arcade_mode.w, D1
 	MULU.w	#$0048, D1
 	ADD.w	D1, D0
 loc_F860:
@@ -19972,7 +19972,7 @@ loc_1310E:
 	MOVE.w	#$00F0, $FFFF9170.w
 	MOVE.w	#$0028, $FFFF9172.w
 	CLR.w	$FFFF9150.w
-	TST.w	$FFFF9140.w
+	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_1316E
 	TST.w	$FFFF9148.w
 	BNE.b	loc_1316E

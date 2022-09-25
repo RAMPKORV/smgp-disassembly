@@ -10,6 +10,8 @@ Driver_points_by_team = $FFFF9030
 Rival_team = $FFFF9042
 Player_team = $FFFF9043
 Drivers_and_teams_map = $FFFF9044;
+Use_world_championship_tracks = $FFFF9140 ; 1 for world championship or practice, 0 for arcade
+Track_index_arcade_mode = $FFFF9142
 Track_index = $FFFF9144
 
 Team_car_acceleration = $FFFF915C
