@@ -1460,12 +1460,12 @@ loc_1100:
 	MOVE.w	D1, VDP_data_port
 	DBF	D0, loc_1100
 loc_110A:
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BEQ.b	loc_1118
 	LEA	loc_56C6C, A0
 	BRA.b	loc_1132
 loc_1118:
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BEQ.b	loc_1126
 	LEA	loc_56B4C, A0
 	BRA.b	loc_1132
@@ -1578,7 +1578,7 @@ loc_1296:
 	LEA	loc_1EE2(PC), A1
 	JMP	loc_8A0
 loc_12D2:
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BEQ.b	loc_131A
 	MOVE.l	#$61460003, VDP_control_port
 	MOVEA.l	$FFFF92FC.w, A2
@@ -1596,7 +1596,7 @@ loc_12D2:
 	MOVEQ	#1, D5
 	JMP	loc_780
 loc_131A:
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.w	loc_1274
 	TST.w	Track_index_arcade_mode.w
 	BEQ.w	loc_1274
@@ -1654,7 +1654,7 @@ loc_13CC:
 loc_13F6:
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_1446
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_1446
 	MOVEQ	#$0000000F, D7
 	MOVE.b	Player_team.w, D0
@@ -2838,8 +2838,8 @@ loc_22F2:
 	CLR.w	Use_world_championship_tracks.w
 	MOVE.w	#1, Track_index_arcade_mode.w
 	CLR.w	Track_index.w
-	CLR.w	$FFFF9148.w
-	CLR.w	$FFFF914A.w
+	CLR.w	Practice_mode.w
+	CLR.w	Warm_up.w
 	CLR.w	$FFFFFF18.w
 	MOVE.w	#2, $FFFFFF30.w
 	MOVE.w	#$003C, Engine_data_offset.w
@@ -3721,8 +3721,8 @@ loc_2F5C:
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	$FFFF900F.w
 	CLR.w	Track_index_arcade_mode.w
-	CLR.w	$FFFF9148.w
-	MOVE.w	#1, $FFFF914A.w
+	CLR.w	Practice_mode.w
+	MOVE.w	#1, Warm_up.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#$000A, $FFFFFF4C.w
 	MOVE.l	#$00003800, $FFFFFF10.w
@@ -3775,8 +3775,8 @@ loc_300E:
 	CLR.w	Use_world_championship_tracks.w
 	CLR.w	Track_index_arcade_mode.w
 	CLR.w	Track_index.w
-	CLR.w	$FFFF9148.w
-	CLR.w	$FFFF914A.w
+	CLR.w	Practice_mode.w
+	CLR.w	Warm_up.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#$003C, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
@@ -3823,8 +3823,8 @@ loc_30E8:
 	RTS
 loc_30F0:
 	CLR.w	Track_index_arcade_mode.w
-	CLR.w	$FFFF9148.w
-	CLR.w	$FFFF914A.w
+	CLR.w	Practice_mode.w
+	CLR.w	Warm_up.w
 	MOVE.l	#$00003800, $FFFFFF10.w
 	RTS
 loc_3106:
@@ -4297,8 +4297,8 @@ loc_38E0:
 	LEA	$40(A0), A0
 	DBF	D1, loc_38E0
 	MOVE.l	#$00007AAE, $FFFFAE00.w
-	MOVE.w	$FFFF914A.w, D0
-	OR.w	$FFFF9148.w, D0
+	MOVE.w	Warm_up.w, D0
+	OR.w	Practice_mode.w, D0
 	BNE.b	loc_3948
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_395C
@@ -4574,7 +4574,7 @@ loc_3C26:
 	MOVE.w	#$E0AC, D7
 loc_3C6A:
 	MOVE.w	D7, $FFFFFF32.w
-	CLR.w	$FFFF9146.w
+	CLR.w	Race_started.w
 	JSR	loc_1304C
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_3C94
@@ -4785,8 +4785,8 @@ loc_3F44:
 	CLR.l	$FFFFFC6A.w
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
-	MOVE.w	$FFFF914A.w, D0
-	OR.w	$FFFF9148.w, D0
+	MOVE.w	Warm_up.w, D0
+	OR.w	Practice_mode.w, D0
 	BEQ.b	loc_3FD2
 	BRA.b	loc_3FC2
 loc_3F62:
@@ -4805,13 +4805,13 @@ loc_3F7C:
 	BEQ.b	loc_3F8E
 	LEA	loc_40C0(PC), A6
 loc_3F8E:
-	MOVE.w	$FFFF914A.w, D0
-	OR.w	$FFFF9148.w, D0
+	MOVE.w	Warm_up.w, D0
+	OR.w	Practice_mode.w, D0
 	BEQ.b	loc_3FD2
 	LEA	(A6), A4
 	LEA	loc_40D2(PC), A6
 	MOVE.l	#$00005690, D0
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_3FB0
 	MOVE.l	#$0000293C, D0
 loc_3FB0:
@@ -6353,8 +6353,8 @@ loc_578E:
 	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, Use_world_championship_tracks.w
 	CLR.w	Track_index_arcade_mode.w
-	MOVE.w	#1, $FFFF9148.w
-	CLR.w	$FFFF914A.w
+	MOVE.w	#1, Practice_mode.w
+	CLR.w	Warm_up.w
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#$003C, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
@@ -6595,7 +6595,7 @@ loc_5B00:
 
 ;loc_5B02:
 Update_rpm:
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.b	loc_5AD6
 	TST.w	$FFFFFC76.w
 	BNE.b	loc_5AB0
@@ -6930,7 +6930,7 @@ loc_6080:
 	MOVE.b	(A1,D0.w), D1
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_60B2
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_60B2
 	MOVE.w	$FFFF9164.w, D0
 	LEA	loc_60D0(PC), A0
@@ -6962,7 +6962,7 @@ loc_60DC:
 	MOVEQ	#$00000018, D6
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_6106
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_6106
 	MOVE.w	$FFFF9160.w, D0
 	ADD.w	D0, D0
@@ -8786,7 +8786,7 @@ loc_73EE:
 	TST.w	$FFFFFCB6.w
 	BNE.b	loc_73FE
 	CLR.w	$FFFFFC70.w
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BNE.b	loc_7414
 loc_73FE:
 	RTS
@@ -8850,9 +8850,9 @@ loc_74B2:
 	JSR	loc_7688(PC)
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_74EA
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BNE.b	loc_74DC
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_750E
 	MOVE.w	#1, $FFFFFC74.w
 	BRA.b	loc_74FC
@@ -8890,8 +8890,8 @@ loc_7520:
 	MOVEQ	#1, D5
 	LEA	$FFFFE80C.w, A6
 	JSR	loc_146C
-	MOVE.w	$FFFF914A.w, D0
-	OR.w	$FFFF9148.w, D0
+	MOVE.w	Warm_up.w, D0
+	OR.w	Practice_mode.w, D0
 	BNE.w	loc_7612
 	MOVE.w	$FFFFFF30.w, D0
 	ADD.w	D0, D0
@@ -9017,7 +9017,7 @@ loc_76C0:
 	RTS
 	TST.w	$FFFFFCBC.w
 	BNE.b	loc_7704
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BEQ.b	loc_76F8
 	TST.w	$FFFFFC6E.w
 	BNE.w	loc_7778
@@ -9032,7 +9032,7 @@ loc_76C0:
 	JSR	loc_146C
 	BRA.b	loc_776C
 loc_76F8:
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_776C
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_770A
@@ -9681,9 +9681,9 @@ loc_7FA2:
 	MOVE.w	#1, $FFFFFC6E.w
 	MOVE.w	#1, $FFFFFC80.w
 	CLR.w	$00FF5AC6
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BNE.b	loc_8032
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.w	loc_8054
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_8004
@@ -9851,7 +9851,7 @@ loc_81BC:
 	MOVE.w	(A0), D2
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_81D8
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_81D8
 	MOVE.w	$FFFF9162.w, D0
 	ADD.w	D0, D0
@@ -9911,8 +9911,8 @@ loc_8244:
 	RTS
 
 loc_8250:
-	MOVE.w	$FFFF914A.w, D0
-	OR.w	$FFFF9148.w, D0
+	MOVE.w	Warm_up.w, D0
+	OR.w	Practice_mode.w, D0
 	BEQ.b	loc_825C
 loc_825A:
 	RTS
@@ -10053,7 +10053,7 @@ loc_83BE:
 	JSR	loc_8AE8
 	BRA.b	loc_8456
 loc_840E:
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.b	loc_8464
 	MOVEA.w	$FFFFFCAA.w, A0
 	MOVE.w	$FFFFAE1E.w, D1
@@ -10507,8 +10507,8 @@ loc_89F2:
 loc_89F4:
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
-	MOVE.w	$FFFF914A.w, D0
-	OR.w	$FFFF9148.w, D0
+	MOVE.w	Warm_up.w, D0
+	OR.w	Practice_mode.w, D0
 	BNE.b	loc_8A44
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_8A12
@@ -10724,7 +10724,7 @@ loc_8C70:
 loc_8CC0:
 	TST.w	$FFFFFC80.w
 	BNE.w	loc_8FE4
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.w	loc_8FE4
 	TST.b	$3E(A0)
 	BNE.w	loc_8F76
@@ -11193,7 +11193,7 @@ loc_91DA:
 loc_9206:
 	TST.w	$FFFFFC80.w
 	BNE.w	loc_9542
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.w	loc_9542
 	TST.b	$3E(A0)
 	BNE.w	loc_94EA
@@ -12023,13 +12023,13 @@ loc_9ADC:
 	BNE.b	loc_9ACA
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_9AF4
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.b	loc_9B1E
 	MOVE.w	Player_rpm.w, D0
 	BRA.b	loc_9B02
 loc_9AF4:
 	MOVE.w	Player_rpm.w, D0
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BNE.b	loc_9B02
 	MOVE.w	Visual_rpm.w, D0
 loc_9B02:
@@ -12513,7 +12513,7 @@ loc_A150:
 	RTS
 
 loc_A152:
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.b	loc_A172
 	MOVE.w	#$0444, D0
 	BTST.b	#0, $FFFFFC20.w
@@ -12686,7 +12686,7 @@ loc_A502:
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_A564
 	MOVE.l	#$0000293C, D1
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BNE.b	loc_A560
 	MOVE.l	#$000042F8, D1
 	MOVE.w	Track_index_arcade_mode.w, D0
@@ -12749,10 +12749,10 @@ loc_A5DC:
 	MOVE.w	D1, $18(A0)
 	JMP	loc_EF0
 	MOVE.l	#$000128F8, D0
-	TST.w	$FFFF914A.w
+	TST.w	Warm_up.w
 	BNE.b	loc_A634
 	MOVE.l	#$000128C6, D0
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_A634
 	MOVE.l	#$0001287C, D0
 	TST.w	Track_index_arcade_mode.w
@@ -12772,7 +12772,7 @@ loc_A634:
 	MOVEQ	#1, D1
 loc_A668:
 	BSR.b	loc_A6BA
-	TST.w	$FFFF9146.w
+	TST.w	Race_started.w
 	BEQ.b	loc_A68A
 	SUBQ.w	#2, $16(A0)
 	ADDQ.w	#3, $18(A0)
@@ -12835,7 +12835,7 @@ loc_A72A:
 	BEQ.b	loc_A74C
 	MOVE.w	#5, $00FF5AE0
 loc_A74C:
-	MOVE.w	#1, $FFFF9146.w
+	MOVE.w	#1, Race_started.w
 	MOVE.w	#$0028, $2C(A0)
 	MOVE.w	#$0064, $2E(A0)
 	MOVE.l	#$0000A788, (A0)
@@ -13705,7 +13705,7 @@ loc_B290:
 	MOVE.w	$FFFFAE12.w, D0
 	CMP.w	$34(A0), D0
 	SGT	$FFFFFC9C.w
-	CMPI.w	#247, Player_speed.w
+	CMPI.w	#247, Player_speed.w ; Crash if speed >= 247
 	BCS.b	loc_B2BA
 	CMPI.w	#$0038, D7
 	BLS.b	loc_B2BA
@@ -19974,7 +19974,7 @@ loc_1310E:
 	CLR.w	$FFFF9150.w
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_1316E
-	TST.w	$FFFF9148.w
+	TST.w	Practice_mode.w
 	BNE.b	loc_1316E
 
 ;locx_13152:

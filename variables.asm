@@ -17,7 +17,9 @@
 ; 0x9106: Speed (why two?)
 ; 0x9108: Speed
 ; 0x9144.w: Current track idx to be loaded from Track_data
-; 0x9146.w: Usually 1. When 0, several code paths are skipped and RPM calculation becomes dumb
+; 0x9146.w: 0 right before lap start, then 1 when lap starts. When 0, several code paths are skipped and RPM only updates visually
+; 0x9148.w: practice mode
+; 0x914A.w: warm up
 ; Data written from Team_car_characteristics:
 ; - 0x915C: Acceleration selector
 ; - 0x915E: Engine_data_offset selector
@@ -37,6 +39,7 @@
 ; 0x9250: ?
 ; 0xA980: ? Some struct
 ; 0xAE00: Player state struct ??
+; 0xae12: Player horizontal position (0 middle, positive right, negative left)
 ; 0xae1a: Player distance on current track
 ; 0xae26: Player's current speed (read only)
 ; 0xE9EC: 10 bytes determines team color
