@@ -1,4 +1,11 @@
-
+TODO
+===============================================================================
+- Crack slope data
+- Crack signs data
+- Crack curve data
+- Identify artwork
+- Disassemble Z80
+- Identify music tracks
 
 LOCATIONS
 ===============================================================================
