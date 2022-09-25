@@ -1,3 +1,7 @@
+
+
+LOCATIONS
+===============================================================================
 ; 0xfc01: cursor position in menu
 ; 0xfc10: cursor position on title screen
 ; 0x5ac9: the volume of 'enemy' car engine sounds
@@ -57,3 +61,23 @@
 ; 0xff26: Language. 0 = Japanese, 1 = English
 ; 0xffae: Copy of speed (useless, only written to?)
 ; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)
+
+
+TEAM INTRODUCTION OBJECTS
+================================================================================
+loc_21F14 Mechanic 1 (Bearded, hands on chest, short sleeved, shirt, trousers)
+loc_21F54 Mechanic 2 (Gloves, uniform, short sleeved, one hand on chest, one on leg)
+loc_21F1E Mechanic 3 (Arms crossed, uniform, bearded, short-sleeved)
+loc_21EF6 Mechanic 4 (Arms down, gloves, ear protection)
+loc_21F4A Mechanic 5 (Glasses, ear protection short-sleeved)
+loc_21F6C
+loc_21EC0
+loc_21ECC
+loc_21EEE
+loc_21F02
+loc_21F2E
+loc_21F42
+loc_21F3A
+loc_21ED4
+loc_21F62
+loc_21E9C
