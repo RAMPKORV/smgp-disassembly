@@ -4303,7 +4303,7 @@ loc_38E0:
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_395C
 	MOVE.w	#$0050, D0
-	MOVE.w	D0, $FFFFAE12.w
+	MOVE.w	D0, Horizontal_position.w
 	NEG.w	D0
 	MOVE.w	D0, $FFFF9204.w
 	LEA	$FFFFB080.w, A0
@@ -4401,7 +4401,7 @@ loc_3A1E:
 	ADDQ.w	#1, D3
 	CMPI.w	#$0010, D3
 	BNE.w	loc_3998
-	MOVE.w	$FFFFFC14.w, $FFFFAE12.w
+	MOVE.w	$FFFFFC14.w, Horizontal_position.w
 	MOVE.w	$FFFFFC18.w, $FFFFAE1A.w
 	NEG.w	$FFFFFC14.w
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
@@ -4508,7 +4508,7 @@ loc_3B56:
 	MOVE.l	#$00009138, (A0)
 	MOVE.w	$FFFFFC0C.w, $12(A0)
 	MOVE.w	$FFFFFC10.w, $1A(A0)
-	MOVE.w	$FFFFFC14.w, $FFFFAE12.w
+	MOVE.w	$FFFFFC14.w, Horizontal_position.w
 	MOVE.w	$FFFFFC18.w, $FFFFAE1A.w
 	NEG.w	$FFFFFC14.w
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
@@ -4531,7 +4531,7 @@ loc_3BA4:
 	MOVE.l	#$00007DAC, $FFFFAE80.w
 	MOVE.l	#$00007A3E, $FFFFAE00.w
 	MOVE.w	#$0180, D0
-	MOVE.w	D0, $FFFFAE12.w
+	MOVE.w	D0, Horizontal_position.w
 	NEG.w	D0
 	MOVE.w	D0, $FFFF9204.w
 	MOVE.w	#$00B4, D1
@@ -6715,7 +6715,7 @@ loc_5C44:
 loc_5C46:
 	MOVE.w	Player_speed.w, D4
 	BEQ.b	loc_5CA8
-	MOVE.w	$FFFFAE12.w, D1
+	MOVE.w	Horizontal_position.w, D1
 	MOVE.w	#$0060, D2
 	MOVEQ	#0, D7
 	LEA	$FFFFB080.w, A2
@@ -9819,7 +9819,7 @@ loc_8142:
 	BCS.b	loc_8176
 	MOVE.l	#$01500000, D6
 loc_8176:
-	MOVE.l	$FFFFAE12.w, D7
+	MOVE.l	Horizontal_position.w, D7
 	MOVEQ	#0, D0
 	MOVE.w	$FFFFAE1A.w, D1
 	LSR.w	#2, D1
@@ -9875,7 +9875,7 @@ loc_81F0:
 	BEQ.b	loc_81F6
 	NEG.l	D7
 loc_81F6:
-	MOVE.l	D7, $FFFFAE12.w
+	MOVE.l	D7, Horizontal_position.w
 	TST.l	D1
 	BEQ.b	loc_8244
 	MOVE.w	D5, D0
@@ -9905,7 +9905,7 @@ loc_8236:
 	BCS.b	loc_8244
 	MOVE.w	#$FFFF, $FFFF910E.w
 loc_8244:
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	NEG.w	D0
 	MOVE.w	D0, $FFFF9204.w
 	RTS
@@ -10965,7 +10965,7 @@ loc_8F40:
 	BCC.b	loc_8F76
 	TST.w	$22(A0)
 	BMI.b	loc_8F76
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	SUB.w	$12(A0), D0
 	SLT	D1
 	BPL.b	loc_8F5A
@@ -11436,7 +11436,7 @@ loc_948E:
 	BCC.b	loc_94C4
 	TST.w	$22(A0)
 	BMI.b	loc_94C4
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	SUB.w	$12(A0), D0
 	SLT	D1
 	BPL.b	loc_94A8
@@ -11542,14 +11542,14 @@ loc_95DE:
 	BNE.b	loc_965C
 	TST.w	$FFFFAE38.w
 	BNE.b	loc_965C
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	SUBI.w	#$0040, D0
 	CMP.w	$12(A0), D0
 	BGE.b	loc_965C
 	ADDI.w	#$0080, D0
 	CMP.w	$12(A0), D0
 	BLE.b	loc_965C
-	MOVE.w	$FFFFAE12.w, D1
+	MOVE.w	Horizontal_position.w, D1
 	MOVEQ	#3, D6
 	MOVEQ	#9, D0
 	SUBI.w	#$0028, D1
@@ -11572,7 +11572,7 @@ loc_9630:
 	TST.b	$25(A0)
 	BEQ.b	loc_965E
 	MOVEQ	#4, D6
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	CMP.w	$12(A0), D0
 	BGE.b	loc_964E
 	MOVEQ	#-4, D6
@@ -11714,7 +11714,7 @@ loc_979E:
 loc_97A8:
 	MOVEQ	#-4, D5
 	MOVE.w	$12(A0), D3
-	SUB.w	$FFFFAE12.w, D3
+	SUB.w	Horizontal_position.w, D3
 	BPL.b	loc_97B8
 	NEG.w	D3
 	NEG.w	D5
@@ -11805,7 +11805,7 @@ loc_988A:
 loc_9894:
 	MOVEQ	#-4, D5
 	MOVE.w	$12(A0), D3
-	SUB.w	$FFFFAE12.w, D3
+	SUB.w	Horizontal_position.w, D3
 	BPL.b	loc_98A4
 	NEG.w	D3
 	NEG.w	D5
@@ -12070,7 +12070,7 @@ loc_9B54:
 	SUBQ.w	#2, D2
 	BEQ.b	loc_9B8E
 	MOVEQ	#$00000012, D0
-	TST.w	$FFFFAE12.w
+	TST.w	Horizontal_position.w
 	BMI.b	loc_9B8E
 	MOVEQ	#$00000010, D0
 	BRA.b	loc_9B8E
@@ -12119,7 +12119,7 @@ loc_9BC4:
 loc_9BD6:
 	MOVE.w	D0, (A4)
 	MOVEQ	#0, D0
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	SUB.w	$12(A0), D0
 	SMI	D7
 	BPL.w	loc_9BEA
@@ -12369,7 +12369,7 @@ loc_9F7E:
 	ADD.w	$2E(A0), D0
 	MOVE.w	D0, $2C(A0)
 	ASR.w	#4, D0
-	ADD.w	$FFFFAE12.w, D0
+	ADD.w	Horizontal_position.w, D0
 	MOVE.w	D0, $12(A0)
 	SUBQ.w	#1, $22(A0)
 	SEQ	$36(A0)
@@ -12403,7 +12403,7 @@ loc_9FF8:
 	JSR	loc_A0B8(PC)
 	MULS.w	$2E(A1), D0
 	SWAP	D0
-	ADD.w	$FFFFAE12.w, D0
+	ADD.w	Horizontal_position.w, D0
 	MOVE.w	D0, $12(A0)
 	JSR	loc_A0AE(PC)
 	MULS.w	$2E(A1), D0
@@ -12537,7 +12537,7 @@ loc_A17C:
 	MOVE.w	#$044E, $14(A1)
 	MOVE.w	#$06AE, $18(A1)
 	CLR.w	$FFFFFF50.w
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	SUBI.w	#$0060, D0
 	SMI	D7
 	BPL.b	loc_A1B8
@@ -12559,7 +12559,7 @@ loc_A1C8:
 	BMI.b	loc_A226
 	CMPI.w	#$009B, D0
 	BCS.b	loc_A226
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	MOVE.w	D0, D1
 	SUBI.w	#$0040, D0
 	CMP.w	$12(A0), D0
@@ -13689,12 +13689,12 @@ loc_B270:
 loc_B276:
 	TST.w	$12(A0)
 	BMI.b	loc_B284
-	SUB.w	$FFFFAE12.w, D7
+	SUB.w	Horizontal_position.w, D7
 	BGE.b	loc_B2BA
 	BRA.b	loc_B28C
 loc_B284:
 	NEG.w	D7
-	SUB.w	$FFFFAE12.w, D7
+	SUB.w	Horizontal_position.w, D7
 	BLE.b	loc_B2BA
 loc_B28C:
 	BPL.b	loc_B290
@@ -13702,7 +13702,7 @@ loc_B28C:
 loc_B290:
 	MOVE.w	D7, $FFFFFC52.w
 	MOVE.w	#1, $36(A0)
-	MOVE.w	$FFFFAE12.w, D0
+	MOVE.w	Horizontal_position.w, D0
 	CMP.w	$34(A0), D0
 	SGT	$FFFFFC9C.w
 	CMPI.w	#247, Player_speed.w ; Crash if speed >= 247
