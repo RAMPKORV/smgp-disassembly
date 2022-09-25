@@ -6,6 +6,8 @@ Player_rpm = $FFFF9102
 Visual_rpm = $FFFF9104 ; Rendered to gauge
 Player_speed = $FFFF9108
 
+Horizontal_position = $FFFFAE12
+
 Driver_points_by_team = $FFFF9030
 Rival_team = $FFFF9042
 Player_team = $FFFF9043
