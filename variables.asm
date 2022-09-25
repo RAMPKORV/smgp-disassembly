@@ -39,7 +39,7 @@
 ; 0x9250: ?
 ; 0xA980: ? Some struct
 ; 0xAE00: Player state struct ??
-; 0xae12.w: Player horizontal position (0 middle, positive right, negative left)
+; 0xae12: Player horizontal position (0 middle, positive right, negative left)
 ; 0xae1a: Player distance on current track
 ; 0xae26: Player's current speed (read only)
 ; 0xE9EC: 10 bytes determines team color
