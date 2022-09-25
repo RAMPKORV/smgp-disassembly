@@ -18919,13 +18919,9 @@ loc_FFA0:
 loc_FFAA:
 	dc.w	$0480, $0EEE, $0EEE, $0CCC, $0CCC
 loc_FFB4:
-	dc.w	$04A4, $022C, $0EEE, $0666
-	dc.b	$06
-	dc.b	$66
+	dc.w	$04A4, $022C, $0EEE, $0666, $0666
 loc_FFBE:
-	dc.b	$02
-	dc.b	$82
-	dc.b	$0E, $EE, $0E, $EE, $04, $66, $04, $66
+	dc.w	$0282, $0EEE, $0EEE, $0466, $0466
 loc_FFC8:
 	dc.w	$0282, $0EEE, $0EEE, $0CCC, $0CCC
 loc_FFD2:
@@ -18935,22 +18931,11 @@ loc_FFDC:
 loc_FFE6:
 	dc.w	$0484, $0EEE, $0EEE, $0CCC, $0CCC
 loc_FFF0:
-	dc.w	$00A8
-	dc.b	$02, $2C, $0E, $EE, $04, $66, $04, $66
+	dc.w	$00A8, $022C, $0EEE, $0466, $0466
 loc_FFFA:
-	dc.w	$0086
-	dc.l	$0EEE0EEE
-	dc.b	$06, $66, $06, $66
+	dc.w	$0086, $0EEE, $0EEE, $0666, $0666
 loc_10004:
-	dc.w	$0086
-loc_10006:
-	dc.b	$0E, $EE
-loc_10008:
-	dc.b	$0E, $EE
-loc_1000A:
-	dc.b	$0C, $CC
-loc_1000C:
-	dc.b	$0C, $CC
+	dc.w	$0086, $0EEE, $0EEE, $0CCC, $0CCC
 loc_1000E:
 	dc.w	$00A2, $0E00, $0EEE, $0666, $0666
 loc_10018:
