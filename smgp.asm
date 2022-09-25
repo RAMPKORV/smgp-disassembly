@@ -1,6 +1,5 @@
   include "macros.asm"
 	include "constants.asm"
-	include	"variables.asm"
 
 StartOfRom:
 Vectors:
