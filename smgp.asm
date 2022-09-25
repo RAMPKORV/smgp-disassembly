@@ -1507,7 +1507,7 @@ loc_11B6:
 	MOVE.w	#$873C, VDP_data_port
 	DBF	D0, loc_11B6
 	JSR	loc_F848
-	LEA	$C(A1), A1
+	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1)+, A0
 	MOVE.w	#$8000, D0
 	MOVE.w	#$04C9, D1
@@ -6414,11 +6414,11 @@ loc_58C2:
 
 loc_58C4:
 	JSR	loc_F848
-	MOVEA.l	(A1)+, A0
+	MOVEA.l	(A1)+, A0 ; tiles used for minimap
 	MOVE.l	#$40400000, VDP_control_port
 	JSR	loc_972
 	JSR	loc_F848
-	LEA	$C(A1), A1
+	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1)+, A0
 	MOVE.l	#$46060003, D7
 	MOVE.w	#1, D1
@@ -6427,7 +6427,7 @@ loc_58C4:
 	MOVEQ	#$0000000A, D5
 	JSR	loc_7BE
 	JSR	loc_F848
-	MOVEA.l	$4(A1), A0
+	MOVEA.l	$4(A1), A0 ; tiles used for background
 	MOVE.l	#$70000002, VDP_control_port
 	JSR	loc_972
 	MOVEA.l	$8(A1), A0
@@ -6449,7 +6449,7 @@ loc_58C4:
 	MOVE.w	#$2032, D0
 	JSR	loc_84E
 	JSR	loc_F848
-	MOVEA.l	$10(A1), A6
+	MOVEA.l	$10(A1), A6 ; background palette
 	MOVEQ	#$00000060, D0
 	MOVEQ	#$0000000A, D1
 	JSR	loc_6E2
@@ -7084,12 +7084,12 @@ loc_6224: ; Suspected: Level initialization
 	MOVE.w	D2, $FFFF9214.w
 	SUBI.w	#$00A0, D2
 	MOVE.w	D2, $FFFF9212.w
-	MOVE.l	(A1), $FFFF9240.w
-	MOVE.l	(A1)+, $FFFF9244.w
-	MOVE.l	(A1), $FFFF9254.w
-	MOVE.l	(A1)+, $FFFF9258.w
-	MOVE.l	(A1)+, $FFFF9226.w
-	MOVEA.l	(A1)+, A0
+	MOVE.l	(A1), $FFFF9240.w ; signs data
+	MOVE.l	(A1)+, $FFFF9244.w ; signs data
+	MOVE.l	(A1), $FFFF9254.w ; tileset for signs
+	MOVE.l	(A1)+, $FFFF9258.w ; tileset for signs
+	MOVE.l	(A1)+, $FFFF9226.w ; map for minimap position
+	MOVEA.l	(A1)+, A0 ; curve data
 	LEA	$00FF5B00, A3
 	LEA	$00FF6300, A2
 	MOVEQ	#0, D2
@@ -7133,7 +7133,7 @@ loc_62A8:
 	BRA.b	loc_6270
 loc_62BC:
 	MOVE.b	#$FF, (A3)
-	MOVEA.l	(A1)+, A0
+	MOVEA.l	(A1)+, A0 ; slope data
 	LEA	$00FF7300, A3
 	LEA	$00FF7B00, A2
 	MOVE.b	(A0)+, D2
@@ -14404,7 +14404,7 @@ loc_BCA6:
 	LEA	loc_C4CA(PC), A1
 	JSR	loc_8A0
 	JSR	loc_F848
-	LEA	$C(A1), A1
+	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1), A0
 	MOVE.w	#$8000, D0
 	JSR	loc_AB0
@@ -18455,7 +18455,7 @@ Track_data:
 	dc.l	loc_7173C ; San Marino signs data
 	dc.l	loc_717A6 ; San Marino tileset for signs
 	dc.l	loc_71660 ; San Marino map for minimap position
-	dc.l	loc_7152E ; San Marino Track data
+	dc.l	loc_7152E ; San Marino curve data
 	dc.l	loc_715EA ; San Marino slope data
 	dc.l	loc_7163C ; ?
 	dc.l	$FFFFFD00
@@ -18474,7 +18474,7 @@ Track_data:
 	dc.l	loc_739AA ; Brazil signs data
 	dc.l	loc_73A30 ; Brazil tileset for signs
 	dc.l	loc_738CF ; Brazil map for minimap position
-	dc.l	loc_73830 ; Brazil Track data
+	dc.l	loc_73830 ; Brazil curve data
 	dc.l	loc_73894 ; Brazil slope data
 	dc.l	loc_738BA ; ?
 	dc.l	$FFFFFD08
@@ -18494,7 +18494,7 @@ Track_data:
 	dc.l	loc_71DBA ; France signs data
 	dc.l	loc_71E20 ; France tileset for signs
 	dc.l	loc_71CFA ; France map for minimap position
-	dc.l	loc_71C26 ; France Track data
+	dc.l	loc_71C26 ; France curve data
 	dc.l	loc_71CAC ; France slope data
 	dc.l	loc_71CE2 ; ?
 	dc.l	$FFFFFD10
@@ -18514,7 +18514,7 @@ Track_data:
 	dc.l	loc_723F0 ; Hungary signs data
 	dc.l	loc_7245A ; Hungary tileset for signs
 	dc.l	loc_72326 ; Hungary map for minimap position
-	dc.l	loc_72242 ; Hungary Track data
+	dc.l	loc_72242 ; Hungary curve data
 	dc.l	loc_722CA ; Hungary slope data
 	dc.l	loc_72308 ; ?
 	dc.l	$FFFFFD18
@@ -18534,7 +18534,7 @@ Track_data:
 	dc.l	loc_721B6 ; West Germany signs data
 	dc.l	loc_7222C ; West Germany tileset for signs
 	dc.l	loc_720CB ; West Germany map for minimap position
-	dc.l	loc_71FFC ; West Germany Track data
+	dc.l	loc_71FFC ; West Germany curve data
 	dc.l	loc_72090 ; West Germany slope data
 	dc.l	loc_720B6 ; ?
 	dc.l	$FFFFFD20
@@ -18554,7 +18554,7 @@ Track_data:
 	dc.l	loc_72F8C ; USA signs data
 	dc.l	loc_7300E ; USA tileset for signs
 	dc.l	loc_72EAB ; USA map for minimap position
-	dc.l	loc_72E0C ; USA Track data
+	dc.l	loc_72E0C ; USA curve data
 	dc.l	loc_72E88 ; USA slope data
 	dc.l	loc_72E9C ; ?
 	dc.l	$FFFFFD28
@@ -18574,7 +18574,7 @@ Track_data:
 	dc.l	loc_73546 ; Canada signs data
 	dc.l	loc_735BC ; Canada tileset for signs
 	dc.l	loc_73474 ; Canada map for minimap position
-	dc.l	loc_73314 ; Canada Track data
+	dc.l	loc_73314 ; Canada curve data
 	dc.l	loc_73404 ; Canada slope data
 	dc.l	loc_73450 ; ?
 	dc.l	$FFFFFD30
@@ -18594,7 +18594,7 @@ Track_data:
 	dc.l	loc_71F98 ; Great Britain signs data
 	dc.l	loc_71FEA  ; Great Britain tileset for signs
 	dc.l	loc_71EC0  ; Great Britain map for minimap position
-	dc.l	loc_71E36  ; Great Britain Track data
+	dc.l	loc_71E36  ; Great Britain curve data
 	dc.l	loc_71E8C ; Great Britain slope data
 	dc.l	loc_71EAE; ?
 	dc.l	$FFFFFD38
@@ -18614,7 +18614,7 @@ Track_data:
 	dc.l	loc_737A0 ; Italy signs data
 	dc.l	loc_73816 ; Italy tileset for signs
 	dc.l	loc_736B2 ; Italy map for minimap position
-	dc.l	loc_735D6 ; Italy Track data
+	dc.l	loc_735D6 ; Italy curve data
 	dc.l	loc_7365C ; Italy slope data
 	dc.l	loc_73694 ; ?
 	dc.l	$FFFFFD40
@@ -18634,7 +18634,7 @@ Track_data:
 	dc.l	loc_72922 ; Portugal signs data
 	dc.l	loc_72980 ; Portugal tileset for signs
 	dc.l	loc_72854 ; Portugal map for minimap position
-	dc.l	loc_72784 ; Portugal Track data
+	dc.l	loc_72784 ; Portugal curve data
 	dc.l	loc_72806 ; Portugal slope data
 	dc.l	loc_7283C ; ?
 	dc.l	$FFFFFD48
@@ -18654,7 +18654,7 @@ Track_data:
 	dc.l	loc_72B7A ; Spain signs data
 	dc.l	loc_72BEC ; Spain tileset for signs
 	dc.l	loc_72AA5 ; Spain map for minimap position
-	dc.l	loc_7299A ; Spain Track data
+	dc.l	loc_7299A ; Spain curve data
 	dc.l	loc_72A3C ; Spain slope data
 	dc.l	loc_72A84 ; ?
 	dc.l	$FFFFFD50
@@ -18674,7 +18674,7 @@ Track_data:
 	dc.l	loc_71BBA ; Mexico signs data
 	dc.l	loc_71C14 ; Mexico tileset for signs
 	dc.l	loc_71AE3 ; Mexico map for minimap position
-	dc.l	loc_71A38 ; Mexico Track data
+	dc.l	loc_71A38 ; Mexico curve data
 	dc.l	loc_71AC0 ; Mexico slope data
 	dc.l	loc_71AD4 ; ?
 	dc.l	$FFFFFD58
@@ -18694,7 +18694,7 @@ Track_data:
 	dc.l	loc_73264 ; Japan signs data
 	dc.l	loc_732F6 ; Japan tileset for signs
 	dc.l	loc_73178 ; Japan map for minimap position
-	dc.l	loc_7301C ; Japan Track data
+	dc.l	loc_7301C ; Japan curve data
 	dc.l	loc_730E6 ; Japan slope data
 	dc.l	loc_7314E ; ?
 	dc.l	$FFFFFD60
@@ -18714,7 +18714,7 @@ Track_data:
 	dc.l	loc_726D0 ; Belgium signs data
 	dc.l	loc_72766 ; Belgium tileset for signs
 	dc.l	loc_725DD ; Belgium map for minimap position
-	dc.l	loc_72480 ; Belgium Track data
+	dc.l	loc_72480 ; Belgium curve data
 	dc.l	loc_72578 ; Belgium slope data
 	dc.l	loc_725BC ; ?
 	dc.l	$FFFFFD68
@@ -18734,7 +18734,7 @@ Track_data:
 	dc.l	loc_72D78 ; Australia signs data
 	dc.l	loc_72DEA ; Australia tileset for signs
 	dc.l	loc_72CBA ; Australia map for minimap position
-	dc.l	loc_72C02 ; Australia Track data
+	dc.l	loc_72C02 ; Australia curve data
 	dc.l	loc_72C86 ; Australia slope data
 	dc.l	loc_72CA8 ; ?
 	dc.l	$FFFFFD70
@@ -18754,7 +18754,7 @@ Track_data:
 	dc.l	loc_719AC ; Monaco signs data
 	dc.l	loc_71A1E ; Monaco tileset for signs
 	dc.l	loc_718EB ; Monaco map for minimap position
-	dc.l	loc_717C8 ; Monaco Track data
+	dc.l	loc_717C8 ; Monaco curve data
 	dc.l	loc_718AE ; Monaco slope data
 	dc.l	loc_718D6 ; ?
 	dc.l	$FFFFFD78
@@ -18774,7 +18774,7 @@ Track_data:
 	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
 	dc.l	loc_73B54 ; Monaco (Arcade preliminary) tileset for signs
 	dc.l	loc_73ABC ; Monaco (Arcade preliminary) map for minimap position
-	dc.l	loc_73A4A ; Monaco (Arcade preliminary) Track data
+	dc.l	loc_73A4A ; Monaco (Arcade preliminary) curve data
 	dc.l	loc_73A8A ; Monaco (Arcade preliminary) slope data
 	dc.l	loc_73AAC ; ?
 	dc.l	$FFFFFD80
@@ -18794,7 +18794,7 @@ Track_data:
 	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
 	dc.l	loc_73DEA ; Monaco (Arcade main) tileset for signs
 	dc.l	loc_73C8D  ; Monaco (Arcade main) map for minimap position
-	dc.l	loc_73B5E ; Monaco (Arcade main) Track data
+	dc.l	loc_73B5E ; Monaco (Arcade main) curve data
 	dc.l	loc_73C16 ; Monaco (Arcade main) slope data
 	dc.l	loc_73C66 ; ?
 	dc.l	$FFFFFD88
@@ -18814,7 +18814,7 @@ Track_data:
 	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
 	dc.l	loc_73DEA  ; Monaco (Arcade Wet Condition) tileset for signs
 	dc.l	loc_73C8D ; Monaco (Arcade Wet Condition) map for minimap position
-	dc.l	loc_73B5E ; Monaco (Arcade Wet Condition) Track data
+	dc.l	loc_73B5E ; Monaco (Arcade Wet Condition) curve data
 	dc.l	loc_73C16 ; Monaco (Arcade Wet Condition) slope data
 	dc.l	loc_73C66 ; ?
 	dc.l	$FFFFFD88
@@ -38823,10 +38823,33 @@ loc_7152E:
 	dc.b	$00, $0F, $01, $00, $AB, $00, $28, $12, $00, $39, $00, $17, $01, $01, $00, $00, $51, $6A, $00, $1C, $00, $46, $68, $00, $1C, $00, $0A, $41, $00, $72, $00, $0A
 	dc.b	$0C, $00, $1C, $00, $0D, $01, $00, $8E, $00, $0A, $0C, $00, $1C, $00, $0A, $41, $00, $72, $00, $46, $68, $00, $1C, $00, $09, $00, $FF
 	dc.b	$00
-loc_715EA:
-	dc.b	$00, $02, $39, $00, $00, $1B, $6F, $70, $00, $5D, $00, $00, $1B, $2F, $70, $00, $35, $00, $00, $0C, $2F, $70, $01, $01, $00, $00, $0C, $6F, $70, $00, $47, $00
-	dc.b	$00, $18, $6F, $70, $00, $21, $00, $00, $18, $2F, $70, $00, $60, $00, $00, $0A, $2F, $70, $00, $6E, $00, $00, $0F, $2F, $70, $00, $13, $00, $00, $19, $6F, $70
-	dc.b	$00, $42, $00, $00, $0F, $6F, $70, $00, $6C, $00, $00, $0F, $2F, $70, $00, $4F, $00, $FF
+loc_715EA: ; slope data
+	dc.b	$00 ; Affects value in byte 4 before written to memory
+	; first 2 bytes = length, byte 3 (and 4 if byte 3==0) defines slope
+	dc.b	$02, $39, $00
+	dc.b	$00, $1B, $6F, $70
+	dc.b	$00, $5D, $00
+	dc.b	$00, $1B, $2F, $70
+	dc.b	$00, $35, $00
+	dc.b	$00, $0C, $2F, $70
+	dc.b	$01, $01, $00
+	dc.b	$00, $0C, $6F, $70
+	dc.b	$00, $47, $00
+	dc.b	$00, $18, $6F, $70
+	dc.b	$00, $21, $00
+	dc.b	$00, $18, $2F, $70
+	dc.b	$00, $60, $00
+	dc.b	$00, $0A, $2F, $70
+	dc.b	$00, $6E, $00
+	dc.b	$00, $0F, $2F, $70
+	dc.b	$00, $13, $00
+	dc.b	$00, $19, $6F, $70
+	dc.b	$00, $42, $00
+	dc.b	$00, $0F, $6F, $70
+	dc.b	$00, $6C, $00
+	dc.b	$00, $0F, $2F, $70
+	dc.b	$00, $4F, $00
+	dc.b	$FF
 loc_7163C:
 	dc.b	$02, $39, $00, $00, $93, $FF, $00, $35, $00, $01, $19, $01, $00, $47, $00, $00, $51, $FF, $00, $60, $00, $00, $B3, $01, $00, $42, $00, $00, $8A, $FF, $00, $4F
 	dc.b	$00, $FF
