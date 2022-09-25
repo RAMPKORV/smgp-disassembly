@@ -28433,8 +28433,8 @@ loc_3C346:
 	dc.b	$FD, $12, $1D, $26, $1C, $32, $1B, $0E, $0A, $15, $15, $22, $32, $0A, $32, $19, $12, $1D, $22, $2D, $FF
 	dc.b	$00
 loc_3C35C:
-	dc.b	$FD, $17, $0E, $1F, $0E, $1B, $32, $15, $18, $1C, $0E, $32, $0A, $10, $0A, $12, $17, $2D, $FF
-	dc.b	$00
+	dc.b	$FD
+  txt "NEVER LOSE AGAIN!", $FF, $00
 loc_3C370:
 	txt "YOU ARE NOT LIVING\nUP TO YOUR CONTRACT.", $FF
 loc_3C398:
