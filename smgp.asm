@@ -23120,26 +23120,26 @@ loc_20FAE: ; Team palette (everywhere except while driving)
 	dc.b	$0E, $EE, $08, $88, $04, $44, $02, $4E, $00, $2A, $00, $04, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 loc_2132E: ; Pointers to team introduction layouts
-	dc.l	loc_2136E    ; Madonna
-	dc.l	loc_21428-2  ; Firenze
-	dc.l	loc_214D2-2  ; Millions
-	dc.l	loc_2157C-2  ; Bestowal
-	dc.l	loc_21618-2  ; Blanche
-	dc.l	loc_216B4-2  ; Tyrant
-	dc.l	loc_21742-2  ; Losel
-	dc.l	loc_217D0-2  ; May
-	dc.l	loc_21850-2  ; Bullets
-	dc.l	loc_218C2-2  ; Dardan
- 	dc.l	loc_21950-2  ; Linden
-	dc.l	loc_219C2-2  ; Minarae
-	dc.l	loc_21A26-2  ; Rigel
-	dc.l	loc_21A8A-2  ; Comet
-	dc.l	loc_21AE0-2  ; Orchis
-	dc.l	loc_21B44-2  ; ZeroForce
+	dc.l	loc_2136E ; Madonna
+	dc.l	loc_21426 ; Firenze
+	dc.l	loc_214D0 ; Millions
+	dc.l	loc_2157A ; Bestowal
+	dc.l	loc_21616 ; Blanche
+	dc.l	loc_216B2 ; Tyrant
+	dc.l	loc_21740 ; Losel
+	dc.l	loc_217CE ; May
+	dc.l	loc_2184E ; Bullets
+	dc.l	loc_218C0 ; Dardan
+ 	dc.l	loc_2194E ; Linden
+	dc.l	loc_219C0 ; Minarae
+	dc.l	loc_21A24 ; Rigel
+	dc.l	loc_21A88 ; Comet
+	dc.l	loc_21ADE ; Orchis
+	dc.l	loc_21B42 ; ZeroForce
 loc_2136E:
-	dc.b	$00, $0C
+	dc.w	$000C ; Num items in table ($C=12, meaning table has 13 items)
 	dc.l	loc_21F14
-	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07
+	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07 ; One row per item. Format: ?, ?, y-tile, x-tile, ?, ?, ?, ?, ?, ?
 	dc.l	loc_21F54
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
@@ -23161,13 +23161,11 @@ loc_2136E:
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $16, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $32, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $32, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.l	$20016D3C
-	dc.l	loc_30004
-	dc.l	loc_1000C-1
-loc_21428:
+	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
+loc_21426:
+    dc.w    $000B
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
@@ -23189,13 +23187,11 @@ loc_21428:
 	dc.l	loc_21EEE
 	dc.b	$20, $01, $6D, $0A, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $14, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $14, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.l	$20016D42
-	dc.l	loc_30004
-	dc.l	loc_1000C-1
-loc_214D2:
+	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
+loc_214D0:
+	dc.w	$000B
 	dc.l	loc_21F2E
 	dc.b	$40, $01, $69, $08, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
@@ -23217,13 +23213,11 @@ loc_214D2:
 	dc.l	loc_21EC0
 	dc.b	$20, $01, $6C, $86, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21ED4
-	dc.b	$20, $01, $6D, $3E, $00, $03
-	dc.l	loc_60001
+	dc.b	$20, $01, $6D, $3E, $00, $03, $00, $06, $00, $01
 	dc.l	loc_21ED4
-	dc.l	$20016D30
-	dc.l	loc_30006
-	dc.l	loc_1000A
-loc_2157C:
+	dc.b	$20, $01, $6D, $30, $00, $03, $00, $06, $00, $01
+loc_2157A:
+	dc.w	$000A
 	dc.l	loc_21F54
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EF6
@@ -23243,13 +23237,11 @@ loc_2157C:
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $3A, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $3A, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.l	$20016D44
-	dc.l	loc_30004
-	dc.l	loc_1000A
-loc_21618:
+	dc.b	$20, $01, $6D, $44, $00, $03, $00, $04, $00, $01
+loc_21616:
+	dc.w	$000A
 	dc.l	loc_21F14
 	dc.b	$40, $01, $69, $08, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
@@ -23269,13 +23261,11 @@ loc_21618:
 	dc.l	loc_21ED4
 	dc.b	$20, $01, $6D, $12, $00, $03, $00, $06, $00, $01
 	dc.l	loc_21EC0
-	dc.b	$20, $01, $6C, $C4, $00, $03
-	dc.l	loc_10004-1
+	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21EC0
-	dc.l	$20016CCA
-	dc.l	loc_30001
-	dc.l	loc_30009
-loc_216B4:
+	dc.b	$20, $01, $6C, $CA, $00, $03, $00, $01, $00, $03
+loc_216B2:
+	dc.w	$0009
 	dc.l	loc_21F3A
 	dc.b	$60, $01, $69, $0E, $00, $03, $00, $01, $00, $07
 	dc.l	loc_21F1E
@@ -23293,13 +23283,11 @@ loc_216B4:
 	dc.l	loc_21EEE
 	dc.b	$20, $01, $6D, $12, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.b	$20, $01, $6D, $3C, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EC0
-	dc.l	$20016CC8
-	dc.l	loc_30001
-	dc.l	loc_30009
-loc_21742:
+	dc.b	$20, $01, $6C, $C8, $00, $03, $00, $01, $00, $03
+loc_21740:
+	dc.w	$0009
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F4A
@@ -23317,13 +23305,11 @@ loc_21742:
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $0E, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.b	$20, $01, $6D, $18, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $18, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.l	$20016D40
-	dc.l	loc_30004
-	dc.l	loc_10008
-loc_217D0:
+	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
+loc_217CE:
+	dc.w	$0008
 	dc.l	loc_21F2E
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F02
@@ -23339,13 +23325,11 @@ loc_217D0:
 	dc.l	loc_21EEE
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ED4
-	dc.b	$20, $01, $6D, $32, $00, $03
-	dc.l	loc_60001
+	dc.b	$20, $01, $6D, $32, $00, $03, $00, $06, $00, $01
 	dc.l	loc_21ED4
-	dc.l	$20016D40
-	dc.l	loc_30006
-	dc.l	loc_10008-1
-loc_21850:
+	dc.b	$20, $01, $6D, $40, $00, $03, $00, $06, $00, $01
+loc_2184E:
+	dc.w	$0007
 	dc.l	loc_21F6C
 	dc.b	$60, $01, $68, $90, $00, $03, $00, $03, $00, $08
 	dc.l	loc_21F14
@@ -23359,13 +23343,11 @@ loc_21850:
 	dc.l	loc_21EEE
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $10, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EC0
-	dc.l	$20016CC4
-	dc.l	loc_30001
-	dc.l	loc_30009
-loc_218C2:
+	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
+loc_218C0:
+	dc.w	$0009
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
@@ -23383,13 +23365,11 @@ loc_218C2:
 	dc.l	loc_21EC0
 	dc.b	$20, $01, $6C, $C2, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21EC0
-	dc.b	$20, $01, $6C, $C6, $00, $03
-	dc.l	loc_10004-1
+	dc.b	$20, $01, $6C, $C6, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21EC0
-	dc.l	$20016CCA
-	dc.l	loc_30001
-	dc.l	loc_30007
-loc_21950: ; Linden team introduction layout
+	dc.b	$20, $01, $6C, $CA, $00, $03, $00, $01, $00, $03
+loc_2194E: ; Linden team introduction layout
+	dc.w	$0007
 	dc.l	loc_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F62
@@ -23403,13 +23383,11 @@ loc_21950: ; Linden team introduction layout
 	dc.l	loc_21EEE
 	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.b	$20, $01, $6D, $38, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $38, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.l	$20016D42
-	dc.l	loc_30004
-	dc.l	loc_10006
-loc_219C2: ; Minarae team introduction layout
+	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
+loc_219C0: ; Minarae team introduction layout
+	dc.w	$0006
 	dc.l	loc_21F4A
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
@@ -23421,13 +23399,11 @@ loc_219C2: ; Minarae team introduction layout
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $06, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
-	dc.l	$20016D40
-	dc.l	loc_30004
-	dc.l	loc_10006
-loc_21A26:
+	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
+loc_21A24:
+	dc.w	$0006
 	dc.l	loc_21F02
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
@@ -23441,10 +23417,9 @@ loc_21A26:
 	dc.l	loc_21ED4
 	dc.b	$20, $01, $6D, $16, $00, $03, $00, $06, $00, $01
 	dc.l	loc_21E9C
-	dc.l	loc_16D3C
-	dc.l	loc_30007
-	dc.l	loc_8-3
-loc_21A8A:
+	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
+loc_21A88:
+	dc.w	$0005
 	dc.l	loc_21F1E
 	dc.b	$40, $01, $69, $10, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
@@ -23454,13 +23429,11 @@ loc_21A8A:
 	dc.l	loc_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EEE
-	dc.b	$20, $01, $6D, $08, $00, $03
-	dc.l	loc_40001
+	dc.b	$20, $01, $6D, $08, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21E9C
-	dc.l	loc_16D3C
-	dc.l	loc_30007
-	dc.l	loc_8-2
-loc_21AE0:
+	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
+loc_21ADE:
+	dc.w	$0006
 	dc.l	loc_21F4A
 	dc.b	$40, $01, $69, $04, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F02
@@ -23472,13 +23445,11 @@ loc_21AE0:
 	dc.l	loc_21EC0
 	dc.b	$20, $01, $6C, $8C, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21EC0
-	dc.b	$20, $01, $6C, $90, $00, $03
-	dc.l	loc_10004-1
+	dc.b	$20, $01, $6C, $90, $00, $03, $00, $01, $00, $03
 	dc.l	loc_21E9C
-	dc.l	loc_16D3C
-	dc.l	loc_30007
-	dc.l	loc_4-1
-loc_21B44:
+	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
+loc_21B42:
+	dc.w	$0003
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $2E, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F4A
@@ -23623,7 +23594,7 @@ loc_21F54:
 	dc.b	$FC, $00
 loc_21F62:
 	dc.b	$09, $00, $01, $E4, $00, $00, $05, $03, $C4, $FE
-loc_21F6C:
+loc_21F6C: ; Woman with umbrella
 	dc.b	$0A, $00, $01, $FB, $00, $00, $1D, $00, $90, $09, $00, $91, $05, $10, $51, $17, $F8, $00
 loc_21F7E:
 	dc.b	$82, $16, $80, $03, $01, $14, $05, $25, $0D, $35, $10, $45, $11, $55, $12, $65, $18, $73, $00, $81, $04, $04, $16, $34, $27, $71, $82, $05, $0E, $18, $E4, $83
