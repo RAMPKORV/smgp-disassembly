@@ -52,6 +52,7 @@ LOCATIONS
 ; 0xae12: Player horizontal position (0 middle, positive right, negative left)
 ; 0xae1a: Player distance on current track
 ; 0xae26: Player's current speed (read only)
+; 0xB080: List of AI car structs
 ; 0xE9EC: 10 bytes determines team color
 ; 0xFC14: ?
 ; 0xfc50: crash recoil from signs (word)
