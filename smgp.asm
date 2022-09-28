@@ -1,4 +1,4 @@
-  include "macros.asm"
+	include "macros.asm"
 	include "constants.asm"
 
 StartOfRom:
@@ -72,26 +72,26 @@ loc_8:
 	dc.l	ErrorTrap3 ; Unused (reserved) (64)
 
 Header:
-  dc.b "SEGA MEGA DRIVE " ; Console name
+	dc.b "SEGA MEGA DRIVE " ; Console name
 	dc.b "(C)SEGA 1990.JUN" ; Copyright holder and release date
-  dc.b "Super Monaco GP                                 " ; Domestic name
+	dc.b "Super Monaco GP                                 " ; Domestic name
 	dc.b "Super Monaco GP                                 " ; International name
-  dc.b "GM     4026-01" ; Version
+	dc.b "GM     4026-01" ; Version
 loc_18E:
 	dc.w	$65B5 ; Checksum
 	dc.b	'J               '
-  dc.l StartOfRom
+	dc.l StartOfRom
 ;loc_1A4:
 ROMEndLoc:
 	dc.l EndOfRom-1
 	dc.l $00FF0000 ; Start of RAM
-  dc.l $00FFFFFF ; End of RAM
-  dc.b "    "		; Backup RAM ID
+	dc.l $00FFFFFF ; End of RAM
+	dc.b "    "		; Backup RAM ID
 	dc.l $20202020		; Backup RAM start address
 	dc.l $20202020		; Backup RAM end address
 	dc.b "            "	; Modem support
 	dc.b "                                        "	; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
-  dc.b "JUE             " ; Region
+	dc.b "JUE             " ; Region
 ;loc_200:
 ErrorTrap1:
 	NOP
@@ -163,7 +163,7 @@ loc_296:
 	MOVE.b	(A5)+, $10(A3)
 	DBF	D5, loc_296
 	MOVE.w	D0, (A2)
-  MOVEM.l	(A6), D0-D7/A0-A6
+	MOVEM.l	(A6), D0-D7/A0-A6
 	MOVE	#$2700, SR
 	LEA	ROMEndLoc.w, A0
 	MOVE.l	(A0), D0
@@ -2597,7 +2597,7 @@ loc_1E3C:
 	RTS
 loc_1E50:
 	dc.b	$00, $0B ; 12 objects
-  dc.b  $00, $20
+	dc.b	$00, $20
 	dc.l	loc_3ECAC
 	dc.b	$4D, $00
 	dc.l	loc_54020
@@ -2623,7 +2623,7 @@ loc_1E50:
 	dc.l	loc_587B2
 loc_1E9A:
 	dc.b	$00, $02
-  dc.l  $E0BC0305
+	dc.l	$E0BC0305
 	dc.l	loc_205A
 	dc.l	$E64E1102
 	dc.l	loc_2086
@@ -2635,8 +2635,8 @@ loc_1EB4:
 	dc.l	loc_1ECC
 loc_1EBE:
 	dc.b	$E1, $06, $FB, $C7, $C0
-  txt "BEST", $FA
-  txt "LAP", $FF
+	txt "BEST", $FA
+	txt "LAP", $FF
 loc_1ECC:
 	dc.b	$E3, $1A, $FB, $C4, $AC, $06, $1A, $06, $06, $1B, $06, $06, $FE, $07, $FA, $07, $07, $FA, $07, $07, $FF, $00
 loc_1EE2:
@@ -2662,22 +2662,22 @@ loc_1F22:
 	dc.b	$E0, $62, $FB, $A7, $70, $00, $01, $02, $03, $04, $FE, $05, $06, $07, $08, $09, $FF, $00
 loc_1F34:
 	dc.b	$E0, $C4, $FB, $C7, $C0
-  txt "BEST", $FA
-  txt "LAP", $FF
+	txt "BEST", $FA
+	txt "LAP", $FF
 loc_1F42:
 	dc.b	$E1, $44, $03, $FA
-  txt "LAPS", $FF, $00
+	txt "LAPS", $FF, $00
 loc_1F4C:
 	dc.b	$E1, $44, $05, $FA
-  txt "LAPS", $FF, $00
+	txt "LAPS", $FF, $00
 loc_1F56:
 	dc.b	$E0, $EC
-  txt "LAP", $FA
-  txt "TIME", $FF, $00
+	txt "LAP", $FA
+	txt "TIME", $FF, $00
 loc_1F62:
 	dc.b	$E0, $6C, $FB, $A7, $C0
-  txt "LAP", $FA
-  txt "TIME", $FF
+	txt "LAP", $FA
+	txt "TIME", $FF
 loc_1F70:
 	dc.b	$E0, $6E, $FB, $C4, $AC, $06, $1A, $06, $06, $1B, $06, $06, $FE, $07, $FA, $07, $07, $FA, $07, $07, $FD, $FB, $87, $C0, $00, $26, $00, $00, $27, $00, $00, $FE
 	dc.b	$00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FF
@@ -2686,7 +2686,7 @@ loc_1FA0:
 	dc.b	$00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FF, $00
 loc_1FCE:
 	dc.b	$E2, $72, $FB, $A7, $C0
-  txt "LAP", $FF, $00
+	txt "LAP", $FF, $00
 loc_1FD8:
 	dc.b	$E2, $F2, $FB, $C7, $C0, $0D, $29, $19, $29, $FF
 loc_1FE2:
@@ -3864,20 +3864,20 @@ loc_3148:
 	dc.l	loc_31F8
 	dc.l	$69B00003
 loc_3170:
-  txt "SUPER MONACO GP   "
-  txt "WORLD CHAMPIONSHIP"
-  txt "FREE PRACTICE     "
-  txt "OPTIONS           "
+	txt "SUPER MONACO GP   "
+	txt "WORLD CHAMPIONSHIP"
+	txt "FREE PRACTICE     "
+	txt "OPTIONS           "
 loc_31B8:
-  txt "NEW GAME"
-  txt "PASSWORD"
+	txt "NEW GAME"
+	txt "PASSWORD"
 loc_31C8:
-  txt "WARM UP     "
-  txt "RACE        "
-  txt "MACHINE     "
-  txt "TRANSMISSION"
+	txt "WARM UP     "
+	txt "RACE        "
+	txt "MACHINE     "
+	txt "TRANSMISSION"
 loc_31F8:
-  txt "LAPS  "
+	txt "LAPS  "
 	JSR	loc_396
 	JSR	loc_D5C
 	MOVE.w	$FFFFFC82.w, D0
@@ -4019,7 +4019,7 @@ loc_3432:
 	dc.b	$06, $66, $00, $00, $00, $00, $08, $88, $06, $88, $04, $46, $04, $44, $02, $22, $06, $EE, $04, $CE, $02, $AE, $02, $8E, $06, $68
 loc_34AC:
 	dc.b	$00, $03
-  dc.b  $B0, $00
+	dc.b	$B0, $00
 	dc.l	loc_62098
 	dc.b	$00, $00
 	dc.l	loc_60EDC
@@ -4029,7 +4029,7 @@ loc_34AC:
 	dc.l	loc_587B2
 loc_34C6:
 	dc.b	$00, $05
-  dc.b  $E0, $8C, $1A, $02
+	dc.b	$E0, $8C, $1A, $02
 	dc.l	$FFFFEA00
 	dc.b	$EC, $32, $0D, $01
 	dc.l	$FFFFEB8E
@@ -4043,7 +4043,7 @@ loc_34C6:
 	dc.l	$FFFFEC56
 loc_34F8:
 	dc.b	$00, $02
-  dc.l  $E5040A01
+	dc.l	$E5040A01
 	dc.l	$FFFFEAA2
 	dc.l	$E41C0B03
 	dc.l	$FFFFEACE
@@ -4051,7 +4051,7 @@ loc_34F8:
 	dc.l	$FFFFEB2E
 loc_3512:
 	dc.b	$00, $01
-  dc.l	$E49C0B01
+	dc.l	$E49C0B01
 	dc.l	$FFFFEACE
 	dc.l	$E4B60B01
 	dc.l	$FFFFEB2E
@@ -4087,7 +4087,7 @@ loc_3570:
 	dc.b	$ED, $84
 loc_358A:
 	dc.b	$FB, $C7, $C0
-  txt "SELECTED"
+	txt "SELECTED"
 loc_3595:
 	dc.b	$FF, $01, $01, $01, $02, $03, $04, $05, $06, $07, $0C, $12, $2C
 loc_35A2:
@@ -4929,7 +4929,7 @@ loc_40D2:
 	dc.w	$87D9, $87DB, $87CE, $87DC, $87DC, $0000, $87CA, $87EA, $0000, $87CB, $87EA, $0000, $87CA, $87D7, $87CD, $0000, $87CC, $0000, $87CF, $87D8, $87DB, $0000, $87D6, $87CE, $87D7, $87DE
 loc_4106:
 	dc.b	$00, $04
-  dc.b  $00, $20
+	dc.b	$00, $20
 	dc.l	loc_3ECAC
 	dc.b	$4D, $00
 	dc.l	loc_54020
@@ -5204,7 +5204,7 @@ loc_463C:
 	dc.b	$06, $44, $00, $00, $0E, $EE, $09, $99, $0C, $88, $08, $22, $0A, $66, $06, $22, $08, $66, $08, $66, $00, $00, $08, $88, $0A, $AA, $0C, $CC, $0E, $EE
 loc_467A:
 	dc.b	$00, $03
-  dc.b  $B0, $00
+	dc.b	$B0, $00
 	dc.l	loc_622A0
 	dc.b	$00, $20
 	dc.l	loc_57DDE
@@ -5219,30 +5219,30 @@ loc_4694:
 	dc.l	loc_4708
 loc_46A4:
 	dc.b	$E2, $8E, $FB, $87, $C0
-  txt "PRELIMINARY", $FA
-  txt "RACE", $FA
-  txt "RESULTS", $FF
+	txt "PRELIMINARY", $FA
+	txt "RACE", $FA
+	txt "RESULTS", $FF
 loc_46C2:
 	dc.b	$E3, $8A, $FB, $E7, $C0
-  txt "P.P", $FC
-  txt "2ND", $FC
-  txt "3RD", $FC
-  txt "4TH", $FC
-  txt "5TH", $FC
-  txt "6TH", $FC
-  txt "7TH", $FC
-  txt "8TH", $FF, $00
+	txt "P.P", $FC
+	txt "2ND", $FC
+	txt "3RD", $FC
+	txt "4TH", $FC
+	txt "5TH", $FC
+	txt "6TH", $FC
+	txt "7TH", $FC
+	txt "8TH", $FF, $00
 loc_46E8:
 	dc.b	$E3, $A8, $FA
-  txt "9TH", $FC
-  txt "10TH", $FC
-  txt "11TH", $FC
-  txt "12TH", $FC
-  txt "13TH", $FC
-  txt "14TH", $FF
+	txt "9TH", $FC
+	txt "10TH", $FC
+	txt "11TH", $FC
+	txt "12TH", $FC
+	txt "13TH", $FC
+	txt "14TH", $FF
 loc_4708:
 	dc.b	$E9, $A8
-  txt "15TH", $FF, $00
+	txt "15TH", $FF, $00
 loc_4710:
 	dc.b	$E9, $B2, $FB, $E7, $C0, $FA, $FA, $2C, $2C, $2C, $2C, $2C, $FA, $FF
 loc_471E:
@@ -6164,21 +6164,21 @@ loc_522A:
 	RTS
 loc_5232:
 	dc.b	$01, $04, $FB, $C7, $C0
-  txt "-------", $FA
-  txt "NEXT", $FA
-  txt "YEAR'S", $FA
-  txt "LINE", $FA
-  txt "UP", $FA
-  txt "--------", $FC
-  dc.b $FB, $A7, $C0, $FA
-  txt "TEAM"
-  dc.b $FA, $FA, $FA, $FA, $FA, $FA, $FA
-  txt "DRIVER"
+	txt "-------", $FA
+	txt "NEXT", $FA
+	txt "YEAR'S", $FA
+	txt "LINE", $FA
+	txt "UP", $FA
+	txt "--------", $FC
+	dc.b $FB, $A7, $C0, $FA
+	txt "TEAM"
+	dc.b $FA, $FA, $FA, $FA, $FA, $FA, $FA
+	txt "DRIVER"
 	dc.b	$FA, $FA, $FA, $FA, $FA
-  txt "NATIONALITY", $FF
+	txt "NATIONALITY", $FF
 loc_5282:
 	dc.b	$00, $05
-  dc.b  $32, $80
+	dc.b	$32, $80
 	dc.l	loc_2BE36
 	dc.b	$20, $00
 	dc.l	loc_2B4D4
@@ -6206,20 +6206,20 @@ loc_530E:
 	dc.b	$1C, $0A, $00, $00, $0A, $00, $00, $0B, $00, $00, $0C, $00, $00, $0D, $00
 loc_531D:
 	dc.b	$FB, $C7, $C0
-  txt "RETIRED", $FF
+	txt "RETIRED", $FF
 loc_5328:
 	dc.b	$FB, $C7, $C0, $2C, $2C, $FF
 loc_532E:
 	txt "1ST"
-  txt "2ND"
-  txt "3RD"
-  txt "4TH"
+	txt "2ND"
+	txt "3RD"
+	txt "4TH"
 loc_533A:
 	txt "5TH"
-  txt "6TH"
-  txt "7TH"
-  txt "8TH"
-  txt "9TH"
+	txt "6TH"
+	txt "7TH"
+	txt "8TH"
+	txt "9TH"
 loc_5349:
 	dc.b	$FB, $80, $01, $00, $01, $01, $01, $02, $01, $01, $01, $01, $02, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02
 	dc.b	$01, $01, $01, $03, $01, $01, $04, $FD, $05, $06, $07, $08, $09, $0A, $0B, $0C, $0D, $0E, $0F, $10, $11, $12, $13, $14, $15, $16, $17, $18, $05, $19, $1A, $1B
@@ -8262,9 +8262,9 @@ loc_6E8A:
 	dc.w	$FFF0
 	dc.w	$FFEF
 	dc.w	$FFEE
-  dc.w  $FFED
-  dc.w  $FFE9
-  dc.w  $FFE8
+	dc.w	$FFED
+	dc.w	$FFE9
+	dc.w	$FFE8
 loc_6EBE:
 	dc.w	$1000
 	dc.w	$0000
@@ -8293,9 +8293,9 @@ loc_6EBE:
 	dc.w	$2605
 	dc.w	$0000
 	dc.w	$288E
-  dc.w	$2B17
-  dc.w	$3029
-  dc.w	$32B1
+	dc.w	$2B17
+	dc.w	$3029
+	dc.w	$32B1
 	dc.w	$37C3
 	dc.w	$3A4C
 	dc.w	$41E7
@@ -8303,9 +8303,9 @@ loc_6EBE:
 	dc.w	$4E93
 	dc.w	$58B6
 	dc.w	$67EC
-  dc.w	$79AA
-  dc.w	$9303
-  dc.w	$BB90
+	dc.w	$79AA
+	dc.w	$9303
+	dc.w	$BB90
 loc_6F0E:
 	dc.w	$001C
 	dc.w	$0010
@@ -8345,9 +8345,9 @@ loc_6F1A:
 	dc.w	$0001
 	dc.w	$0000
 	dc.w	$0000
-  dc.w	$0000
-  dc.w	$0000
-  dc.w	$0001
+	dc.w	$0000
+	dc.w	$0000
+	dc.w	$0001
 
 loc_6F5E: ; Suspected parse curve data
 ;D0 = "step" (distance travelled on track)
@@ -10309,14 +10309,14 @@ loc_8694:
 	dc.w	$0007
 	dc.w	$0006
 	dc.w	$0005
-  dc.w	$0004
-  dc.w	$0003
-  dc.w	$0002
+	dc.w	$0004
+	dc.w	$0003
+	dc.w	$0002
 loc_86AE:
 	dc.w	$0001
 	dc.w	$24D4
 	dc.w	$1B8C
-	dc.w  $1861
+	dc.w	$1861
 	dc.w	$1601
 	dc.w	$1251
 	dc.w	$10F1
@@ -10336,31 +10336,31 @@ loc_86AE:
 	dc.w	$03FF
 	dc.w	$038B
 	dc.w	$036F
-  dc.w	$033C
-  dc.w	$030E
-  dc.w	$02EE
+	dc.w	$033C
+	dc.w	$030E
+	dc.w	$02EE
 	dc.w	$02C0
 	dc.w	$0287
-  dc.w  $0271
+	dc.w	$0271
 	dc.w	$0264
 	dc.w	$0233
 	dc.w	$0209
 	dc.w	$01F6
-  dc.w  $01F2
-  dc.w  $01CD
-  dc.w  $01A4
-  dc.w  $0198
+	dc.w	$01F2
+	dc.w	$01CD
+	dc.w	$01A4
+	dc.w	$0198
 	dc.w	$0192
 	dc.w	$016D
-  dc.w  $0160
+	dc.w	$0160
 	dc.w	$015B
 	dc.w	$0139
 	dc.w	$012F
 	dc.w	$012A
 	dc.w	$0122
-  dc.w	$0119
-  dc.w	$0111
-  dc.w	$0105
+	dc.w	$0119
+	dc.w	$0111
+	dc.w	$0105
 loc_870E:
 	dc.w	$A7F1, $A7F2, $A7D7, $A7CE, $A7E0
 loc_8718:
@@ -10629,25 +10629,25 @@ loc_8B06:
 loc_8B1C:
 	RTS
 	dc.l	loc_A81A
-  dc.l	$0000A838
-  dc.l	$0000A944
-  dc.l	$0000A99A
-  dc.l	$0000A862
-  dc.l	$0000A870
-  dc.l	$0000A87E
-  dc.l	$0000A88A
-  dc.l	$0000A8F0
-  dc.l	$0000A8DE
-  dc.l	$0000A8C6
-  dc.l	$0000A8D2
-  dc.l	$0000A896
-  dc.l	$0000A8A2
-  dc.l	$0000A846
-  dc.l	$0000A854
-  dc.l	$0000A80A
-  dc.l	$0000A828
-  dc.l	$0000A8AE
-  dc.l	$0000A8BA
+	dc.l	$0000A838
+	dc.l	$0000A944
+	dc.l	$0000A99A
+	dc.l	$0000A862
+	dc.l	$0000A870
+	dc.l	$0000A87E
+	dc.l	$0000A88A
+	dc.l	$0000A8F0
+	dc.l	$0000A8DE
+	dc.l	$0000A8C6
+	dc.l	$0000A8D2
+	dc.l	$0000A896
+	dc.l	$0000A8A2
+	dc.l	$0000A846
+	dc.l	$0000A854
+	dc.l	$0000A80A
+	dc.l	$0000A828
+	dc.l	$0000A8AE
+	dc.l	$0000A8BA
 loc_8B6E:
 	dc.l	$0000AB3E
 	dc.l	$0000AF2A
@@ -12151,10 +12151,10 @@ loc_9BF4:
 	dc.l	$000104A8
 loc_9C08:
 	dc.l	$00010484
-  dc.l	$000104CC
-  dc.l	$00010514
-  dc.l	$00010598
-  dc.l	$00010568
+	dc.l	$000104CC
+	dc.l	$00010514
+	dc.l	$00010598
+	dc.l	$00010568
 loc_9C1C:
 	dc.l	$00010538
 	dc.l	$00010550
@@ -12639,20 +12639,20 @@ loc_A2A8:
 	RTS
 loc_A2AA:
 	dc.l	$00009EE4
-  dc.l	$00009EEA
-  dc.l	$00009EF0
-  dc.l	$00009EF6
-  dc.l	$00009EFC
-  dc.l	$00009F02
-  dc.l	$00009F08
-  dc.l	$00009F0E
+	dc.l	$00009EEA
+	dc.l	$00009EF0
+	dc.l	$00009EF6
+	dc.l	$00009EFC
+	dc.l	$00009F02
+	dc.l	$00009F08
+	dc.l	$00009F0E
 loc_A2CA:
 	dc.l	$00009EC0
-  dc.l	$00009EC6
-  dc.l	$00009ECC
-  dc.l	$00009ED2
-  dc.l	$00009ED8
-  dc.l	$00009EDE
+	dc.l	$00009EC6
+	dc.l	$00009ECC
+	dc.l	$00009ED2
+	dc.l	$00009ED8
+	dc.l	$00009EDE
 loc_A2E2:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5B, $00, $00, $01, $2A, $64, $03, $D0, $00, $00, $FF, $C6, $00, $01
 loc_A2F6:
@@ -14954,12 +14954,12 @@ loc_C48A:
 	dc.b	$10, $EE, $07, $EE, $0E, $EE
 loc_C494:
 	dc.b	$04, $04, $FB, $A7, $C0
-  txt "POSITION"
-  dc.b  $FC, $FA
-  txt "YOU"
-  dc.b $2B
-  txt "RIVAL"
-  dc.b $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF
+	txt "POSITION"
+	dc.b $FC, $FA
+	txt "YOU"
+	dc.b $2B
+	txt "RIVAL"
+	dc.b $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF
 loc_C4B4:
 	dc.b	$04, $06, $FB, $A7, $C0, $22, $18, $1E, $1B, $FC, $FA, $19, $18, $1C, $12, $1D, $12, $18, $17, $28, $FF, $00
 loc_C4CA:
@@ -15599,7 +15599,7 @@ loc_CD7C:
 	RTS
 loc_CDD4:
 	dc.b	$00, $01
-  dc.b  $00, $20
+	dc.b	$00, $20
 	dc.l	loc_1707C
 	dc.b	$2C, $E0
 	dc.l	loc_1891A
@@ -16634,7 +16634,7 @@ loc_DDCA:
 	RTS
 loc_DDCC:
 	dc.b	$00, $01
-  dc.b  $00, $20
+	dc.b	$00, $20
 	dc.l	loc_25A16
 	dc.b	$2D, $E0
 	dc.l	loc_27894
@@ -16786,7 +16786,7 @@ loc_E068:
 	dc.b	$00, $02, $81, $E6, $00, $02, $81, $AE, $00, $02, $81, $40
 loc_E074:
 	dc.b	$00, $02
-  dc.b  $00, $20
+	dc.b	$00, $20
 	dc.l	loc_281EE
 	dc.b	$43, $60
 	dc.l	loc_2A1F2
@@ -16960,7 +16960,7 @@ loc_E2F4:
 	JMP	loc_778
 loc_E326:
 	dc.b	$00, $01
-  dc.b  $00, $20
+	dc.b	$00, $20
 	dc.l	loc_2F2D0
 	dc.b	$1C, $A0
 	dc.l	loc_3049A
@@ -18499,7 +18499,7 @@ Track_data:
 	dc.l	loc_101A4 ; ?
 	dc.l	$002B002B
 
-  ; France
+; France
 	dc.l	loc_55516 ; France tiles used for minimap
 	dc.l	loc_6ACB6 ; France tiles used used for background
 	dc.l	loc_6AB3E ; France background tile mapping
@@ -18519,7 +18519,7 @@ Track_data:
 	dc.l	loc_101D2 ; ?
 	dc.l	$002B002B
 
-  ; Hungary
+; Hungary
 	dc.l	loc_559D0 ; Hungary tiles used for minimap
 	dc.l	loc_6A16E ; Hungary tiles used used for background
 	dc.l	loc_6A002 ; Hungary background tile mapping
@@ -18539,7 +18539,7 @@ Track_data:
 	dc.l	loc_10200 ; ?
 	dc.l	$002c002e
 
-  ; West Germany
+; West Germany
 	dc.l	loc_5583E ; West Germany tiles used for minimap
 	dc.l	loc_65D64 ; West Germany tiles used used for background
 	dc.l	loc_65B18 ; West Germany background tile mapping
@@ -18559,7 +18559,7 @@ Track_data:
 	dc.l	loc_1022E ; ?
 	dc.l	$002B002B
 
-  ; USA
+; USA
 	dc.l	loc_5627E ; USA tiles used for minimap
 	dc.l	loc_6C048 ; USA tiles used used for background
 	dc.l	loc_6BEC0 ; USA background tile mapping
@@ -18579,7 +18579,7 @@ Track_data:
 	dc.l	loc_1025C ; ?
 	dc.l	$002B002B
 
-  ; Canada
+; Canada
 	dc.l	loc_5655C ; Canada tiles used for minimap
 	dc.l	loc_6841A ; Canada tiles used used for background
 	dc.l	loc_68240 ; Canada background tile mapping
@@ -18599,7 +18599,7 @@ Track_data:
 	dc.l	loc_1028A; ?
 	dc.l	$002B002B
 
-  ; Great Britain
+; Great Britain
 	dc.l	loc_5568C  ; Great Britain tiles used for minimap
 	dc.l	loc_66FDE  ; Great Britain tiles used used for background
 	dc.l	loc_66E62  ; Great Britain background tile mapping
@@ -18619,7 +18619,7 @@ Track_data:
 	dc.l	loc_102B8; ?
 	dc.l	$002B002B
 
-  ; Italy
+; Italy
 	dc.l	loc_566BC ; Italy tiles used for minimap
 	dc.l	loc_651F0 ; Italy tiles used used for background
 	dc.l	loc_65090 ; Italy background tile mapping
@@ -18639,7 +18639,7 @@ Track_data:
 	dc.l	loc_102E6 ; ?
 	dc.l	$002B002B
 
-  ; Portugal
+; Portugal
 	dc.l	loc_55D3A ; Portugal tiles used for minimap
 	dc.l	loc_6D3A2 ; Portugal tiles used used for background
 	dc.l	loc_6D1AE ; Portugal background tile mapping
@@ -18659,7 +18659,7 @@ Track_data:
 	dc.l	loc_10314 ; ?
 	dc.l	$002B002B
 
-  ; Spain
+; Spain
 	dc.l	loc_55EF2 ; Spain tiles used for minimap
 	dc.l	loc_66488 ; Spain tiles used used for background
 	dc.l	loc_6630E ; Spain background tile mapping
@@ -18679,7 +18679,7 @@ Track_data:
 	dc.l	loc_10342 ; ?
 	dc.l	$002B002B
 
-  ; Mexico
+; Mexico
 	dc.l	loc_553B6 ; Mexico tiles used for minimap
 	dc.l	loc_6C9E6 ; Mexico tiles used used for background
 	dc.l	loc_6C908 ; Mexico background tile mapping
@@ -18699,7 +18699,7 @@ Track_data:
 	dc.l	loc_10370 ; ?
 	dc.l	$002B002B
 
-  ; Japan
+; Japan
 	dc.l	loc_563B6 ; Japan tiles used for minimap
 	dc.l	loc_649FC ; Japan tiles used used for background
 	dc.l	loc_64884 ; Japan background tile mapping
@@ -18719,7 +18719,7 @@ Track_data:
 	dc.l	loc_1039E ; ?
 	dc.l	$002B002B
 
-  ; Belgium
+; Belgium
 	dc.l	loc_55B8A ; Belgium tiles used for minimap
 	dc.l	loc_6B708 ; Belgium tiles used used for background
 	dc.l	loc_6B51A ; Belgium background tile mapping
@@ -18739,7 +18739,7 @@ Track_data:
 	dc.l	loc_103CC ; ?
 	dc.l	$002B002B
 
-  ; Australia
+; Australia
 	dc.l	loc_560D4 ; Australia tiles used for minimap
 	dc.l	loc_69758 ; Australia tiles used used for background
 	dc.l	loc_695FE ; Australia background tile mapping
@@ -18759,7 +18759,7 @@ Track_data:
 	dc.l	loc_103FA ; ?
 	dc.l	$002B002B
 
-  ; Monaco
+; Monaco
 	dc.l	loc_551B4 ; Monaco tiles used for minimap
 	dc.l	loc_6DCF8 ; Monaco tiles used used for background
 	dc.l	loc_6DA8A ; Monaco background tile mapping
@@ -18779,7 +18779,7 @@ Track_data:
 	dc.l	loc_10428 ; ?
 	dc.l	$002B002B
 
-  ; Monaco (Arcade preliminary)
+; Monaco (Arcade preliminary)
 	dc.l	loc_54CB2 ; Monaco (Arcade preliminary) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade preliminary) tiles used used for background
 	dc.l	loc_63910 ; Monaco (Arcade preliminary) background tile mapping
@@ -18799,7 +18799,7 @@ Track_data:
 	dc.l	loc_10456 ; ?
 	dc.l	$002B002B
 
-  ; Monaco (Arcade main)
+; Monaco (Arcade main)
 	dc.l	loc_54E88 ; Monaco (Arcade main) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade main) tiles used used for background
 	dc.l	loc_63910 ; Monaco (Arcade main) background tile mapping
@@ -18819,7 +18819,7 @@ Track_data:
 	dc.l	loc_10456 ; ?
 	dc.l	$002B002B
 
-  ; Monaco (Arcade Wet Condition)
+; Monaco (Arcade Wet Condition)
 	dc.l	loc_54E88 ; Monaco (Arcade Wet Condition) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade Wet Condition) tiles used used for background
 	dc.l	loc_63C10 ; Monaco (Arcade Wet Condition) background tile mapping
@@ -19436,104 +19436,104 @@ loc_12A61:
 	dc.b	$02, $27
 	dc.b	$E4
 	dc.l	loc_51B08
-  dc.l	loc_51B08
-  dc.l	loc_51B08
+	dc.l	loc_51B08
+	dc.l	loc_51B08
 	dc.l	loc_51AE8
-  dc.l	loc_51AC8
-  dc.l	loc_51A48
-  dc.l	loc_51988
-  dc.l	loc_51868
-  dc.l	loc_51868
+	dc.l	loc_51AC8
+	dc.l	loc_51A48
+	dc.l	loc_51988
+	dc.l	loc_51868
+	dc.l	loc_51868
 	dc.l	loc_51DC8
-  dc.l	loc_51DC8
-  dc.l	loc_51DC8
+	dc.l	loc_51DC8
+	dc.l	loc_51DC8
 	dc.l	loc_51DA8
-  dc.l	loc_51D88
-  dc.l	loc_51D08
-  dc.l	loc_51C48
-  dc.l	loc_51B28
-  dc.l	loc_51B28
+	dc.l	loc_51D88
+	dc.l	loc_51D08
+	dc.l	loc_51C48
+	dc.l	loc_51B28
+	dc.l	loc_51B28
 	dc.l	loc_520E8
-  dc.l	loc_520E8
-  dc.l	loc_520E8
+	dc.l	loc_520E8
+	dc.l	loc_520E8
 	dc.l	loc_520C8
-  dc.l	loc_520A8
-  dc.l	loc_52028
-  dc.l	loc_51F08
-  dc.l	loc_51DE8
-  dc.l	loc_51DE8
+	dc.l	loc_520A8
+	dc.l	loc_52028
+	dc.l	loc_51F08
+	dc.l	loc_51DE8
+	dc.l	loc_51DE8
 	dc.l	loc_523A8
-  dc.l	loc_523A8
-  dc.l	loc_523A8
+	dc.l	loc_523A8
+	dc.l	loc_523A8
 	dc.l	loc_52388
-  dc.l	loc_52368
-  dc.l	loc_522E8
-  dc.l	loc_52228
-  dc.l	loc_52108
-  dc.l	loc_52108
+	dc.l	loc_52368
+	dc.l	loc_522E8
+	dc.l	loc_52228
+	dc.l	loc_52108
+	dc.l	loc_52108
 	dc.l	loc_52668
-  dc.l	loc_52668
-  dc.l	loc_52668
+	dc.l	loc_52668
+	dc.l	loc_52668
 	dc.l	loc_52648
-  dc.l	loc_52628
-  dc.l	loc_525A8
-  dc.l	loc_524E8
-  dc.l	loc_523C8
-  dc.l	loc_523C8
+	dc.l	loc_52628
+	dc.l	loc_525A8
+	dc.l	loc_524E8
+	dc.l	loc_523C8
+	dc.l	loc_523C8
 	dc.l	loc_52988
-  dc.l	loc_52988
-  dc.l	loc_52988
+	dc.l	loc_52988
+	dc.l	loc_52988
 	dc.l	loc_52968
-  dc.l	loc_52948
-  dc.l	loc_528C8
-  dc.l	loc_527A8
-  dc.l	loc_52688
-  dc.l	loc_52688
+	dc.l	loc_52948
+	dc.l	loc_528C8
+	dc.l	loc_527A8
+	dc.l	loc_52688
+	dc.l	loc_52688
 	dc.l	loc_52C48
-  dc.l	loc_52C48
-  dc.l	loc_52C48
+	dc.l	loc_52C48
+	dc.l	loc_52C48
 	dc.l	loc_52C28
-  dc.l	loc_52C08
-  dc.l	loc_52B88
-  dc.l	loc_52AC8
-  dc.l	loc_529A8
-  dc.l	loc_529A8
+	dc.l	loc_52C08
+	dc.l	loc_52B88
+	dc.l	loc_52AC8
+	dc.l	loc_529A8
+	dc.l	loc_529A8
 	dc.l	loc_531C8
-  dc.l	loc_531C8
-  dc.l	loc_531C8
+	dc.l	loc_531C8
+	dc.l	loc_531C8
 	dc.l	loc_531A8
-  dc.l	loc_53188
-  dc.l	loc_53108
-  dc.l	loc_53048
-  dc.l	loc_52F28
-  dc.l	loc_52F28
+	dc.l	loc_53188
+	dc.l	loc_53108
+	dc.l	loc_53048
+	dc.l	loc_52F28
+	dc.l	loc_52F28
 	dc.l	loc_52F08
-  dc.l	loc_52F08
-  dc.l	loc_52F08
+	dc.l	loc_52F08
+	dc.l	loc_52F08
 	dc.l	loc_52EE8
-  dc.l	loc_52EC8
-  dc.l	loc_52E48
-  dc.l	loc_52D88
-  dc.l	loc_52C68
-  dc.l	loc_52C68
+	dc.l	loc_52EC8
+	dc.l	loc_52E48
+	dc.l	loc_52D88
+	dc.l	loc_52C68
+	dc.l	loc_52C68
 	dc.l	loc_53488
-  dc.l	loc_53488
-  dc.l	loc_53488
+	dc.l	loc_53488
+	dc.l	loc_53488
 	dc.l	loc_53468
-  dc.l	loc_53448
-  dc.l	loc_533C8
-  dc.l	loc_53308
-  dc.l	loc_531E8
-  dc.l	loc_531E8
+	dc.l	loc_53448
+	dc.l	loc_533C8
+	dc.l	loc_53308
+	dc.l	loc_531E8
+	dc.l	loc_531E8
 	dc.l	loc_53708
-  dc.l	loc_53708
-  dc.l	loc_53708
+	dc.l	loc_53708
+	dc.l	loc_53708
 	dc.l	loc_536E8
-  dc.l	loc_536C8
-  dc.l	loc_53688
-  dc.l	loc_535C8
-  dc.l	loc_534A8
-  dc.l	loc_534A8
+	dc.l	loc_536C8
+	dc.l	loc_53688
+	dc.l	loc_535C8
+	dc.l	loc_534A8
+	dc.l	loc_534A8
 	dc.b	$00
 loc_12BF1:
 	dc.b	$02, $9B
@@ -20148,41 +20148,41 @@ loc_13300:
 ;loc_13380
 InitialDriversAndTeamMap:
 	dc.b	$1B ; Player starting team
-	dc.b  $01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F
+	dc.b	$01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F
 	dc.b	$00
 
 ;loc_13392:
 SecondYearDriversAndTeamsMap:
 	dc.b	$50
-  dc.b  $50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E
+	dc.b	$50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E
 	dc.b	$00
 
 loc_133A4:
 	dc.b	$01, $01, $01, $01, $02, $01, $02, $02, $02, $01, $02, $01, $02, $02, $02, $02
 ;loc_133B4:
 Team_car_characteristics:
-  ; Suspected
-  ; 1st byte: Affects acceleration
-  ; 2nd byte: Affects max speed
-  ; 3rd byte: Affects steering?
-  ; 4th byte: Affects breaks?
-  ; 5th byte: ?
-  dc.b  $06, $0A, $06, $08, $0A ; Madonna
-  dc.b  $04, $0A, $08, $08, $0A ; Firenze
-  dc.b  $06, $08, $08, $06, $0A ; Millions
-  dc.b  $06, $06, $08, $08, $0A ; Bestowal
-  dc.b  $04, $08, $06, $06, $08 ; Blanche
-  dc.b  $02, $0A, $04, $06, $0A ; Tyrant
-  dc.b  $06, $06, $06, $06, $08 ; Losel
-  dc.b  $02, $08, $04, $04, $08 ; May
-  dc.b  $02, $06, $04, $04, $06 ; Bullets
-  dc.b  $04, $06, $04, $04, $04 ; Dardan
-  dc.b  $04, $04, $06, $06, $08 ; Linden
-  dc.b  $04, $06, $02, $04, $04 ; Minarae
-  dc.b  $06, $04, $04, $04, $04 ; Rigel
-  dc.b  $04, $04, $04, $02, $04 ; Comet
-  dc.b  $02, $04, $02, $04, $04 ; Orchis
-  dc.b  $04, $04, $04, $04, $02 ; Zero Force
+; Suspected
+; 1st byte: Affects acceleration
+; 2nd byte: Affects max speed
+; 3rd byte: Affects steering?
+; 4th byte: Affects breaks?
+; 5th byte: ?
+	dc.b	$06, $0A, $06, $08, $0A ; Madonna
+	dc.b	$04, $0A, $08, $08, $0A ; Firenze
+	dc.b	$06, $08, $08, $06, $0A ; Millions
+	dc.b	$06, $06, $08, $08, $0A ; Bestowal
+	dc.b	$04, $08, $06, $06, $08 ; Blanche
+	dc.b	$02, $0A, $04, $06, $0A ; Tyrant
+	dc.b	$06, $06, $06, $06, $08 ; Losel
+	dc.b	$02, $08, $04, $04, $08 ; May
+	dc.b	$02, $06, $04, $04, $06 ; Bullets
+	dc.b	$04, $06, $04, $04, $04 ; Dardan
+	dc.b	$04, $04, $06, $06, $08 ; Linden
+	dc.b	$04, $06, $02, $04, $04 ; Minarae
+	dc.b	$06, $04, $04, $04, $04 ; Rigel
+	dc.b	$04, $04, $04, $02, $04 ; Comet
+	dc.b	$02, $04, $02, $04, $04 ; Orchis
+	dc.b	$04, $04, $04, $04, $02 ; Zero Force
 ;loc_13404:
 Acceleration_modifiers:
 	dc.w	$FFFF
@@ -20549,71 +20549,71 @@ loc_13930:
 	JSR	loc_D5C
 	RTS
 loc_13938:
-  dc.l	loc_13968
-  dc.l	loc_13988
-  dc.l	loc_139EA
-  dc.l	loc_13A34
-  dc.l	loc_13A96
-  dc.l	loc_13AF2
-  dc.l	loc_13B78
-  dc.l	loc_13BF2
-  dc.l	loc_13C66
-  dc.l	loc_13CCE
-  dc.l	loc_13D54
-  dc.l	loc_13D5C
+	dc.l	loc_13968
+	dc.l	loc_13988
+	dc.l	loc_139EA
+	dc.l	loc_13A34
+	dc.l	loc_13A96
+	dc.l	loc_13AF2
+	dc.l	loc_13B78
+	dc.l	loc_13BF2
+	dc.l	loc_13C66
+	dc.l	loc_13CCE
+	dc.l	loc_13D54
+	dc.l	loc_13D5C
 loc_13968:
 	dc.b	$00, $04, $EC, $00, $87, $DC, $FF, $F0, $EC, $00, $87, $DD, $FF, $F8, $EC, $00, $87, $CA, $00, $00, $EC, $00, $87, $CF, $00, $08, $EC, $00, $87, $CF, $00, $10
 loc_13988:
-  dc.b	$00, $0F, $E0, $00, $87, $CD, $FF, $E4, $E0, $00, $87, $D2, $FF, $EC, $E0, $00, $87, $DB, $FF, $F4, $E0, $00, $87, $CE, $FF, $FC, $E0, $00, $87, $CC, $00, $04
+	dc.b	$00, $0F, $E0, $00, $87, $CD, $FF, $E4, $E0, $00, $87, $D2, $FF, $EC, $E0, $00, $87, $DB, $FF, $F4, $E0, $00, $87, $CE, $FF, $FC, $E0, $00, $87, $CC, $00, $04
 	dc.b	$E0, $00, $87, $DD, $00, $0C, $E0, $00, $87, $D8, $00, $14, $E0, $00, $87, $DB, $00, $1C, $F0, $00, $87, $E0, $FF, $E0, $F0, $00, $87, $D2, $FF, $E8, $F0, $00
 	dc.b	$87, $D5, $FF, $F0, $F0, $00, $87, $D5, $FF, $F8, $F0, $00, $87, $CC, $00, $08, $F0, $00, $87, $CA, $00, $10, $F0, $00, $87, $D7, $00, $18, $F0, $00, $87, $CE
 	dc.b	$00, $20
 loc_139EA:
-  dc.b  $00, $0B, $E0, $00, $87, $CD, $FF, $E4, $E0, $00, $87, $CE, $FF, $EC, $E0, $00, $87, $DC, $FF, $F4, $E0, $00, $87, $D2, $FF, $FC, $E0, $00, $87, $D0
+	dc.b	$00, $0B, $E0, $00, $87, $CD, $FF, $E4, $E0, $00, $87, $CE, $FF, $EC, $E0, $00, $87, $DC, $FF, $F4, $E0, $00, $87, $D2, $FF, $FC, $E0, $00, $87, $D0
 	dc.b	$00, $04, $E0, $00, $87, $D7, $00, $0C, $E0, $00, $87, $CE, $00, $14, $E0, $00, $87, $DB, $00, $1C, $F0, $00, $87, $D4, $FF, $F4, $F0, $00, $87, $CA, $FF, $FC
 	dc.b	$F0, $00, $87, $D4, $00, $04, $F0, $00, $87, $D2, $00, $0C
 loc_13A34:
-  dc.b  $00, $0F, $E0, $00, $87, $DC, $FF, $CC, $E0, $00, $87, $D8, $FF, $D4, $E0, $00, $87, $DE, $FF, $DC
+	dc.b	$00, $0F, $E0, $00, $87, $DC, $FF, $CC, $E0, $00, $87, $D8, $FF, $D4, $E0, $00, $87, $DE, $FF, $DC
 	dc.b	$E0, $00, $87, $D7, $FF, $E4, $E0, $00, $87, $CD, $FF, $EC, $E0, $00, $87, $CE, $FF, $FC, $E0, $00, $87, $CF, $00, $04, $E0, $00, $87, $CF, $00, $0C, $E0, $00
 	dc.b	$87, $CE, $00, $14, $E0, $00, $87, $CC, $00, $1C, $E0, $00, $87, $DD, $00, $24, $E0, $00, $87, $CB, $00, $34, $E0, $00, $87, $E2, $00, $3C, $F0, $00, $87, $D7
 	dc.b	$FF, $F8, $F0, $00, $87, $CA, $00, $00, $F0, $00, $87, $D8, $00, $08
 loc_13A96:
-  dc.b  $00, $0E, $E0, $00, $87, $D6, $FF, $CC, $E0, $00, $87, $DE, $FF, $D4, $E0, $00, $87, $DC
+	dc.b	$00, $0E, $E0, $00, $87, $D6, $FF, $CC, $E0, $00, $87, $DE, $FF, $D4, $E0, $00, $87, $DC
 	dc.b	$FF, $DC, $E0, $00, $87, $D2, $FF, $E4, $E0, $00, $87, $CC, $FF, $EC, $E0, $00, $87, $CC, $FF, $FC, $E0, $00, $87, $D8, $00, $04, $E0, $00, $87, $D6, $00, $0C
 	dc.b	$E0, $00, $87, $D9, $00, $14, $E0, $00, $87, $D8, $00, $1C, $E0, $00, $87, $DC, $00, $24, $E0, $00, $87, $CE, $00, $2C, $E0, $00, $87, $DB, $00, $34, $F0, $00
 	dc.b	$87, $CB, $FF, $FC, $F0, $00, $87, $D8, $00, $04
 loc_13AF2:
-  dc.b  $00, $15, $DE, $00, $87, $D9, $FF, $DC, $DE, $00, $87, $DB, $FF, $E4, $DE, $00, $87, $D8, $FF, $EC, $DE, $00
+	dc.b	$00, $15, $DE, $00, $87, $D9, $FF, $DC, $DE, $00, $87, $DB, $FF, $E4, $DE, $00, $87, $D8, $FF, $EC, $DE, $00
 	dc.b	$87, $D0, $FF, $F4, $DE, $00, $87, $DB, $FF, $FC, $DE, $00, $87, $CA, $00, $04, $DE, $00, $87, $D6, $00, $0C, $DE, $00, $87, $D6, $00, $14, $DE, $00, $87, $CE
 	dc.b	$00, $1C, $DE, $00, $87, $DB, $00, $24, $ED, $00, $87, $D1, $FF, $E8, $ED, $00, $87, $CA, $FF, $F0, $ED, $00, $87, $D6, $FF, $F8, $ED, $00, $87, $DD, $00, $08
 	dc.b	$ED, $00, $87, $CA, $00, $10, $ED, $00, $87, $D4, $00, $18, $F8, $00, $87, $D6, $FF, $EC, $F8, $00, $87, $E9, $FF, $F4, $F8, $00, $87, $E0, $FF, $FC, $F8, $00
 	dc.b	$87, $CA, $00, $04, $F8, $00, $87, $D4, $00, $0C, $F8, $00, $87, $CA, $00, $14
 loc_13B78:
-  dc.b  $00, $14, $E0, $00, $87, $CE, $FF, $CC, $E0, $00, $87, $D7, $FF, $D4, $E0, $00
+	dc.b	$00, $14, $E0, $00, $87, $CE, $FF, $CC, $E0, $00, $87, $D7, $FF, $D4, $E0, $00
 	dc.b	$87, $D0, $FF, $DC, $E0, $00, $87, $D5, $FF, $E4, $E0, $00, $87, $D2, $FF, $EC, $E0, $00, $87, $DC, $FF, $F4, $E0, $00, $87, $D1, $FF, $FC, $E0, $00, $87, $CE
 	dc.b	$00, $0C, $E0, $00, $87, $CD, $00, $14, $E0, $00, $87, $D2, $00, $1C, $E0, $00, $87, $DD, $00, $24, $E0, $00, $87, $D8, $00, $2C, $E0, $00, $87, $DB, $00, $34
 	dc.b	$F0, $00, $87, $DC, $FF, $E4, $F0, $00, $87, $CA, $FF, $EC, $F0, $00, $87, $D4, $FF, $F4, $F0, $00, $87, $D2, $FF, $FC, $F0, $00, $87, $D7, $00, $0C, $F0, $00
 	dc.b	$87, $E2, $00, $14, $F0, $00, $87, $CA, $00, $1C
 loc_13BF2:
-  dc.b  $00, $12, $E0, $00, $87, $CA, $FF, $BA, $E0, $00, $87, $DC, $FF, $C2, $E0, $00, $87, $DC, $FF, $CA, $E0, $00
+	dc.b	$00, $12, $E0, $00, $87, $CA, $FF, $BA, $E0, $00, $87, $DC, $FF, $C2, $E0, $00, $87, $DC, $FF, $CA, $E0, $00
 	dc.b	$87, $D2, $FF, $D2, $E0, $00, $87, $DC, $FF, $DA, $E0, $00, $87, $DD, $FF, $E2, $E0, $00, $87, $CA, $FF, $EA, $E0, $00, $87, $D7, $FF, $F2, $E0, $00, $87, $DD
 	dc.b	$FF, $FA, $E0, $00, $87, $CD, $00, $0D, $E0, $00, $87, $D2, $00, $15, $E0, $00, $87, $DB, $00, $1D, $E0, $00, $87, $CE, $00, $25, $E0, $00, $87, $CC, $00, $2D
 	dc.b	$E0, $00, $87, $DD, $00, $35, $E0, $00, $87, $D8, $00, $3D, $E0, $00, $87, $DB, $00, $45, $F0, $00, $87, $DC, $FF, $FC, $F0, $00, $87, $C2, $00, $04
 loc_13C66:
-  dc.b	$00, $10, $E0, $00, $87, $DD, $FF, $D8, $E0, $00, $87, $CE, $FF, $E0, $E0, $00, $87, $DC, $FF, $E8, $E0, $00, $87, $DD, $FF, $F0, $E0, $00, $87, $CD, $00, $00, $E0, $00
+	dc.b	$00, $10, $E0, $00, $87, $DD, $FF, $D8, $E0, $00, $87, $CE, $FF, $E0, $E0, $00, $87, $DC, $FF, $E8, $E0, $00, $87, $DD, $FF, $F0, $E0, $00, $87, $CD, $00, $00, $E0, $00
 	dc.b	$87, $DB, $00, $08, $E0, $00, $87, $D2, $00, $10, $E0, $00, $87, $DF, $00, $18, $E0, $00, $87, $CE, $00, $20, $E0, $00, $87, $DB, $00, $28, $F0, $00, $87, $D4
 	dc.b	$FF, $E8, $F0, $00, $87, $E2, $FF, $F0, $F0, $00, $87, $CA, $FF, $F8, $F0, $00, $87, $D6, $00, $00, $F0, $00, $87, $DE, $00, $08, $F0, $00, $87, $DB, $00, $10
 	dc.b	$F0, $00, $87, $CA, $00, $18
 loc_13CCE:
-  dc.b  $00, $15, $E0, $00, $87, $DC, $FF, $C0, $E0, $00, $87, $D9, $FF, $C8, $E0, $00, $87, $CE, $FF, $D0, $E0, $00, $87, $CC, $FF, $D8
+	dc.b	$00, $15, $E0, $00, $87, $DC, $FF, $C0, $E0, $00, $87, $D9, $FF, $C8, $E0, $00, $87, $CE, $FF, $D0, $E0, $00, $87, $CC, $FF, $D8
 	dc.b	$E0, $00, $87, $D2, $FF, $E0, $E0, $00, $87, $CA, $FF, $E8, $E0, $00, $87, $D5, $FF, $F0, $E0, $00, $87, $DD, $00, $00, $E0, $00, $87, $D1, $00, $08, $E0, $00
 	dc.b	$87, $CA, $00, $10, $E0, $00, $87, $D7, $00, $18, $E0, $00, $87, $D4, $00, $20, $E0, $00, $87, $DC, $00, $28, $E0, $00, $87, $DD, $00, $38, $E0, $00, $87, $D8
 	dc.b	$00, $40, $F0, $00, $87, $CB, $FF, $E8, $F0, $00, $87, $DB, $FF, $F0, $F0, $00, $87, $D8, $FF, $F8, $F0, $00, $87, $DC, $00, $00, $F0, $00, $87, $C4, $00, $08
 	dc.b	$F0, $00, $87, $C0, $00, $10, $F0, $00, $87, $C0, $00, $18
 loc_13D54:
-  dc.b  $00, $00, $F8, $00, $00, $00, $00, $00
+	dc.b	$00, $00, $F8, $00, $00, $00, $00, $00
 loc_13D5C:
-  dc.b  $00, $0F, $DE, $00, $87, $D9, $FF, $E4, $DE, $00, $87, $DB
+	dc.b	$00, $0F, $DE, $00, $87, $D9, $FF, $E4, $DE, $00, $87, $DB
 	dc.b	$FF, $EC, $DE, $00, $87, $D8, $FF, $F4, $DE, $00, $87, $CD, $FF, $FC, $DE, $00, $87, $DE, $00, $04, $DE, $00, $87, $CC, $00, $0C, $DE, $00, $87, $CE, $00, $14
 	dc.b	$DE, $00, $87, $CD, $00, $1C, $EB, $00, $87, $CB, $FF, $FC, $EB, $00, $87, $E2, $00, $04, $F8, $00, $87, $D1, $FF, $E8, $F8, $00, $87, $CA, $FF, $F0, $F8, $00
 	dc.b	$87, $D6, $FF, $F8, $F8, $00, $87, $DD, $00, $08, $F8, $00, $87, $CA, $00, $10, $F8, $00, $87, $D4, $00, $18, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
@@ -20742,37 +20742,37 @@ loc_14704:
 	dc.b	$00, $05, $00, $01, $4B, $FA, $FF, $FF, $00, $01, $4C, $08
 loc_14878:
 	txt " MADONNA "
-  txt " FIRENZE "
-  txt "MILLIONS "
-  txt "BESTOWAL "
-  txt " BLANCHE "
-  txt " TYRANT  "
-  txt "  LOSEL  "
-  txt "   MAY   "
-  txt "BULLETS  "
+	txt " FIRENZE "
+	txt "MILLIONS "
+	txt "BESTOWAL "
+	txt " BLANCHE "
+	txt " TYRANT  "
+	txt "  LOSEL  "
+	txt "   MAY   "
+	txt "BULLETS  "
 	txt " DARDAN  "
 	txt " LINDEN  "
-  txt "MINARAE  "
+	txt "MINARAE  "
 	txt "  RIGEL  "
 	txt "  COMET  "
 	txt " ORCHIS  "
 	txt "ZEROFORCE"
-  txt " MADONNA... "
-  txt " FIRENZE... "
-  txt " MILLIONS..."
-  txt " BESTOWAL..."
-  txt " BLANCHE... "
-  txt " TYRANT.... "
-  txt " LOSEL....  "
-  txt " MAY....    "
+	txt " MADONNA... "
+	txt " FIRENZE... "
+	txt " MILLIONS..."
+	txt " BESTOWAL..."
+	txt " BLANCHE... "
+	txt " TYRANT.... "
+	txt " LOSEL....  "
+	txt " MAY....    "
 	txt " BULLETS... "
-  txt " DARDAN.... "
-  txt " LINDEN.... "
-  txt " MINARAE... "
-  txt " RIGEL....  "
-  txt " COMET....  "
-  txt " ORCHIS.... "
-  txt "ZEROFORCE..."
+	txt " DARDAN.... "
+	txt " LINDEN.... "
+	txt " MINARAE... "
+	txt " RIGEL....  "
+	txt " COMET....  "
+	txt " ORCHIS.... "
+	txt "ZEROFORCE..."
 loc_149C8:
 	dc.b	$02, $3E, $00, $00, $0E, $EE, $0A, $AA, $02, $22, $06, $66, $0C, $C0, $06, $60, $06, $EE, $00, $88, $04, $44, $04, $6A, $00, $00, $04, $44, $00, $0E, $00, $CE
 	dc.b	$00, $00, $00, $00, $02, $2E, $00, $00, $02, $22, $06, $66, $00, $80, $00, $60, $00, $AE, $00, $6C, $04, $44, $00, $00, $00, $CE, $0E, $EE, $02, $22, $00, $0E
@@ -21119,44 +21119,44 @@ loc_16E32:
 	dc.b	$00, $00, $00, $4E, $02, $2E, $00, $E0, $00, $EE, $04, $00, $00, $4E, $08, $22, $00, $00, $0E, $E0
 loc_16E68:
 	dc.l	loc_16EC4
-  dc.l	loc_16F5C
-  dc.l	loc_16F48
-  dc.l	loc_16F3A
-  dc.l	loc_16F32
-  dc.l	loc_16EB0
-  dc.l	loc_16F1E
-  dc.l	loc_16F10
-  dc.l	loc_16F08
-  dc.l	loc_16E9C
-  dc.l	loc_16EF4
-  dc.l	loc_16EE6
-  dc.l	loc_16EDE
+	dc.l	loc_16F5C
+	dc.l	loc_16F48
+	dc.l	loc_16F3A
+	dc.l	loc_16F32
+	dc.l	loc_16EB0
+	dc.l	loc_16F1E
+	dc.l	loc_16F10
+	dc.l	loc_16F08
+	dc.l	loc_16E9C
+	dc.l	loc_16EF4
+	dc.l	loc_16EE6
+	dc.l	loc_16EDE
 loc_16E9C:
 	dc.b	$00, $02, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $E1, $6F, $00, $0C, $D1, $0C, $E1, $7F, $00, $27
 loc_16EB0:
-  dc.b  $00, $02, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $E1, $8B, $00, $0C, $C8, $0D, $E1, $9B, $00, $26
+	dc.b	$00, $02, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $E1, $8B, $00, $0C, $C8, $0D, $E1, $9B, $00, $26
 loc_16EC4:
-  dc.b  $00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $E1, $C4, $00, $31
+	dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $E1, $C4, $00, $31
 loc_16EDE:
-  dc.b  $00, $00, $F0, $0D, $A1, $C8, $FF, $F0
+	dc.b	$00, $00, $F0, $0D, $A1, $C8, $FF, $F0
 loc_16EE6:
-  dc.b  $00, $01, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $A1, $D0, $00, $0C
+	dc.b	$00, $01, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $A1, $D0, $00, $0C
 loc_16EF4:
-  dc.b  $00, $02, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $E1, $6F, $00, $0C, $D1, $0C, $A1, $E0, $00, $27
+	dc.b	$00, $02, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $E1, $6F, $00, $0C, $D1, $0C, $A1, $E0, $00, $27
 loc_16F08:
-  dc.b  $00, $00, $EA, $0D, $A1, $E4, $FF, $F0
+	dc.b	$00, $00, $EA, $0D, $A1, $E4, $FF, $F0
 loc_16F10:
-  dc.b  $00, $01, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $A1, $EC, $00, $0C
+	dc.b	$00, $01, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $A1, $EC, $00, $0C
 loc_16F1E:
-  dc.b  $00, $02, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $E1, $8B, $00, $0C, $C8, $0D, $A1, $FC, $00, $26
+	dc.b	$00, $02, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $E1, $8B, $00, $0C, $C8, $0D, $A1, $FC, $00, $26
 loc_16F32:
-  dc.b  $00, $00, $E4, $0E, $A2, $04, $FF, $F0
+	dc.b	$00, $00, $E4, $0E, $A2, $04, $FF, $F0
 loc_16F3A:
-  dc.b  $00, $01, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $A2, $10, $00, $0B
+	dc.b	$00, $01, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $A2, $10, $00, $0B
 loc_16F48:
-  dc.b  $00, $02, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $A2, $1C, $00, $1C
+	dc.b	$00, $02, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $A2, $1C, $00, $1C
 loc_16F5C:
-  dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $A2, $25, $00, $31, $00, $00, $00, $00, $00, $00
+	dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $A2, $25, $00, $31, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00
 loc_16F7E:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $03, $11, $35, $13, $CF, $3C, $F3, $CF, $39, $03, $51, $35, $0F, $E0, $00
@@ -21491,118 +21491,118 @@ loc_19114:
 
 	dc.l	loc_19234-1 ; Car 1 name
 	dc.w	$000B       ; Car 1 name length
-  dc.l	loc_192E6-1 ; Car 1 engine
-  dc.w	$000C       ; Car 1 engine length
-  dc.l	loc_1935C-1 ; Car 1 max power
-  dc.w	$0012       ; Car 1 max power length
+	dc.l	loc_192E6-1 ; Car 1 engine
+	dc.w	$000C       ; Car 1 engine length
+	dc.l	loc_1935C-1 ; Car 1 max power
+	dc.w	$0012       ; Car 1 max power length
 
-  dc.l	loc_19240-1 ; Car 2 name
-  dc.w	$000B       ; Car 2 name length
-  dc.l	loc_192F2-1 ; Car 2 engine
-  dc.w	$000E       ; Car 2 engine length
-  dc.l	loc_1935C-1 ; Car 2 max power
-  dc.w	$0012       ; Car 2 max power length
+	dc.l	loc_19240-1 ; Car 2 name
+	dc.w	$000B       ; Car 2 name length
+	dc.l	loc_192F2-1 ; Car 2 engine
+	dc.w	$000E       ; Car 2 engine length
+	dc.l	loc_1935C-1 ; Car 2 max power
+	dc.w	$0012       ; Car 2 max power length
 
 	dc.l	loc_1924C-1 ; Car 3 name
-  dc.w	$000C       ; Car 3 name length
-  dc.l	loc_19300-1 ; Car 3 engine
-  dc.w	$000B       ; Car 3 engine length
-  dc.l	loc_1936E-1 ; Car 3 max power
-  dc.w	$0012       ; Car 3 max power length
+	dc.w	$000C       ; Car 3 name length
+	dc.l	loc_19300-1 ; Car 3 engine
+	dc.w	$000B       ; Car 3 engine length
+	dc.l	loc_1936E-1 ; Car 3 max power
+	dc.w	$0012       ; Car 3 max power length
 
-  dc.l	loc_19258-1 ; Car 4 name
-  dc.w	$000C       ; Car 4 name length
-  dc.l	loc_1930C-1 ; Car 4 engine
-  dc.w	$000D       ; Car 4 engine length
-  dc.l	loc_1936E-1 ; Car 4 max power
-  dc.w	$0012       ; Car 4 max power length
+	dc.l	loc_19258-1 ; Car 4 name
+	dc.w	$000C       ; Car 4 name length
+	dc.l	loc_1930C-1 ; Car 4 engine
+	dc.w	$000D       ; Car 4 engine length
+	dc.l	loc_1936E-1 ; Car 4 max power
+	dc.w	$0012       ; Car 4 max power length
 
-  dc.l	loc_19264-1 ; Car 5 name
-  dc.w	$000B       ; Car 5 name length
-  dc.l	loc_1931A-1 ; Car 5 engine
-  dc.w	$000D       ; Car 5 engine length
-  dc.l	loc_1936E-1 ; Car 5 max power
-  dc.w	$0012       ; Car 5 max power length
+	dc.l	loc_19264-1 ; Car 5 name
+	dc.w	$000B       ; Car 5 name length
+	dc.l	loc_1931A-1 ; Car 5 engine
+	dc.w	$000D       ; Car 5 engine length
+	dc.l	loc_1936E-1 ; Car 5 max power
+	dc.w	$0012       ; Car 5 max power length
 
-  dc.l	loc_19270-1 ; Car 6 name
-  dc.w	$000A       ; Car 6 name length
-  dc.l	loc_19328-1 ; Car 6 engine
+	dc.l	loc_19270-1 ; Car 6 name
+	dc.w	$000A       ; Car 6 name length
+	dc.l	loc_19328-1 ; Car 6 engine
 	dc.w	$000C       ; Car 6 engine length
-  dc.l	loc_1935C-1 ; Car 6 max power
-  dc.w	$0012       ; Car 6 max power length
+	dc.l	loc_1935C-1 ; Car 6 max power
+	dc.w	$0012       ; Car 6 max power length
 
-  dc.l	loc_1927A-1 ; Car 7 name
-  dc.w	$0009       ; Car 7 name length
-  dc.l	loc_1930C-1 ; Car 7 engine
-  dc.w	$000D       ; Car 7 engine length
-  dc.l	loc_19380-1 ; Car 7 max power
-  dc.w	$0012       ; Car 7 max power length
+	dc.l	loc_1927A-1 ; Car 7 name
+	dc.w	$0009       ; Car 7 name length
+	dc.l	loc_1930C-1 ; Car 7 engine
+	dc.w	$000D       ; Car 7 engine length
+	dc.l	loc_19380-1 ; Car 7 max power
+	dc.w	$0012       ; Car 7 max power length
 
-  dc.l	loc_19284-1 ; Car 8 name
-  dc.w	$0007       ; Car 8 name length
+	dc.l	loc_19284-1 ; Car 8 name
+	dc.w	$0007       ; Car 8 name length
 	dc.l	loc_19334-1 ; Car 8 engine
-  dc.w	$000B       ; Car 8 engine length
-  dc.l	loc_1935C-1 ; Car 8 max power
-  dc.w	$0012       ; Car 8 max power length
+	dc.w	$000B       ; Car 8 engine length
+	dc.l	loc_1935C-1 ; Car 8 max power
+	dc.w	$0012       ; Car 8 max power length
 
-  dc.l	loc_1928C-1 ; Car 9 name
-  dc.w	$000B       ; Car 9 name length
-  dc.l	loc_19328-1 ; Car 9 engine
-  dc.w	$000C       ; Car 9 engine length
-  dc.l	loc_19380-1 ; Car 9 max power
-  dc.w	$0012       ; Car 9 max power length
+	dc.l	loc_1928C-1 ; Car 9 name
+	dc.w	$000B       ; Car 9 name length
+	dc.l	loc_19328-1 ; Car 9 engine
+	dc.w	$000C       ; Car 9 engine length
+	dc.l	loc_19380-1 ; Car 9 max power
+	dc.w	$0012       ; Car 9 max power length
 
-  dc.l	loc_19298-1 ; Car 10 name
-  dc.w	$000A       ; Car 10 name length
-  dc.l	loc_1930C-1 ; Car 10 engine
-  dc.w	$000D       ; Car 10 engine length
-  dc.l	loc_1936E-1 ; Car 10 max power
-  dc.w	$0012       ; Car 10 max power length
+	dc.l	loc_19298-1 ; Car 10 name
+	dc.w	$000A       ; Car 10 name length
+	dc.l	loc_1930C-1 ; Car 10 engine
+	dc.w	$000D       ; Car 10 engine length
+	dc.l	loc_1936E-1 ; Car 10 max power
+	dc.w	$0012       ; Car 10 max power length
 
-  dc.l	loc_192A2-1 ; Car 11 name
-  dc.w	$000C       ; Car 11 name length
-  dc.l	loc_19334-1 ; Car 11 engine
-  dc.w	$000B       ; Car 11 engine length
-  dc.l	loc_19392-1 ; Car 11 max power
+	dc.l	loc_192A2-1 ; Car 11 name
+	dc.w	$000C       ; Car 11 name length
+	dc.l	loc_19334-1 ; Car 11 engine
+	dc.w	$000B       ; Car 11 engine length
+	dc.l	loc_19392-1 ; Car 11 max power
 	dc.w	$0012       ; Car 11 max power length
 
-  dc.l	loc_192AE-1 ; Car 12 name
-  dc.w	$000B       ; Car 12 name length
-  dc.l	loc_19340-1 ; Car 12 engine
-  dc.w	$000E       ; Car 12 engine length
-  dc.l	loc_19380-1 ; Car 12 max power
-  dc.w	$0012       ; Car 12 max power length
+	dc.l	loc_192AE-1 ; Car 12 name
+	dc.w	$000B       ; Car 12 name length
+	dc.l	loc_19340-1 ; Car 12 engine
+	dc.w	$000E       ; Car 12 engine length
+	dc.l	loc_19380-1 ; Car 12 max power
+	dc.w	$0012       ; Car 12 max power length
 
-  dc.l	loc_192BA-1 ; Car 13 name
-  dc.w	$000A       ; Car 13 name length
-  dc.l	loc_19334-1 ; Car 13 engine
-  dc.w	$000B       ; Car 13 engine length
+	dc.l	loc_192BA-1 ; Car 13 name
+	dc.w	$000A       ; Car 13 name length
+	dc.l	loc_19334-1 ; Car 13 engine
+	dc.w	$000B       ; Car 13 engine length
 	dc.l	loc_19392-1 ; Car 13 max power
-  dc.w	$0012       ; Car 13 max power length
+	dc.w	$0012       ; Car 13 max power length
 
-  dc.l	loc_192C4-1 ; Car 14 name
-  dc.w	$0009       ; Car 14 name length
-  dc.l	loc_19328-1 ; Car 14 engine
-  dc.w	$000C       ; Car 14 engine length
-  dc.l	loc_193A4-1 ; Car 14 max power
-  dc.w	$0012       ; Car 14 max power length
+	dc.l	loc_192C4-1 ; Car 14 name
+	dc.w	$0009       ; Car 14 name length
+	dc.l	loc_19328-1 ; Car 14 engine
+	dc.w	$000C       ; Car 14 engine length
+	dc.l	loc_193A4-1 ; Car 14 max power
+	dc.w	$0012       ; Car 14 max power length
 
-  dc.l	loc_192CE-1 ; Car 15 name
-  dc.w	$000A       ; Car 15 name length
-  dc.l	loc_1934E-1 ; Car 15 engine
-  dc.w	$000D       ; Car 15 engine length
-  dc.l	loc_19380-1 ; Car 15 max power
-  dc.w	$0012       ; Car 15 max power length
+	dc.l	loc_192CE-1 ; Car 15 name
+	dc.w	$000A       ; Car 15 name length
+	dc.l	loc_1934E-1 ; Car 15 engine
+	dc.w	$000D       ; Car 15 engine length
+	dc.l	loc_19380-1 ; Car 15 max power
+	dc.w	$0012       ; Car 15 max power length
 
-  dc.l	loc_192D8-1 ; Car 16 name
-  dc.w	$000D       ; Car 16 name length
-  dc.l	loc_19334-1 ; Car 16 engine
-  dc.w	$000B       ; Car 16 engine length
-  dc.l	loc_193A4-1 ; Car 16 max power
-  dc.w	$0012       ; Car 16 max power length
+	dc.l	loc_192D8-1 ; Car 16 name
+	dc.w	$000D       ; Car 16 name length
+	dc.l	loc_19334-1 ; Car 16 engine
+	dc.w	$000B       ; Car 16 engine length
+	dc.l	loc_193A4-1 ; Car 16 max power
+	dc.w	$0012       ; Car 16 max power length
 
 loc_19234:
-  txt "MADONNA", $FF
+	txt "MADONNA", $FF
 	txt "456", $00
 loc_19240:
 	txt "FIRENZE", $FF
@@ -21626,7 +21626,7 @@ loc_19284:
 	txt "MAY", $FF
 	txt "555", $00
 loc_1928C:
-  txt "BULLETS", $FF
+	txt "BULLETS", $FF
 	txt "560", $00
 loc_19298:
 	txt "DARDAN", $FF
@@ -21651,148 +21651,148 @@ loc_192D8:
 	txt "231", $00
 loc_192E6:
 	txt "PALM", $FF
-  txt "190", $FF
-  txt "V10"
+	txt "190", $FF
+	txt "V10"
 loc_192F2:
-  txt "FIRENZE", $FF
-  txt "99", $FF
-  txt "V12"
+	txt "FIRENZE", $FF
+	txt "99", $FF
+	txt "V12"
 loc_19300:
-  txt "DICK", $FF
-  txt "MD", $FF
-  txt "V10", $00
+	txt "DICK", $FF
+	txt "MD", $FF
+	txt "V10", $00
 loc_1930C:
-  txt "VAPOR", $FF
-  txt "DNPQ", $FF
-  txt "V8", 0
+	txt "VAPOR", $FF
+	txt "DNPQ", $FF
+	txt "V8", 0
 loc_1931A:
-  txt "DELTA", $FF
-  txt "103", $FF
-  txt "V10", $00
+	txt "DELTA", $FF
+	txt "103", $FF
+	txt "V10", $00
 loc_19328:
-  txt "LIZZIE", $FF
-  txt "24", $FF
-  txt "V8"
+	txt "LIZZIE", $FF
+	txt "24", $FF
+	txt "V8"
 loc_19334
-  txt "LORRY", $FF
-  txt "32", $FF
-  txt "V8", $00
+	txt "LORRY", $FF
+	txt "32", $FF
+	txt "V8", $00
 loc_19340:
-  txt "SEGA", $FF
-  txt "SG1000", $FF
-  txt "V8"
+	txt "SEGA", $FF
+	txt "SG1000", $FF
+	txt "V8"
 loc_1934E:
-  txt "MISFIRE", $FF
-  txt "50", $FF
-  txt "V8", $00
+	txt "MISFIRE", $FF
+	txt "50", $FF
+	txt "V8", $00
 loc_1935C:
-  txt "700,750,850", $FF
-  txt "PS/RPM"
+	txt "700,750,850", $FF
+	txt "PS/RPM"
 loc_1936E:
-  txt "670,720,820", $FF
-  txt "PS/RPM"
+	txt "670,720,820", $FF
+	txt "PS/RPM"
 loc_19380:
-  txt "640,690,790", $FF
-  txt "PS/RPM"
+	txt "640,690,790", $FF
+	txt "PS/RPM"
 loc_19392:
-  txt "610,660,760", $FF
-  txt "PS/RPM"
+	txt "610,660,760", $FF
+	txt "PS/RPM"
 loc_193A4:
-  txt "580,630,730", $FF
-  txt "PS/RPM"
+	txt "580,630,730", $FF
+	txt "PS/RPM"
 loc_193B6:
 	dc.l	$6A200003
 	dc.l	$6B2E0003
 loc_193BE:
 	dc.l	loc_19496-1 ; Driver 0 name
 	dc.w	$0007       ; Driver 0 name length
-  dc.l	loc_19526-1 ; Driver 0 country
-  dc.w	$0006       ; Driver 0 country length
+	dc.l	loc_19526-1 ; Driver 0 country
+	dc.w	$0006       ; Driver 0 country length
 
-  dc.l	loc_1949E-1 ; Driver 1 name
-  dc.w	$0009       ; Driver 1 name length
-  dc.l	loc_1952C-1 ; Driver 1 country
-  dc.w	$0006       ; Driver 1 country length
+	dc.l	loc_1949E-1 ; Driver 1 name
+	dc.w	$0009       ; Driver 1 name length
+	dc.l	loc_1952C-1 ; Driver 1 country
+	dc.w	$0006       ; Driver 1 country length
 
-  dc.l	loc_194A8-1 ; Driver 2 name
-  dc.w	$0009       ; Driver 2 name length
-  dc.l	loc_19532-1 ; Driver 2 country
-  dc.w	$0007       ; Driver 2 country length
+	dc.l	loc_194A8-1 ; Driver 2 name
+	dc.w	$0009       ; Driver 2 name length
+	dc.l	loc_19532-1 ; Driver 2 country
+	dc.w	$0007       ; Driver 2 country length
 
-  dc.l	loc_194B2-1 ; Driver 3 name
-  dc.w	$0009       ; Driver 3 name length
-  dc.l	loc_1953A-1 ; Driver 3 country
-  dc.w	$0005       ; Driver 3 country length
+	dc.l	loc_194B2-1 ; Driver 3 name
+	dc.w	$0009       ; Driver 3 name length
+	dc.l	loc_1953A-1 ; Driver 3 country
+	dc.w	$0005       ; Driver 3 country length
 
-  dc.l	loc_194BC-1 ; Driver 4 name
-  dc.w	$0007       ; Driver 4 name length
-  dc.l	loc_19540-1 ; Driver 4 country
-  dc.w	$0006       ; Driver 4 country length
+	dc.l	loc_194BC-1 ; Driver 4 name
+	dc.w	$0007       ; Driver 4 name length
+	dc.l	loc_19540-1 ; Driver 4 country
+	dc.w	$0006       ; Driver 4 country length
 
-  dc.l	loc_194C4-1 ; Driver 5 name
-  dc.w	$0008       ; Driver 5 name length
-  dc.l	loc_19546-1 ; Driver 5 country
-  dc.w	$0006       ; Driver 5 country length
+	dc.l	loc_194C4-1 ; Driver 5 name
+	dc.w	$0008       ; Driver 5 name length
+	dc.l	loc_19546-1 ; Driver 5 country
+	dc.w	$0006       ; Driver 5 country length
 
-  dc.l	loc_194CC-1 ; Driver 6 name
-  dc.w	$0008       ; Driver 6 name length
-  dc.l	loc_1954C-1 ; Driver 6 country
-  dc.w	$0005       ; Driver 6 country length
+	dc.l	loc_194CC-1 ; Driver 6 name
+	dc.w	$0008       ; Driver 6 name length
+	dc.l	loc_1954C-1 ; Driver 6 country
+	dc.w	$0005       ; Driver 6 country length
 
-  dc.l	loc_194D4-1 ; Driver 7 name
-  dc.w	$0009       ; Driver 7 name length
-  dc.l	loc_19552-1 ; Driver 7 country
-  dc.w	$0005       ; Driver 7 country length
+	dc.l	loc_194D4-1 ; Driver 7 name
+	dc.w	$0009       ; Driver 7 name length
+	dc.l	loc_19552-1 ; Driver 7 country
+	dc.w	$0005       ; Driver 7 country length
 
-  dc.l	loc_194DE-1 ; Driver 8 name
-  dc.w	$0008       ; Driver 8 name length
-  dc.l	loc_19558-1 ; Driver 8 country
-  dc.w	$000D       ; Driver 8 country length
+	dc.l	loc_194DE-1 ; Driver 8 name
+	dc.w	$0008       ; Driver 8 name length
+	dc.l	loc_19558-1 ; Driver 8 country
+	dc.w	$000D       ; Driver 8 country length
 
-  dc.l	loc_194E6-1 ; Driver 9 name
-  dc.w	$0008       ; Driver 9 name length
-  dc.l	loc_19566-1 ; Driver 9 country
-  dc.w	$0006       ; Driver 9 country length
+	dc.l	loc_194E6-1 ; Driver 9 name
+	dc.w	$0008       ; Driver 9 name length
+	dc.l	loc_19566-1 ; Driver 9 country
+	dc.w	$0006       ; Driver 9 country length
 
-  dc.l	loc_194EE-1 ; Driver 10 name
-  dc.w	$0009       ; Driver 10 name length
-  dc.l	loc_1956C-1 ; Driver 10 country
-  dc.w	$0005       ; Driver 10 country length
+	dc.l	loc_194EE-1 ; Driver 10 name
+	dc.w	$0009       ; Driver 10 name length
+	dc.l	loc_1956C-1 ; Driver 10 country
+	dc.w	$0005       ; Driver 10 country length
 
-  dc.l	loc_194F8-1 ; Driver 11 name
-  dc.w	$0008       ; Driver 11 name length
-  dc.l	loc_19572-1 ; Driver 11 country
-  dc.w	$0006       ; Driver 11 country length
+	dc.l	loc_194F8-1 ; Driver 11 name
+	dc.w	$0008       ; Driver 11 name length
+	dc.l	loc_19572-1 ; Driver 11 country
+	dc.w	$0006       ; Driver 11 country length
 
-  dc.l	loc_19500-1 ; Driver 12 name
-  dc.w	$0008       ; Driver 12 name length
-  dc.l	loc_19578-1 ; Driver 12 country
-  dc.w	$000D       ; Driver 12 country length
+	dc.l	loc_19500-1 ; Driver 12 name
+	dc.w	$0008       ; Driver 12 name length
+	dc.l	loc_19578-1 ; Driver 12 country
+	dc.w	$000D       ; Driver 12 country length
 
-  dc.l	loc_19508-1 ; Driver 13 name
-  dc.w	$0008       ; Driver 13 name length
-  dc.l	loc_19586-1 ; Driver 13 country
-  dc.w	$0007       ; Driver 13 country length
+	dc.l	loc_19508-1 ; Driver 13 name
+	dc.w	$0008       ; Driver 13 name length
+	dc.l	loc_19586-1 ; Driver 13 country
+	dc.w	$0007       ; Driver 13 country length
 
-  dc.l	loc_19510-1 ; Driver 14 name
-  dc.w	$0008       ; Driver 14 name length
-  dc.l	loc_1958E-1 ; Driver 14 country
-  dc.w	$0006       ; Driver 14 country length
+	dc.l	loc_19510-1 ; Driver 14 name
+	dc.w	$0008       ; Driver 14 name length
+	dc.l	loc_1958E-1 ; Driver 14 country
+	dc.w	$0006       ; Driver 14 country length
 
-  dc.l	loc_19518-1 ; Driver 15 name
-  dc.w	$0009       ; Driver 15 name length
-  dc.l	loc_19594-1 ; Driver 15 country
-  dc.w	$000C       ; Driver 15 country length
+	dc.l	loc_19518-1 ; Driver 15 name
+	dc.w	$0009       ; Driver 15 name length
+	dc.l	loc_19594-1 ; Driver 15 country
+	dc.w	$000C       ; Driver 15 country length
 
-  dc.l	loc_19522-1 ; Driver 16 name
-  dc.w	$0003       ; Driver 16 name length
-  dc.l	loc_195A0-1 ; Driver 16 country
-  dc.w	$000C       ; Driver 16 country length
+	dc.l	loc_19522-1 ; Driver 16 name
+	dc.w	$0003       ; Driver 16 name length
+	dc.l	loc_195A0-1 ; Driver 16 country
+	dc.w	$000C       ; Driver 16 country length
 
-  dc.l	loc_19522-1 ; Your name
-  dc.w	$000F       ; Your name length
-  dc.l	loc_195A0-1 ; Your country
-  dc.w	$0005       ; Your country length
+	dc.l	loc_19522-1 ; Your name
+	dc.w	$000F       ; Your name length
+	dc.l	loc_195A0-1 ; Your country
+	dc.w	$0005       ; Your country length
 
 loc_19496:  txt "G.CEARA", $00
 loc_1949E:  txt "A.ASSELIN", $00
@@ -21821,26 +21821,26 @@ loc_1954C:  txt "JAPAN", $00
 loc_19552:  txt "SPAIN", $00
 loc_19558:
 	txt "GREAT", $FF
-  txt "BRITAIN", $00
+	txt "BRITAIN", $00
 loc_19566:  txt "U.S.A."
 loc_1956C:  txt "ITALY", $00
 loc_19572:  txt "FRANCE"
 loc_19578:
-  txt "GREAT", $FF
-  txt "BRITAIN", $00
+	txt "GREAT", $FF
+	txt "BRITAIN", $00
 loc_19586:  txt "FINLAND", $00
 loc_1958E:  txt "SWEDEN"
 loc_19594:
 	txt "WEST", $FF
-  txt "GERMANY"
+	txt "GERMANY"
 loc_195A0:
-  txt "YOUR", $FF
+	txt "YOUR", $FF
 	txt "COUNTRY"
 
 ;loc_195AC:
 TeamMachineScreenStats:
-  ; ENG., T.M, SUS., TIRE, BRA., ?, ?
-  ; The last two bytes affect the drawn curve
+; ENG., T.M, SUS., TIRE, BRA., ?, ?
+; The last two bytes affect the drawn curve
 	dc.b	$64, $64, $50, $64, $64 ; Madonna bars
 	dc.b	$00, $05
 	dc.b	$50, $64, $64, $5A, $64 ; Firenze bars
@@ -21873,7 +21873,7 @@ TeamMachineScreenStats:
 	dc.b	$03, $02
 	dc.b	$50, $1E, $3C, $3C, $14 ; Zeroforce bars
 	dc.b	$01, $03
-  dc.b  $FF, $FF, $FF, $FF, $FF, $04, $FF, $00
+	dc.b	$FF, $FF, $FF, $FF, $FF, $04, $FF, $00
 loc_19624:
 	dc.b	$42, $1E, $00, $00, $0E, $EE, $08, $00, $00, $22, $0C, $66, $00, $00, $00, $00, $00, $00, $00, $00, $00, $CC, $0C, $C0, $0A, $CC, $02, $43, $02, $44, $00, $00
 	dc.b	$02, $66, $00, $00, $00, $EE, $0E, $EE, $02, $22, $06, $66, $04, $4E, $00, $0A, $00, $EE, $00, $88, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
@@ -22917,12 +22917,12 @@ loc_1E3DC:
 	dc.b	$FF, $E0
 loc_2023E:
 	dc.l	$000203AA
-  dc.l	$00020390
-  dc.l	$0002036A
-  dc.l	$00020338
-  dc.l	$000202FA
-  dc.l	$000202B0
-  dc.l	$0002025A
+	dc.l	$00020390
+	dc.l	$0002036A
+	dc.l	$00020338
+	dc.l	$000202FA
+	dc.l	$000202B0
+	dc.l	$0002025A
 	dc.b	$00, $0D, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
 	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $F0, $03
 	dc.b	$42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28, $F0, $03, $42, $C2, $00, $30, $D0, $03, $42, $C2, $00, $30, $00, $0B, $F0, $03, $42, $C2, $00, $00, $D0, $03
@@ -23063,77 +23063,77 @@ loc_20FAE: ; Team palette (everywhere except while driving)
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $06, $6E, $02, $2C, $00, $04, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $08, $88, $02, $22, $06, $66, $00, $26
 	dc.b	$0E, $EE, $0A, $AA, $02, $44
 
-  dc.b  $02, $22, $04, $44, $00, $0A, $0C, $CC, $06, $66  ; Firenze truck
+	dc.b	$02, $22, $04, $44, $00, $0A, $0C, $CC, $06, $66  ; Firenze truck
 	dc.w	$000C, $0008, $000C, $0008                        ; Firenze car
 	dc.b	$02, $4E, $00, $0A, $00, $06, $0E, $EE, $08, $88, $04, $44, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $06, $66, $00, $0C, $00, $04, $00, $26
 	dc.b	$00, $00, $02, $44, $02, $46
 
-  dc.b $08, $02, $0A, $22, $00, $AC, $0E, $88, $0E, $44   ; Millions truck
+	dc.b $08, $02, $0A, $22, $00, $AC, $0E, $88, $0E, $44   ; Millions truck
 	dc.w	$0A22, $0802, $00EE, $0088                        ; Millions car
 	dc.b	$04, $EE, $00, $AC, $00, $68, $06, $66, $04, $44, $02, $22, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $00, $08, $00, $0A, $04, $4E, $00, $26
 	dc.b	$00, $00, $00, $00, $02, $44
 
-  dc.b  $00, $60, $00, $82, $00, $AC, $0A, $EA, $06, $C6  ; Bestowal truck
+	dc.b	$00, $60, $00, $82, $00, $AC, $0A, $EA, $06, $C6  ; Bestowal truck
 	dc.w	$0282, $0260, $02CE, $0068                        ; Bestowal car
 	dc.b	$04, $EE, $00, $AC, $00, $68, $0E, $EE, $0A, $AA, $06, $66, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $06, $66, $0A, $22, $0E, $22, $00, $26
 	dc.b	$00, $00, $00, $00, $02, $44
 
-  dc.b  $06, $66, $0A, $AA, $08, $22, $0E, $EE, $0C, $CC  ; Blanche truck
+	dc.b	$06, $66, $0A, $AA, $08, $22, $0E, $EE, $0C, $CC  ; Blanche truck
 	dc.w	$0CCC, $0666, $0A22, $0400                        ; Blanche car
 	dc.b	$0C, $86, $0A, $42, $08, $20, $0E, $EE, $0C, $CC, $06, $66, $00, $00, $06, $AE, $04, $6A, $00, $AC, $02, $EE, $02, $48, $00, $6A, $00, $0C, $00, $04, $00, $26
 	dc.b	$00, $00, $02, $44, $02, $68
 
-  dc.b  $06, $00, $0E, $00, $0C, $CC, $0E, $A8, $0E, $42  ; Tyrant truck
+	dc.b	$06, $00, $0E, $00, $0C, $CC, $0E, $A8, $0E, $42  ; Tyrant truck
 	dc.w	$0E02, $0802, $0CCC, $0888                        ; Tyrant car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $0C, $44, $08, $22, $04, $00, $00, $00, $06, $AE, $04, $6A, $00, $CE, $06, $EE, $02, $48, $06, $66, $0A, $22, $0E, $22, $00, $26
 	dc.b	$00, $00, $00, $00, $02, $44
 
-  dc.b  $00, $48, $00, $8C, $00, $8C, $0A, $EE, $04, $AE  ; Losel truck
+	dc.b	$00, $48, $00, $8C, $00, $8C, $0A, $EE, $04, $AE  ; Losel truck
 	dc.w	$00AE, $006A, $00AE, $006A                        ; Losel car
 	dc.b	$04, $EE, $00, $AC, $00, $6A, $0E, $EE, $0A, $AA, $06, $66, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 
-  dc.b  $08, $40, $0C, $A0, $0C, $A0, $0E, $EC, $0E, $C6  ; May truck
+	dc.b	$08, $40, $0C, $A0, $0C, $A0, $0E, $EC, $0E, $C6  ; May truck
 	dc.w	$0CC0, $0A60, $0CC0, $0A60                        ; May car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $0C, $44, $08, $22, $02, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 
-  dc.b  $06, $00, $0E, $22, $0C, $C0, $0E, $AA, $0E, $44  ; Bullets truck
+	dc.b	$06, $00, $0E, $22, $0C, $C0, $0E, $AA, $0E, $44  ; Bullets truck
 	dc.w	$0E24, $0802, $0EE8, $0AA0                        ; Bullets car
 	dc.b	$0E, $E8, $0C, $C2, $08, $60, $0E, $EE, $0A, $AA, $06, $66, $00, $00, $06, $AE, $04, $6A, $00, $CE, $06, $EE, $02, $48, $00, $8A, $00, $08, $00, $2E, $00, $26
 	dc.b	$0E, $EE, $0A, $AA, $02, $44
 
-  dc.b  $00, $04, $00, $28, $0C, $CC, $08, $AE, $02, $4E  ; Dardan truck
+	dc.b	$00, $04, $00, $28, $0C, $CC, $08, $AE, $02, $4E  ; Dardan truck
 	dc.w	$004E, $0028, $004E, $0028                        ; Dardan car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $0A, $66, $08, $44, $04, $22, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 
-  dc.b  $0A, $00, $0E, $44, $0E, $86, $0E, $AA, $0E, $66  ; Linden truck
+	dc.b	$0A, $00, $0E, $44, $0E, $86, $0E, $AA, $0E, $66  ; Linden truck
 	dc.w	$0E24, $0A02, $0E24, $0A02                        ; Linden car
 	dc.b	$0C, $CC, $08, $88, $04, $44, $0E, $66, $0C, $22, $04, $00, $00, $00, $08, $CE, $04, $8A, $02, $68, $00, $46, $0E, $80, $0E, $20, $00, $00, $0E, $EE, $0A, $AA
 	dc.b	$06, $66, $06, $CE, $02, $44
 
-  dc.b  $00, $46, $00, $AC, $0C, $CC, $0A, $EE, $04, $CE  ; Minarae truck
+	dc.b	$00, $46, $00, $AC, $0C, $CC, $0A, $EE, $04, $CE  ; Minarae truck
 	dc.w	$0CCC, $0666, $00CE, $0068                        ; Minarae car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $06, $66, $04, $44, $02, $22, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 
-  dc.b  $02, $40, $02, $A0, $04, $C6, $0A, $EA, $08, $E4  ; Rigel truck
+	dc.b	$02, $40, $02, $A0, $04, $C6, $0A, $EA, $08, $E4  ; Rigel truck
 	dc.w	$04C0, $0260, $04C0, $0260                        ; Rigel car
 	dc.b	$0E, $EE, $0A, $AA, $04, $44, $0E, $EE, $0A, $AA, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 
-  dc.b  $04, $44, $06, $88, $0A, $CC, $0E, $EE, $0A, $CC  ; Comet truck
+	dc.b	$04, $44, $06, $88, $0A, $CC, $0E, $EE, $0A, $CC  ; Comet truck
 	dc.w	$0CCC, $0688, $0CCC, $0688                        ; Comet car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $06, $66, $04, $44, $02, $22, $00, $00, $08, $CE, $04, $8A, $02, $68, $00, $46, $0E, $80, $0E, $20, $00, $00, $0E, $EE, $0A, $AA
 	dc.b	$06, $66, $06, $CE, $02, $44
 
-  dc.b  $02, $22, $04, $44, $00, $AC, $0A, $AA, $06, $66  ; Orchis truck
+	dc.b	$02, $22, $04, $44, $00, $AC, $0A, $AA, $06, $66  ; Orchis truck
 	dc.w	$0444, $0222, $00EE, $008A                        ; Orchis car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $0C, $66, $0A, $44, $04, $22, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
 
-  dc.b  $06, $66, $0A, $AA, $00, $4A, $0E, $EE, $0C, $CC  ; Zeroforce truck
+	dc.b	$06, $66, $0A, $AA, $00, $4A, $0E, $EE, $0C, $CC  ; Zeroforce truck
 	dc.w	$0CCC, $0666, $004E, $0028                        ; Zeroforce car
 	dc.b	$0E, $EE, $08, $88, $04, $44, $02, $4E, $00, $2A, $00, $04, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
@@ -23148,7 +23148,7 @@ loc_2132E: ; Pointers to team introduction layouts
 	dc.l	loc_217CE ; May
 	dc.l	loc_2184E ; Bullets
 	dc.l	loc_218C0 ; Dardan
- 	dc.l	loc_2194E ; Linden
+	dc.l	loc_2194E ; Linden
 	dc.l	loc_219C0 ; Minarae
 	dc.l	loc_21A24 ; Rigel
 	dc.l	loc_21A88 ; Comet
@@ -23183,7 +23183,7 @@ loc_2136E:
 	dc.l	loc_21EEE
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
 loc_21426:
-    dc.w    $000B
+	dc.w  	$000B
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
@@ -25949,18 +25949,18 @@ loc_32D36:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0A, $FF, $00
 loc_32D3E:
 	dc.b	$E8, $86
-  txt "SHIFT", $FA
-  txt "DOWN", $FA, $FF
+	txt "SHIFT", $FA
+	txt "DOWN", $FA, $FF
 loc_32D4C:
 	dc.b	$EB, $86
-  txt "SHIFT", $FA
-  txt "UP", $FA, $FA, $FA, $FF
+	txt "SHIFT", $FA
+	txt "UP", $FA, $FA, $FA, $FF
 loc_32D5A:
 	dc.b	$EB, $B2, $FA, $FA, $FA, $FA, $FA, $FA
-  txt "BRAKE", $FF
+	txt "BRAKE", $FF
 loc_32D68:
 	dc.b	$EA, $B2
-  txt "ACCELERATOR", $FF
+	txt "ACCELERATOR", $FF
 loc_32D76:
 	dc.b	$00, $04
 	dc.l	loc_32D8C
@@ -26098,8 +26098,8 @@ loc_32F68:
 	dc.l	loc_330E0
 loc_32FA4:
 	dc.b	$E4, $28, $FB, $07, $C0
-  txt '"EXTREME', $FA
-  txt 'TENSION"', $FA, $FF
+	txt '"EXTREME', $FA
+	txt 'TENSION"', $FA, $FF
 loc_32FBC:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1D, $11, $0E, $FA, $0C, $11, $0E, $0C, $14, $0E, $1B, $FA, $0F, $15, $0A, $10, $27, $FF
 loc_32FD4:
@@ -26935,25 +26935,25 @@ loc_39160:
 	dc.l	loc_391AC
 loc_3916A:
 	dc.b	$E3, $88, $FB, $67, $C0
-  txt "MADONNA\n"
-  txt "FIRENZE\n"
-  txt "MILLIONS\n"
-  txt "BESTOWAL\n", $FD
-  txt "BLANCHE\n"
-  txt "TYRANT\n"
-  txt "LOSEL\n"
-  txt "MAY", $FF, $00
+	txt "MADONNA\n"
+	txt "FIRENZE\n"
+	txt "MILLIONS\n"
+	txt "BESTOWAL\n", $FD
+	txt "BLANCHE\n"
+	txt "TYRANT\n"
+	txt "LOSEL\n"
+	txt "MAY", $FF, $00
 loc_391AC:
 	dc.b	$E3, $AC
-  txt "BULLETS\n"
-  txt "DARDAN\n"
-  txt "LINDEN\n"
-  txt "MINARAE\n", $FD
-  txt "RIGEL\n"
-  txt "COMET\n"
-  txt "ORCHIS\n"
-  txt "ZEROFORCE\n", $FD
-  txt "EXIT", $FF
+	txt "BULLETS\n"
+	txt "DARDAN\n"
+	txt "LINDEN\n"
+	txt "MINARAE\n", $FD
+	txt "RIGEL\n"
+	txt "COMET\n"
+	txt "ORCHIS\n"
+	txt "ZEROFORCE\n", $FD
+	txt "EXIT", $FF
 loc_391F0:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $F7, $DE, $3C, $67, $D0, $3C, $77, $CF, $1D, $F0, $A7, $A5, $42, $4A, $01, $90, $27, $A6, $4F, $4C, $88, $98, $8C, $14, $C0
 	dc.b	$66, $27, $01, $05, $30, $19, $8A, $20, $41, $4C, $46, $0A, $60, $0C, $0B, $05, $30, $06, $2A, $2A, $01, $05, $31, $18, $29, $9C, $14, $D8, $13, $9A, $CA, $62
@@ -27511,8 +27511,8 @@ loc_3AA3C:
 loc_3AA46:
 	txt "ERROR", $FF
 loc_3AA4C:
-  dc.b	$FD
-  txt "YOUR DAYS ARE GONE!", $FF, $00
+	dc.b	$FD
+	txt "YOUR DAYS ARE GONE!", $FF, $00
 loc_3AA62:
 	txt "I'LL SHOW YOU WHAT\nREAL DRIVING IS.", $FF
 loc_3AA86:
@@ -27537,20 +27537,20 @@ loc_3ABA6:
 	txt "YOU ARE AS MEAN AS\nEVER.", $FF, $00
 loc_3ABC0:
 	dc.b	$FD
-  txt "I DRIVE QUITE FAST.", $FF, $00
+	txt "I DRIVE QUITE FAST.", $FF, $00
 loc_3ABD6:
 	txt "I CAN DRIVE FASTER\nTHAN YOU.", $FF, $00
 loc_3ABF4:
 	txt "YOU STILL WANT TO\nCONTINUE.", $FF
 loc_3AC10:
 	dc.b	$FD
-  txt "DON'T BE STUCK UP!", $FF
+	txt "DON'T BE STUCK UP!", $FF
 loc_3AC24:
 	dc.b	$FD
-  txt "IT'S INTERESTING.", $FF, $00
+	txt "IT'S INTERESTING.", $FF, $00
 loc_3AC38:
 	dc.b	$FD
-  txt "LET'S DRIVE FAIR!", $FF, $00
+	txt "LET'S DRIVE FAIR!", $FF, $00
 loc_3AC4C:
 	txt "YOU'D BETTER STOP\nRACING.", $FF
 loc_3AC66:
@@ -27573,7 +27573,7 @@ loc_3AD5A:
 	txt "LET'S TRY TO DO OUR\nBEST.", $FF
 loc_3AD74:
 	dc.b	$FD
-  txt "GO EASY WITH ME!", $FF
+	txt "GO EASY WITH ME!", $FF
 loc_3AD86:
 	txt "I CAN'T ALLOW YOU TO\nTAKE OVER MY SEAT.", $FF
 loc_3ADAE:
@@ -27582,7 +27582,7 @@ loc_3ADC6:
 	txt "OH, ARE YOU STILL\nCOMPETING?", $FF, $00
 loc_3ADE4:
 	dc.b	$FD
-  txt "WORKING HARD?", $FF, $00
+	txt "WORKING HARD?", $FF, $00
 loc_3ADF4:
 	txt "YOU DON'T HAVE TO GO\nEASY WITH ME.", $FF, $00
 loc_3AE18:
@@ -27603,12 +27603,12 @@ loc_3AF02:
 	txt "WHAT'S THE MATTER?\nYOU LOOK DEPRESSED.", $FF, $00
 loc_3AF2A:
 	dc.b	$FD
-  txt "OK, THEN COME ON!", $FF, $00
+	txt "OK, THEN COME ON!", $FF, $00
 loc_3AF3E:
 	txt "YOU'RE STILL\nA GOOD RACER.", $FF, $00
 loc_3AF5A:
 	dc.b	$FD
-  txt "I'M SERIOUS NOW.", $FF
+	txt "I'M SERIOUS NOW.", $FF
 loc_3AF6C:
 	txt "DO YOU THINK YOU'RE\nSTILL THE TOP RACER?", $FF, $00
 loc_3AF96:
@@ -27619,13 +27619,13 @@ loc_3AFDE:
 	txt "HAVEN'T YOU HAD\nENOUGH YET?", $FF
 loc_3AFFA:
 	dc.b	$FD
-  txt "YOU'LL PAY FOR THIS.", $FF
+	txt "YOU'LL PAY FOR THIS.", $FF
 loc_3B010:
 	txt "YOU'RE REALLY\nFINISHED WITH.", $FF
 	dc.b	$00
 loc_3B02E:
 	dc.b	$FD
-  txt "GET AWAY FROM ME.", $FF, $00
+	txt "GET AWAY FROM ME.", $FF, $00
 loc_3B042:
 	txt "DON'T BOTHER ME.\nJUST GET AWAY!", $FF
 loc_3B062:
@@ -27760,7 +27760,7 @@ loc_3B45C:
 loc_3B480:
 	txt "ANYWAY, GIVE ME\nTHE SECURITY MONEY.", $FF
 loc_3B4A4:
-  txt "LET'S TRY HARD\nTO WIN.", $FF, $00
+	txt "LET'S TRY HARD\nTO WIN.", $FF, $00
 loc_3B4BC:
 	txt "I ENVY YOUR HIGH\nSPIRITS.", $FF
 loc_3B4D6:
@@ -28414,9 +28414,9 @@ loc_3C2DE:
 loc_3C2E8:
 	dc.b	$45, $5E, $58, $32, $A2, $7D, $89, $A8, $88, $6B, $FC, $52, $66, $3F, $B5, $65, $68, $67, $32, $4D, $41, $BC, $79, $FF
 loc_3C300:
-  txt "ERROR", $FF
+	txt "ERROR", $FF
 loc_3C306:
-  txt "GOOD DRIVING!\nYOU'VE DONE IT.", $FF
+	txt "GOOD DRIVING!\nYOU'VE DONE IT.", $FF
 loc_3C324:
 	txt "WE SHOULD ALWAYS BE\nTHE TOP TEAM.", $FF
 loc_3C346:
@@ -28424,7 +28424,7 @@ loc_3C346:
 	dc.b	$00
 loc_3C35C:
 	dc.b	$FD
-  txt "NEVER LOSE AGAIN!", $FF, $00
+	txt "NEVER LOSE AGAIN!", $FF, $00
 loc_3C370:
 	txt "YOU ARE NOT LIVING\nUP TO YOUR CONTRACT.", $FF
 loc_3C398:
@@ -31536,7 +31536,7 @@ loc_51AC8:
 	dc.l	$0FFFF440	;D6
 	dc.l	$00011110	;D7
 loc_51AE8:
-  dc.l	$00000000	;A3
+	dc.l	$00000000	;A3
 	dc.l	$0FFF4100	;A4
 	dc.l	$0F400000	;A5
 	dc.l	$0FFF4100	;A6
@@ -31545,7 +31545,7 @@ loc_51AE8:
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
 loc_51B08:
-  dc.l	$00000000	;D4
+	dc.l	$00000000	;D4
 	dc.l	$00000000	;D5
 	dc.l	$00FF0000	;D6
 	dc.l	$000F4000	;D7
@@ -31627,7 +31627,7 @@ loc_51B28:
 	dc.l	$00444410	;A5
 	dc.l	$00011110	;A6
 loc_51C48:
-  dc.l	$00000000	;D0
+	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000FFF	;D3
@@ -31676,7 +31676,7 @@ loc_51C48:
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
 loc_51D08:
-  dc.l	$00000000	;D0
+	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000FFF	;D2
 	dc.l	$0000FFFF	;D3
@@ -31709,16 +31709,16 @@ loc_51D08:
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
 loc_51D88:
-  dc.l	$00FF4000	;D0
+	dc.l	$00FF4000	;D0
 	dc.l	$0FFFF100	;D1
 	dc.l	$0F44F400	;D2
 	dc.l	$FFFFFF00	;D3
 	dc.l	$FFFFFF10	;D4
 	dc.l	$F4111F50	;D5
 	dc.l	$F4100FF0	;D6
-  dc.l	$01000010	;D7
+	dc.l	$01000010	;D7
 loc_51DA8:
-  dc.l	$00000000	;D0
+	dc.l	$00000000	;D0
 	dc.l	$00FF0000	;D1
 	dc.l	$0F4F1000	;D2
 	dc.l	$0FFF4100	;D3
@@ -31727,7 +31727,7 @@ loc_51DA8:
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
 loc_51DC8:
-  dc.l	$00000000	;A3
+	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$004F0000	;A5
 	dc.l	$00FF1000	;A6
@@ -31933,7 +31933,7 @@ loc_520C8:
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
 loc_520E8:
-  dc.l	$00000000	;A3
+	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00FFF000	;A5
 	dc.l	$00F5F000	;A6
@@ -32108,14 +32108,14 @@ loc_52368:
 loc_52388:
 	dc.l	$00000000	;D0
 	dc.l	$00FFF400	;D1
-  dc.l	$00F11000	;D2
+	dc.l	$00F11000	;D2
 	dc.l	$00FFF000	;D3
 	dc.l	$00F44000	;D4
 	dc.l	$00FFF400	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
 loc_523A8:
-  dc.l	$00000000	;A3
+	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00F50000	;A5
 	dc.l	$00440000	;A6
@@ -34192,12 +34192,12 @@ loc_58062:
 	dc.b	$DB, $B4, $0F, $31, $68, $97, $8E, $65, $E7, $AC, $BD, $80
 loc_5848E:
 	dc.l	$000584CA
-  dc.l	$000584EE
-  dc.l	$00058512
-  dc.l	$00058536
-  dc.l	$0005855A
-  dc.l	$0005857E
-  dc.l	$000585A2
+	dc.l	$000584EE
+	dc.l	$00058512
+	dc.l	$00058536
+	dc.l	$0005855A
+	dc.l	$0005857E
+	dc.l	$000585A2
 loc_584AA:
 	dc.w	$877A, $877B, $877C, $877D, $877E, $877F, $877B, $8F7A, $8780, $8781, $8782, $8783, $8784, $8785, $8786, $8787
 loc_584CA:
@@ -38926,7 +38926,7 @@ loc_71660: ; map for minimap position
 	dc.b	$45, $1E, $47, $1F, $48, $1F, $4A, $20, $4B, $20, $4D, $21, $4E, $21, $50, $21, $52, $22, $53, $23, $52, $25, $51, $26, $4F, $26, $4D, $26, $4C, $26, $4A, $26
 	dc.b	$49, $26, $47, $26, $46, $26, $44, $26, $43, $26, $41, $27, $40, $28, $3E, $29, $3D, $28, $3C, $28, $3C, $28, $3B, $28, $3A, $28, $38, $28
 loc_7173C:
-	dc.b  $02, $CC, $04, $01, $03, $24, $03, $25, $04, $1C, $04, $24, $05, $34, $04, $25, $07, $34, $04, $10, $07, $C4, $0C, $1F, $08, $A0, $02, $0B, $09, $B0, $04, $08
+	dc.b	$02, $CC, $04, $01, $03, $24, $03, $25, $04, $1C, $04, $24, $05, $34, $04, $25, $07, $34, $04, $10, $07, $C4, $0C, $1F, $08, $A0, $02, $0B, $09, $B0, $04, $08
 	dc.b	$0B, $A0, $04, $01, $0C, $74, $04, $01, $0C, $D8, $04, $09, $0D, $E8, $04, $00, $0E, $1C, $04, $01, $0E, $60, $09, $00, $0F, $98, $05, $05, $11, $48, $04, $1C
 	dc.b	$11, $98, $01, $0A, $12, $48, $04, $08, $13, $E8, $04, $19, $15, $AC, $04, $01, $16, $88, $04, $01, $17, $14, $04, $11, $18, $58, $04, $08, $19, $40, $04, $1C
 	dc.b	$19, $90, $01, $0A, $19, $EC, $04, $00, $FF, $FF
