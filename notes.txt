@@ -2,7 +2,6 @@ TODO
 ===============================================================================
 - Crack slope data
 - Crack signs data
-- Crack curve data
 - Identify artwork
 - Disassemble Z80
 - Identify music tracks
@@ -89,3 +88,24 @@ loc_21F3A
 loc_21ED4
 loc_21F62
 loc_21E9C
+
+CURVE DATA FORMAT
+================================================================================
+Stored in $00FF5B00 onwards, read from loc_6C1C, parsed by loc_6F5E.
+One byte per step forward. Seems to render ca 26 steps forward? Code reads 40 bytes ahead.
+Byte values:
+* 00    = Straight
+* 01-2F = Left turn, from extreme (01) to soft (2F)
+* 30-3F = Game freezes
+* 40    = Straight? Road invisible and/or glitchy.
+* 41-6F = Right turn, from extreme (41) to soft (6F)
+* 70-7F = Game freezes
+* 80-FF = Continue reading from start of track
+So:
+* Lower 6 bits determine sharpness (higher value = softer turn). Except all zero = straight
+* Bit 7 determines if right turn
+* Bit 8 special case to read from start of track (used at end to render from start for next lap)
+
+$00FF6300 stores background rotation, encoded together with curve data in ROM.
+In memory it seems to be stored as absolute rotation, but the RLE encoding used in ROM looks relative.
+Code does continuous SUB and ADD to get the resulting absolute value to write to memory.

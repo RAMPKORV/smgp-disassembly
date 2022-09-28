@@ -7099,8 +7099,8 @@ loc_6224: ; Suspected: Level initialization
 	MOVE.l	(A1)+, $FFFF9258.w ; tileset for signs
 	MOVE.l	(A1)+, $FFFF9226.w ; map for minimap position
 	MOVEA.l	(A1)+, A0 ; curve data
-	LEA	$00FF5B00, A3
-	LEA	$00FF6300, A2
+	LEA	$00FF5B00, A3 ; curve data after RLE decompression
+	LEA	$00FF6300, A2 ; background data after RLE decompression
 	MOVEQ	#0, D2
 	MOVE.b	#$FF, (A3)+
 loc_6270:
@@ -7987,7 +7987,7 @@ loc_6C06:
 	MOVEQ	#0, D6
 	MOVEQ	#0, D4
 	MOVEQ	#-1, D1
-loc_6C1C:
+loc_6C1C: ; loop reading curve data from memory
 	MOVE.b	(A5,D0.w), D2
 	BPL.b	loc_6C26
 	MOVEQ	#0, D0
@@ -8349,12 +8349,17 @@ loc_6F1A:
   dc.w	$0000
   dc.w	$0001
 
-loc_6F5E:
+loc_6F5E: ; Suspected parse curve data
+;D0 = "step" (distance travelled on track)
+;D1 = Initially -1, then value of curve data at previous step
+;D2 = curve data for step
+;D4 = Initially 0, altered for subsequent calls
+;D6 = Initially 0, altered for subsequent calls
 	CMP.b	D2, D1
-	BEQ.b	loc_6F82
+	BEQ.b	loc_6F82 ; jump if same curve data as last step
 	MOVE.w	D2, D1
 	ANDI.w	#$003F, D2
-	BEQ.b	loc_6F78
+	BEQ.b	loc_6F78 ; Only taken when D2=$40
 	ADD.w	D2, D2
 	ADD.w	D2, D2
 	LEA	loc_7053C, A4
@@ -8367,7 +8372,7 @@ loc_6F78:
 	NEG.w	D3
 loc_6F82:
 	TST.b	D2
-	BNE.b	loc_6F8C
+	BNE.b	loc_6F8C ; jump if not straight
 	ADD.w	D3, D4
 	MOVE.w	D4, -(A6)
 	BRA.b	loc_6FB0
@@ -38830,9 +38835,9 @@ loc_7152B:
 	dc.b	$17, $FF
 	dc.b	$00
 loc_7152E: ; curve data
-; first 2 bytes = length
-; byte 3==0 likely means straight
-; else, read last two bytes as word
+; byte 1-2 = length
+; byte 3   = curve (see notes.txt)
+; byte 4-5 = background rotation (skipped when byte 3==0)
 	dc.b	$00, $0A, $00
 	dc.b	$00, $14, $12, $00, $1C
 	dc.b	$00, $14, $52, $00, $1C
