@@ -7983,7 +7983,7 @@ loc_6C06:
 	SWAP	D0
 	LSR.w	#2, D0 ; D0 = steps travelled from lap marker (starts at end of track since in front of marker)
 	LEA	$00FF5B01, A5
-	MOVEQ	#$00000027, D7
+	MOVEQ	#$00000027, D7 ; =39, so max 40 loop iterations, road displacement data has at most 40 values
 	MOVEQ	#0, D6
 	MOVEQ	#0, D4
 	MOVEQ	#-1, D1
@@ -7994,8 +7994,8 @@ loc_6C1C: ; loop reading curve data from memory
 	BRA.b	loc_6C1C
 loc_6C26:
 	ADDQ.w	#1, D0
-	JSR	loc_6F5E(PC)
-	BCS.b	loc_6C34 ; graphical displacement was negative, stop rendering
+	JSR	Parse_curve_data(PC)
+	BCS.b	loc_6C34 ; road displacement was negative, stop rendering
 	DBF	D7, loc_6C1C
 	BRA.b	loc_6C3C
 loc_6C34:
@@ -8081,7 +8081,7 @@ loc_6CF0:
 	BRA.b	loc_6CF0
 loc_6D00:
 	SUBQ.w	#1, D0
-	JSR	loc_6F5E(PC)
+	JSR	Parse_curve_data(PC)
 	BCS.b	loc_6D0E
 	DBF	D7, loc_6CF0
 	BRA.b	loc_6D16
@@ -8141,7 +8141,7 @@ loc_6D8E:
 	BRA.b	loc_6D8E
 loc_6D98:
 	ADDQ.w	#1, D0
-	JSR	loc_6F5E(PC)
+	JSR	Parse_curve_data(PC)
 	BCS.b	loc_6DA6
 	DBF	D7, loc_6D8E
 	BRA.b	loc_6DAE
@@ -8349,12 +8349,13 @@ loc_6F1A:
 	dc.w	$0000
 	dc.w	$0001
 
-loc_6F5E: ; Suspected parse curve data
+;loc_6F5E:
+Parse_curve_data: ; Inputs:
 ;D0 = "step" (distance travelled on track)
-;D1 = Initially -1. For subsequent calls, value of curve data at previous step
+;D1 = value of curve data at previous step, initially -1
 ;D2 = curve data for step
-;D4 = Initially 0. For subsequent calls, ?
-;D6 = Initially 0. For subsequent calls, ?
+;D4 = accumulated road displacement, initially 0 (double integral, signed). Written to A6.
+;D6 = accumulated road displacement, initially 0 (integral, unsigned). Also: bit $1F set if previous call was right turn.
 	CMP.b	D2, D1
 	BEQ.b	loc_6F82 ; jump if same curve data as last step (continues with precious A4 value)
 	MOVE.w	D2, D1
@@ -8363,9 +8364,9 @@ loc_6F5E: ; Suspected parse curve data
 	ADD.w	D2, D2
 	ADD.w	D2, D2
 	LEA	loc_7053C, A4
-	MOVEA.l	(A4,D2.w), A4 ; graphical displacement table for curve sharpness
+	MOVEA.l	(A4,D2.w), A4 ; road displacement table entry
 loc_6F78:
-	MOVE.w	D1, D2
+	MOVE.w	D1, D2 ; D2 = curve data for step
 	MOVE.w	D6, D3
 	TST.l	D6
 	BMI.b	loc_6F82 ; jump if previous turn was right turn?
@@ -8380,16 +8381,16 @@ loc_6F8C:
 	BCLR.l	#6, D2
 	BNE.b	loc_6FA2 ; jump if right turn
 	BCLR.l	#$1F, D6
-	MOVE.w	(A4)+, D6
-	BMI.b	loc_6FB4 ; jump if end of graphical displacement
+	MOVE.w	(A4)+, D6 ; = this steps road displacement
+	BMI.b	loc_6FB4 ; jump if end of displacement data
 	SUB.w	D3, D6
 	SUB.w	D6, D4
 	MOVE.w	D4, -(A6)
 	BRA.b	loc_6FB0
 loc_6FA2:
 	BSET.l	#$1F, D6
-	MOVE.w	(A4)+, D6
-	BMI.b	loc_6FB4 ; jump if end of graphical displacement
+	MOVE.w	(A4)+, D6 ; = this steps road displacement
+	BMI.b	loc_6FB4 ; jump if end of displacement data
 	ADD.w	D3, D6
 	ADD.w	D6, D4
 	MOVE.w	D4, -(A6)
@@ -38525,7 +38526,7 @@ loc_6F940:
 	dc.l	$FFA0FFA0	;A1
 	dc.l	$FFA0FFA0	;A2
 
-loc_7053C: ; suspected graphical displacement for rendering curves, from sharp to soft
+loc_7053C: ; suspected road displacement for rendering curves, from sharp to soft
 	dc.l	$FFA00000	;A3
 	dc.l	loc_705FC
 	dc.l	loc_7061C
