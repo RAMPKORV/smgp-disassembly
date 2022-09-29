@@ -8350,32 +8350,34 @@ loc_6F1A:
 	dc.w	$0001
 
 ;loc_6F5E:
-Parse_curve_data: ; Inputs:
+Parse_curve_data:
+; Effectively seems to take the double integral of curve sharpness, so it goes from constant to quadratic (which looks like a turn)
+; Inputs:
 ;D0 = "step" (distance travelled on track)
 ;D1 = value of curve data at previous step, initially -1
 ;D2 = curve data for step
 ;D4 = accumulated road displacement, initially 0 (double integral, signed). Written to A6.
-;D6 = accumulated road displacement, initially 0 (integral, unsigned). Also: bit $1F set if previous call was right turn.
+;D6 = accumulated road displacement, initially 0 (integral, unsigned?). Also: bit $1F set if previous call was right turn.
 	CMP.b	D2, D1
 	BEQ.b	loc_6F82 ; jump if same curve data as last step (continues with precious A4 value)
 	MOVE.w	D2, D1
 	ANDI.w	#$003F, D2
-	BEQ.b	loc_6F78 ; Only taken when D2=$40
+	BEQ.b	loc_6F78 ; jump if straight
 	ADD.w	D2, D2
 	ADD.w	D2, D2
 	LEA	loc_7053C, A4
 	MOVEA.l	(A4,D2.w), A4 ; road displacement table entry
 loc_6F78:
-	MOVE.w	D1, D2 ; D2 = curve data for step
-	MOVE.w	D6, D3
+	MOVE.w	D1, D2 ; = curve data for step
+	MOVE.w	D6, D3 ; previous steps first integral
 	TST.l	D6
 	BMI.b	loc_6F82 ; jump if previous turn was right turn?
 	NEG.w	D3
 loc_6F82:
 	TST.b	D2
 	BNE.b	loc_6F8C ; jump if not straight
-	ADD.w	D3, D4
-	MOVE.w	D4, -(A6)
+	ADD.w	D3, D4 ; accumulate second integral
+	MOVE.w	D4, -(A6) ; output
 	BRA.b	loc_6FB0
 loc_6F8C:
 	BCLR.l	#6, D2
@@ -8383,17 +8385,17 @@ loc_6F8C:
 	BCLR.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
 	BMI.b	loc_6FB4 ; jump if end of displacement data
-	SUB.w	D3, D6
-	SUB.w	D6, D4
-	MOVE.w	D4, -(A6)
+	SUB.w	D3, D6 ; accumulate first integral
+	SUB.w	D6, D4 ; accumulate second integral
+	MOVE.w	D4, -(A6) ; output
 	BRA.b	loc_6FB0
 loc_6FA2:
 	BSET.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
 	BMI.b	loc_6FB4 ; jump if end of displacement data
-	ADD.w	D3, D6
-	ADD.w	D6, D4
-	MOVE.w	D4, -(A6)
+	ADD.w	D3, D6 ; accumulate first integral
+	ADD.w	D6, D4 ; accumulate second integral
+	MOVE.w	D4, -(A6) ; output
 loc_6FB0:
 	OR.w	D0, D0 ; clear carry flag
 	RTS
