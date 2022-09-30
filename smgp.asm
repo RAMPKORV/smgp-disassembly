@@ -4327,7 +4327,7 @@ loc_3948:
 	MOVE.l	#$0000A60A, $FFFFAF40.w
 	MOVE.w	$FFFF9206.w, D0
 	SUBQ.w	#6, D0
-	MOVE.w	D0, $FFFFAE1A.w
+	MOVE.w	D0, Player_distance.w
 	RTS
 loc_395C:
 	TST.w	Use_world_championship_tracks.w
@@ -4407,7 +4407,7 @@ loc_3A1E:
 	CMPI.w	#$0010, D3
 	BNE.w	loc_3998
 	MOVE.w	$FFFFFC14.w, Horizontal_position.w
-	MOVE.w	$FFFFFC18.w, $FFFFAE1A.w
+	MOVE.w	$FFFFFC18.w, Player_distance.w
 	NEG.w	$FFFFFC14.w
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
 	TST.w	Use_world_championship_tracks.w
@@ -4514,7 +4514,7 @@ loc_3B56:
 	MOVE.w	$FFFFFC0C.w, $12(A0)
 	MOVE.w	$FFFFFC10.w, $1A(A0)
 	MOVE.w	$FFFFFC14.w, Horizontal_position.w
-	MOVE.w	$FFFFFC18.w, $FFFFAE1A.w
+	MOVE.w	$FFFFFC18.w, Player_distance.w
 	NEG.w	$FFFFFC14.w
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
 	RTS
@@ -4542,7 +4542,7 @@ loc_3BA4:
 	MOVE.w	#$00B4, D1
 	MOVE.w	$FFFFFF56.w, D0
 	ADD.w	D1, D0
-	MOVE.w	D1, $FFFFAE1A.w
+	MOVE.w	D1, Player_distance.w
 	MOVE.w	D0, $FFFFAE1E.w
 	RTS
 
@@ -5474,7 +5474,7 @@ loc_49CA:
 
 loc_4A2C:
 	LEA	loc_570CA, A0
-	LEA	$00FF5B00, A4
+	LEA	Curve_data, A4
 	JSR	loc_982
 	MOVEQ	#0, D1
 	MOVEQ	#$00000029, D0
@@ -6328,7 +6328,7 @@ loc_56C6:
 	MOVE.w	#9, D5
 	JSR	loc_780
 	LEA	loc_3260C, A0
-	LEA	$00FF5B00, A4
+	LEA	Curve_data, A4
 	JSR	loc_982
 	MOVE.l	#$46400000, VDP_control_port
 	LEA	loc_56E36, A0
@@ -6407,7 +6407,7 @@ loc_5874:
 	SUBQ.w	#1, $FFFFFC00.w
 	BNE.b	loc_58C2
 	MOVE.w	#2, $FFFFFC00.w
-	LEA	$00FF5B00, A1
+	LEA	Curve_data, A1
 	MOVE.l	#$40200000, VDP_control_port
 	LSL.l	#5, D0
 	MOVE.w	#7, D1
@@ -7099,7 +7099,7 @@ loc_6224: ; Suspected: Level initialization
 	MOVE.l	(A1)+, $FFFF9258.w ; tileset for signs
 	MOVE.l	(A1)+, $FFFF9226.w ; map for minimap position
 	MOVEA.l	(A1)+, A0 ; curve data
-	LEA	$00FF5B00, A3 ; curve data after RLE decompression
+	LEA	Curve_data, A3 ; curve data after RLE decompression
 	LEA	$00FF6300, A2 ; background data after RLE decompression
 	MOVEQ	#0, D2
 	MOVE.b	#$FF, (A3)+
@@ -7132,7 +7132,7 @@ loc_6296:
 loc_62A6:
 	SUBQ.w	#1, D6
 loc_62A8:
-	MOVE.b	D1, (A3)+
+	MOVE.b	D1, (A3)+ ; write decompressed curve data
 	SWAP	D3
 	ADD.l	D7, D3
 	SWAP	D3
@@ -7275,7 +7275,7 @@ loc_6404:
 	MOVE.w	D0, (A0)+
 	ADDQ.w	#1, D0
 	DBF	D1, loc_6404
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	LSR.w	#1, D0
 	ANDI.w	#$FFFE, D0
 	LEA	$00FF6300, A0
@@ -7527,14 +7527,14 @@ loc_674C:
 loc_674E:
 	TST.w	$FFFFFC80.w
 	BNE.b	loc_674C
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
 	LEA	$00FF7B00, A0
 	MOVE.b	(A0,D0.w), D0
 	EXT.w	D0
 	MOVE.w	D0, $FFFF9236.w
 	MOVEQ	#0, D0
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	LSR.w	#1, D0
 	ANDI.w	#$FFFE, D0
 	LEA	$00FF6300, A0
@@ -7547,7 +7547,7 @@ loc_674E:
 	ASR.l	#8, D0
 	ADD.l	D0, $FFFF9222.w
 	MOVE.w	$FFFF9222.w, $FFFF9220.w
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	ANDI.w	#$000F, D0
 	LSL.w	#6, D0
 	MOVE.w	D0, D1
@@ -7606,10 +7606,10 @@ loc_6836:
 	MOVE.w	D2, D0
 	ADDQ.w	#7, D0
 	MOVE.w	D0, D1
-	SUB.w	$FFFFAE1A.w, D0
+	SUB.w	Player_distance.w, D0
 	CMPI.w	#$00A0, D0
 	BCS.b	loc_685E
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	ADD.w	D2, D0
 	SUB.w	D0, D1
 	BCS.b	loc_68A2
@@ -7810,7 +7810,7 @@ loc_6A4E:
 	BRA.b	loc_6A74
 loc_6A5A:
 	MOVEQ	#$0000000F, D0
-	SUB.w	$FFFFAE1A.w, D0
+	SUB.w	Player_distance.w, D0
 	ANDI.w	#$000F, D0
 	LSL.w	#6, D0
 	MOVE.w	D0, D1
@@ -7940,7 +7940,7 @@ loc_6B96:
 	BEQ.b	loc_6C06
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_6C06
-	MOVE.w	$FFFFAE1A.w, D4
+	MOVE.w	Player_distance.w, D4
 	MOVE.w	#$00A0, D1
 	MOVEQ	#1, D2
 	MOVE.w	#$00AF, D3
@@ -7982,7 +7982,7 @@ loc_6C06:
 	LEA	$FFFF9850.w, A6
 	SWAP	D0
 	LSR.w	#2, D0 ; D0 = steps travelled from lap marker (starts at end of track since in front of marker)
-	LEA	$00FF5B01, A5
+	LEA	Curve_data+1, A5
 	MOVEQ	#$00000027, D7 ; =39, so max 40 loop iterations, road displacement data has at most 40 values
 	MOVEQ	#0, D6
 	MOVEQ	#0, D4
@@ -7994,7 +7994,7 @@ loc_6C1C: ; loop reading curve data from memory
 	BRA.b	loc_6C1C
 loc_6C26:
 	ADDQ.w	#1, D0
-	JSR	Parse_curve_data(PC)
+	JSR	Double_integral(PC) ; parse curve data
 	BCS.b	loc_6C34 ; road displacement was negative, stop rendering
 	DBF	D7, loc_6C1C
 	BRA.b	loc_6C3C
@@ -8012,7 +8012,7 @@ loc_6C46:
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF95C0.w, A6
-	LEA	$FFFF984E.w, A5
+	LEA	$FFFF984E.w, A5 ; array output of Double_integral
 	LEA	loc_6F0E(PC), A4
 loc_6C60:
 	JSR	loc_6FBA(PC)
@@ -8065,9 +8065,9 @@ loc_6CD0:
 	ADD.w	D1, (A1)+
 	DBF	D0, loc_6CD0
 	LEA	$FFFF9844.w, A6
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
-	LEA	$00FF5B01, A5
+	LEA	Curve_data+1, A5
 	MOVEQ	#$00000021, D7
 	MOVEQ	#0, D6
 	MOVEQ	#0, D4
@@ -8081,7 +8081,7 @@ loc_6CF0:
 	BRA.b	loc_6CF0
 loc_6D00:
 	SUBQ.w	#1, D0
-	JSR	Parse_curve_data(PC)
+	JSR	Double_integral(PC) ; parse curve data
 	BCS.b	loc_6D0E
 	DBF	D7, loc_6CF0
 	BRA.b	loc_6D16
@@ -8099,7 +8099,7 @@ loc_6D20:
 	MOVEQ	#0, D2
 	MOVEQ	#$00000018, D3
 	LEA	$FFFF9332.w, A6
-	LEA	$FFFF9842.w, A5
+	LEA	$FFFF9842.w, A5 ; array output of Double_integral
 	LEA	loc_6F1A(PC), A4
 loc_6D3A:
 	JSR	loc_6FBA(PC)
@@ -8122,14 +8122,14 @@ loc_6D5A:
 	RTS
 
 loc_6D66:
-	MOVE.w	$FFFFAE1A.w, D0
+	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
 	LEA	$00FF8300, A5
 	MOVE.b	(A5,D0.w), D1
 	EXT.w	D1
 	MOVE.w	D1, $FFFF920A.w
 	LEA	$FFFF9850.w, A6
-	LEA	$00FF7301, A5
+	LEA	$00FF7301, A5 ; slope data
 	MOVEQ	#$00000027, D7
 	MOVEQ	#0, D6
 	MOVEQ	#0, D4
@@ -8141,7 +8141,7 @@ loc_6D8E:
 	BRA.b	loc_6D8E
 loc_6D98:
 	ADDQ.w	#1, D0
-	JSR	Parse_curve_data(PC)
+	JSR	Double_integral(PC) ; parse slope data
 	BCS.b	loc_6DA6
 	DBF	D7, loc_6D8E
 	BRA.b	loc_6DAE
@@ -8159,7 +8159,7 @@ loc_6DB8:
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF97C0.w, A6
-	LEA	$FFFF984E.w, A5
+	LEA	$FFFF984E.w, A5 ; array output of Double_integral
 	LEA	loc_6F0E(PC), A4
 loc_6DD2:
 	JSR	loc_6FBA(PC)
@@ -8350,14 +8350,16 @@ loc_6F1A:
 	dc.w	$0001
 
 ;loc_6F5E:
-Parse_curve_data:
-; Effectively seems to take the double integral of curve sharpness, so it goes from constant to quadratic (which looks like a turn)
+Double_integral:
+; Called stepwise for a constant value D2, storing its second integral in A6
+; Used for curve and slope to make it look like a quadratic function used for road graphical displacement
+; Left turn and down slope produces negative values, right turn and up slope positive.
 ; Inputs:
 ;D0 = "step" (distance travelled on track)
-;D1 = value of curve data at previous step, initially -1
-;D2 = curve data for step
-;D4 = accumulated road displacement, initially 0 (double integral, signed). Written to A6.
-;D6 = accumulated road displacement, initially 0 (integral, unsigned?). Also: bit $1F set if previous call was right turn.
+;D1 = value of curve/slope data at previous step, initially -1
+;D2 = curve/slope data for step
+;D4 = accumulated value, initially 0 (double integral, signed). Written to A6.
+;D6 = accumulated value, initially 0 (integral, unsigned?). Also: bit $1F set if previous call was right turn/up slope.
 	CMP.b	D2, D1
 	BEQ.b	loc_6F82 ; jump if same curve data as last step (continues with precious A4 value)
 	MOVE.w	D2, D1
@@ -8371,17 +8373,17 @@ loc_6F78:
 	MOVE.w	D1, D2 ; = curve data for step
 	MOVE.w	D6, D3 ; previous steps first integral
 	TST.l	D6
-	BMI.b	loc_6F82 ; jump if previous turn was right turn?
+	BMI.b	loc_6F82 ; jump if previous turn was right turn/up slope
 	NEG.w	D3
 loc_6F82:
 	TST.b	D2
-	BNE.b	loc_6F8C ; jump if not straight
+	BNE.b	loc_6F8C ; jump if not 0 (not straight/flat road)
 	ADD.w	D3, D4 ; accumulate second integral
 	MOVE.w	D4, -(A6) ; output
 	BRA.b	loc_6FB0
 loc_6F8C:
 	BCLR.l	#6, D2
-	BNE.b	loc_6FA2 ; jump if right turn
+	BNE.b	loc_6FA2 ; jump if right turn/up slope
 	BCLR.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
 	BMI.b	loc_6FB4 ; jump if end of displacement data
@@ -9780,7 +9782,7 @@ loc_80E0:
 	MOVE.w	#$05AF, D0
 	MOVE.w	$1A(A0), D1
 	LSR.w	#2, D1
-	LEA	$00FF5B01, A1
+	LEA	Curve_data+1, A1
 	MOVE.b	(A1,D1.w), D1
 	BCLR.l	#6, D1
 	SNE	D2
@@ -9837,23 +9839,23 @@ loc_8142:
 loc_8176:
 	MOVE.l	Horizontal_position.w, D7
 	MOVEQ	#0, D0
-	MOVE.w	$FFFFAE1A.w, D1
+	MOVE.w	Player_distance.w, D1
 	LSR.w	#2, D1
-	LEA	$00FF5B01, A1
-	MOVE.b	(A1,D1.w), D0
+	LEA	Curve_data+1, A1
+	MOVE.b	(A1,D1.w), D0 ; read curve data at step
 	MOVE.w	D0, D5
-	BEQ.b	loc_81AC
+	BEQ.b	loc_81AC ; jump if straight. Upcoming instructions calculate horizontal position displacement from turning
 	ADDQ.w	#2, A0
 	ADDQ.w	#2, A2
-	BCLR.l	#6, D0
-	SNE	D1
+	BCLR.l	#6, D0 ; zero the bit indicating left/right turn
+	SNE	D1 ; D1=$FF if right turn, else D1=$00
 	ADD.w	D0, D0
 	LEA	loc_86AE(PC), A1
 	MOVE.w	(A1,D0.w), D0
-	MULU.w	D3, D0
+	MULU.w	D3, D0 ; D0 = curve sharpness * player speed
 	TST.b	D1
-	BEQ.b	loc_81AC
-	NEG.l	D0
+	BEQ.b	loc_81AC ; jump if left turn
+	NEG.l	D0 ; when right turn, negate so car is displaced left
 loc_81AC:
 	MOVE.b	$FFFF910A.w, D1
 	EXT.w	D1
@@ -9869,7 +9871,7 @@ loc_81BC:
 	BEQ.b	loc_81D8
 	TST.w	Practice_mode.w
 	BNE.b	loc_81D8
-	MOVE.w	$FFFF9162.w, D0
+	MOVE.w	$FFFF9162.w, D0 ; Why is D0 overwritten here before previous calculation is used?
 	ADD.w	D0, D0
 	ADD.w	(A2,D0.w), D2
 loc_81D8:
@@ -9891,7 +9893,7 @@ loc_81F0:
 	BEQ.b	loc_81F6
 	NEG.l	D7
 loc_81F6:
-	MOVE.l	D7, Horizontal_position.w
+	MOVE.l	D7, Horizontal_position.w ; commenting out makes car never mode sideways
 	TST.l	D1
 	BEQ.b	loc_8244
 	MOVE.w	D5, D0
@@ -9952,7 +9954,7 @@ loc_8290:
 	MOVE.w	$FFFFFC88.w, D0
 	LEA	$FFFF922C.w, A0
 	MOVE.w	(A0,D0.w), D1
-	CMP.w	$FFFFAE1A.w, D1
+	CMP.w	Player_distance.w, D1
 	BHI.b	loc_82EA
 	ADDQ.w	#2, D0
 	CMPI.w	#6, D0
@@ -10386,10 +10388,10 @@ loc_873A:
 	BEQ.b	loc_8788
 	MOVE.w	$FFFF9212.w, D0
 	SUBI.w	#$012C, D0
-	CMP.w	$FFFFAE1A.w, D0
+	CMP.w	Player_distance.w, D0
 	BHI.b	loc_8788
 	ADDI.w	#$0154, D0
-	CMP.w	$FFFFAE1A.w, D0
+	CMP.w	Player_distance.w, D0
 	BCS.b	loc_8788
 	MOVE.w	#1, $FFFFFC9E.w
 	BTST.b	#KEY_C, Input_state_bitset.w
@@ -10486,10 +10488,11 @@ loc_8898:
 	dc.w	$0000, $84C4, $0000, $0000, $0000, $84C5, $A7DD, $A7D1, $84B4, $84B2, $0000, $0000, $84B5, $84B3, $A7DD, $A7D1, $84B4, $84B4, $0000, $0000, $84B5, $84B5, $A7DD, $A7D1, $84B4, $84B6, $0000, $0000, $84B5, $84B7, $A7DD, $A7D1
 	dc.w	$84B4, $84B8, $0000, $0000, $84B5, $84B9, $A7DD, $A7D1, $84B4, $84BA, $0000, $0000, $84B5, $84BB, $A7DD, $A7D1, $84B4, $84BC, $0000, $0000, $84B5, $84BD, $A7DD, $A7D1, $84B4, $84BE, $0000, $0000, $84B5, $84BF, $A7DD, $A7D1
 loc_8998:
-	dc.b	$00, $08, $00, $18, $00, $02, $00, $06
-	dc.w	$0000
-	dc.w	$0000
-	dc.b	$FF, $FE, $FF, $FA, $FF, $FC, $FF, $F4
+	dc.w	$0008, $0018
+	dc.w	$0002, $0006
+	dc.w	$0000, $0000
+	dc.w	$FFFE, $FFFA
+	dc.w	$FFFC, $FFF4
 
 loc_89AC:
 	TST.w	$FFFFFC72.w
@@ -10500,7 +10503,7 @@ loc_89AC:
 	MOVE.l	$FFFF9254.w, $FFFF9258.w
 	BRA.b	loc_89AC
 loc_89C2:
-	SUB.w	$FFFFAE1A.w, D0
+	SUB.w	Player_distance.w, D0
 	CMPI.w	#$0078, D0
 	BCS.b	loc_89D6
 	ADD.w	$FFFF9206.w, D0
@@ -10539,7 +10542,7 @@ loc_8A12:
 	BNE.b	loc_8A44
 loc_8A20:
 	MOVE.w	$FFFF9206.w, D0
-	SUB.w	$FFFFAE1A.w, D0
+	SUB.w	Player_distance.w, D0
 	CMPI.w	#$0078, D0
 	BCC.b	loc_8A44
 	MOVE.w	#1, $FFFFFC72.w
@@ -10554,7 +10557,7 @@ loc_8A44:
 	BRA.b	loc_89F4
 loc_8A54:
 	MOVE.w	D0, D1
-	SUB.w	$FFFFAE1A.w, D1
+	SUB.w	Player_distance.w, D1
 	CMPI.w	#$0078, D1
 	BCS.b	loc_8A6A
 	ADD.w	$FFFF9206.w, D1
@@ -10579,7 +10582,7 @@ loc_8A92:
 	BEQ.b	loc_8B04
 	MOVE.w	$FFFF9250.w, D0
 	MOVE.w	D0, D1
-	SUB.w	$FFFFAE1A.w, D1
+	SUB.w	Player_distance.w, D1
 	CMPI.w	#$0078, D1
 	BCS.b	loc_8AB2
 	ADD.w	$FFFF9206.w, D1
@@ -10858,7 +10861,7 @@ loc_8DE6:
 	BRA.w	loc_8F76
 loc_8DFA:
 	DBF	D7, loc_8D1E
-	LEA	$00FF5B01, A5
+	LEA	Curve_data+1, A5
 	MOVE.w	$1A(A0), D0
 	MOVE.w	D0, D1
 	LSR.w	#2, D0
@@ -11091,7 +11094,7 @@ loc_9086:
 	LEA	$00FF8300, A5
 	MOVE.b	(A5,D0.w), D3
 	MOVE.b	D3, $2D(A0)
-	LEA	$00FF5B01, A5
+	LEA	Curve_data+1, A5
 	MOVE.b	(A5,D0.w), D4
 	MOVE.b	D4, $2F(A0)
 	TST.b	D3
@@ -11329,7 +11332,7 @@ loc_9334:
 	BRA.w	loc_94C4
 loc_9348:
 	DBF	D7, loc_926C
-	LEA	$00FF5B01, A5
+	LEA	Curve_data+1, A5
 	MOVE.w	$1A(A0), D0
 	MOVE.w	D0, D1
 	LSR.w	#2, D0
@@ -11868,7 +11871,7 @@ loc_9914:
 	MOVE.w	$FFFF9206.w, D5
 	MOVE.w	$1A(A0), D1
 	MOVE.w	D1, D0
-	MOVE.w	$FFFFAE1A.w, D2
+	MOVE.w	Player_distance.w, D2
 	MOVEQ	#4, D7
 	SUB.w	D2, D1
 	CMPI.w	#$00A2, D1
@@ -11989,7 +11992,7 @@ loc_9A58:
 	MOVE.w	$FFFF9206.w, D5
 	MOVE.w	$1A(A0), D1
 	MOVE.w	D1, D0
-	MOVE.w	$FFFFAE1A.w, D2
+	MOVE.w	Player_distance.w, D2
 	MOVEQ	#4, D7
 	SUB.w	D2, D1
 	CMPI.w	#$00A2, D1
@@ -12294,7 +12297,7 @@ loc_9E52:
 	BNE.b	loc_9E72
 	MOVE.w	#$FFFF, $36(A0)
 loc_9E72:
-	MOVE.w	$FFFFAE1A.w, D1
+	MOVE.w	Player_distance.w, D1
 	MOVE.w	$2C(A0), D0
 	JSR	loc_9EA6(PC)
 	BRA.b	loc_9E86
@@ -38528,7 +38531,7 @@ loc_6F940:
 	dc.l	$FFA0FFA0	;A1
 	dc.l	$FFA0FFA0	;A2
 
-loc_7053C: ; suspected road displacement for rendering curves, from sharp to soft
+loc_7053C: ; suspected road displacement for rendering curves and slopes, from sharp to soft
 	dc.l	$FFA00000	;A3
 	dc.l	loc_705FC
 	dc.l	loc_7061C

@@ -12,7 +12,7 @@ LOCATIONS
 ; 0xfc10: cursor position on title screen
 ; 0x5ac9: the volume of 'enemy' car engine sounds
 ; 0x5adc: some sort of frame counter that is reset when you start a race etc
-; 0x5b01: Track data (curves)
+; 0x5b00: Curve data decompressed, one byte per "step", ends with $FF
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
 ; 0x9030: List of driver points awarded, by team order
 ; 0x9043: Player team
@@ -25,6 +25,7 @@ LOCATIONS
 ; 0x9104: Engine RPM to be rendered (used for smooth gauge movement)
 ; 0x9106: Speed (why two?)
 ; 0x9108: Speed
+; 0x910A: ? affects horizontal displacement when driving in curves
 ; 0x9144.w: Current track idx to be loaded from Track_data
 ; 0x9146.w: 0 right before lap start, then 1 when lap starts. When 0, several code paths are skipped and RPM only updates visually
 ; 0x9148.w: practice mode
@@ -91,13 +92,14 @@ loc_21E9C
 
 CURVE DATA FORMAT
 ================================================================================
-Stored in $00FF5B00 onwards, read from loc_6C1C, parsed by loc_6F5E.
-One byte per step forward. Seems to render ca 26 steps forward? Code reads 40 bytes ahead.
+Stored in $00FF5B00 (Curve_data) onwards, read from loc_6C1C (and also loc_6CF0 for some reason)
+One byte per step forward. Ends with $FF.
+Seems to render ca 26 steps forward? Code reads 40 bytes ahead.
 Byte values:
 * 00    = Straight
 * 01-2F = Left turn, from extreme (01) to soft (2F)
 * 30-3F = Game freezes
-* 40    = Straight? Road invisible and/or glitchy.
+* 40    = Graphical glitch, probably not used
 * 41-6F = Right turn, from extreme (41) to soft (6F)
 * 70-7F = Game freezes
 * 80-FF = Continue reading from start of track
@@ -109,3 +111,15 @@ So:
 $00FF6300 stores background rotation, encoded together with curve data in ROM.
 In memory it seems to be stored as absolute rotation, but the RLE encoding used in ROM looks relative.
 Code does continuous SUB and ADD to get the resulting absolute value to write to memory.
+
+SLOPE DATA FORMAT
+================================================================================
+Stored in $00FF7300 onwards. Parsed using Double_integral similar to curve data.
+Byte values:
+* 00    = Flat
+* 01-2F = Down slope, from extreme (01) to soft (2F)
+* 30-3F = Game freezes
+* 40    = Graphical glitch, probably not used
+* 41-6F = Up slope, from extreme (41) to soft (6F)
+* 70-7F = Game freezes
+* 80-FF = Continue reading from start of track

@@ -7,6 +7,7 @@ Visual_rpm = $FFFF9104 ; Rendered to gauge
 Player_speed = $FFFF9108
 
 Horizontal_position = $FFFFAE12
+Player_distance = $FFFFAE1A ; resets each lap
 
 Driver_points_by_team = $FFFF9030
 Rival_team = $FFFF9042
@@ -18,6 +19,8 @@ Track_index = $FFFF9144
 Race_started = $FFFF9146
 Practice_mode = $FFFF9148
 Warm_up = $FFFF914A
+
+Curve_data = $00FF5B00 ; After decompression, one byte per "step" on track. Ends with $FF
 
 Team_car_acceleration = $FFFF915C
 Team_car_engine_data = $FFFF915E
