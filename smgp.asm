@@ -6763,7 +6763,7 @@ loc_5CA8:
 	RTS
 
 loc_5CAA:
-	MOVE.w	$FFFF920A.w, D0
+	MOVE.w	$FFFF920A.w, D0 ; unknown_track_data_1
 	BEQ.b	loc_5CC2
 	BTST.b	#0, $FFFFFC20.w
 	BNE.b	loc_5CC2
@@ -7173,7 +7173,7 @@ loc_62F2:
 	BRA.b	loc_62D6
 loc_6302:
 	MOVE.b	#$FF, (A3)
-	MOVEA.l	(A1)+, A0 ; ?
+	MOVEA.l	(A1)+, A0 ; unknown_track_data_1
 	LEA	$00FF8300, A2
 loc_630E:
 	MOVE.b	(A0)+, D6
@@ -8125,7 +8125,7 @@ loc_6D66:
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
 	LEA	$00FF8300, A5
-	MOVE.b	(A5,D0.w), D1
+	MOVE.b	(A5,D0.w), D1 ; unknown_track_data_1 lookup
 	EXT.w	D1
 	MOVE.w	D1, $FFFF920A.w
 	LEA	$FFFF9850.w, A6
@@ -11092,7 +11092,7 @@ loc_9086:
 	MOVE.b	$2D(A0), D1
 	MOVE.b	$2F(A0), D2
 	LEA	$00FF8300, A5
-	MOVE.b	(A5,D0.w), D3
+	MOVE.b	(A5,D0.w), D3 ; unknown_track_data_1 lookup
 	MOVE.b	D3, $2D(A0)
 	LEA	Curve_data+1, A5
 	MOVE.b	(A5,D0.w), D4
@@ -18467,6 +18467,7 @@ loc_F860:
 
 ;loc_F872:
 Track_data:
+; San Marino
 	dc.l	loc_55032 ; San Marino tiles used for minimap
 	dc.l	loc_68F4A ; San Marino tiles used for background
 	dc.l	loc_68DC6 ; San Marino background tile mapping
@@ -18481,11 +18482,12 @@ Track_data:
 	dc.l	loc_71660 ; San Marino map for minimap position
 	dc.l	loc_7152E ; San Marino curve data
 	dc.l	loc_715EA ; San Marino slope data
-	dc.l	loc_7163C ; ?
+	dc.l	loc_7163C ; unknown_track_data_1 - physical slope data? Affects acceleration in slopes
 	dc.l	$FFFFFD00
 	dc.l	loc_10176 ; ?
 	dc.l	$002B002B
 
+; Brazil
 	dc.l	loc_5683C ; Brazil tiles used for minimap
 	dc.l	loc_679D8 ; Brazil tiles used used for background
 	dc.l	loc_676FE ; Brazil background tile mapping
@@ -38913,7 +38915,7 @@ loc_715EA: ; slope data
 	dc.b	$00, $0F, $2F, $70
 	dc.b	$00, $4F, $00
 	dc.b	$FF
-loc_7163C: ; ?
+loc_7163C: ; unknown_track_data_1
 	dc.b	$02, $39, $00
 	dc.b	$00, $93, $FF
 	dc.b	$00, $35, $00

@@ -16,6 +16,7 @@ LOCATIONS
 ; 0x6300.w: Background horizontal displacement
 ; 0x7300.b: Slope data decompressed
 ; 0x7b00.b: Background vertical displacement (positive=up). Glitches if not $00-$27 or $B9-$FF
+; 0x8300.b: unknown_track_data_1 decompressed
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
 ; 0x9030: List of driver points awarded, by team order
 ; 0x9043: Player team
@@ -44,6 +45,7 @@ LOCATIONS
 ; 0x9182: Acceleration modifier based on Player_team (0 in practice mode)
 ; 0x9206: ?
 ; 0x9208: Controls acceleration. 0 in practice mode, can be 1 or 2.
+; 0x920A: unknown_track_data_1
 ; 0x9222: ?
 ; 0x9226; ?
 ; 0x9240: Pointer to start of signs data for current track
