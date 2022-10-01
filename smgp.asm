@@ -7100,7 +7100,7 @@ loc_6224: ; Suspected: Level initialization
 	MOVE.l	(A1)+, $FFFF9226.w ; map for minimap position
 	MOVEA.l	(A1)+, A0 ; curve data
 	LEA	Curve_data, A3 ; curve data after RLE decompression
-	LEA	$00FF6300, A2 ; background data after RLE decompression
+	LEA	Background_horizontal_displacement, A2
 	MOVEQ	#0, D2
 	MOVE.b	#$FF, (A3)+
 loc_6270:
@@ -7137,15 +7137,15 @@ loc_62A8:
 	ADD.l	D7, D3
 	SWAP	D3
 	ANDI.w	#$03FF, D3
-	MOVE.w	D3, (A2)+
+	MOVE.w	D3, (A2)+ ; write decomperssed horizontal background displacement
 	DBF	D6, loc_62A8
 	BRA.b	loc_6270
 loc_62BC:
 	MOVE.b	#$FF, (A3)
 	MOVEA.l	(A1)+, A0 ; slope data
 	LEA	$00FF7300, A3
-	LEA	$00FF7B00, A2
-	MOVE.b	(A0)+, D2
+	LEA	Background_vertical_displacement, A2
+	MOVE.b	(A0)+, D2 ; initial vertical background displacement
 	EXT.w	D2
 	MOVE.b	#$FF, (A3)+
 loc_62D6:
@@ -7159,16 +7159,16 @@ loc_62D6:
 	MOVE.b	(A0)+, D7
 	LSL.w	#8, D7
 	BTST.l	#6, D1
-	BEQ.b	loc_62F0
+	BEQ.b	loc_62F0 ; jump if down slope
 	NEG.l	D7
 loc_62F0:
 	SUBQ.w	#1, D6
 loc_62F2:
-	MOVE.b	D1, (A3)+
-	SWAP	D2
-	ADD.l	D7, D2
-	SWAP	D2
-	MOVE.b	D2, (A2)+
+	MOVE.b	D1, (A3)+ ; write decompressed slope data
+	SWAP	D2     ; ...
+	ADD.l	D7, D2 ; ...
+	SWAP	D2     ; integrate vertical background displacement (accumulate D7 onto D2)
+	MOVE.b	D2, (A2)+ ; write decomperssed vertical background displacement
 	DBF	D6, loc_62F2
 	BRA.b	loc_62D6
 loc_6302:
@@ -7278,7 +7278,7 @@ loc_6404:
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#1, D0
 	ANDI.w	#$FFFE, D0
-	LEA	$00FF6300, A0
+	LEA	Background_horizontal_displacement, A0
 	MOVE.w	(A0,D0.w), D0
 	MOVE.w	D0, $FFFF9222.w
 	RTS
@@ -7529,7 +7529,7 @@ loc_674E:
 	BNE.b	loc_674C
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
-	LEA	$00FF7B00, A0
+	LEA	Background_vertical_displacement, A0
 	MOVE.b	(A0,D0.w), D0
 	EXT.w	D0
 	MOVE.w	D0, $FFFF9236.w
@@ -7537,7 +7537,7 @@ loc_674E:
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#1, D0
 	ANDI.w	#$FFFE, D0
-	LEA	$00FF6300, A0
+	LEA	Background_horizontal_displacement, A0
 	MOVE.w	(A0,D0.w), D0
 	LSL.w	#6, D0
 	SWAP	D0
@@ -38844,7 +38844,7 @@ loc_7152B:
 loc_7152E: ; curve data
 ; byte 1-2 = length
 ; byte 3   = curve (see notes.txt)
-; byte 4-5 = background rotation (skipped when byte 3==0)
+; byte 4-5 = relative horizontal background displacement (when curve!=0)
 	dc.b	$00, $0A, $00
 	dc.b	$00, $14, $12, $00, $1C
 	dc.b	$00, $14, $52, $00, $1C
@@ -38885,8 +38885,10 @@ loc_7152E: ; curve data
 	dc.b	$00, $09, $00
 	dc.b	$FF, $00
 loc_715EA: ; slope data
-	dc.b	$00 ; Affects value in byte 4 before written to memory
-	; first 2 bytes = length, byte 3 (and 4 if byte 3==0) defines slope
+	dc.b	$00 ; initial vertical background displacement
+	; byte 1-2 = length
+	; byte 3   = slope (see notes.txt)
+	; byte 4   = relative vertical background displacement (when slope!=0)
 	dc.b	$02, $39, $00
 	dc.b	$00, $1B, $6F, $70
 	dc.b	$00, $5D, $00

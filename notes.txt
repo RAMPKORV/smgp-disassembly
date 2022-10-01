@@ -12,7 +12,10 @@ LOCATIONS
 ; 0xfc10: cursor position on title screen
 ; 0x5ac9: the volume of 'enemy' car engine sounds
 ; 0x5adc: some sort of frame counter that is reset when you start a race etc
-; 0x5b00: Curve data decompressed, one byte per "step", ends with $FF
+; 0x5b00.b: Curve data decompressed, one byte per "step", ends with $FF
+; 0x6300.w: Background horizontal displacement
+; 0x7300.b: Slope data decompressed
+; 0x7b00.b: Background vertical displacement (positive=up). Glitches if not $00-$27 or $B9-$FF
 ; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
 ; 0x9030: List of driver points awarded, by team order
 ; 0x9043: Player team
@@ -90,7 +93,7 @@ loc_21ED4
 loc_21F62
 loc_21E9C
 
-CURVE DATA FORMAT
+CURVE DATA DECOMPRESSED FORMAT
 ================================================================================
 Stored in $00FF5B00 (Curve_data) onwards, read from loc_6C1C (and also loc_6CF0 for some reason)
 One byte per step forward. Ends with $FF.
@@ -112,7 +115,7 @@ $00FF6300 stores background rotation, encoded together with curve data in ROM.
 In memory it seems to be stored as absolute rotation, but the RLE encoding used in ROM looks relative.
 Code does continuous SUB and ADD to get the resulting absolute value to write to memory.
 
-SLOPE DATA FORMAT
+SLOPE DATA DECOMPRESSED FORMAT
 ================================================================================
 Stored in $00FF7300 onwards. Parsed using Double_integral similar to curve data.
 Byte values:

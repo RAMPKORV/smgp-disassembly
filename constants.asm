@@ -20,7 +20,10 @@ Race_started = $FFFF9146
 Practice_mode = $FFFF9148
 Warm_up = $FFFF914A
 
-Curve_data = $00FF5B00 ; After decompression, one byte per "step" on track. Ends with $FF
+; Decompressed in-memory data
+Background_horizontal_displacement = $00FF6300
+Background_vertical_displacement = $00FF7B00
+Curve_data = $00FF5B00
 
 Team_car_acceleration = $FFFF915C
 Team_car_engine_data = $FFFF915E
