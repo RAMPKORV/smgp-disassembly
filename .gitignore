@@ -2,6 +2,7 @@
 *.L68
 *.S68
 *.bin
+*.lst
 build
 .idea
 sega_genesis_checksum_utility.py
