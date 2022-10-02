@@ -8,18 +8,21 @@ class SMGP:
         with open(path) as f:
             self.lines = f.readlines()
 
-    def extract_loc_data(self, loc):
+    def extract_loc_data(self, loc, extract_bytes=True):
         loc_found = False
-        byte_list = []
+        result = []
 
         for line in self.lines:
             if line.startswith(loc):
                 loc_found = True
             elif loc_found:
-                if line.startswith('loc'):  # end of target_loc
+                if line.startswith('loc') or line.startswith(';loc'):  # end of target_loc
                     break
-                byte_list += self.byte_pattern.findall(line)
-        return byte_list
+                if extract_bytes:
+                    result += self.byte_pattern.findall(line)
+                else:
+                    result += [line]
+        return result
 
     def extract_track_data(self):
         track_data_offset = next(i for i, line in enumerate(self.lines) if line.startswith('Track_data')) + 1
@@ -52,8 +55,12 @@ def parse_signed_byte(s):
     return x
 
 
-def parse_signed_word(high, low):
-    x = int(high[1:] + low[1:], 16)
+# Call as f('$FF', '$FF') or f('$FFFF')
+def parse_signed_word(high, low=None):
+    if low:
+        x = int(high[1:] + low[1:], 16)
+    else:
+        x = int(high[1:], 16)
     if x > 2 ** 15 - 1:
         x = x - 2 ** 16
     return x
