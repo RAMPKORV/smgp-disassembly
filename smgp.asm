@@ -7994,7 +7994,7 @@ loc_6C1C: ; loop reading curve data from memory
 	BRA.b	loc_6C1C
 loc_6C26:
 	ADDQ.w	#1, D0
-	JSR	Double_integral(PC) ; parse curve data
+	JSR	Integrate_curveslope(PC) ; parse curve data
 	BCS.b	loc_6C34 ; road displacement was negative, stop rendering
 	DBF	D7, loc_6C1C
 	BRA.b	loc_6C3C
@@ -8012,7 +8012,7 @@ loc_6C46:
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF95C0.w, A6
-	LEA	$FFFF984E.w, A5 ; array output of Double_integral
+	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
 	LEA	loc_6F0E(PC), A4
 loc_6C60:
 	JSR	loc_6FBA(PC)
@@ -8081,7 +8081,7 @@ loc_6CF0:
 	BRA.b	loc_6CF0
 loc_6D00:
 	SUBQ.w	#1, D0
-	JSR	Double_integral(PC) ; parse curve data
+	JSR	Integrate_curveslope(PC) ; parse curve data (why done here also?)
 	BCS.b	loc_6D0E
 	DBF	D7, loc_6CF0
 	BRA.b	loc_6D16
@@ -8099,7 +8099,7 @@ loc_6D20:
 	MOVEQ	#0, D2
 	MOVEQ	#$00000018, D3
 	LEA	$FFFF9332.w, A6
-	LEA	$FFFF9842.w, A5 ; array output of Double_integral
+	LEA	$FFFF9842.w, A5 ; array output of Integrate_curveslope
 	LEA	loc_6F1A(PC), A4
 loc_6D3A:
 	JSR	loc_6FBA(PC)
@@ -8141,7 +8141,7 @@ loc_6D8E:
 	BRA.b	loc_6D8E
 loc_6D98:
 	ADDQ.w	#1, D0
-	JSR	Double_integral(PC) ; parse slope data
+	JSR	Integrate_curveslope(PC) ; parse slope data
 	BCS.b	loc_6DA6
 	DBF	D7, loc_6D8E
 	BRA.b	loc_6DAE
@@ -8159,7 +8159,7 @@ loc_6DB8:
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF97C0.w, A6
-	LEA	$FFFF984E.w, A5 ; array output of Double_integral
+	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
 	LEA	loc_6F0E(PC), A4
 loc_6DD2:
 	JSR	loc_6FBA(PC)
@@ -8350,35 +8350,36 @@ loc_6F1A:
 	dc.w	$0001
 
 ;loc_6F5E:
-Double_integral:
-; Called stepwise for a constant value D2, storing its second integral in A6
-; Used for curve and slope to make it look like a quadratic function used for road graphical displacement
+Integrate_curveslope:
+; Called stepwise for a constant value D2, storing its corresponding integral in A6
+; Integrates an entry from Road_displacement_table, and continues with a new entry when D2 changes (new "streak")
+; Used for curve and slope data for road graphical displacement
 ; Left turn and down slope produces negative values, right turn and up slope positive.
 ; Inputs:
 ;D0 = "step" (distance travelled on track)
 ;D1 = value of curve/slope data at previous step, initially -1
 ;D2 = curve/slope data for step
-;D4 = accumulated value, initially 0 (double integral, signed). Written to A6.
-;D6 = accumulated value, initially 0 (integral, unsigned?). Also: bit $1F set if previous call was right turn/up slope.
+;D4 = accumulated integral, initially 0. Written to A6.
+;D6 = accumulated integral for current curve/slope "streak", initially 0. Also: bit $1F set if previous call was right turn/up slope.
 	CMP.b	D2, D1
-	BEQ.b	loc_6F82 ; jump if same curve data as last step (continues with precious A4 value)
+	BEQ.b	loc_6F82 ; jump if same curve/slope data as last step (continues with precious A4 value)
 	MOVE.w	D2, D1
 	ANDI.w	#$003F, D2
-	BEQ.b	loc_6F78 ; jump if straight
-	ADD.w	D2, D2
-	ADD.w	D2, D2
-	LEA	loc_7053C, A4
-	MOVEA.l	(A4,D2.w), A4 ; road displacement table entry
+	BEQ.b	loc_6F78 ; jump if straight/flat
+	ADD.w	D2, D2                  ; ...
+	ADD.w	D2, D2                  ; ...
+	LEA	Road_displacement_table, A4 ; ...
+	MOVEA.l	(A4,D2.w), A4           ; new road displacement table lookup when curve/slope data changed from previous step (begin new "streak")
 loc_6F78:
-	MOVE.w	D1, D2 ; = curve data for step
-	MOVE.w	D6, D3 ; previous steps first integral
+	MOVE.w	D1, D2 ; = curve/slope data for step
+	MOVE.w	D6, D3 ; previous curve/slope "streak" integral used as starting point
 	TST.l	D6
 	BMI.b	loc_6F82 ; jump if previous turn was right turn/up slope
 	NEG.w	D3
 loc_6F82:
 	TST.b	D2
 	BNE.b	loc_6F8C ; jump if not 0 (not straight/flat road)
-	ADD.w	D3, D4 ; accumulate second integral
+	ADD.w	D3, D4 ; accumulate integral
 	MOVE.w	D4, -(A6) ; output
 	BRA.b	loc_6FB0
 loc_6F8C:
@@ -8387,16 +8388,16 @@ loc_6F8C:
 	BCLR.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
 	BMI.b	loc_6FB4 ; jump if end of displacement data
-	SUB.w	D3, D6 ; accumulate first integral
-	SUB.w	D6, D4 ; accumulate second integral
+	SUB.w	D3, D6 ; add integral from previous curve/slope "streak"
+	SUB.w	D6, D4 ; accumulate integral
 	MOVE.w	D4, -(A6) ; output
 	BRA.b	loc_6FB0
 loc_6FA2:
 	BSET.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
 	BMI.b	loc_6FB4 ; jump if end of displacement data
-	ADD.w	D3, D6 ; accumulate first integral
-	ADD.w	D6, D4 ; accumulate second integral
+	ADD.w	D3, D6 ; add integral from previous curve/slope "streak"
+	ADD.w	D6, D4 ; accumulate integral
 	MOVE.w	D4, -(A6) ; output
 loc_6FB0:
 	OR.w	D0, D0 ; clear carry flag
@@ -38533,8 +38534,9 @@ loc_6F940:
 	dc.l	$FFA0FFA0	;A1
 	dc.l	$FFA0FFA0	;A2
 
-loc_7053C: ; suspected road displacement for rendering curves and slopes, from sharp to soft
-	dc.l	$FFA00000	;A3
+;loc_7053C:
+Road_displacement_table: ; Used to render curves and slopes, from sharp to soft
+	dc.l	$FFA00000 ; first value not used
 	dc.l	loc_705FC
 	dc.l	loc_7061C
 	dc.l	loc_70646
