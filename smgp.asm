@@ -10636,30 +10636,30 @@ loc_8B06:
 loc_8B1C:
 	RTS
 	dc.l	loc_A81A
-	dc.l	$0000A838
-	dc.l	$0000A944
-	dc.l	$0000A99A
-	dc.l	$0000A862
-	dc.l	$0000A870
-	dc.l	$0000A87E
-	dc.l	$0000A88A
-	dc.l	$0000A8F0
-	dc.l	$0000A8DE
-	dc.l	$0000A8C6
-	dc.l	$0000A8D2
-	dc.l	$0000A896
-	dc.l	$0000A8A2
-	dc.l	$0000A846
-	dc.l	$0000A854
-	dc.l	$0000A80A
-	dc.l	$0000A828
-	dc.l	$0000A8AE
-	dc.l	$0000A8BA
+	dc.l	loc_A838
+	dc.l	loc_A944
+	dc.l	loc_A99A
+	dc.l	loc_A862
+	dc.l	loc_A870
+	dc.l	loc_A87E
+	dc.l	loc_A88A
+	dc.l	loc_A8F0
+	dc.l	loc_A8DE
+	dc.l	loc_A8C6
+	dc.l	loc_A8D2
+	dc.l	loc_A896
+	dc.l	loc_A8A2
+	dc.l	loc_A846
+	dc.l	loc_A854
+	dc.l	loc_A80A
+	dc.l	loc_A828
+	dc.l	loc_A8AE
+	dc.l	loc_A8BA
 loc_8B6E:
-	dc.l	$0000AB3E
-	dc.l	$0000AF2A
-	dc.l	$0000B09E
-	MOVE.l	#$00008BA2, (A0)
+	dc.l	loc_AB3E
+	dc.l	loc_AF2A
+	dc.l	loc_B09E
+	MOVE.l	#loc_8BA2, (A0)
 	MOVE.w	$12(A0), $36(A0)
 	MOVE.w	$1A(A0), $1E(A0)
 	MOVE.w	#$FFFF, $22(A0)
@@ -12907,6 +12907,7 @@ loc_A7FA:
 	dc.w	$000C
 loc_A800:
 	dc.w	$000E, $0080, $00A0, $00C0, $00E0
+loc_A80A:
 	MOVE.l	#$0000A870, D1
 	MOVE.w	$1E(A0), D0
 	JSR	loc_8AE8
@@ -12914,52 +12915,68 @@ loc_A81A:
 	MOVE.l	#$00010650, D1
 	MOVE.w	#$FE90, D0
 	BRA.w	loc_A900
+loc_A828:
 	MOVE.l	#$0000A862, D1
 	MOVE.w	$1E(A0), D0
 	JSR	loc_8AE8
+loc_A838:
 	MOVE.l	#$00010674, D1
 	MOVE.w	#$0170, D0
 	BRA.w	loc_A906
+loc_A846:
 	MOVE.l	#$00010698, D1
 	MOVE.w	#$FE90, D0
 	BRA.w	loc_A900
+loc_A854:
 	MOVE.l	#$000106BC, D1
 	MOVE.w	#$0170, D0
 	BRA.w	loc_A906
+loc_A862:
 	MOVE.l	#$000106E0, D1
 	MOVE.w	#$FE80, D0
 	BRA.w	loc_A900
+loc_A870:
 	MOVE.l	#$00010704, D1
 	MOVE.w	#$0180, D0
 	BRA.w	loc_A906
+loc_A87E:
 	MOVE.l	#$00010728, D1
 	MOVE.w	#$FE90, D0
 	BRA.b	loc_A900
+loc_A88A:
 	MOVE.l	#$0001074C, D1
 	MOVE.w	#$0170, D0
 	BRA.b	loc_A906
+loc_A896:
 	MOVE.l	#$00010770, D1
 	MOVE.w	#$FE90, D0
 	BRA.b	loc_A900
+loc_A8A2:
 	MOVE.l	#$00010794, D1
 	MOVE.w	#$0170, D0
 	BRA.b	loc_A906
+loc_A8AE:
 	MOVE.l	#$00010800, D1
 	MOVE.w	#$FE9C, D0
 	BRA.b	loc_A900
+loc_A8BA:
 	MOVE.l	#$00010824, D1
 	MOVE.w	#$0164, D0
 	BRA.b	loc_A906
+loc_A8C6:
 	MOVE.l	#$00010848, D1
 	MOVE.w	#$FE7C, D0
 	BRA.b	loc_A900
+loc_A8D2:
 	MOVE.l	#$0001086C, D1
 	MOVE.w	#$0184, D0
 	BRA.b	loc_A906
+loc_A8DE:
 	MOVE.l	#$000107DC, D1
 	MOVE.w	#$0168, D0
 	MOVE.w	#$6000, $C(A0)
 	BRA.b	loc_A906
+loc_A8F0:
 	MOVE.l	#$000107B8, D1
 	MOVE.w	#$FE98, D0
 	MOVE.w	#$6000, $C(A0)
@@ -12979,6 +12996,7 @@ loc_A906:
 	MOVE.l	#$000108B4, D1
 	MOVE.w	#$0128, D0
 	BRA.b	loc_A964
+loc_A944:
 	MOVE.l	#$0000A938, D1
 	MOVE.w	$1E(A0), D0
 	JSR	loc_8AE8
@@ -12997,6 +13015,7 @@ loc_A964:
 	JSR	(A1,D7.w)
 	JSR	loc_A9DE(PC)
 	BRA.w	loc_B24E
+loc_A99A:
 	MOVE.l	#$0000A9B0, (A0)
 	MOVE.l	#$000108D8, $8(A0)
 	MOVE.l	#$00FF5980, $30(A0)
@@ -13136,6 +13155,7 @@ loc_AB24:
 	MOVE.w	#$8000, D3
 	MOVEQ	#8, D7
 	BRA.b	loc_AB04
+loc_AB3E:
 	MOVE.l	#$0000AE9C, $FFFFB040.w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
@@ -13442,6 +13462,7 @@ loc_AF04:
 loc_AF1A:
 	RTS
 	dc.b	$00, $01, $F1, $01, $FF, $FE, $00, $00, $F1, $01, $FF, $FF, $00, $00
+loc_AF2A:
 	MOVE.l	#$0000AE9C, $FFFFB040.w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
@@ -13543,6 +13564,7 @@ loc_B072:
 loc_B098:
 	MOVE.w	D0, $2C(A0)
 	RTS
+loc_B09E:
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
 	MOVE.l	#$0000B182, $FFFFB000.w
