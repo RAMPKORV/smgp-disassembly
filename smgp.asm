@@ -316,17 +316,23 @@ loc_4B4:
 	dc.b	$04, $14, $30, $3C, $07, $6C, $00, $00, $00, $00, $FF, $00, $81, $37, $00, $01, $01, $00, $00, $FF, $FF, $00, $00, $80, $AF, $01, $D7, $1F, $11, $29, $00, $21
 	dc.b	$28, $00, $F9, $77, $ED, $B0, $DD, $E1, $FD, $E1, $ED, $47, $ED, $4F, $08, $D9, $F1, $C1, $D1, $E1, $08, $D9, $F1, $D1, $E1, $F9, $F3, $ED, $56, $36, $E9, $E9
 	dc.b	$9F, $BF, $DF, $FF
-loc_518:
+
+;loc_518:
+Divide_fractional:
+; Input D5 always swapped before call such that D5.high is the input and D5.low is always 0
+; Returns:
+; * D7.h = D5 / D6 (integer)
+; * D7.l = fraction (value/2^16)
 	MOVEQ	#0, D0
 	SWAP	D5
-	MOVE.w	D5, D0
-	DIVU.w	D6, D0
-	MOVE.w	D0, D7
+	MOVE.w	D5, D0 ; D0.l = D5
+	DIVU.w	D6, D0 ; D0.l = D5 / D6 (D0.h = remainder)
+	MOVE.w	D0, D7 ; D7.l = D5 / D6 (D7.h after swap)
 	SWAP	D5
-	MOVE.w	D5, D0
-	DIVU.w	D6, D0
-	SWAP	D7
-	MOVE.w	D0, D7
+	MOVE.w	D5, D0 ; D0.l = D5.l (always 0). So D0 = remainder << 16
+	DIVU.w	D6, D0 ; D0.l = remainder / D6
+	SWAP	D7     ; D7.h = D5 / D6
+	MOVE.w	D0, D7 ; D7.l = remainder / D6 (from $0000 to $FFFF)
 	RTS
 
 loc_52E:
@@ -7094,37 +7100,37 @@ loc_6224: ; Suspected: Level initialization
 loc_6270:
 	MOVEQ	#0, D7
 	MOVEQ	#0, D3
-	MOVE.w	D2, D3
+	MOVE.w	D2, D3 ; D2 = accumulated background displacement
 	MOVE.b	(A0)+, D6
 	BMI.b	loc_62BC
 	LSL.w	#8, D6
-	MOVE.b	(A0)+, D6
-	MOVE.b	(A0)+, D1
+	MOVE.b	(A0)+, D6 ; D6 = length
+	MOVE.b	(A0)+, D1 ; D1 = curve data
 	BEQ.b	loc_62A6
-	MOVEQ	#0, D5
-	MOVE.b	(A0)+, D5
-	LSL.w	#8, D5
-	MOVE.b	(A0)+, D5
+	MOVEQ	#0, D5    ; ...
+	MOVE.b	(A0)+, D5 ; ...
+	LSL.w	#8, D5    ; ...
+	MOVE.b	(A0)+, D5 ; D5 = background displacement
 	BTST.l	#6, D1
-	BEQ.b	loc_6294
+	BEQ.b	loc_6294 ; jump if right turn
 	SUB.w	D5, D2
 	BRA.b	loc_6296
 loc_6294:
 	ADD.w	D5, D2
 loc_6296:
 	SWAP	D5
-	JSR	loc_518
+	JSR	Divide_fractional ; D7 = D5 / D6 = displacement / length = displacement per step
 	BTST.l	#6, D1
-	BEQ.b	loc_62A6
+	BEQ.b	loc_62A6 ; jump if right turn
 	NEG.l	D7
 loc_62A6:
-	SUBQ.w	#1, D6
+	SUBQ.w	#1, D6 ; fix below loop count
 loc_62A8:
 	MOVE.b	D1, (A3)+ ; write decompressed curve data
-	SWAP	D3
-	ADD.l	D7, D3
-	SWAP	D3
-	ANDI.w	#$03FF, D3
+	SWAP	D3         ; ...
+	ADD.l	D7, D3     ; ...
+	SWAP	D3         ; D3 = D3+D7 with fractional addition
+	ANDI.w	#$03FF, D3 ; modulo 1024. So N=0, W=256, S=512, E=768
 	MOVE.w	D3, (A2)+ ; write decomperssed horizontal background displacement
 	DBF	D6, loc_62A8
 	BRA.b	loc_6270
@@ -8020,7 +8026,7 @@ loc_6C76:
 loc_6C82:
 	SWAP	D5
 	MOVE.w	#$0064, D6
-	JSR	loc_518
+	JSR	Divide_fractional
 	TST.b	D1
 	BEQ.b	loc_6C94
 	NEG.l	D7
@@ -8410,7 +8416,7 @@ loc_6FBA:
 	NEG.w	D5
 loc_6FD8:
 	SWAP	D5
-	JSR	loc_518
+	JSR	Divide_fractional
 	TST.b	D4
 	BEQ.b	loc_6FE6
 	NEG.l	D7

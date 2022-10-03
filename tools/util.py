@@ -110,12 +110,10 @@ def parse_curve_data(curve):
             break
         b2 = curve.pop()
         b3 = curve.pop()
-        if b3 != '$00':
-            curve.pop()
-            curve.pop()  # ignore background displacement
+        background_displacement = parse_signed_word(curve.pop(), curve.pop()) if b3 != '$00' else 0
         length = parse_signed_word(b1, b2)
         value = parse_curveslope_byte(b3)
-        rles += [(length, value)]
+        rles += [(length, value, background_displacement)]
 
     return rles
 
