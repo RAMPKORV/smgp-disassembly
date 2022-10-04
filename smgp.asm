@@ -2847,11 +2847,11 @@ loc_22F2:
 	MOVE.w	#2, $FFFFFF30.w
 	MOVE.w	#$003C, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
-	MOVE.l	#$00003D98, $FFFFFF10.w
+	MOVE.l	#loc_3D98, $FFFFFF10.w
 	RTS
 loc_2340:
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_2350:
 	SUBQ.w	#1, $FFFFFC00.w
@@ -2914,7 +2914,7 @@ loc_237C:
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_2476
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_2476:
 	TST.w	$FFFFFB08.w
@@ -3339,6 +3339,7 @@ loc_2920:
 	MOVE.b	#$FF, D0
 	BSR.w	loc_2FB0
 	RTS
+loc_293C:
 	BSET.b	#3, $FFFF900F.w
 	BRA.b	loc_2952
 	MOVE.w	#6, $FFFFFF4C.w
@@ -3821,8 +3822,8 @@ loc_30AC:
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	Player_team.w
 	JSR	loc_13016
-	MOVE.l	#$0000293C, $FFFFFF2A.w
-	MOVE.l	#$0000F2DE, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#loc_F2DE, $FFFFFF10.w
 	RTS
 loc_30E8:
 	MOVE.w	#3, $FFFF9000.w
@@ -3835,12 +3836,12 @@ loc_30F0:
 	RTS
 loc_3106:
 	BSET.b	#7, Player_team.w
-	MOVE.l	#$0000293C, $FFFFFF2A.w
-	MOVE.l	#$0000D2B0, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#loc_D2B0, $FFFFFF10.w
 	RTS
 loc_311E:
-	MOVE.l	#$0000293C, $FFFFFF2A.w
-	MOVE.l	#$000032E0, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#loc_32E0, $FFFFFF10.w
 	RTS
 loc_3130:
 	dc.w	loc_300E
@@ -3947,11 +3948,13 @@ loc_32CC:
 	MOVE.w	Shift_type.w, $FFFFFF4A.w
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 	RTS
+loc_32E0:
 	JSR	loc_8C0
 	JSR	loc_62E
 	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFFFC1C.w
 	BRA.b	loc_3306
+loc_32FA:
 	JSR	loc_8C0
 	JSR	loc_62E
 loc_3306:
@@ -4259,6 +4262,7 @@ loc_3748:
 	JSR	loc_3A2(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+loc_3800:
 	JSR	loc_8C0(PC)
 	JSR	loc_656(PC)
 	MOVE.w	#$8238, VDP_control_port
@@ -4675,6 +4679,7 @@ loc_3D32:
 	MOVE.l	#$0000CCE0, $FFFFFF10.w
 loc_3D96:
 	RTS
+loc_3D98:
 	JSR	loc_8C0(PC)
 	JSR	loc_656(PC)
 	JSR	loc_3C16(PC)
@@ -4781,7 +4786,7 @@ loc_3F0E:
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_3F30
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_3F30:
 	MOVE.w	$FFFFFC68.w, D1
@@ -4824,7 +4829,7 @@ loc_3F8E:
 	MOVE.l	#$00005690, D0
 	TST.w	Practice_mode.w
 	BNE.b	loc_3FB0
-	MOVE.l	#$0000293C, D0
+	MOVE.l	#loc_293C, D0
 loc_3FB0:
 	MOVE.b	Input_state_bitset.w, D1
 	ANDI.w	#$0070, D1 ; Keys A+B+C pressed
@@ -4994,6 +4999,7 @@ loc_42F2:
 	MOVE.l	D0, $FFFFFF10.w
 loc_42F6:
 	RTS
+loc_42F8:
 	JSR	loc_8C0
 	JSR	loc_75C4A
 	JSR	loc_62E
@@ -5310,7 +5316,7 @@ loc_47CA:
 	JSR	loc_48C0(PC)
 	JSR	loc_4886(PC)
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 loc_481C:
 	RTS
 
@@ -5603,7 +5609,7 @@ loc_4B5A:
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_4BA2
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_4BA2:
 	SUBQ.w	#1, $FFFFFC2C.w
@@ -5982,6 +5988,7 @@ loc_4FCE:
 	MOVE.l	#loc_4F5C, (A0)
 	MOVE.w	#$0078, $36(A0)
 	RTS
+loc_4FDC:
 	JSR	loc_8C0
 	JSR	loc_62E
 	JSR	loc_F16
@@ -6294,14 +6301,14 @@ loc_562A:
 	BNE.b	loc_5672
 	ANDI.b	#6, D1
 	BNE.b	loc_5678
-	MOVE.l	#$00003800, $FFFFFF2A.w
-	MOVE.l	#$000032FA, $FFFFFF10.w
+	MOVE.l	#loc_3800, $FFFFFF2A.w
+	MOVE.l	#loc_32FA, $FFFFFF10.w
 	CLR.w	$FFFFFF4C.w
 loc_5660:
 	RTS
 loc_5662:
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_5672:
 	ADDQ.w	#1, $FFFFFF28.w
@@ -7085,7 +7092,7 @@ loc_61F0:
 loc_61F6:
 	MOVE.b	D7, $FFFF910A.w
 	RTS
-loc_61FC:
+loc_61FC: ; Suspected backwindow tile mappings
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008
 
 loc_6224: ; Suspected: Level initialization
@@ -9750,7 +9757,7 @@ loc_803E:
 	BEQ.b	loc_804A
 	JMP	loc_EF0
 loc_804A:
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_8054:
 	MOVE.l	#loc_8060, (A0)
@@ -12748,19 +12755,19 @@ loc_A502:
 loc_A526:
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_A564
-	MOVE.l	#$0000293C, D1
+	MOVE.l	#loc_293C, D1
 	TST.w	Warm_up.w
 	BNE.b	loc_A560
-	MOVE.l	#$000042F8, D1
+	MOVE.l	#loc_42F8, D1
 	MOVE.w	Track_index_arcade_mode.w, D0
 	BEQ.b	loc_A560
-	MOVE.l	#$0000BD56, D1
+	MOVE.l	#loc_BD56, D1
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_A560
-	MOVE.l	#$0000E0D4, D1
+	MOVE.l	#loc_E0D4, D1
 	SUBQ.w	#1, D0
 	BEQ.b	loc_A560
-	MOVE.l	#$0000DBBE, D1
+	MOVE.l	#loc_DBBE, D1
 loc_A560:
 	MOVE.l	D1, $FFFFFF10.w
 loc_A564:
@@ -14339,7 +14346,7 @@ loc_BA3C:
 loc_BA56:
 	BCLR.b	#5, Rival_team.w
 	MOVE.w	#$000A, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF2A.w
+	MOVE.l	#loc_293C, $FFFFFF2A.w
 	RTS
 loc_BA6C:
 	BTST.b	#3, $FFFFFC1A.w
@@ -14430,7 +14437,7 @@ loc_BBB6:
 	BNE.b	loc_BBD4
 loc_BBC4:
 	MOVE.w	#$000A, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF2A.w
+	MOVE.l	#loc_293C, $FFFFFF2A.w
 	RTS
 loc_BBD4:
 	MOVE.b	Player_team.w, D0
@@ -15583,7 +15590,7 @@ loc_CC3A:
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_CC50
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 loc_CC50:
 	RTS
 loc_CC52:
@@ -16049,6 +16056,7 @@ loc_D2A2:
 loc_D2AA:
 	CLR.l	$FFFFB840.w
 	RTS
+loc_D2B0:
 	JSR	loc_8C0
 	JSR	loc_62E
 	JSR	loc_F16
@@ -16268,9 +16276,10 @@ loc_D6C8:
 	BEQ.b	loc_D6E0
 loc_D6D2:
 	MOVE.w	#2, $FFFF9000.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 loc_D6E0:
 	RTS
+loc_D6E2:
 	JSR	loc_8C0
 	JSR	loc_62E
 	JSR	loc_F16
@@ -16576,7 +16585,8 @@ loc_DBA8:
 loc_DBB4:
 	RTS
 loc_DBB6:
-	dc.w	$0006, $FFFA, $FFFE, $0002
+	dc.w	6, -6, -2, 2
+loc_DBBE:
 	JSR	loc_8C0
 	JSR	loc_75C4A
 	JSR	loc_62E
@@ -16900,6 +16910,7 @@ loc_E0CC:
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 loc_E0D2:
 	RTS
+loc_E0D4:
 	JSR	loc_8C0
 	JSR	loc_75C4A
 	JSR	loc_62E
@@ -17701,7 +17712,7 @@ loc_ED1E:
 	ANDI.b	#$F0, D0
 	BEQ.w	loc_EAE2
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#$0000293C, $FFFFFF10.w
+	MOVE.l	#loc_293C, $FFFFFF10.w
 	RTS
 loc_ED3A:
 	dc.l	loc_EB2C
@@ -18087,6 +18098,7 @@ loc_F262:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+loc_F2DE:
 	BSR.w	loc_F336
 	MOVE.l	#$0000F264, $FFFFB840.w
 	MOVE.w	#1, $FFFFB84E.w
@@ -21276,9 +21288,9 @@ loc_1319E:
 	MOVE.l	$FFFFFF2A.w, D0
 	CMPI.l	#$0000D6E2, D0
 	BEQ.b	loc_131E8
-	CMPI.l	#$0000293C, D0
+	CMPI.l	#loc_293C, D0
 	BEQ.b	loc_131E2
-	CMPI.l	#$00004FDC, D0
+	CMPI.l	#loc_4FDC, D0
 	BEQ.b	loc_131DC
 	MOVE.b	#4, (A1)+
 	BRA.b	loc_131EC
@@ -21343,13 +21355,13 @@ loc_1324A:
 	MOVE.l	#0, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_13284:
-	MOVE.l	#$00004FDC, $FFFFFF2A.w
+	MOVE.l	#loc_4FDC, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_1328E:
-	MOVE.l	#$0000293C, $FFFFFF2A.w
+	MOVE.l	#loc_293C, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_13298:
-	MOVE.l	#$0000D6E2, $FFFFFF2A.w
+	MOVE.l	#loc_D6E2, $FFFFFF2A.w
 loc_132A0:
 	RTS
 
