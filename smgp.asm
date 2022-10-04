@@ -1372,15 +1372,16 @@ loc_F3C:
 	CLR.l	(A1)+
 	DBF	D0, loc_F3C
 	RTS
-	MOVE.l	#$00000EEA, (A0)
-	MOVE.l	#$00000FA4, $4(A0)
+	MOVE.l	#loc_EEA, (A0)
+	MOVE.l	#loc_FA4, $4(A0)
 	MOVE.w	#$0091, $E(A0)
 	MOVE.w	#$00C8, $16(A0)
 	MOVE.w	#$0100, $18(A0)
 	BRA.b	loc_EEA
-	MOVE.l	#$00000F7A, (A0)
-	MOVE.l	#$00000FBE, $4(A0)
+	MOVE.l	#loc_F7A, (A0)
+	MOVE.l	#loc_FBE, $4(A0)
 	MOVE.w	#$0100, $18(A0)
+loc_F7A:
 	MOVE.w	$1A(A0), D0
 	BNE.b	loc_F82
 	RTS
@@ -1394,8 +1395,11 @@ loc_F82:
 	MOVE.w	D1, $16(A0)
 	MOVE.w	loc_FCC(PC,D0.w), $E(A0)
 	JMP	loc_EF0(PC)
-	dc.b	$00, $03, $B2, $03, $FF, $FE, $00, $00, $B2, $03, $FF, $FF, $00, $00, $FA, $03, $FF, $FE, $00, $00, $FA, $03, $FF, $FF, $00, $00, $00, $01, $E0, $03, $FF, $FE
-	dc.b	$00, $00, $E0, $03, $FF, $FF, $00, $00
+loc_FA4:
+	dc.b	$00, $03, $B2, $03, $FF, $FE, $00, $00, $B2, $03, $FF, $FF, $00, $00
+	dc.b	$FA, $03, $FF, $FE, $00, $00, $FA, $03, $FF, $FF, $00, $00
+loc_FBE:
+	dc.b	$00, $01, $E0, $03, $FF, $FE, $00, $00, $E0, $03, $FF, $FF, $00, $00
 loc_FCC:
 	dc.b	$00, $13
 	dc.w	$0026, $0034, $0040, $0049, $0051
@@ -3312,11 +3316,12 @@ loc_28D8:
 	LEA	$40(A0), A0
 	BRA.b	loc_28D8
 loc_28E2:
-	MOVE.l	#$00002900, $0(A0)
+	MOVE.l	#loc_2900, $0(A0)
 	MOVE.w	#$0210, $18(A0)
-	MOVE.l	#$00002C60, $4(A0)
+	MOVE.l	#loc_2C60, $4(A0)
 	MOVE.w	#$001E, $FFFFFC00.w
 	RTS
+loc_2900:
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, $18(A0)
 	JMP	loc_EF0
@@ -3516,9 +3521,10 @@ loc_2C3C:
 	dc.w	$0A88, $0CCC, $0AAA, $0666, $0A88, $0620, $0AAA, $0AEE, $00CE
 loc_2C4E:
 	dc.w	$0EEE, $0AAA, $0622, $0400, $0EEE, $0AAA, $0622, $0A66, $0622
+loc_2C60:
 	dc.b	$00, $07, $E0, $0F, $02, $0D, $FF, $B0, $E0, $0F, $02, $1D, $FF, $D0, $E0, $0F, $02, $2D, $FF, $F0, $E0, $0F, $02, $3D, $00, $10, $E0, $0F, $02, $4D, $00, $30
 	dc.b	$D0, $0D, $02, $5D, $FF, $E8, $D0, $0D, $02, $65, $00, $08, $D0, $09, $02, $6D, $00, $38
-	MOVE.l	#$000127D0, $4(A0)
+	MOVE.l	#loc_127D0, $4(A0)
 	MOVE.w	#$0148, $16(A0)
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$00A1, $E(A0)
@@ -4092,12 +4098,13 @@ loc_35A2:
 	dc.w	$0080
 	dc.w	$00E8
 	dc.w	$0150
-	MOVE.l	#$000035C8, (A0)
-	MOVE.l	#$00012912, $4(A0)
+	MOVE.l	#loc_35C8, (A0)
+	MOVE.l	#loc_12912, $4(A0)
 	MOVE.w	#$0140, $16(A0)
 	MOVE.w	Shift_type.w, D0
 	ADD.w	D0, D0
 	MOVE.w	loc_35A2(PC,D0.w), $18(A0)
+loc_35C8:
 	MOVE.w	$2A(A0), D0
 	BEQ.b	loc_35E6
 	MOVEQ	#0, D1
@@ -4296,7 +4303,7 @@ loc_38AE:
 	LEA	$FFFFB440.w, A0
 	MOVEQ	#$0000000F, D1
 loc_38E0:
-	MOVE.l	#$0000A566, (A0)
+	MOVE.l	#loc_A566, (A0)
 	LEA	$40(A0), A0
 	DBF	D1, loc_38E0
 	MOVE.l	#$00007AAE, $FFFFAE00.w
@@ -4310,7 +4317,7 @@ loc_38E0:
 	NEG.w	D0
 	MOVE.w	D0, $FFFF9204.w
 	LEA	$FFFFB080.w, A0
-	MOVE.l	#$00008C9E, (A0)
+	MOVE.l	#loc_8C9E, (A0)
 	MOVE.w	D0, $12(A0)
 	MOVE.w	$FFFF9206.w, D0
 	SUBI.w	#$0024, D0
@@ -4472,7 +4479,7 @@ loc_3AF4:
 	MOVE.w	D1, $FFFFFC18.w
 	BRA.b	loc_3B56
 loc_3B02:
-	MOVE.l	#$00008C74, (A0)
+	MOVE.l	#loc_8C74, (A0)
 	MOVE.w	D1, $1A(A0)
 	MOVE.w	D0, $12(A0)
 	MOVE.b	(A1)+, D7
@@ -4508,7 +4515,7 @@ loc_3B56:
 	CMPI.w	#$0010, D3
 	BNE.w	loc_3AC6
 	LEA	$FFFFB080.w, A0
-	MOVE.l	#$00009138, (A0)
+	MOVE.l	#loc_9138, (A0)
 	MOVE.w	$FFFFFC0C.w, $12(A0)
 	MOVE.w	$FFFFFC10.w, $1A(A0)
 	MOVE.w	$FFFFFC14.w, Horizontal_position.w
@@ -5939,13 +5946,15 @@ loc_4F52:
 	MOVE.w	D5, (A5)
 	RTS
 	MOVE.w	#8, $2A(A0)
+loc_4F5C:
 	SUBQ.w	#1, $36(A0)
 	BMI.b	loc_4F64
 	RTS
 loc_4F64:
-	MOVE.l	#$00004F74, (A0)
+	MOVE.l	#loc_4F74, (A0)
 	MOVE.w	#$0100, $C(A0)
 	CLR.w	$E(A0)
+loc_4F74:
 	ADDQ.w	#1, $E(A0)
 	MOVE.w	$E(A0), D0
 	CMPI.w	#$00A1, D0
@@ -5968,7 +5977,7 @@ loc_4F90:
 	MOVE.l	(A1,D0.w), $4(A0)
 	JMP	loc_EF0
 loc_4FCE:
-	MOVE.l	#$00004F5C, (A0)
+	MOVE.l	#loc_4F5C, (A0)
 	MOVE.w	#$0078, $36(A0)
 	RTS
 	JSR	loc_8C0
@@ -9099,8 +9108,9 @@ loc_7782:
 	MOVE.w	#$8000, D3
 	LEA	$10(A3), A3
 	JSR	loc_15D6
-	MOVE.l	#$000077A6, (A0)
+	MOVE.l	#loc_77A6, (A0)
 	MOVE.w	#$000E, $1C(A0)
+loc_77A6:
 	TST.w	$FFFFFCAC.w
 	BEQ.b	loc_77B4
 	CLR.w	$1A(A0)
@@ -9280,19 +9290,20 @@ loc_79EE:
 	dc.w	$0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $A7CF, $A7DB, $A7D8, $A7D6, $0000, $A7DB, $A7D2, $A7DF, $A7CA, $A7D5
 loc_7A16:
 	dc.w	$0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $A7DD, $A7D8, $0000, $A7DB, $A7D2, $A7DF, $A7CA, $A7D5, $0000, $0000
-	MOVE.l	#$00007A70, (A0)
-	MOVE.l	#$000129AE, $4(A0)
+	MOVE.l	#loc_7A70, (A0)
+	MOVE.l	#loc_129AE, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$0178, $16(A0)
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$FFFF, $28(A0)
 	MOVE.w	#1, $FFFFFCA4.w
 	MOVE.w	#2, $38(A0)
+loc_7A70:
 	SUBQ.w	#2, $18(A0)
 	SUBQ.w	#1, $16(A0)
 	CMPI.w	#$0160, $16(A0)
 	BNE.b	loc_7A94
-	MOVE.l	#$00007AF0, (A0)
+	MOVE.l	#loc_7AF0, (A0)
 	MOVE.w	#2, $FFFFFCA4.w
 	CLR.w	$38(A0)
 	CLR.w	$FFFFFCA6.w
@@ -9303,8 +9314,8 @@ loc_7A94:
 loc_7AA4:
 	JSR	loc_EF0
 	BRA.w	loc_7CDE
-	MOVE.l	#$00007AF0, (A0)
-	MOVE.l	#$000129AE, $4(A0)
+	MOVE.l	#loc_7AF0, (A0)
+	MOVE.l	#loc_129AE, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$0160, $16(A0)
 	MOVE.w	#$0100, $18(A0)
@@ -9315,6 +9326,7 @@ loc_7AA4:
 	MOVE.w	#$FFFF, $28(A0)
 	MOVE.w	#$FFFF, $FFFF9232.w
 	MOVE.w	#$FFFF, $FFFF9234.w
+loc_7AF0:
 	TST.w	$FFFFFC80.w
 	BNE.w	loc_7B82
 	MOVE.w	$1E(A0), $FFFF8F80.w
@@ -9544,9 +9556,10 @@ loc_7D4C:
 	JSR	loc_7E14(PC)
 loc_7D78:
 	RTS
-	MOVE.l	#$00007D8C, (A0)
+	MOVE.l	#loc_7D8C, (A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$FFFF, $28(A0)
+loc_7D8C:
 	LEA	$FFFFAE00.w, A3
 	MOVE.w	$16(A3), $16(A0)
 	MOVE.w	$18(A3), $18(A0)
@@ -9554,11 +9567,12 @@ loc_7D78:
 	LEA	$FFFFFCD8.w, A2
 	MOVE.w	$28(A3), D0
 	BRA.b	loc_7DF4
-	MOVE.l	#$00007DCA, (A0)
+	MOVE.l	#loc_7DCA, (A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0128, $16(A0)
 	MOVE.w	#$0090, $18(A0)
 	MOVE.w	#$FFFF, $28(A0)
+loc_7DCA:
 	MOVE.w	Visual_rpm.w, D0
 	CMPI.w	#Engine_rpm_max, D0 ; ...
 	BCS.b	loc_7DD8            ; if D0 >= max
@@ -9601,12 +9615,13 @@ loc_7E28:
 	BRA.b	loc_7E38
 	MOVE.w	#$0138, $18(A0)
 loc_7E38:
-	MOVE.l	#$00007E5E, (A0)
-	MOVE.l	#$00012652, $4(A0)
+	MOVE.l	#loc_7E5E, (A0)
+	MOVE.l	#loc_12652, $4(A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0170, $16(A0)
 	MOVE.w	#$000F, $30(A0)
 	MOVE.w	#1, Retire_flash_flag.w
+loc_7E5E:
 	SUBI.l	#$0000F000, $30(A0)
 	MOVE.w	$30(A0), D0
 	SUB.w	D0, $16(A0)
@@ -9624,7 +9639,7 @@ loc_7E38:
 	CMPI.w	#3, D0
 	BCS.b	loc_7EB0
 	CLR.w	Retire_flash_flag.w
-	MOVE.l	#$00007FA8, (A0)
+	MOVE.l	#loc_7FA8, (A0)
 	CLR.w	$36(A0)
 	MOVE.w	#3, $34(A0)
 loc_7EB0:
@@ -9642,23 +9657,25 @@ loc_7EB0:
 	JSR	loc_7E14(PC)
 loc_7EDC:
 	JMP	loc_EF0
-	MOVE.l	#$00010640, $8(A0)
+	MOVE.l	#loc_10640, $8(A0)
 	MOVE.w	#$00F0, $18(A0)
 	MOVE.w	#$FFF9, $2E(A0)
 	BRA.b	loc_7F0C
-	MOVE.l	#$00010648, $8(A0)
+	MOVE.l	#loc_10648, $8(A0)
 	MOVE.w	#$0110, $18(A0)
 	MOVE.w	#7, $2E(A0)
 loc_7F0C:
-	MOVE.l	#$00007F26, (A0)
+	MOVE.l	#loc_7F26, (A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0178, $16(A0)
 	MOVE.w	#6, $2C(A0)
 	RTS
-	MOVE.l	#$00007F3A, (A0)
+loc_7F26:
+	MOVE.l	#loc_7F3A, (A0)
 	LEA	loc_12A61, A1
 	LEA	$FFFFFCF0.w, A2
 	JSR	loc_7E14(PC)
+loc_7F3A:
 	MOVE.w	$2C(A0), D0
 	SUB.w	D0, $16(A0)
 	MOVE.w	$2E(A0), D0
@@ -9690,6 +9707,7 @@ loc_7F8E:
 	JMP	loc_EF0
 loc_7FA2:
 	JMP	loc_F38
+loc_7FA8:
 	MOVE.w	#1, $FFFFFC6E.w
 	MOVE.w	#1, $FFFFFC80.w
 	CLR.w	$00FF5AC6
@@ -9711,8 +9729,9 @@ loc_7FEC:
 	MOVE.l	#loc_EF0, (A0)
 	JMP	loc_EF0
 loc_8004:
-	MOVE.l	#$00008010, (A0)
+	MOVE.l	#loc_8010, (A0)
 	MOVE.w	#$001E, $36(A0)
+loc_8010:
 	SUBQ.w	#1, $36(A0)
 	BEQ.b	loc_801C
 	JMP	loc_EF0
@@ -9722,8 +9741,9 @@ loc_801C:
 	MOVE.l	#$000042F8, $FFFFFF10.w
 	RTS
 loc_8032:
-	MOVE.l	#$0000803E, (A0)
+	MOVE.l	#loc_803E, (A0)
 	MOVE.w	#$001E, $36(A0)
+loc_803E:
 	SUBQ.w	#1, $36(A0)
 	BEQ.b	loc_804A
 	JMP	loc_EF0
@@ -9731,16 +9751,18 @@ loc_804A:
 	MOVE.l	#$0000293C, $FFFFFF10.w
 	RTS
 loc_8054:
-	MOVE.l	#$00008060, (A0)
+	MOVE.l	#loc_8060, (A0)
 	MOVE.w	#$001E, $36(A0)
+loc_8060:
 	SUBQ.w	#1, $36(A0)
 	BEQ.b	loc_806C
 	JMP	loc_EF0
 loc_806C:
 	MOVE.l	#$00005690, $FFFFFF10.w
 	RTS
-	MOVE.l	#$00008082, (A0)
+	MOVE.l	#loc_8082, (A0)
 	MOVE.w	#$0028, $36(A0)
+loc_8082:
 	MOVE.b	$FFFFFC20.w, D0
 	ANDI.w	#1, D0
 	ADDQ.w	#1, D0
@@ -10021,13 +10043,13 @@ loc_8344:
 	BEQ.b	loc_8370
 	MOVEA.w	D0, A4
 	LEA	$400(A4), A4
-	MOVE.l	#$000127C8, $4(A4)
+	MOVE.l	#loc_127C8, $4(A4)
 loc_8370:
 	LEA	-$1E(A6), A6
 	MOVE.w	A6, $FFFFFC90.w
 	LEA	(A6), A4
 	LEA	$400(A4), A4
-	MOVE.l	#$000127C0, $4(A4)
+	MOVE.l	#loc_127C0, $4(A4)
 loc_8386:
 	CMP.w	$FFFFFF34.w, D1
 	BEQ.b	loc_8398
@@ -10122,12 +10144,12 @@ loc_8490:
 	BEQ.b	loc_84AC
 	MOVEA.w	D0, A4
 	LEA	$400(A4), A4
-	MOVE.l	#$000127C8, $4(A4)
+	MOVE.l	#loc_127C8, $4(A4)
 loc_84AC:
 	LEA	-$1E(A6), A6
 	MOVE.w	A6, $FFFFFC90.w
 	LEA	$400(A6), A6
-	MOVE.l	#$000127C0, $4(A6)
+	MOVE.l	#loc_127C0, $4(A6)
 	MOVE.w	D1, $FFFFFF34.w
 	TST.w	$FFFFFCBC.w
 	BNE.b	loc_84E2
@@ -10212,10 +10234,11 @@ loc_8594:
 	BNE.b	loc_85A4
 	MOVE.w	#1, $FFFFFC58.w
 loc_85A4:
-	MOVE.l	#$000085B8, (A0)
+	MOVE.l	#loc_85B8, (A0)
 	MOVE.w	#$000E, $1C(A0)
 	CLR.w	$22(A0)
 	CLR.w	$1A(A0)
+loc_85B8:
 	TST.w	$FFFFFCAC.w
 	BEQ.b	loc_85C6
 	CLR.w	$1A(A0)
@@ -10720,15 +10743,18 @@ loc_8C5E:
 	MOVE.l	A0, $30(A1)
 loc_8C70:
 	BRA.w	loc_8BA2
-	MOVE.l	#$00008C98, (A0)
+loc_8C74:
+	MOVE.l	#loc_8C98, (A0)
 	MOVE.w	$12(A0), $36(A0)
 	MOVE.w	$1A(A0), $1E(A0)
 	MOVE.w	#$FFFF, $22(A0)
 	MOVE.b	#3, $24(A0)
 	MOVE.b	#1, $3C(A0)
+loc_8C98:
 	JSR	loc_9710(PC)
 	BRA.b	loc_8CC0
-	MOVE.l	#$00008CC0, (A0)
+loc_8C9E:
+	MOVE.l	#loc_8CC0, (A0)
 	MOVE.w	$12(A0), $36(A0)
 	MOVE.w	$1A(A0), $1E(A0)
 	MOVE.w	#$FFFF, $22(A0)
@@ -11144,6 +11170,7 @@ loc_912C:
 loc_9132:
 	MOVE.w	D0, $12(A0)
 	RTS
+loc_9138:
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LSR.w	#2, D0
@@ -11194,11 +11221,12 @@ loc_91B2:
 	MOVE.w	#$0032, $26(A0)
 	MOVE.b	#$FF, $3C(A0)
 loc_91DA:
-	MOVE.l	#$000091F8, (A0)
+	MOVE.l	#loc_91F8, (A0)
 	MOVE.w	$12(A0), $36(A0)
 	MOVE.w	$1A(A0), $1E(A0)
 	MOVE.w	#$FFFF, $22(A0)
 	MOVE.b	#3, $24(A0)
+loc_91F8:
 	JSR	loc_9710(PC)
 	TST.b	$3C(A0)
 	BEQ.b	loc_9206
@@ -12189,11 +12217,12 @@ loc_9D10:
 	MOVEQ	#3, D1
 	MOVEQ	#2, D2
 loc_9D1A:
-	MOVE.l	#$00009D32, (A0)
+	MOVE.l	#loc_9D32, (A0)
 	MOVE.b	#1, $24(A0)
 	MOVE.l	D0, $8(A0)
 	MOVE.w	D1, $2C(A0)
 	MOVE.w	D2, $2E(A0)
+loc_9D32:
 	MOVE.w	$FFFFFC80.w, D0
 	OR.w	Retire_flag.w, D0
 	BNE.b	loc_9CCA
@@ -12272,7 +12301,7 @@ loc_9E06:
 	BEQ.b	loc_9E26
 	MOVE.l	#$00002592, $1E(A0)
 loc_9E26:
-	MOVE.l	#$00009E52, (A0)
+	MOVE.l	#loc_9E52, (A0)
 	MOVE.w	#$FFE2, $2C(A0)
 	MOVE.w	#$0180, $2E(A0)
 	MOVE.w	#$0082, $22(A0)
@@ -12364,7 +12393,7 @@ loc_9F08:
 loc_9F0E:
 	LEA	loc_A36E(PC), A1
 loc_9F12:
-	MOVE.l	#$00009F40, (A0)
+	MOVE.l	#loc_9F40, (A0)
 	MOVE.l	(A1)+, $8(A0)
 	MOVE.l	(A1)+, $1E(A0)
 	MOVE.w	#$0015, $22(A0)
@@ -12374,6 +12403,7 @@ loc_9F12:
 	MOVE.w	(A1)+, $10(A0)
 	MOVE.w	(A1)+, $2E(A0)
 	MOVE.w	(A1)+, $2A(A0)
+loc_9F40:
 	TST.w	$FFFFFCB6.w
 	BEQ.b	loc_9F4C
 	JMP	loc_EF0
@@ -12492,10 +12522,11 @@ loc_A0BC:
 	LEA	loc_A3FA(PC), A6
 	MOVE.w	(A6,D0.w), D0
 	RTS
-	MOVE.l	#$0000A0E6, (A0)
-	MOVE.l	#$000105B0, $8(A0)
+	MOVE.l	#loc_A0E6, (A0)
+	MOVE.l	#loc_105B0, $8(A0)
 	MOVE.b	#1, $24(A0)
 	MOVE.w	#9, $36(A0)
+loc_A0E6:
 	MOVE.w	$FFFFFC80.w, D0
 	OR.w	Retire_flag.w, D0
 	BNE.b	loc_A12C
@@ -12556,14 +12587,15 @@ loc_A172:
 	BEQ.b	loc_A17C
 	RTS
 loc_A17C:
-	MOVE.l	#$0000A1AA, (A0)
-	MOVE.l	#$000108FC, $8(A0)
+	MOVE.l	#loc_A1AA, (A0)
+	MOVE.l	#loc_108FC, $8(A0)
 	MOVE.w	#4, $1A(A0)
 	MOVE.b	#1, $24(A0)
 	LEA	$FFFFE980.w, A1
 	MOVE.w	#$044E, $14(A1)
 	MOVE.w	#$06AE, $18(A1)
 	CLR.w	$FFFFFF50.w
+loc_A1AA:
 	MOVE.w	Horizontal_position.w, D0
 	SUBI.w	#$0060, D0
 	SMI	D7
@@ -12595,7 +12627,7 @@ loc_A1C8:
 	CMP.w	$12(A0), D0
 	BLE.b	loc_A226
 	MOVE.w	#1, $FFFFFF50.w
-	MOVE.l	#$0000A228, (A0)
+	MOVE.l	#loc_A228, (A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#5, $2E(A0)
 	SUBI.w	#$0018, D1
@@ -12604,6 +12636,7 @@ loc_A1C8:
 	NEG.w	$2E(A0)
 loc_A226:
 	RTS
+loc_A228:
 	SUBQ.w	#2, $E(A0)
 	BPL.b	loc_A234
 	JMP	loc_F38
@@ -12730,15 +12763,16 @@ loc_A560:
 	MOVE.l	D1, $FFFFFF10.w
 loc_A564:
 	RTS
+loc_A566:
 	MOVE.l	#loc_A5D4, (A0)
-	MOVE.l	#$000127C8, D0
+	MOVE.l	#loc_127C8, D0
 	MOVE.w	#$FC00, D1
 	CMPA.w	#$B440, A0
 	BNE.b	loc_A592
 	MOVE.l	#$000127B8, D0
 	MOVE.w	#$F9C0, D1
 	MOVE.w	#$009F, $FFFFFC2E.w
-	MOVE.l	#$0000A5DC, (A0)
+	MOVE.l	#loc_A5DC, (A0)
 loc_A592:
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_A5AA
@@ -12746,7 +12780,7 @@ loc_A592:
 	BEQ.b	loc_A5AA
 	CMPA.w	#$B480, A0
 	BNE.b	loc_A5AA
-	MOVE.l	#$000127C0, D0
+	MOVE.l	#loc_127C0, D0
 loc_A5AA:
 	TST.l	(A0,D1.w)
 	BNE.b	loc_A5B6
@@ -12841,7 +12875,7 @@ loc_A6BA:
 loc_A6DC:
 	JMP	loc_146C
 	MOVE.l	#loc_A716, (A0)
-	MOVE.l	#$000126EC, $4(A0)
+	MOVE.l	#loc_126EC, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$00FD, $16(A0)
 	MOVE.w	#$0084, $18(A0)
@@ -12873,7 +12907,7 @@ loc_A74C:
 loc_A764:
 	JMP	loc_EF0
 loc_A76A:
-	MOVE.l	#$00012730, $4(A0)
+	MOVE.l	#loc_12730, $4(A0)
 	MOVE.w	$2C(A0), D0
 	CMPI.w	#4, D0
 	BCS.b	loc_A77E
@@ -12889,7 +12923,7 @@ loc_A788:
 	MOVE.l	#loc_A7BA, (A0)
 	BRA.b	loc_A764
 loc_A79C:
-	MOVE.l	#$00012774, $4(A0)
+	MOVE.l	#loc_12774, $4(A0)
 	MOVE.w	$2C(A0), D0
 	CMPI.w	#4, D0
 	BCS.b	loc_A7B0
@@ -12906,7 +12940,7 @@ loc_A7BA:
 	CLR.w	$FFFFFC34.w
 	JMP	loc_F38
 loc_A7D2:
-	MOVE.l	#$000126EC, $4(A0)
+	MOVE.l	#loc_126EC, $4(A0)
 	SUBQ.w	#1, $2C(A0)
 	BNE.b	loc_A764
 	MOVE.w	#$000A, $2C(A0)
@@ -13032,7 +13066,7 @@ loc_A980:
 	BRA.w	loc_B24E
 loc_A99A:
 	MOVE.l	#loc_A9B0, (A0)
-	MOVE.l	#$000108D8, $8(A0)
+	MOVE.l	#loc_108D8, $8(A0)
 	MOVE.l	#$00FF5980, $30(A0)
 loc_A9B0:
 	JSR	loc_AAEA(PC)
@@ -13241,14 +13275,14 @@ loc_AC28:
 	RTS
 loc_AC2E:
 	MOVE.w	#2, $FFFF923A.w
-	MOVE.l	#$00010920, $8(A0)
+	MOVE.l	#loc_10920, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	loc_AE7E(PC)
 	BRA.b	loc_AC5E
 loc_AC48:
 	TST.w	D1
 	BMI.b	loc_AC5E
-	MOVE.l	#$00010944, $8(A0)
+	MOVE.l	#loc_10944, $8(A0)
 	CLR.w	$2A(A0)
 	JSR	loc_AE7E(PC)
 	BRA.b	loc_ABFC
@@ -13332,14 +13366,14 @@ loc_AD38:
 	RTS
 loc_AD3A:
 	CLR.w	$FFFF923A.w
-	MOVE.l	#$00010944, $8(A0)
+	MOVE.l	#loc_10944, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	loc_AE7E(PC)
 	BRA.b	loc_AD6A
 loc_AD52:
 	TST.w	D1
 	BMI.b	loc_AD6A
-	MOVE.l	#$00010920, $8(A0)
+	MOVE.l	#loc_10920, $8(A0)
 	CLR.w	$2A(A0)
 	JSR	loc_AE7E(PC)
 	BRA.w	loc_ACDC
@@ -13561,9 +13595,10 @@ loc_B032:
 	MOVE.w	#$0442, D6
 	BRA.w	loc_B1C2
 loc_B04C:
-	MOVE.l	#$0000B05E, (A0)
+	MOVE.l	#loc_B05E, (A0)
 	ADDI.w	#$00A2, $1E(A0)
 	MOVE.w	#$FFFF, $FFFF923C.w
+loc_B05E:
 	JSR	loc_AAEA(PC)
 	CMPI.w	#4, D7
 	BEQ.b	loc_B072
@@ -14415,8 +14450,10 @@ loc_BC10:
 	MOVE.w	#$000E, $FFFFFF4C.w
 	MOVE.l	#$0000E94C, $FFFFFF10.w
 	RTS
+loc_BC20:
 	CMPI.w	#$FFFF, $1E(A0)
 	BEQ.b	loc_BC3E
+loc_BC28:
 	SUBQ.w	#1, $1E(A0)
 	BNE.b	loc_BC3E
 	MOVEA.l	$1A(A0), A1
@@ -14447,7 +14484,7 @@ loc_BC78:
 	LEA	$FFFFB840.w, A1
 	LEA	loc_14644, A2
 loc_BCA6:
-	MOVE.l	#$0000BC28, (A1)
+	MOVE.l	#loc_BC28, (A1)
 	MOVE.w	(A2)+, $18(A1)
 	MOVE.w	(A2)+, $16(A1)
 	MOVE.w	(A2)+, $E(A1)
@@ -14497,7 +14534,7 @@ loc_BD26:
 	LEA	$FFFFB840.w, A1
 	LEA	loc_14704, A2
 loc_BD92:
-	MOVE.l	#$0000BC20, (A1)
+	MOVE.l	#loc_BC20, (A1)
 	MOVE.w	(A2)+, $18(A1)
 	MOVE.w	(A2)+, $16(A1)
 	MOVE.w	(A2)+, $E(A1)
@@ -14546,7 +14583,7 @@ loc_BE12:
 	LEA	$FFFFB840.w, A1
 	LEA	loc_14704, A2
 loc_BE6C:
-	MOVE.l	#$0000BC20, (A1)
+	MOVE.l	#loc_BC20, (A1)
 	MOVE.w	(A2)+, $18(A1)
 	MOVE.w	(A2)+, $16(A1)
 	MOVE.w	(A2)+, $E(A1)
@@ -15612,10 +15649,10 @@ loc_CD06:
 	LEA	$FFFFB840.w, A1
 	MOVE.w	#2, D0
 loc_CD32:
-	MOVE.l	#$00000EF0, (A1)
+	MOVE.l	#loc_EF0, (A1)
 	MOVE.w	#$0158, $18(A1)
 	MOVE.w	#$0110, $16(A1)
-	MOVE.l	#$00016F76, $4(A1)
+	MOVE.l	#loc_16F76, $4(A1)
 	LEA	$40(A1), A1
 	DBF	D0, loc_CD32
 	MOVE.l	#$00001032, $FFFFAD80.w
@@ -16574,7 +16611,7 @@ loc_DBF4:
 	LEA	$FFFFB840.w, A1
 	LEA	loc_257C8, A2
 loc_DC66:
-	MOVE.l	#$00000EF0, (A1)
+	MOVE.l	#loc_EF0, (A1)
 	MOVE.w	(A2)+, $18(A1)
 	MOVE.w	(A2)+, $16(A1)
 	MOVE.l	(A2)+, $4(A1)
@@ -16710,6 +16747,7 @@ loc_DE36:
 	ANDI.w	#$00F0, D0
 	BNE.w	loc_E05E
 	RTS
+loc_DE60:
 	CMPI.w	#$0140, $FFFFB956.w
 	BEQ.w	loc_DFDA
 	TST.w	$12(A0)
@@ -16801,7 +16839,7 @@ loc_DFDA:
 	MOVE.w	#2, D0
 	MOVE.w	#$0010, D1
 loc_E006:
-	MOVE.l	#$0000DE60, (A1)
+	MOVE.l	#loc_DE60, (A1)
 	MOVE.w	#$0228, $18(A1)
 	MOVE.w	#$0228, $52(A1)
 	CLR.w	$12(A1)
@@ -17082,29 +17120,29 @@ loc_E43E:
 	SUBQ.w	#1, $FFFFFC08.w
 	BNE.w	loc_E4DA
 	LEA	$FFFFB840.w, A1
-	MOVE.l	#$0000E722, (A1)
+	MOVE.l	#loc_E722, (A1)
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0120, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#$00033910, $4(A1)
+	MOVE.l	#loc_33910, $4(A1)
 	LEA	$40(A1), A1
-	MOVE.l	#$0000E722, (A1)
+	MOVE.l	#loc_E722, (A1)
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0128, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#$00033978, $4(A1)
+	MOVE.l	#loc_33978, $4(A1)
 	LEA	$40(A1), A1
-	MOVE.l	#$0000E722, (A1)
+	MOVE.l	#loc_E722, (A1)
 	MOVE.w	#$00F4, $18(A1)
 	MOVE.w	#$0148, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#$000339CE, $4(A1)
+	MOVE.l	#loc_339CE, $4(A1)
 	LEA	$40(A1), A1
-	MOVE.l	#$0000E722, (A1)
+	MOVE.l	#loc_E722, (A1)
 	MOVE.w	#$014C, $18(A1)
 	MOVE.w	#$0148, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#$00033A3C, $4(A1)
+	MOVE.l	#loc_33A3C, $4(A1)
 	BSR.w	loc_E5F4
 loc_E4DA:
 	RTS
@@ -17248,6 +17286,7 @@ loc_E6CE:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+loc_E722:
 	JSR	loc_EF0
 	RTS
 loc_E72A:
@@ -19222,6 +19261,7 @@ loc_10598:
 	dc.l	loc_10FCE
 	dc.l	loc_10FDC
 	dc.l	loc_10FEA
+loc_105B0:
 	dc.l	loc_112F2
 	dc.l	loc_112F2
 	dc.l	loc_112F2
@@ -19258,8 +19298,10 @@ loc_10598:
 	dc.l	loc_113C2
 	dc.l	loc_113C2
 	dc.l	loc_113C2
+loc_10640:
 	dc.l	loc_1266C
 	dc.l	loc_12686
+loc_10648:
 	dc.l	loc_126AC
 	dc.l	loc_126C6
 	dc.l	loc_10FFE
@@ -19424,6 +19466,7 @@ loc_10598:
 	dc.l	loc_11D18
 	dc.l	loc_11D32
 	dc.l	loc_11D4C
+loc_108D8:
 	dc.l	loc_11D96
 	dc.l	loc_11DA4
 	dc.l	loc_11DAC
@@ -19433,6 +19476,7 @@ loc_10598:
 	dc.l	loc_11DE4
 	dc.l	loc_11E0A
 	dc.l	loc_11E30
+loc_108FC:
 	dc.l	loc_11B2C
 	dc.l	loc_11B34
 	dc.l	loc_11B3C
@@ -19452,6 +19496,7 @@ loc_10920:
 	dc.l	loc_11EC8
 	dc.l	loc_11EEE
 	dc.l	loc_11F20
+loc_10944:
 	dc.l	loc_11F7C
 	dc.l	loc_11F84
 	dc.l	loc_11F92
@@ -20498,7 +20543,10 @@ loc_12614:
 	dc.b	$C1, $0F, $04, $32, $00, $00, $C1, $0F, $04, $32, $00, $20, $A1, $0F
 	dc.b	$04, $32, $00, $00, $A1, $0F, $04, $32, $00, $20, $81, $0F, $04, $32
 	dc.b	$00, $00, $81, $0F, $04, $32, $00, $20, $61, $0F, $04, $32, $00, $00
-	dc.b	$61, $0F, $04, $32, $00, $20, $00, $03, $D8, $0A, $04, $18, $FF, $EC
+	dc.b	$61, $0F, $04, $32, $00, $20
+loc_12652:
+	dc.b	$00, $03
+	dc.b	$D8, $0A, $04, $18, $FF, $EC
 	dc.b	$D8, $06, $04, $21, $00, $04, $F0, $09, $04, $27, $FF, $EC, $F0, $05
 	dc.b	$04, $2D, $00, $04
 loc_1266C:
@@ -20514,23 +20562,33 @@ loc_126AC:
 loc_126C6:
 	dc.b	$00, $05, $F8, $00, $0B, $DF, $00, $10, $F0, $04, $0B, $E0, $00, $08
 	dc.b	$E8, $0C, $0B, $E2, $FF, $F8, $D0, $06, $0B, $E6, $00, $08, $C8, $00
-	dc.b	$0B, $EC, $00, $08, $C8, $0F, $0B, $ED, $FF, $E8, $00, $0A, $D8, $09
+	dc.b	$0B, $EC, $00, $08, $C8, $0F, $0B, $ED, $FF, $E8
+loc_126EC:
+	dc.b	$00, $0A, $D8, $09
 	dc.b	$04, $1A, $00, $00, $D8, $09, $04, $1A, $00, $18, $D8, $09, $04, $1A
 	dc.b	$00, $30, $D8, $09, $04, $1A, $00, $48, $F0, $09, $04, $1A, $00, $00
 	dc.b	$F0, $09, $04, $1A, $00, $18, $F0, $09, $04, $1A, $00, $30, $F0, $09
 	dc.b	$04, $1A, $00, $48, $E8, $0C, $04, $26, $00, $00, $E8, $0C, $04, $2A
-	dc.b	$00, $20, $E8, $0C, $04, $2E, $00, $40, $00, $0A, $D8, $09, $04, $20
+	dc.b	$00, $20, $E8, $0C, $04, $2E, $00, $40
+loc_12730:
+	dc.b	$00, $0A, $D8, $09, $04, $20
 	dc.b	$00, $00, $D8, $09, $04, $20, $00, $18, $D8, $09, $04, $1A, $00, $30
 	dc.b	$D8, $09, $04, $1A, $00, $48, $F0, $09, $04, $20, $00, $00, $F0, $09
 	dc.b	$04, $20, $00, $18, $F0, $09, $04, $1A, $00, $30, $F0, $09, $04, $1A
 	dc.b	$00, $48, $E8, $0C, $04, $26, $00, $00, $E8, $0C, $04, $2A, $00, $20
-	dc.b	$E8, $0C, $04, $2E, $00, $40, $00, $0A, $D8, $09, $04, $1A, $00, $00
+	dc.b	$E8, $0C, $04, $2E, $00, $40
+loc_12774:
+	dc.b	$00, $0A, $D8, $09, $04, $1A, $00, $00
 	dc.b	$D8, $09, $04, $1A, $00, $18, $D8, $09, $04, $20, $00, $30, $D8, $09
 	dc.b	$04, $20, $00, $48, $F0, $09, $04, $1A, $00, $00, $F0, $09, $04, $1A
 	dc.b	$00, $18, $F0, $09, $04, $20, $00, $30, $F0, $09, $04, $20, $00, $48
 	dc.b	$E8, $0C, $04, $26, $00, $00, $E8, $0C, $04, $2A, $00, $20, $E8, $0C
-	dc.b	$04, $2E, $00, $40, $00, $00, $FD, $00, $87, $38, $FF, $FD, $00, $00
-	dc.b	$FD, $00, $87, $39, $FF, $FD, $00, $00, $FD, $00, $87, $3A, $FF, $FD
+	dc.b	$04, $2E, $00, $40, $00, $00, $FD, $00, $87, $38, $FF, $FD
+loc_127C0:
+	dc.b	$00, $00, $FD, $00, $87, $39, $FF, $FD
+loc_127C8:
+	dc.b	$00, $00, $FD, $00, $87, $3A, $FF, $FD
+loc_127D0:
 	dc.b	$00, $0C, $F8, $00, $87, $EF, $00, $00, $F8, $00, $87, $DC, $00, $08
 	dc.b	$F8, $00, $87, $CE, $00, $10, $F8, $00, $87, $D0, $00, $18, $F8, $00
 	dc.b	$87, $CA, $00, $20, $F8, $00, $87, $C1, $00, $30, $F8, $00, $87, $C9
@@ -20556,6 +20614,7 @@ loc_12820:
 	dc.b	$24, $A0, $00, $00, $F0, $01, $24, $9E, $00, $10, $F0, $01, $24, $96
 	dc.b	$00, $18, $00, $03, $F0, $09, $04, $9E, $FF, $CC, $F0, $0D, $24, $92
 	dc.b	$FF, $E4, $F0, $05, $24, $9A, $00, $0C, $F0, $09, $0C, $9E, $00, $1C
+loc_12912:
 	dc.b	$00, $12, $60, $03, $E0, $01, $00, $00, $80, $03, $E0, $05, $00, $00
 	dc.b	$A0, $03, $E0, $09, $00, $00, $C0, $03, $E0, $06, $00, $00, $E0, $03
 	dc.b	$E0, $0D, $00, $00, $60, $0C, $E0, $11, $00, $08, $60, $0C, $E0, $11
@@ -20574,7 +20633,9 @@ loc_12996:
 loc_1299E:
 	dc.b	$00, $00, $F4, $0A, $00, $00, $FF, $F4
 loc_129A6:
-	dc.b	$00, $00, $F8, $01, $00, $00, $FF, $FC, $00, $05, $E8, $0E, $04, $6D
+	dc.b	$00, $00, $F8, $01, $00, $00, $FF, $FC
+loc_129AE:
+	dc.b	$00, $05, $E8, $0E, $04, $6D
 	dc.b	$FF, $B8, $F0, $05, $04, $85, $FF, $D8, $E8, $0A, $04, $89, $FF, $E8
 	dc.b	$E8, $0A, $0C, $89, $00, $00, $F0, $05, $0C, $85, $00, $18, $E8, $0E
 	dc.b	$0C, $79, $00, $28
@@ -21502,6 +21563,7 @@ loc_13592:
 	MOVE.l	D0, (A1)+
 	DBF	D7, loc_13592
 	RTS
+loc_1359A:
 	SUBQ.w	#1, $1A(A0)
 	BNE.w	loc_135BE
 	ADDQ.w	#1, $1A(A0)
@@ -21556,7 +21618,7 @@ loc_13694:
 	LEA	$FFFFB880.w, A2
 	MULS.w	#$0040, D1
 	ADDA.l	D1, A2
-	MOVE.l	#$0001359A, (A2)
+	MOVE.l	#loc_1359A, (A2)
 	MOVE.w	#$011C, $18(A2)
 	MOVE.w	#$0188, $12(A2)
 	MOVE.w	#$0188, $16(A2)
@@ -22342,8 +22404,10 @@ loc_16F3A:
 loc_16F48:
 	dc.b	$00, $02, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $A2, $1C, $00, $1C
 loc_16F5C:
-	dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $A2, $25, $00, $31, $00, $00, $00, $00, $00, $00
-	dc.b	$00, $00
+	dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B
+	dc.b	$B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $A2, $25, $00, $31
+loc_16F76:
+	dc.b	$00, $00, $00, $00, $00, $00, $00, $00
 loc_16F7E:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $03, $11, $35, $13, $CF, $3C, $F3, $CF, $39, $03, $51, $35, $0F, $E0, $00
 loc_16F94:
@@ -24100,24 +24164,35 @@ loc_1E3DC:
 	dc.b	$FE, $FF, $F7, $FF, $BF, $FD, $FF, $EF, $FF, $7F, $FB, $FF, $DF, $FE, $FF, $F7, $FF, $BF, $FD, $FF, $EF, $FF, $7F, $FB, $FF, $DF, $FE, $FF, $F7, $FF, $BF, $FD
 	dc.b	$FF, $E0
 loc_2023E:
-	dc.l	$000203AA
-	dc.l	$00020390
-	dc.l	$0002036A
-	dc.l	$00020338
-	dc.l	$000202FA
-	dc.l	$000202B0
-	dc.l	$0002025A
+	dc.l	loc_203AA
+	dc.l	loc_20390
+	dc.l	loc_2036A
+	dc.l	loc_20338
+	dc.l	loc_202FA
+	dc.l	loc_202B0
+	dc.l	loc_2025A
+loc_2025A:
 	dc.b	$00, $0D, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
 	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $F0, $03
-	dc.b	$42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28, $F0, $03, $42, $C2, $00, $30, $D0, $03, $42, $C2, $00, $30, $00, $0B, $F0, $03, $42, $C2, $00, $00, $D0, $03
-	dc.b	$42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10, $D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2
-	dc.b	$00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $F0, $03, $42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28
+	dc.b	$42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28, $F0, $03, $42, $C2, $00, $30, $D0, $03, $42, $C2, $00, $30
+loc_202B0:
+	dc.b	$00, $0B, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
+	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $F0, $03
+	dc.b	$42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28
+loc_202FA:
 	dc.b	$00, $09, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
-	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $00, $07
+	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20
+loc_20338:
+	dc.b	$00, $07
 	dc.b	$F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10, $D0, $03
-	dc.b	$42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $00, $05, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03
-	dc.b	$42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10, $D0, $03, $42, $C2, $00, $10, $00, $03, $F0, $03, $42, $C2, $00, $00, $D0, $03
-	dc.b	$42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $00, $01, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00
+	dc.b	$42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18
+loc_2036A:
+	dc.b	$00, $05, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03
+	dc.b	$42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10, $D0, $03, $42, $C2, $00, $10
+loc_20390:
+	dc.b	$00, $03, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08
+loc_203AA:
+	dc.b	$00, $01,	$F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00
 loc_203B8:
 	dc.l	loc_203CC
 	dc.l	loc_20404
@@ -26512,12 +26587,38 @@ loc_2EF7A:
 	dc.b	$89, $0F, $0A, $BC, $67, $4E, $37, $3C, $2A, $F2, $35, $39, $2A, $D9, $68, $1C, $03, $10, $0A, $C6, $30, $34, $4C, $BA, $32, $9D, $F3, $3E, $D1, $BF, $4C, $E6
 	dc.b	$FE, $00
 loc_2F068:
-	dc.l	$0002F12C, $0002F124, $0002F11C, $0002F114, $0002F106, $0002F0F8, $0002F0E4, $0002F0BE, $0002F08C
-	dc.b	$00, $07, $D0, $09, $00, $00, $FF, $E4, $D0, $09, $00, $06, $FF, $FC, $E0, $0B, $00, $0C, $FF, $CC, $E0, $0B, $00, $18, $FF, $E4, $E0, $0B, $00, $24, $FF, $FC
-	dc.b	$E0, $0F, $00, $30, $00, $14, $F8, $00, $00, $40, $FF, $C4, $F8, $00, $00, $41, $00, $34, $00, $05, $E0, $04, $00, $42, $FF, $E4, $E0, $0B, $00, $44, $FF, $F4
-	dc.b	$E8, $0A, $00, $50, $FF, $D4, $F0, $01, $00, $59, $FF, $EC, $E8, $0A, $00, $5B, $00, $0C, $F8, $00, $00, $64, $00, $24, $00, $02, $E8, $0A, $00, $65, $FF, $F0
-	dc.b	$F0, $05, $00, $6E, $FF, $E0, $F0, $09, $00, $72, $00, $08, $00, $01, $F0, $09, $00, $78, $FF, $E8, $F0, $09, $00, $7E, $00, $00, $00, $01, $F0, $09, $00, $84
-	dc.b	$FF, $F0, $F8, $00, $00, $8A, $00, $08, $00, $00, $F8, $08, $00, $8B, $FF, $F4, $00, $00, $F8, $04, $00, $8E, $FF, $F8, $00, $00, $F8, $04, $00, $90, $FF, $F8
+	dc.l	loc_2F12C
+	dc.l	loc_2F124
+	dc.l	loc_2F11C
+	dc.l	loc_2F114
+	dc.l	loc_2F106
+	dc.l	loc_2F0F8
+	dc.l	loc_2F0E4
+	dc.l	loc_2F0BE
+	dc.l	loc_2F08C
+loc_2F08C:
+	dc.b	$00, $07, $D0, $09, $00, $00, $FF, $E4, $D0, $09, $00, $06, $FF, $FC
+	dc.b	$E0, $0B, $00, $0C, $FF, $CC, $E0, $0B, $00, $18, $FF, $E4, $E0, $0B
+	dc.b	$00, $24, $FF, $FC, $E0, $0F, $00, $30, $00, $14, $F8, $00, $00, $40
+	dc.b	$FF, $C4, $F8, $00, $00, $41, $00, $34
+loc_2F0BE:
+	dc.b	$00, $05, $E0, $04, $00, $42, $FF, $E4, $E0, $0B, $00, $44, $FF, $F4
+	dc.b	$E8, $0A, $00, $50, $FF, $D4, $F0, $01, $00, $59, $FF, $EC, $E8, $0A
+	dc.b	$00, $5B, $00, $0C, $F8, $00, $00, $64, $00, $24
+loc_2F0E4:
+	dc.b	$00, $02, $E8, $0A, $00, $65, $FF, $F0, $F0, $05, $00, $6E, $FF, $E0
+	dc.b	$F0, $09, $00, $72, $00, $08
+loc_2F0F8:
+	dc.b	$00, $01, $F0, $09, $00, $78, $FF, $E8, $F0, $09, $00, $7E, $00, $00
+loc_2F106:
+	dc.b	$00, $01, $F0, $09, $00, $84, $FF, $F0, $F8, $00, $00, $8A, $00, $08
+loc_2F114:
+	dc.b	$00, $00, $F8, $08, $00, $8B, $FF, $F4
+loc_2F11C:
+	dc.b	$00, $00, $F8, $04, $00, $8E, $FF, $F8
+loc_2F124:
+	dc.b	$00, $00, $F8, $04, $00, $90, $FF, $F8
+loc_2F12C:
 	dc.b	$00, $00, $F8, $00, $00, $92, $FF, $FC
 loc_2F134:
 	dc.b	$02, $3E, $00, $00, $0E, $EE, $02, $22, $02, $24, $02, $26, $0A, $AA, $0C, $CC, $06, $44, $04, $48, $04, $4A, $08, $66, $06, $68, $06, $6A, $06, $8A, $08, $8A
@@ -27385,16 +27486,25 @@ loc_337EE:
 loc_33850:
 	dc.l	$0466008A, $02AE0AEE, $0222048A, $00240242, $024404CE, $04680246, $0EEE02AC, $04EE0068, $02440068, $008C08CC, $00000268, $00020020, $002202AC, $02460024, $0CCC008A, $02CC0046, $00220046, $006A06AA, $00000046, $00000000, $0000008A, $00240002, $0AAA0068, $00AA0024, $00000024, $00480488, $00000024, $00000000, $00000068, $00020000, $08880046, $00880002
 	dc.l	$00000002, $00260266, $00000002, $00000000, $00000046, $00000000, $06660024, $00660000, $00000000, $00040044, $00000000, $00000000, $00000024, $00000000, $04440002, $00440000
+loc_33910:
 	dc.b	$00, $11, $D8, $0F, $40, $01, $FF, $90, $D8, $0E, $40, $11, $FF, $B0, $F0, $05, $40, $1D, $FF, $C0, $D0, $04, $40, $21, $FF, $C0, $C8, $0E, $40, $23, $FF, $D0
 	dc.b	$E0, $04, $40, $2F, $FF, $D0, $B8, $0D, $40, $31, $FF, $E8, $B0, $00, $40, $39, $FF, $F0, $C8, $09, $40, $3A, $FF, $F0, $A8, $0B, $40, $40, $00, $08, $C8, $08
 	dc.b	$40, $4C, $00, $08, $A0, $0B, $40, $4F, $00, $20, $C0, $04, $40, $5B, $00, $20, $A8, $0D, $40, $5D, $00, $38, $B8, $04, $40, $65, $00, $38, $A0, $08, $40, $67
-	dc.b	$00, $40, $98, $0A, $40, $6A, $00, $58, $00, $0E, $90, $0D, $20, $73, $FF, $E0, $90, $0D, $20, $7B, $00, $00, $A0, $0F, $20, $83, $FF, $D8, $A0, $0E, $20, $93
+	dc.b	$00, $40, $98, $0A, $40, $6A, $00, $58
+loc_33978:
+	dc.b	$00, $0E, $90, $0D, $20, $73, $FF, $E0, $90, $0D, $20, $7B, $00, $00, $A0, $0F, $20, $83, $FF, $D8, $A0, $0E, $20, $93
 	dc.b	$00, $08, $A0, $07, $20, $9F, $FF, $F8, $C0, $04, $20, $A7, $FF, $E0, $B8, $00, $20, $A9, $00, $08, $B8, $05, $20, $AA, $00, $10, $C0, $0F, $20, $AE, $FF, $F0
-	dc.b	$E0, $0F, $20, $BE, $FF, $F0, $D8, $07, $20, $CE, $FF, $E0, $F8, $04, $20, $D6, $FF, $E0, $D8, $07, $20, $D8, $00, $10, $F8, $04, $20, $E0, $00, $10, $00, $12
+	dc.b	$E0, $0F, $20, $BE, $FF, $F0, $D8, $07, $20, $CE, $FF, $E0
+	dc.b	$F8, $04, $20, $D6, $FF, $E0, $D8, $07, $20, $D8, $00, $10
+	dc.b	$F8, $04, $20, $E0, $00, $10
+loc_339CE:
+	dc.b	$00, $12
 	dc.b	$50, $01, $40, $E2, $00, $24, $50, $0E, $40, $E4, $00, $04, $68, $00, $40, $F0, $00, $04, $58, $07, $40, $F1, $FF, $F4, $78, $00, $40, $F9, $FF, $F4, $60, $00
 	dc.b	$40, $FA, $FF, $EC, $68, $0B, $40, $FB, $FF, $DC, $80, $00, $41, $07, $FF, $D4, $88, $0B, $41, $08, $FF, $D4, $A8, $0B, $41, $14, $FF, $D4, $C0, $00, $41, $20
 	dc.b	$FF, $EC, $C8, $09, $41, $21, $FF, $DC, $D0, $00, $41, $27, $FF, $F4, $D8, $00, $41, $28, $FF, $E4, $D8, $0E, $41, $29, $FF, $EC, $F0, $08, $41, $35, $FF, $F4
-	dc.b	$E0, $04, $41, $38, $00, $0C, $E8, $0E, $41, $3A, $00, $0C, $00, $12, $50, $01, $48, $E2, $FF, $D4, $50, $0E, $48, $E4, $FF, $DC, $68, $00, $48, $F0, $FF, $F4
+	dc.b	$E0, $04, $41, $38, $00, $0C, $E8, $0E, $41, $3A, $00, $0C
+loc_33A3C:
+	dc.b	$00, $12, $50, $01, $48, $E2, $FF, $D4, $50, $0E, $48, $E4, $FF, $DC, $68, $00, $48, $F0, $FF, $F4
 	dc.b	$58, $07, $48, $F1, $FF, $FC, $78, $00, $48, $F9, $00, $04, $60, $00, $48, $FA, $00, $0C, $68, $0B, $48, $FB, $00, $0C, $80, $00, $49, $07, $00, $24, $88, $0B
 	dc.b	$49, $08, $00, $14, $A8, $0B, $49, $14, $00, $14, $C0, $00, $49, $20, $00, $0C, $C8, $09, $49, $21, $00, $0C, $D0, $00, $49, $27, $00, $04, $D8, $00, $49, $28
 	dc.b	$00, $14, $D8, $0E, $49, $29, $FF, $F4, $F0, $08, $49, $35, $FF, $F4, $E0, $04, $49, $38, $FF, $E4, $E8, $0E, $49, $3A, $FF, $D4
