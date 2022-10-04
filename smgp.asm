@@ -22682,18 +22682,16 @@ loc_18D18:
 	dc.l	loc_18D20
 	dc.l	loc_18D24
 loc_18D20:
-	dc.l	$20121732
+	txt "WIN "
 loc_18D24:
-	dc.l	$15181C0E
+	txt "LOSE"
 loc_18D28:
 	dc.l	loc_18D30
 	dc.l	loc_18D38
 loc_18D30:
-	dc.l	$1F120C1D
-	dc.l	$181B2229
+	txt "VICTORY."
 loc_18D38:
-	dc.l	$0D0E0F0E
-	dc.l	$0A1D2932
+	txt "DEFEAT. "
 loc_18D40:
 	dc.l	loc_18D60
 	dc.l	loc_18DF4
@@ -29060,7 +29058,8 @@ loc_3B4BC:
 loc_3B4D6:
 	txt "WELL, LET'S ENJOY\nTHE RACE TOGETHER.", $FF, $00
 loc_3B4FC:
-	dc.b	$FD, $11, $12, $2D, $FF, $00
+	dc.b	$FD
+	txt "HI!", $FF, $00
 loc_3B502:
 	txt "WE'D APPRECIATE\nYOUR JOINING US.", $FF, $00
 ;loc_3B524:
@@ -29139,57 +29138,39 @@ loc_3B708:
 loc_3B716:
 	dc.b	$98, $7C, $E0, $A8, $58, $32, $52, $5D, $67, $50, $61, $66, $BF, $FC, $88, $E0, $2C, $D4, $D0, $7E, $A8, $BC, $79, $FF
 loc_3B72E:
-	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $12, $1C, $FC, $0C, $11, $0A, $15, $15, $0E, $17, $10, $12, $17, $10, $32, $22, $18, $1E, $2D, $FF
+	txt "          IS\nCHALLENGING YOU!", $FF
 loc_3B74C:
-	dc.b	$19, $0A, $1C, $1C, $32, $1D, $11, $0E, $32, $0C, $0A, $1B, $1C, $32, $0A, $1D, $FC, $1D, $11, $0E, $32, $11, $0A, $12, $1B, $19, $12, $17, $32, $1D, $1E, $1B
-	dc.b	$17, $2D, $FF
-	dc.b	$00
+	txt "PASS THE CARS AT\nTHE HAIRPIN TURN!", $FF, $00
 loc_3B770:
-	dc.b	$1C, $15, $18, $20, $32, $0D, $18, $20, $17, $32, $0A, $1D, $32, $0C, $1E, $1B, $1F, $0E, $1C, $FC, $1D, $18, $32, $1C, $0A, $1F, $0E, $32, $22, $18, $1E, $1B
-	dc.b	$32, $1D, $12, $1B, $0E, $1C, $29, $FF
+	txt "SLOW DOWN AT CURVES\nTO SAVE YOUR TIRES.", $FF
 loc_3B798:
-	dc.b	$10, $0E, $17, $1D, $15, $0E, $32, $0C, $1E, $1B, $1F, $0E, $32, $0F, $18, $15, $15, $18, $20, $1C, $FC, $1D, $11, $0E, $32, $1C, $1D, $1B, $0A, $12, $10, $11
-	dc.b	$1D, $0A, $20, $0A, $22, $29, $FF
-	dc.b	$00
+	txt "GENTLE CURVE FOLLOWS\nTHE STRAIGHTAWAY.", $FF, $00
 loc_3B7C0:
-	dc.b	$0B, $0E, $32, $0C, $0A, $1B, $0E, $0F, $1E, $15, $2D, $32, $1D, $11, $0E, $32, $1B, $18, $0A, $0D, $FC, $12, $1C, $32, $1C, $15, $12, $19, $19, $0E, $1B, $22
-	dc.b	$29, $FF
+	txt	"BE CAREFUL! THE ROAD\nIS SLIPPERY.", $FF
 loc_3B7E2:
-	dc.b	$12, $17, $0C, $1B, $0E, $0A, $1C, $0E, $32, $1C, $19, $0E, $0E, $0D, $32, $1D, $18, $FC, $19, $0A, $1C, $1C, $32, $1D, $11, $0E, $32, $15, $0A, $1C, $1D, $32
-	dc.b	$0C, $18, $1B, $17, $0E, $1B, $FF, $00
+	txt "INCREASE SPEED TO\nPASS THE LAST CORNER", $FF, $00
 loc_3B80A:
-	dc.b	$1C, $14, $12, $15, $15, $0F, $1E, $15, $15, $22, $32, $0B, $1B, $0A, $14, $0E, $32, $0A, $1D, $FC, $1D, $11, $0E, $32, $1C, $11, $0A, $1B, $19, $32, $0C, $18
-	dc.b	$1B, $17, $0E, $1B, $1C, $29, $FF
-	dc.b	$00
+	txt "SKILLFULLY BRAKE AT\nTHE SHARP CORNERS.", $FF, $00
 loc_3B832:
-	dc.b	$1D, $11, $0E, $1B, $0E, $26, $1C, $32, $11, $0A, $1B, $0D, $15, $22, $FC, $0A, $17, $22, $32, $1C, $1D, $1B, $0A, $12, $10, $11, $1D, $0A, $20, $0A, $22, $29
-	dc.b	$FF, $00
+	txt "THERE'S HARDLY\nANY STRAIGHTAWAY.", $FF, $00
 loc_3B854:
-	dc.b	$19, $0A, $1C, $1C, $32, $1D, $11, $0E, $32, $0E, $0A, $1C, $22, $32, $0C, $18, $1B, $2C, $FC, $17, $0E, $1B, $1C, $32, $0A, $1D, $32, $1D, $18, $19, $32, $1C
-	dc.b	$19, $0E, $0E, $0D, $29, $FF
+	txt "PASS THE EASY COR-\nNERS AT TOP SPEED.", $FF
 loc_3B87A:
-	dc.b	$1C, $15, $18, $20, $32, $0D, $18, $20, $17, $32, $0A, $1D, $32, $1D, $11, $0E, $FC, $1C, $0E, $0C, $18, $17, $0D, $32, $27, $0C, $11, $12, $0C, $0A, $17, $0E
-	dc.b	$27, $2D, $FF, $00
+	txt 'SLOW DOWN AT THE\nSECOND "CHICANE"!', $FF, $00
 loc_3B89E:
-	dc.b	$19, $0A, $1C, $1C, $32, $1D, $11, $0E, $32, $02, $17, $0D, $32, $0C, $18, $1B, $17, $0E, $1B, $FC, $0A, $1D, $32, $11, $12, $10, $11, $32, $1C, $19, $0E, $0E
-	dc.b	$0D, $29, $FF, $00
+	txt "PASS THE 2ND CORNER\nAT HIGH SPEED.", $FF, $00
 loc_3B8C2:
-	dc.b	$0C, $18, $1B, $17, $0E, $1B, $32, $1C, $19, $0E, $0E, $0D, $32, $0C, $18, $17, $1D, $1B, $18, $15, $FC, $12, $1C, $32, $1F, $0E, $1B, $22, $32, $12, $16, $19
-	dc.b	$18, $1B, $1D, $0A, $17, $1D, $29, $FF
+	txt "CORNER SPEED CONTROL\nIS VERY IMPORTANT.", $FF
 loc_3B8EA:
-	dc.b	$1D, $11, $0E, $32, $11, $12, $10, $11, $32, $0A, $15, $1D, $12, $1D, $1E, $0D, $0E, $FC, $16, $0A, $22, $32, $1B, $1E, $12, $17, $32, $1D, $11, $0E, $32, $0E
-	dc.b	$17, $10, $12, $17, $0E, $29, $FF, $00
+	txt "THE HIGH ALTITUDE\nMAY RUIN THE ENGINE.", $FF, $00
 loc_3B912:
-	dc.b	$19, $0A, $1C, $1C, $32, $1D, $11, $0E, $32, $0C, $0A, $1B, $1C, $32, $0A, $1D, $FC, $1D, $11, $0E, $32, $27, $0C, $11, $12, $0C, $0A, $17, $0E, $27, $2D, $FF
+	txt 'PASS THE CARS AT\nTHE "CHICANE"!', $FF
 loc_3B932:
-	dc.b	$1D, $11, $0E, $32, $0F, $12, $1B, $1C, $1D, $32, $0C, $18, $1B, $17, $0E, $1B, $32, $12, $1C, $FC, $19, $1B, $0E, $1D, $1D, $22, $32, $1C, $11, $0A, $1B, $19
-	dc.b	$29, $FF
+	txt "THE FIRST CORNER IS\nPRETTY SHARP.", $FF
 loc_3B954:
-	dc.b	$0D, $18, $17, $26, $1D, $32, $1C, $18, $1E, $19, $32, $1E, $19, $32, $22, $18, $1E, $1B, $FC, $0E, $17, $10, $12, $17, $0E, $32, $1D, $18, $18, $32, $16, $1E
-	dc.b	$0C, $11, $2D, $FF
+	txt "DON'T SOUP UP YOUR\nENGINE TOO MUCH!", $FF
 loc_3B978:
-	dc.b	$0C, $18, $16, $19, $15, $0E, $1D, $0E, $15, $22, $32, $1C, $15, $18, $20, $32, $0D, $18, $20, $17, $FC, $0A, $1D, $32, $1D, $11, $0E, $32, $1C, $11, $0A, $1B
-	dc.b	$19, $32, $0C, $1E, $1B, $1F, $0E, $1C, $29, $FF
+	txt "COMPLETELY SLOW DOWN\nAT THE SHARP CURVES.", $FF
 loc_3B9A2:
 	dc.l	loc_3BA22
 	dc.l	loc_3BA28
@@ -29608,7 +29589,7 @@ loc_3BB14:
 	dc.l	loc_3C898
 	dc.l	loc_3C6B2
 	dc.l	loc_3C300
-loc_3C014:
+loc_3C014: ; Suspected Japanese strings
 	dc.b	$7F, $A2, $2C, $FF
 loc_3C018:
 	dc.b	$90, $7D, $88, $32, $D4, $A2, $7D, $D6, $A8, $C8, $2D, $FF
@@ -29714,50 +29695,52 @@ loc_3C306:
 loc_3C324:
 	txt "WE SHOULD ALWAYS BE\nTHE TOP TEAM.", $FF
 loc_3C346:
-	dc.b	$FD, $12, $1D, $26, $1C, $32, $1B, $0E, $0A, $15, $15, $22, $32, $0A, $32, $19, $12, $1D, $22, $2D, $FF
-	dc.b	$00
+	dc.b	$FD
+	txt "IT'S REALLY A PITY!", $FF, $00
 loc_3C35C:
 	dc.b	$FD
 	txt "NEVER LOSE AGAIN!", $FF, $00
 loc_3C370:
 	txt "YOU ARE NOT LIVING\nUP TO YOUR CONTRACT.", $FF
 loc_3C398:
-	dc.b	$22, $18, $1E, $26, $15, $15, $32, $0B, $0E, $32, $1C, $1D, $0A, $22, $12, $17, $10, $2A, $FC, $11, $1E, $11, $2E, $FF
+	txt "YOU'LL BE STAYING,\nHUH?", $FF
 loc_3C3B0:
 	txt "YEAH! THIS IS\nREALLY A RACE.", $FF, $00
 loc_3C3CE:
 	txt "YOU SHOULD BE MORE\nAGGRESSIVE!", $FF, $00
 loc_3C3EE:
-	dc.b	$FD, $22, $18, $1E, $32, $0D, $0A, $1B, $17, $32, $0F, $18, $18, $15, $2D, $FF
+	dc.b	$FD
+	txt "YOU DARN FOOL!", $FF
 loc_3C3FE:
 	txt	"IT'S ONLY NATURAL\nYOU WON OVER HIM.", $FF
 loc_3C422:
-	dc.b	$20, $11, $22, $32, $0C, $0A, $17, $26, $1D, $32, $22, $18, $1E, $32, $20, $12, $17, $FC, $0A, $10, $0A, $12, $17, $1C, $1D, $32, $1D, $11, $0A, $1D, $32, $1D, $0E, $0A, $16, $2E, $FF, $00
+	txt "WHY CAN'T YOU WIN\nAGAINST THAT TEAM?", $FF, $00
 loc_3C448:
-	dc.b	$22, $18, $1E, $32, $0A, $1B, $0E, $32, $0B, $0E, $1D, $1D, $0E, $1B, $32, $18, $0F, $0F, $FC, $0D, $1B, $12, $1F, $12, $17, $10, $32, $0A, $32, $0B, $0A, $0B, $22, $32, $0B, $1E, $10, $10, $22, $FF
+	txt "YOU ARE BETTER OFF\nDRIVING A BABY BUGGY", $FF
 loc_3C470:
 	txt "WONDERFUL!\nGOOD JOB!", $FF, $00
 loc_3C486:
-	dc.b	$18, $17, $15, $22, $32, $0B, $0A, $0D, $32, $15, $1E, $0C, $14, $32, $14, $0E, $19, $1D, $FC, $22, $18, $1E, $32, $0F, $1B, $18, $16, $32, $20, $12, $17, $17
-	dc.b	$12, $17, $10, $29, $FF, $00
+	txt "ONLY BAD LUCK KEPT\nYOU FROM WINNING.", $FF, $00
 loc_3C4AC:
-	dc.b	$22, $18, $1E, $26, $1F, $0E, $32, $0D, $12, $1C, $0C, $18, $1E, $1B, $0A, $10, $0E, $0D, $FC, $0A, $15, $15, $32, $18, $0F, $32, $1E, $1C, $29, $FF
+	txt "YOU'VE DISCOURAGED\nALL OF US.", $FF
 loc_3C4CA:
-	dc.b	$FD, $1D, $11, $0A, $1D, $26, $1C, $32, $0A, $0B, $18, $1E, $1D, $32, $12, $1D, $29, $FF
+	dc.b	$FD
+	txt "THAT'S ABOUT IT.", $FF
 loc_3C4DC:
-	dc.b	$0C, $0A, $17, $26, $1D, $32, $22, $18, $1E, $32, $0D, $18, $32, $12, $1D, $FC, $0A, $32, $15, $12, $1D, $1D, $15, $0E, $32, $0B, $0E, $1D, $1D, $0E, $1B, $2E, $FF, $00
+	txt "CAN'T YOU DO IT\nA LITTLE BETTER?", $FF, $00
 loc_3C4FE:
 	txt "YOU ARE STILL JUST\nAN AMATEUR.", $FF, $00
 loc_3C51E:
 	txt "WE DON'T WANT YOU TO\nBECOME A RIVAL.", $FF, $00
 loc_3C544:
-	dc.b	$22, $18, $1E, $26, $1B, $0E, $32, $17, $18, $1D, $32, $10, $18, $12, $17, $10, $32, $1D, $18, $FC, $15, $0E, $0A, $1F, $0E, $32, $1E, $1C, $2A, $32, $1B, $12, $10, $11, $1D, $2E, $FF, $00
+	txt "YOU'RE NOT GOING TO\nLEAVE US, RIGHT?", $FF, $00
 loc_3C56A:
 	txt "YOU'VE DONE BETTER\nTHAN WE EXPECTED!", $FF, $00
 loc_3C590:
 	txt "GET HOLD OF\\nYOURSELF!", $FF
 loc_3C5A6:
-	dc.b	$FD, $1D, $11, $0A, $17, $14, $1C, $32, $0F, $18, $1B, $32, $17, $18, $1D, $11, $12, $17, $10, $29, $FF, $00
+	dc.b	$FD
+	txt "THANKS FOR NOTHING.", $FF, $00
 loc_3C5BC:
 	txt "DO YOUR BEST TO BE-\nCOME THE TOP DRIVER.", $FF, $00
 loc_3C5E6:
@@ -29775,13 +29758,15 @@ loc_3C68E:
 loc_3C6B2:
 	txt "YOU ARE TOO GOOD\nFOR OUR TEAM.", $FF, $00
 loc_3C6D2:
-	dc.b	$FD, $1E, $17, $0B, $0E, $15, $12, $0E, $1F, $0A, $0B, $15, $0E, $2D, $FF, $00
+	dc.b	$FD
+	txt "UNBELIEVABLE!", $FF, $00
 loc_3C6E2:
-	dc.b	$0A, $0F, $1D, $0E, $1B, $32, $0A, $15, $15, $2A, $32, $11, $0E, $32, $12, $1C, $32, $0F, $0A, $1B, $FC, $0B, $0E, $1D, $1D, $0E, $1B, $32, $1D, $11, $0A, $17, $32, $1E, $1C, $29, $FF, $00
+	txt "AFTER ALL, HE IS FAR\nBETTER THAN US.", $FF, $00
 loc_3C708:
 	txt "YOU SEEM TO HAVE\nLOST YOUR ABILITY.", $FF
 loc_3C72C:
-	dc.b	$17, $18, $20, $2A, $32, $22, $18, $1E, $32, $14, $17, $18, $20, $32, $16, $18, $1B, $0E, $FC, $1D, $11, $0A, $17, $32, $20, $0E, $32, $0D, $18, $29, $FF, $00
+	txt "NOW, YOU KNOW MORE", $FC
+	txt "THAN WE DO.", $FF, $00
 loc_3C74C:
 	txt "YOUR RIVALS COULD BE\nMUCH BETTER THAN YOU", $FF
 loc_3C776:
@@ -29791,21 +29776,23 @@ loc_3C79A:
 loc_3C7C4:
 	txt "WE ARE GOING TO MISS\nYOU.", $FF
 loc_3C7DE:
-	dc.b	$1C, $18, $1B, $1B, $22, $2A, $32, $12, $32, $20, $0A, $1C, $32, $17, $18, $1D, $FC, $20, $0A, $1D, $0C, $11, $12, $17, $10, $32, $12, $1D, $29, $FF
+	txt "SORRY, I WAS NOT\nWATCHING IT.", $FF
 loc_3C7FC:
 	txt "I'LL NEVER RETURN\nTHE SECURITY MONEY.", $FF
 loc_3C822:
 	txt "YOU ARE OF NO USE\nTO OUR TEAM.", $FF, $00
 loc_3C842:
-	dc.b	$FD, $18, $11, $2A, $32, $17, $18, $29, $FF, $00
+	dc.b	$FD
+	txt "OH, NO.", $FF, $00
 loc_3C84C:
 	txt "YOU ARE MAKING ME\\nSICK.", $FF
 loc_3C864:
 	txt "YOU REALLY ARE\nA POOR DRIVER.", $FF
 loc_3C882:
-	dc.b	$FD, $0D, $18, $17, $26, $1D, $32, $16, $0A, $14, $0E, $32, $16, $0E, $32, $0A, $17, $10, $1B, $22, $2D, $FF
+	dc.b	$FD
+	txt "DON'T MAKE ME ANGRY!", $FF
 loc_3C898:
-	dc.b	$12, $32, $11, $0E, $0A, $1B, $32, $1D, $11, $0E, $22, $26, $15, $15, $32, $0F, $18, $1B, $2C, $FC, $0F, $0E, $12, $1D, $32, $22, $18, $1E, $1B, $32, $15, $12, $0C, $0E, $17, $1C, $0E, $29, $FF, $00
+	txt "I HEAR THEY'LL FOR-\nFEIT YOUR LICENSE.", $FF, $00
 loc_3C8C0:
 	dc.b	$00, $0D, $80, $06, $34, $17, $77, $26, $36, $36, $37, $48, $FA, $56, $33, $66, $3A, $75, $12, $81, $04, $06, $15, $0F, $25, $13, $37, $7C, $48, $FB, $66, $3C
 	dc.b	$76, $38, $82, $05, $18, $83, $04, $08, $17, $76, $84, $03, $00, $15, $15, $27, $7B, $85, $03, $02, $17, $7A, $86, $05, $14, $26, $32, $87, $05, $0E, $15, $16
