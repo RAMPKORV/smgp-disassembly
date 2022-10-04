@@ -1160,7 +1160,6 @@ loc_D2C:
 	dc.b	$00, $00, $00, $05, $C9, $CA, $70, $80
 loc_D36:
 	dc.w	$8004, $8134, $8238, $8338, $8406
-loc_D40:
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
 loc_D5C:
 	MOVEQ	#-1, D0
@@ -2038,7 +2037,6 @@ loc_17B6:
 	TST.w	Track_index_arcade_mode.w
 	BNE.w	loc_184C
 	TST.w	$FFFFFC74.w
-loc_17C2:
 	BEQ.w	loc_184A
 	MOVE.w	$FFFFFF30.w, D0
 	JSR	loc_199A(PC)
@@ -2052,7 +2050,6 @@ loc_17C2:
 	MOVE.l	#$7F800083, $FFFFFF08.w
 	JSR	loc_914
 	LEA	$00FF5980, A6
-loc_1804:
 	CMPI.w	#2, $FFFFFC74.w
 	BEQ.b	loc_1810
 	LEA	loc_2182(PC), A6
@@ -2137,7 +2134,6 @@ loc_18FE:
 	MOVE.l	#$54600082, $FFFFFF08.w
 	JSR	loc_914
 	MOVE.w	$FFFFFF34.w, D0
-loc_1942:
 	CMPI.w	#3, D0
 	BLS.b	loc_194A
 	MOVEQ	#3, D0
@@ -2185,7 +2181,6 @@ loc_19AC:
 	MOVE.b	$1(A0,D4.w), D7
 	MOVE.l	#$95009600, D6
 	MOVE.b	$2(A0,D4.w), D6
-loc_19C2:
 	SWAP	D6
 	MOVE.b	$3(A0,D4.w), D6
 	RTS
@@ -2223,7 +2218,6 @@ loc_19CA:
 	LEA	$FFFFC840.w, A0
 	BSR.b	loc_1A5A
 	LEA	$FFFFCEC0.w, A1
-loc_1A42:
 	LEA	$FFFFC900.w, A0
 	BSR.b	loc_1A5A
 	LEA	$FFFFCF00.w, A1
@@ -2250,7 +2244,6 @@ loc_1A62:
 
 loc_1A7C:
 	MOVE.w	$FFFF9220.w, D0
-loc_1A80:
 	MOVE.w	D0, $FFFF9266.w
 	SUBI.w	#$0080, D0
 	LSR.w	#2, D0
@@ -2273,7 +2266,6 @@ loc_1AA0:
 	DBF	D2, loc_1A9E
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96C59580, D6
-loc_1AC2:
 	MOVE.l	#$94019300, D5
 	MOVE.l	#$40800083, $FFFFFF08.w
 	JSR	loc_914
@@ -2296,7 +2288,6 @@ loc_1AF8:
 	MOVE.w	$FFFF9220.w, D0
 	NEG.w	D0
 	SUBI.w	#$0010, D0
-loc_1B02:
 	LSR.w	#2, D0
 	ANDI.w	#$00FC, D0
 	LEA	$FFFFC080.w, A0
@@ -2323,7 +2314,6 @@ loc_1B28:
 	LEA	$138(A0), A0
 	LEA	$80(A1), A1
 	DBF	D2, loc_1B26
-loc_1B42:
 	RTS
 
 loc_1B44:
@@ -2382,7 +2372,6 @@ loc_1BE8:
 	BEQ.b	loc_1C5C
 	LEA	$FFFF8B00.w, A0
 	MOVE.l	#$04420442, D3
-loc_1C04:
 	MOVEQ	#$0000007C, D4
 	MOVE.w	$FFFF9220.w, D1
 	NEG.w	D1
@@ -2549,7 +2538,6 @@ loc_1DB6:
 	TST.w	$FFFF9264.w
 	BEQ.b	loc_1E30
 	MOVE.w	$FFFF9262.w, D0
-loc_1DC0:
 	SUBI.w	#$01E1, D0
 	BCS.b	loc_1DD2
 	ADDQ.w	#1, D0
@@ -7098,8 +7086,8 @@ loc_61FC: ; Suspected backwindow tile mappings
 loc_6224: ; Suspected: Level initialization
 	JSR	loc_F848
 	LEA	$20(A1), A1
-	MOVE.w	(A1)+, $FFFF920C.w
-	MOVE.w	(A1)+, D2
+	MOVE.w	(A1)+, $FFFF920C.w ; ?
+	MOVE.w	(A1)+, D2 ; ?
 	MOVE.w	D2, $FFFF9206.w
 	SUBI.w	#$00A9, D2
 	MOVE.w	D2, $FFFF9214.w
@@ -18565,7 +18553,8 @@ Track_data:
 	dc.l	loc_FF96 ; San Marino sideline style
 	dc.l	loc_FFA0 ; San Marino road style data
 	dc.l	loc_FFAA ; San Marino finish line style
-	dc.l	loc_1B80 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1B80 ; ?
 	dc.l	loc_7173C ; San Marino signs data
 	dc.l	loc_717A6 ; San Marino tileset for signs
 	dc.l	loc_71660 ; San Marino map for minimap position
@@ -18585,7 +18574,8 @@ Track_data:
 	dc.l	loc_FFB4 ; Brazil sideline style
 	dc.l	loc_FFBE ; Brazil road style data
 	dc.l	loc_FFC8 ; Brazil finish line style
-	dc.l	loc_1B42-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1B40 ; ?
 	dc.l	loc_739AA ; Brazil signs data
 	dc.l	loc_73A30 ; Brazil tileset for signs
 	dc.l	loc_738CF ; Brazil map for minimap position
@@ -18605,7 +18595,8 @@ Track_data:
 	dc.l	loc_FFD2 ; France sideline style
 	dc.l	loc_FFDC ; France road style data
 	dc.l	loc_FFE6 ; France finish line style
-	dc.l	loc_1804-4 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1800 ; ?
 	dc.l	loc_71DBA ; France signs data
 	dc.l	loc_71E20 ; France tileset for signs
 	dc.l	loc_71CFA ; France map for minimap position
@@ -18625,7 +18616,8 @@ Track_data:
 	dc.l	loc_FFF0 ; Hungary sideline style
 	dc.l	loc_FFFA ; Hungary road style data
 	dc.l	loc_10004 ; Hungary finish line style
-	dc.l	loc_1942-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1940 ; ?
 	dc.l	loc_723F0 ; Hungary signs data
 	dc.l	loc_7245A ; Hungary tileset for signs
 	dc.l	loc_72326 ; Hungary map for minimap position
@@ -18645,7 +18637,8 @@ Track_data:
 	dc.l	loc_1000E ; West Germany sideline style
 	dc.l	loc_10018 ; West Germany road style data
 	dc.l	loc_10022 ; West Germany finish line style
-	dc.l	loc_11D40 ; ?
+	dc.w	$0001 ; ?
+	dc.w	$1D40 ; ?
 	dc.l	loc_721B6 ; West Germany signs data
 	dc.l	loc_7222C ; West Germany tileset for signs
 	dc.l	loc_720CB ; West Germany map for minimap position
@@ -18665,7 +18658,8 @@ Track_data:
 	dc.l	loc_1002C ; USA sideline style
 	dc.l	loc_10036 ; USA road style data
 	dc.l	loc_10040 ; USA finish line style
-	dc.l	loc_1C04-4 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1C00 ; ?
 	dc.l	loc_72F8C ; USA signs data
 	dc.l	loc_7300E ; USA tileset for signs
 	dc.l	loc_72EAB ; USA map for minimap position
@@ -18685,7 +18679,8 @@ Track_data:
 	dc.l	loc_1004A ; Canada sideline style
 	dc.l	loc_10054 ; Canada road style data
 	dc.l	loc_1005E ; Canada finish line style
-	dc.l	loc_1A42-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1A40 ; ?
 	dc.l	loc_73546 ; Canada signs data
 	dc.l	loc_735BC ; Canada tileset for signs
 	dc.l	loc_73474 ; Canada map for minimap position
@@ -18705,7 +18700,8 @@ Track_data:
 	dc.l	loc_10068 ; Great Britain sideline style
 	dc.l	loc_10072  ; Great Britain road style data
 	dc.l	loc_1007C  ; Great Britain finish line style
-	dc.l	loc_1B02-2  ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1B00 ; ?
 	dc.l	loc_71F98 ; Great Britain signs data
 	dc.l	loc_71FEA  ; Great Britain tileset for signs
 	dc.l	loc_71EC0  ; Great Britain map for minimap position
@@ -18725,7 +18721,8 @@ Track_data:
 	dc.l	loc_10086 ; Italy sideline style
 	dc.l	loc_10090 ; Italy road style data
 	dc.l	loc_1009A ; Italy finish line style
-	dc.l	loc_11DC0 ; ?
+	dc.w	$0001 ; ?
+	dc.w	$1DC0 ; ?
 	dc.l	loc_737A0 ; Italy signs data
 	dc.l	loc_73816 ; Italy tileset for signs
 	dc.l	loc_736B2 ; Italy map for minimap position
@@ -18745,7 +18742,8 @@ Track_data:
 	dc.l	loc_100A4 ; Portugal sideline style
 	dc.l	loc_100AE ; Portugal road style data
 	dc.l	loc_100B8 ; Portugal finish line style
-	dc.l	loc_19C2-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$19C0 ; ?
 	dc.l	loc_72922 ; Portugal signs data
 	dc.l	loc_72980 ; Portugal tileset for signs
 	dc.l	loc_72854 ; Portugal map for minimap position
@@ -18765,7 +18763,8 @@ Track_data:
 	dc.l	loc_100C2 ; Spain sideline style
 	dc.l	loc_100CC ; Spain road style data
 	dc.l	loc_100D6 ; Spain finish line style
-	dc.l	loc_1A80 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1A80 ; ?
 	dc.l	loc_72B7A ; Spain signs data
 	dc.l	loc_72BEC ; Spain tileset for signs
 	dc.l	loc_72AA5 ; Spain map for minimap position
@@ -18785,7 +18784,8 @@ Track_data:
 	dc.l	loc_100E0 ; Mexico sideline style
 	dc.l	loc_100EA ; Mexico road style data
 	dc.l	loc_100F4 ; Mexico finish line style
-	dc.l	loc_1AC2-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1AC0 ; ?
 	dc.l	loc_71BBA ; Mexico signs data
 	dc.l	loc_71C14 ; Mexico tileset for signs
 	dc.l	loc_71AE3 ; Mexico map for minimap position
@@ -18805,7 +18805,8 @@ Track_data:
 	dc.l	loc_100FE ; Japan sideline style
 	dc.l	loc_10108 ; Japan road style data
 	dc.l	loc_10112 ; Japan finish line style
-	dc.l	loc_1D82-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1D80 ; ?
 	dc.l	loc_73264 ; Japan signs data
 	dc.l	loc_732F6 ; Japan tileset for signs
 	dc.l	loc_73178 ; Japan map for minimap position
@@ -18825,7 +18826,8 @@ Track_data:
 	dc.l	loc_1011C ; Belgium sideline style
 	dc.l	loc_10126 ; Belgium road style data
 	dc.l	loc_10130 ; Belgium finish line style
-	dc.l	loc_11E40 ; ?
+	dc.w	$0001 ; ?
+	dc.w	$1E40 ; ?
 	dc.l	loc_726D0 ; Belgium signs data
 	dc.l	loc_72766 ; Belgium tileset for signs
 	dc.l	loc_725DD ; Belgium map for minimap position
@@ -18845,7 +18847,8 @@ Track_data:
 	dc.l	loc_1013A ; Australia sideline style
 	dc.l	loc_10144 ; Australia road style data
 	dc.l	loc_1014E ; Australia finish line style
-	dc.l	loc_17C2-2 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$17C0 ; ?
 	dc.l	loc_72D78 ; Australia signs data
 	dc.l	loc_72DEA ; Australia tileset for signs
 	dc.l	loc_72CBA ; Australia map for minimap position
@@ -18865,7 +18868,8 @@ Track_data:
 	dc.l	loc_10158 ; Monaco sideline style
 	dc.l	loc_10162 ; Monaco road style data
 	dc.l	loc_1016C ; Monaco finish line style
-	dc.l	loc_1804-4 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1800 ; ?
 	dc.l	loc_719AC ; Monaco signs data
 	dc.l	loc_71A1E ; Monaco tileset for signs
 	dc.l	loc_718EB ; Monaco map for minimap position
@@ -18885,7 +18889,8 @@ Track_data:
 	dc.l	loc_FF5C-2 ; Monaco (Arcade preliminary) sideline style
 	dc.l	loc_FF64 ; Monaco (Arcade preliminary) road style data
 	dc.l	loc_FF6E ; Monaco (Arcade preliminary) finish line style
-	dc.l	loc_D40 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$0D40 ; ?
 	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
 	dc.l	loc_73B54 ; Monaco (Arcade preliminary) tileset for signs
 	dc.l	loc_73ABC ; Monaco (Arcade preliminary) map for minimap position
@@ -18905,7 +18910,8 @@ Track_data:
 	dc.l	loc_FF5C-2 ; Monaco (Arcade main) sideline style
 	dc.l	loc_FF64 ; Monaco (Arcade main) road style data
 	dc.l	loc_FF6E ; Monaco (Arcade main) finish line style
-	dc.l	loc_1DC0 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1DC0 ; ?
 	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
 	dc.l	loc_73DEA ; Monaco (Arcade main) tileset for signs
 	dc.l	loc_73C8D  ; Monaco (Arcade main) map for minimap position
@@ -18925,7 +18931,8 @@ Track_data:
 	dc.l	loc_FF78 ; Monaco (Arcade Wet Condition) sideline style
 	dc.l	loc_FF82 ; Monaco (Arcade Wet Condition) road style data
 	dc.l	loc_FF8C ; Monaco (Arcade Wet Condition) finish line style
-	dc.l	loc_1DC0 ; ?
+	dc.w	$0000 ; ?
+	dc.w	$1DC0 ; ?
 	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
 	dc.l	loc_73DEA  ; Monaco (Arcade Wet Condition) tileset for signs
 	dc.l	loc_73C8D ; Monaco (Arcade Wet Condition) map for minimap position
@@ -20294,7 +20301,6 @@ loc_11D18:
 	dc.b	$DC, $09, $1B, $3A, $FF, $FE, $EC, $0A, $1B, $31, $FF, $FE
 loc_11D32:
 	dc.b	$00, $03, $95, $0F, $0B, $15, $FF, $FF, $B5, $0E, $0B, $25, $FF, $FF
-loc_11D40:
 	dc.b	$CD, $0E, $1B, $25, $FF, $FF, $E5, $0F, $1B, $15, $FF, $FF
 loc_11D4C:
 	dc.b	$00, $0B, $70, $0A, $0A, $DF, $00, $14, $70, $0A, $0A, $E8, $FF, $FC
@@ -20311,7 +20317,6 @@ loc_11DAC:
 	dc.b	$00, $00, $FE, $0C, $03, $7D, $FF, $F0
 loc_11DB4:
 	dc.b	$00, $01, $FE, $08, $03, $78, $FF, $EC, $FE, $04, $03, $7B
-loc_11DC0:
 	dc.b	$00, $04
 loc_11DC2:
 	dc.b	$00, $01, $FF, $0C, $03, $85, $FF, $E0, $FF, $0C, $0B, $85, $FF, $FF
@@ -20329,7 +20334,6 @@ loc_11E0A:
 loc_11E30:
 	dc.b	$00, $0B, $FC, $00, $03, $5A, $FF, $9A, $FC, $0D, $03, $5B, $FF, $A2
 	dc.b	$FC, $09
-loc_11E40:
 	dc.b	$03, $63, $FF, $C2, $FC, $00, $03, $69, $FF, $DA, $FC, $00, $03, $5A
 	dc.b	$FF, $DD, $FC, $0D, $03, $5B, $FF, $E5, $FC, $09, $03, $63, $00, $05
 	dc.b	$FC, $00, $03, $69, $00, $1D, $FC, $00, $03, $5A, $00, $20, $FC, $0D
