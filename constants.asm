@@ -16,6 +16,7 @@ Drivers_and_teams_map = $FFFF9044;
 Use_world_championship_tracks = $FFFF9140 ; 1 for world championship or practice, 0 for arcade
 Track_index_arcade_mode = $FFFF9142
 Track_index = $FFFF9144
+Track_length = $FFFF9206 ; 2x value from track selection
 Race_started = $FFFF9146
 Practice_mode = $FFFF9148
 Warm_up = $FFFF914A

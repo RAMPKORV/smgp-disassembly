@@ -4312,7 +4312,7 @@ loc_38E0:
 	LEA	$FFFFB080.w, A0
 	MOVE.l	#loc_8C9E, (A0)
 	MOVE.w	D0, $12(A0)
-	MOVE.w	$FFFF9206.w, D0
+	MOVE.w	Track_length.w, D0
 	SUBI.w	#$0024, D0
 	MOVE.w	D0, $1A(A0)
 	MOVE.w	#$013C, D0
@@ -4323,7 +4323,7 @@ loc_38E0:
 	MOVE.b	#$FC, $2B(A0)
 loc_3948:
 	MOVE.l	#$0000A60A, $FFFFAF40.w
-	MOVE.w	$FFFF9206.w, D0
+	MOVE.w	Track_length.w, D0
 	SUBQ.w	#6, D0
 	MOVE.w	D0, Player_distance.w
 	RTS
@@ -4342,7 +4342,7 @@ loc_395C:
 loc_3986:
 	MOVEQ	#0, D6
 	LEA	$FFFFB080.w, A0
-	MOVE.w	$FFFF9206.w, D1
+	MOVE.w	Track_length.w, D1
 	SUBQ.w	#6, D1
 	MOVEQ	#0, D3
 	MOVE.w	$FFFFFF30.w, D4
@@ -4440,7 +4440,7 @@ loc_3AAC:
 	MOVEQ	#0, D6
 	LEA	$FFFFB0C0.w, A0
 	MOVE.w	#$0078, D0
-	MOVE.w	$FFFF9206.w, D1
+	MOVE.w	Track_length.w, D1
 	SUBQ.w	#6, D1
 	MOVEQ	#0, D3
 	MOVE.w	$FFFFFF3A.w, D2
@@ -7087,8 +7087,8 @@ loc_6224: ; Suspected: Level initialization
 	JSR	loc_F848
 	LEA	$20(A1), A1
 	MOVE.w	(A1)+, $FFFF920C.w ; ?
-	MOVE.w	(A1)+, D2 ; ?
-	MOVE.w	D2, $FFFF9206.w
+	MOVE.w	(A1)+, D2 ; track length
+	MOVE.w	D2, Track_length.w
 	SUBI.w	#$00A9, D2
 	MOVE.w	D2, $FFFF9214.w
 	SUBI.w	#$00A0, D2
@@ -7246,7 +7246,7 @@ loc_63AC:
 	DBF	D1, loc_6360
 loc_63B8:
 	MOVE.l	(A1)+, $FFFFFF52.w
-	MOVE.w	$FFFF9206.w, $FFFF922C.w
+	MOVE.w	Track_length.w, $FFFF922C.w
 	MOVE.l	loc_FDCA, $FFFF922E.w
 	LEA	loc_73CA(PC), A6
 	CMPI.w	#1, Track_index_arcade_mode.w
@@ -7927,11 +7927,11 @@ loc_6B68:
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
 	SWAP	D0
-	CMP.w	$FFFF9206.w, D0
+	CMP.w	Track_length.w, D0
 	BCS.b	loc_6B96
-	SUB.w	$FFFF9206.w, D0
+	SUB.w	Track_length.w, D0
 	ADDQ.w	#1, $FFFF9232.w
-	MOVE.w	$FFFF9206.w, D1
+	MOVE.w	Track_length.w, D1
 	ADD.w	D1, $FFFFFF56.w
 loc_6B96:
 	SWAP	D0
@@ -8075,7 +8075,7 @@ loc_6CD0:
 loc_6CF0:
 	MOVE.b	(A5,D0.w), D2
 	BPL.b	loc_6D00
-	MOVE.w	$FFFF9206.w, D0
+	MOVE.w	Track_length.w, D0
 	LSR.w	#2, D0
 	SUBQ.w	#1, D0
 	BRA.b	loc_6CF0
@@ -10520,7 +10520,7 @@ loc_89C2:
 	SUB.w	Player_distance.w, D0
 	CMPI.w	#$0078, D0
 	BCS.b	loc_89D6
-	ADD.w	$FFFF9206.w, D0
+	ADD.w	Track_length.w, D0
 	CMPI.w	#$0078, D0
 	BCC.b	loc_89F2
 loc_89D6:
@@ -10555,73 +10555,73 @@ loc_8A12:
 	CMP.w	$FFFF9232.w, D0
 	BNE.b	loc_8A44
 loc_8A20:
-	MOVE.w	$FFFF9206.w, D0
+	MOVE.w	Track_length.w, D0
 	SUB.w	Player_distance.w, D0
 	CMPI.w	#$0078, D0
-	BCC.b	loc_8A44
+	BCC.b	loc_8A44 ; continue if distance to track end < 120
 	MOVE.w	#1, $FFFFFC72.w
 	MOVE.l	#$0000A174, $FFFFAF80.w
 	LEA	loc_12A34, A0
 	BRA.b	loc_89E4
 loc_8A44:
 	MOVEA.l	$FFFF9244.w, A0
-	MOVE.w	(A0)+, D0
+	MOVE.w	(A0)+, D0 ; D0 = sign location (distance from start)
 	BPL.b	loc_8A54
-	MOVE.l	$FFFF9240.w, $FFFF9244.w
+	MOVE.l	$FFFF9240.w, $FFFF9244.w ; reset sign data to start, done each new lap?
 	BRA.b	loc_89F4
-loc_8A54:
+loc_8A54: ; parse sign data
 	MOVE.w	D0, D1
-	SUB.w	Player_distance.w, D1
+	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
 	CMPI.w	#$0078, D1
-	BCS.b	loc_8A6A
-	ADD.w	$FFFF9206.w, D1
+	BCS.b	loc_8A6A ; jump if distance to sign < 120
+	ADD.w	Track_length.w, D1
 	CMPI.w	#$0078, D1
-	BCC.b	loc_8A92
-loc_8A6A: ; Suspected sign parsing
+	BCC.b	loc_8A92 ; continue if distance to sign? < 120 (sign appears after finish line next lap?)
+loc_8A6A:
 	ADDQ.l	#4, $FFFF9244.w
-	MOVE.w	D0, $FFFF9250.w
-	MOVE.b	(A0)+, D0
+	MOVE.w	D0, $FFFF9250.w ; sign location
+	MOVE.b	(A0)+, D0 ; D0 = how many signs in a row
 	EXT.w	D0
 	MOVE.w	D0, $FFFF9252.w
-	MOVE.b	(A0)+, D0
+	MOVE.b	(A0)+, D0 ; D0 = sign identifier to lookup
 	EXT.w	D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_713EC, A0
+	LEA	Sign_lookup_table, A0
 	ADDA.w	D0, A0
-	MOVE.l	(A0), $FFFF9248.w
-	MOVE.l	(A0), $FFFF924C.w
+	MOVE.l	(A0), $FFFF9248.w ; sign table entry (start)
+	MOVE.l	(A0), $FFFF924C.w ; sign table entry (current)
 loc_8A92:
-	MOVE.w	$FFFF9252.w, D0
-	BEQ.b	loc_8B04
-	MOVE.w	$FFFF9250.w, D0
+	MOVE.w	$FFFF9252.w, D0 ; D0 = how many signs in a row remaining
+	BEQ.b	loc_8B04        ; return if 0
+	MOVE.w	$FFFF9250.w, D0 ; D0 = sign location
 	MOVE.w	D0, D1
-	SUB.w	Player_distance.w, D1
+	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
 	CMPI.w	#$0078, D1
-	BCS.b	loc_8AB2
-	ADD.w	$FFFF9206.w, D1
+	BCS.b	loc_8AB2 ; jump if distance to sign < 120
+	ADD.w	Track_length.w, D1
 	CMPI.w	#$0078, D1
-	BCC.b	loc_8B04
+	BCC.b	loc_8B04 ; continue if distance to sign? < 120 (sign appears for next lap?)
 loc_8AB2:
-	ADDI.w	#$0010, $FFFF9250.w
+	ADDI.w	#$0010, $FFFF9250.w ; add spacing to next sign in row?
 loc_8AB8:
-	MOVEA.l	$FFFF924C.w, A0
-	MOVE.b	(A0)+, D1
+	MOVEA.l	$FFFF924C.w, A0 ; ...
+	MOVE.b	(A0)+, D1       ; D1 = sign table byte
 	BPL.b	loc_8ACE
-	MOVE.l	$FFFF9248.w, $FFFF924C.w
-	SUBQ.w	#1, $FFFF9252.w
-	BNE.b	loc_8AB8
+	MOVE.l	$FFFF9248.w, $FFFF924C.w ; restart at first byte in sign table entry after $FF
+	SUBQ.w	#1, $FFFF9252.w ; decrement signs in a row count
+	BNE.b	loc_8AB8 ; loop for each sign in a row
 	BRA.b	loc_8B04
 loc_8ACE:
-	MOVE.l	A0, $FFFF924C.w
+	MOVE.l	A0, $FFFF924C.w ; next byte in sign table entry
 	EXT.w	D1
-	BEQ.b	loc_8B04
+	BEQ.b	loc_8B04 ; jump to RTS if sign table byte = 0 (special sign?)
 	CMPI.w	#$0015, D1
-	BCC.b	loc_8B06
+	BCC.b	loc_8B06 ; jump if sign table byte >= $0015 (special sign, tunnel?)
 	ADD.w	D1, D1
-	ADD.w	D1, D1
+	ADD.w	D1, D1 ; D1 is at least 4, so below lookup begins at loc_A81A declaration
 	MOVE.l	loc_8B1C-2(PC,D1.w), D1
-	ADD.w	$FFFFFF56.w, D0
+	ADD.w	$FFFFFF56.w, D0 ; some multiple of track length?
 
 loc_8AE8:
 	LEA	$FFFFB840.w, A1
@@ -10886,9 +10886,9 @@ loc_8DFA:
 	MOVE.w	D2, D4
 	ANDI.w	#$003F, D2
 	ADDI.w	#$0046, D1
-	CMP.w	$FFFF9206.w, D1
+	CMP.w	Track_length.w, D1
 	BCS.b	loc_8E24
-	SUB.w	$FFFF9206.w, D1
+	SUB.w	Track_length.w, D1
 loc_8E24:
 	LSR.w	#2, D1
 	MOVE.b	(A5,D1.w), D3
@@ -11027,9 +11027,9 @@ loc_8F76:
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
 	SWAP	D0
-	CMP.w	$FFFF9206.w, D0
+	CMP.w	Track_length.w, D0
 	BCS.b	loc_8FD6
-	SUB.w	$FFFF9206.w, D0
+	SUB.w	Track_length.w, D0
 	ADDQ.w	#1, $22(A0)
 	TST.b	$3C(A0)
 	BEQ.b	loc_8FC8
@@ -11359,9 +11359,9 @@ loc_9348:
 	MOVE.w	D2, D4
 	ANDI.w	#$003F, D2
 	ADDI.w	#$0046, D1
-	CMP.w	$FFFF9206.w, D1
+	CMP.w	Track_length.w, D1
 	BCS.b	loc_9372
-	SUB.w	$FFFF9206.w, D1
+	SUB.w	Track_length.w, D1
 loc_9372:
 	LSR.w	#2, D1
 	MOVE.b	(A5,D1.w), D3
@@ -11513,7 +11513,7 @@ loc_94EA:
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
 	SWAP	D0
-	CMP.w	$FFFF9206.w, D0
+	CMP.w	Track_length.w, D0
 	BCS.b	loc_9534
 	TST.w	$FFFFFCBC.w
 	BEQ.b	loc_951E
@@ -11521,7 +11521,7 @@ loc_94EA:
 	BNE.b	loc_951E
 	MOVE.w	#2, $FFFFFCC0.w
 loc_951E:
-	SUB.w	$FFFF9206.w, D0
+	SUB.w	Track_length.w, D0
 	ADDQ.w	#1, $22(A0)
 	CMPI.w	#5, $22(A0)
 	BNE.b	loc_9534
@@ -11887,7 +11887,7 @@ loc_98E6:
 
 loc_9914:
 	MOVEA.w	#0, A6
-	MOVE.w	$FFFF9206.w, D5
+	MOVE.w	Track_length.w, D5
 	MOVE.w	$1A(A0), D1
 	MOVE.w	D1, D0
 	MOVE.w	Player_distance.w, D2
@@ -12008,7 +12008,7 @@ loc_9A42:
 	RTS
 
 loc_9A58:
-	MOVE.w	$FFFF9206.w, D5
+	MOVE.w	Track_length.w, D5
 	MOVE.w	$1A(A0), D1
 	MOVE.w	D1, D0
 	MOVE.w	Player_distance.w, D2
@@ -12243,7 +12243,7 @@ loc_9D6C:
 	MOVE.w	$1A(A1), D0
 	SUB.w	$2E(A0), D0
 	BCC.b	loc_9D7E
-	ADD.w	$FFFF9206.w, D0
+	ADD.w	Track_length.w, D0
 loc_9D7E:
 	MOVE.w	D0, $1A(A0)
 	JSR	loc_9A58(PC)
@@ -12339,12 +12339,12 @@ loc_9EA4:
 loc_9EA6:
 	ADD.w	D1, D0
 	BPL.b	loc_9EB0
-	ADD.w	$FFFF9206.w, D0
+	ADD.w	Track_length.w, D0
 	BRA.b	loc_9EBA
 loc_9EB0:
-	CMP.w	$FFFF9206.w, D0
+	CMP.w	Track_length.w, D0
 	BCS.b	loc_9EBA
-	SUB.w	$FFFF9206.w, D0
+	SUB.w	Track_length.w, D0
 loc_9EBA:
 	MOVE.w	D0, $1A(A0)
 	RTS
@@ -12534,9 +12534,9 @@ loc_A0E6:
 	MOVE.l	(A1,D0.w), D0
 	ADD.l	$1A(A0), D0
 	SWAP	D0
-	CMP.w	$FFFF9206.w, D0
+	CMP.w	Track_length.w, D0
 	BCS.b	loc_A112
-	SUB.w	$FFFF9206.w, D0
+	SUB.w	Track_length.w, D0
 loc_A112:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
@@ -14846,7 +14846,7 @@ loc_C242:
 	MOVE.w	#$FFFF, $FFFFFCBC.w
 	JSR	loc_F1E
 	JSR	loc_F26
-	MOVE.w	$FFFF9206.w, D1
+	MOVE.w	Track_length.w, D1
 	ADD.w	D1, $FFFFFF56.w
 	MOVE.w	$FFFFFF56.w, $FFFFAE1E.w
 	ADDI.w	#$0040, $FFFFFF32.w
@@ -18554,7 +18554,7 @@ Track_data:
 	dc.l	loc_FFA0 ; San Marino road style data
 	dc.l	loc_FFAA ; San Marino finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1B80 ; ?
+	dc.w	7040 ; track length
 	dc.l	loc_7173C ; San Marino signs data
 	dc.l	loc_717A6 ; San Marino tileset for signs
 	dc.l	loc_71660 ; San Marino map for minimap position
@@ -18575,7 +18575,7 @@ Track_data:
 	dc.l	loc_FFBE ; Brazil road style data
 	dc.l	loc_FFC8 ; Brazil finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1B40 ; ?
+	dc.w	6976 ; track length
 	dc.l	loc_739AA ; Brazil signs data
 	dc.l	loc_73A30 ; Brazil tileset for signs
 	dc.l	loc_738CF ; Brazil map for minimap position
@@ -18596,7 +18596,7 @@ Track_data:
 	dc.l	loc_FFDC ; France road style data
 	dc.l	loc_FFE6 ; France finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1800 ; ?
+	dc.w	6144 ; track length
 	dc.l	loc_71DBA ; France signs data
 	dc.l	loc_71E20 ; France tileset for signs
 	dc.l	loc_71CFA ; France map for minimap position
@@ -18617,7 +18617,7 @@ Track_data:
 	dc.l	loc_FFFA ; Hungary road style data
 	dc.l	loc_10004 ; Hungary finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1940 ; ?
+	dc.w	6464 ; track length
 	dc.l	loc_723F0 ; Hungary signs data
 	dc.l	loc_7245A ; Hungary tileset for signs
 	dc.l	loc_72326 ; Hungary map for minimap position
@@ -18638,7 +18638,7 @@ Track_data:
 	dc.l	loc_10018 ; West Germany road style data
 	dc.l	loc_10022 ; West Germany finish line style
 	dc.w	$0001 ; ?
-	dc.w	$1D40 ; ?
+	dc.w	7488 ; track length
 	dc.l	loc_721B6 ; West Germany signs data
 	dc.l	loc_7222C ; West Germany tileset for signs
 	dc.l	loc_720CB ; West Germany map for minimap position
@@ -18659,7 +18659,7 @@ Track_data:
 	dc.l	loc_10036 ; USA road style data
 	dc.l	loc_10040 ; USA finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1C00 ; ?
+	dc.w	7168 ; track length
 	dc.l	loc_72F8C ; USA signs data
 	dc.l	loc_7300E ; USA tileset for signs
 	dc.l	loc_72EAB ; USA map for minimap position
@@ -18680,7 +18680,7 @@ Track_data:
 	dc.l	loc_10054 ; Canada road style data
 	dc.l	loc_1005E ; Canada finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1A40 ; ?
+	dc.w	6720 ; track length
 	dc.l	loc_73546 ; Canada signs data
 	dc.l	loc_735BC ; Canada tileset for signs
 	dc.l	loc_73474 ; Canada map for minimap position
@@ -18701,7 +18701,7 @@ Track_data:
 	dc.l	loc_10072  ; Great Britain road style data
 	dc.l	loc_1007C  ; Great Britain finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1B00 ; ?
+	dc.w	6912 ; track length
 	dc.l	loc_71F98 ; Great Britain signs data
 	dc.l	loc_71FEA  ; Great Britain tileset for signs
 	dc.l	loc_71EC0  ; Great Britain map for minimap position
@@ -18722,7 +18722,7 @@ Track_data:
 	dc.l	loc_10090 ; Italy road style data
 	dc.l	loc_1009A ; Italy finish line style
 	dc.w	$0001 ; ?
-	dc.w	$1DC0 ; ?
+	dc.w	7616 ; track length
 	dc.l	loc_737A0 ; Italy signs data
 	dc.l	loc_73816 ; Italy tileset for signs
 	dc.l	loc_736B2 ; Italy map for minimap position
@@ -18743,7 +18743,7 @@ Track_data:
 	dc.l	loc_100AE ; Portugal road style data
 	dc.l	loc_100B8 ; Portugal finish line style
 	dc.w	$0000 ; ?
-	dc.w	$19C0 ; ?
+	dc.w	6592 ; track length
 	dc.l	loc_72922 ; Portugal signs data
 	dc.l	loc_72980 ; Portugal tileset for signs
 	dc.l	loc_72854 ; Portugal map for minimap position
@@ -18764,7 +18764,7 @@ Track_data:
 	dc.l	loc_100CC ; Spain road style data
 	dc.l	loc_100D6 ; Spain finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1A80 ; ?
+	dc.w	6784 ; track length
 	dc.l	loc_72B7A ; Spain signs data
 	dc.l	loc_72BEC ; Spain tileset for signs
 	dc.l	loc_72AA5 ; Spain map for minimap position
@@ -18785,7 +18785,7 @@ Track_data:
 	dc.l	loc_100EA ; Mexico road style data
 	dc.l	loc_100F4 ; Mexico finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1AC0 ; ?
+	dc.w	6848 ; track length
 	dc.l	loc_71BBA ; Mexico signs data
 	dc.l	loc_71C14 ; Mexico tileset for signs
 	dc.l	loc_71AE3 ; Mexico map for minimap position
@@ -18806,7 +18806,7 @@ Track_data:
 	dc.l	loc_10108 ; Japan road style data
 	dc.l	loc_10112 ; Japan finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1D80 ; ?
+	dc.w	7552 ; track length
 	dc.l	loc_73264 ; Japan signs data
 	dc.l	loc_732F6 ; Japan tileset for signs
 	dc.l	loc_73178 ; Japan map for minimap position
@@ -18827,7 +18827,7 @@ Track_data:
 	dc.l	loc_10126 ; Belgium road style data
 	dc.l	loc_10130 ; Belgium finish line style
 	dc.w	$0001 ; ?
-	dc.w	$1E40 ; ?
+	dc.w	7744 ; track length
 	dc.l	loc_726D0 ; Belgium signs data
 	dc.l	loc_72766 ; Belgium tileset for signs
 	dc.l	loc_725DD ; Belgium map for minimap position
@@ -18848,7 +18848,7 @@ Track_data:
 	dc.l	loc_10144 ; Australia road style data
 	dc.l	loc_1014E ; Australia finish line style
 	dc.w	$0000 ; ?
-	dc.w	$17C0 ; ?
+	dc.w	6080 ; track length
 	dc.l	loc_72D78 ; Australia signs data
 	dc.l	loc_72DEA ; Australia tileset for signs
 	dc.l	loc_72CBA ; Australia map for minimap position
@@ -18869,7 +18869,7 @@ Track_data:
 	dc.l	loc_10162 ; Monaco road style data
 	dc.l	loc_1016C ; Monaco finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1800 ; ?
+	dc.w	6144 ; track length
 	dc.l	loc_719AC ; Monaco signs data
 	dc.l	loc_71A1E ; Monaco tileset for signs
 	dc.l	loc_718EB ; Monaco map for minimap position
@@ -18890,7 +18890,7 @@ Track_data:
 	dc.l	loc_FF64 ; Monaco (Arcade preliminary) road style data
 	dc.l	loc_FF6E ; Monaco (Arcade preliminary) finish line style
 	dc.w	$0000 ; ?
-	dc.w	$0D40 ; ?
+	dc.w	3392 ; track length
 	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
 	dc.l	loc_73B54 ; Monaco (Arcade preliminary) tileset for signs
 	dc.l	loc_73ABC ; Monaco (Arcade preliminary) map for minimap position
@@ -18911,7 +18911,7 @@ Track_data:
 	dc.l	loc_FF64 ; Monaco (Arcade main) road style data
 	dc.l	loc_FF6E ; Monaco (Arcade main) finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1DC0 ; ?
+	dc.w	7616 ; track length
 	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
 	dc.l	loc_73DEA ; Monaco (Arcade main) tileset for signs
 	dc.l	loc_73C8D  ; Monaco (Arcade main) map for minimap position
@@ -18932,7 +18932,7 @@ Track_data:
 	dc.l	loc_FF82 ; Monaco (Arcade Wet Condition) road style data
 	dc.l	loc_FF8C ; Monaco (Arcade Wet Condition) finish line style
 	dc.w	$0000 ; ?
-	dc.w	$1DC0 ; ?
+	dc.w	7616 ; track length
 	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
 	dc.l	loc_73DEA  ; Monaco (Arcade Wet Condition) tileset for signs
 	dc.l	loc_73C8D ; Monaco (Arcade Wet Condition) map for minimap position
@@ -40206,7 +40206,8 @@ loc_7139C:
 	dc.w	$0004, $0004, $0004, $0005, $0005, $0005, $0005, $0006
 	dc.w	$0006, $0006, $0006, $0007, $0007, $0007, $0007, $0008
 	dc.w	$0008, $0008, $0008, $0008, $0009, $0009, $0009, $0009
-loc_713EC:
+;loc_713EC:
+Sign_lookup_table:
 	dc.l	loc_714B8
 	dc.l	loc_714BA
 	dc.l	loc_714BC
@@ -40281,7 +40282,7 @@ loc_714D5:
 loc_714DA:
 	dc.b	$08, $00, $07, $00, $FF
 loc_714DF:
-	dc.b	$09, $09,	$FF
+	dc.b	$09, $09, $FF
 loc_714E2:
 	dc.b	$0A, $0A, $FF
 loc_714E5:
@@ -40321,7 +40322,7 @@ loc_7151D:
 loc_71522:
 	dc.b	$14, $00, $13, $00, $FF
 loc_71527:
-	dc.b	$15,	$FF
+	dc.b	$15, $FF
 loc_71529:
 	dc.b	$16, $FF
 loc_7152B:
@@ -40420,11 +40421,14 @@ loc_71660: ; map for minimap position
 	dc.b	$2C, $1D, $2E, $1C, $2F, $1C, $31, $1C, $32, $1B, $34, $1A, $35, $1A, $37, $1A, $39, $1A, $3B, $1B, $3C, $1B, $3E, $1C, $3F, $1C, $41, $1C, $42, $1D, $44, $1E
 	dc.b	$45, $1E, $47, $1F, $48, $1F, $4A, $20, $4B, $20, $4D, $21, $4E, $21, $50, $21, $52, $22, $53, $23, $52, $25, $51, $26, $4F, $26, $4D, $26, $4C, $26, $4A, $26
 	dc.b	$49, $26, $47, $26, $46, $26, $44, $26, $43, $26, $41, $27, $40, $28, $3E, $29, $3D, $28, $3C, $28, $3C, $28, $3B, $28, $3A, $28, $38, $28
-loc_7173C:
-	dc.b	$02, $CC, $04, $01, $03, $24, $03, $25, $04, $1C, $04, $24, $05, $34, $04, $25, $07, $34, $04, $10, $07, $C4, $0C, $1F, $08, $A0, $02, $0B, $09, $B0, $04, $08
-	dc.b	$0B, $A0, $04, $01, $0C, $74, $04, $01, $0C, $D8, $04, $09, $0D, $E8, $04, $00, $0E, $1C, $04, $01, $0E, $60, $09, $00, $0F, $98, $05, $05, $11, $48, $04, $1C
-	dc.b	$11, $98, $01, $0A, $12, $48, $04, $08, $13, $E8, $04, $19, $15, $AC, $04, $01, $16, $88, $04, $01, $17, $14, $04, $11, $18, $58, $04, $08, $19, $40, $04, $1C
-	dc.b	$19, $90, $01, $0A, $19, $EC, $04, $00, $FF, $FF
+loc_7173C: ; sign data
+; first word: sign location (distance from start)
+; second word byte 1: how many signs in a row
+; second word byte 2: index in lookup table
+	dc.w	$02CC, $0401, $0324, $0325, $041C, $0424, $0534, $0425, $0734, $0410, $07C4, $0C1F, $08A0, $020B, $09B0, $0408
+	dc.w	$0BA0, $0401, $0C74, $0401, $0CD8, $0409, $0DE8, $0400, $0E1C, $0401, $0E60, $0900, $0F98, $0505, $1148, $041C
+	dc.w	$1198, $010A, $1248, $0408, $13E8, $0419, $15AC, $0401, $1688, $0401, $1714, $0411, $1858, $0408, $1940, $041C
+	dc.w	$1990, $010A, $19EC, $0400, $FFFF
 loc_717A6:
 	dc.w	$0306, $0038, $0716, $0018, $07A6, $0008, $0F7A, $0010, $112A, $0000, $13CA, $0028, $16F6, $0018, $1922, $0000
 	dc.b	$FF, $FF

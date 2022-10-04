@@ -43,7 +43,7 @@ LOCATIONS
 ; 0x9161: steering
 ; 0x9180: "Engine_data_variant" - RPM for current shift offset (based on Player_team, practice mode is $003C)
 ; 0x9182: Acceleration modifier based on Player_team (0 in practice mode)
-; 0x9206: ?
+; 0x9206: track length (2x value from track selection)
 ; 0x9208: Controls acceleration. 0 in practice mode, can be 1 or 2.
 ; 0x920A: unknown_track_data_1
 ; 0x9222: ?
