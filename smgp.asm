@@ -1161,6 +1161,7 @@ loc_D2C:
 loc_D36:
 	dc.w	$8004, $8134, $8238, $8338, $8406
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
+
 loc_D5C:
 	MOVEQ	#-1, D0
 	MOVE.l	D0, $FFFF9288.w
@@ -1188,11 +1189,11 @@ loc_D92:
 	MOVE.l	(A0), D0
 	BEQ.b	loc_D9A
 	MOVEA.l	D0, A1
-	JSR	(A1)
+	JSR	(A1) ; can jump to loc_A838, configured by loc_8B1C
 loc_D9A:
 	LEA	$40(A0), A0
 	SUBQ.w	#1, $FFFFFF14.w
-	BNE.b	loc_D92
+	BNE.b	loc_D92 ; loop from A0=$FFFFAD80 in jumps of $40 at most #$004C steps (final iteration at $FFFFC040)
 	LEA	$FFFF9AC0.w, A6
 	MOVEQ	#$00000052, D0
 	LEA	$FFFFA7A0.w, A5
@@ -4170,6 +4171,7 @@ loc_36A8:
 	dc.b	$06, $EE, $04, $CE, $02, $AE
 	dc.l	$028E06EE
 	dc.l	$04CE02AE
+
 loc_36B6: ; Suspected in-game loop
 	JSR	loc_3A2(PC)
 	CLR.w	$FFFFFC60.w
@@ -4207,17 +4209,17 @@ loc_3708:
 	JSR	loc_8250(PC)
 	JSR	loc_785C(PC)
 	JSR	loc_A152(PC)
-	JSR	loc_89AC(PC) ; Commeiting out makes signs have the wrong textures
-	JSR	loc_89F4(PC) ; Commenting out makes signs and obstacles disappear (physical and visual)
+	JSR	Parse_tileset_for_signs(PC) ; Commenting out makes signs have the wrong textures
+	JSR	Parse_sign_data(PC) ; Commenting out makes signs and obstacles disappear (physical and visual)
 	JSR	loc_873A(PC)
 	JSR	loc_3FE0(PC)
 	JSR	loc_A278(PC)
 loc_3748:
 	CMPI.w	#4, $FFFFFC24.w
 	BLT.b	loc_3748
-	JSR	loc_D5C(PC)
-	JSR	loc_9AC4(PC)
-	JSR	loc_674E(PC)
+	JSR	loc_D5C(PC) ; Commenting out makes graphics freeze
+	JSR	loc_9AC4(PC) ; Commenting out removes sound
+	JSR	loc_674E(PC) ; Commenting out makes road graphics not updates (but signs still move)
 	RTS
 	JSR	loc_8C0(PC)
 	JSR	loc_656(PC)
@@ -10508,28 +10510,31 @@ loc_8998:
 	dc.w	$FFFE, $FFFA
 	dc.w	$FFFC, $FFF4
 
-loc_89AC:
+;loc_89AC:
+Parse_tileset_for_signs:
+; $FFFF9254 = track tileset for sign start memory location
+; $FFFF9258 = track tileset for sign current
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
-	MOVEA.l	$FFFF9258.w, A0
-	MOVE.w	(A0)+, D0
+	MOVEA.l	$FFFF9258.w, A0 ; current sign
+	MOVE.w	(A0)+, D0 ; distance to sign
 	BPL.b	loc_89C2
-	MOVE.l	$FFFF9254.w, $FFFF9258.w
-	BRA.b	loc_89AC
+	MOVE.l	$FFFF9254.w, $FFFF9258.w ; End of tileset ($FFFF), read from start again
+	BRA.b	Parse_tileset_for_signs
 loc_89C2:
-	SUB.w	Player_distance.w, D0
+	SUB.w	Player_distance.w, D0 ; D0 = distance to sign
 	CMPI.w	#$0078, D0
-	BCS.b	loc_89D6
+	BCS.b	loc_89D6 ; jump if distance to sign < 120
 	ADD.w	Track_length.w, D0
 	CMPI.w	#$0078, D0
-	BCC.b	loc_89F2
+	BCC.b	loc_89F2 ; continue if distance to sign? < 120 (sign appears after finish line next lap?)
 loc_89D6:
 	MOVE.w	(A0)+, D0
-	MOVE.l	A0, $FFFF9258.w
-	LEA	loc_129D4, A0
+	MOVE.l	A0, $FFFF9258.w ; next sign
+	LEA	Sign_tileset_table, A0
 	ADDA.w	D0, A0
 loc_89E4:
-	LEA	$FFFF925C.w, A1
+	LEA	$FFFF925C.w, A1 ; write tileset table entry to memory
 	MOVE.l	(A0)+, (A1)+
 	MOVE.w	(A0)+, (A1)+
 	MOVE.w	(A0), (A1)+
@@ -10537,7 +10542,8 @@ loc_89E4:
 loc_89F2:
 	RTS
 
-loc_89F4:
+;loc_89F4:
+Parse_sign_data:
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
 	MOVE.w	Warm_up.w, D0
@@ -10568,7 +10574,7 @@ loc_8A44:
 	MOVE.w	(A0)+, D0 ; D0 = sign location (distance from start)
 	BPL.b	loc_8A54
 	MOVE.l	$FFFF9240.w, $FFFF9244.w ; reset sign data to start, done each new lap?
-	BRA.b	loc_89F4
+	BRA.b	Parse_sign_data
 loc_8A54: ; parse sign data
 	MOVE.w	D0, D1
 	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
@@ -10649,7 +10655,7 @@ loc_8B06:
 loc_8B1C:
 	RTS
 	dc.l	loc_A81A
-	dc.l	loc_A838
+	dc.l	loc_A838 ; first san marino sign
 	dc.l	loc_A944
 	dc.l	loc_A99A
 	dc.l	loc_A862
@@ -20658,7 +20664,9 @@ loc_129AE:
 	dc.b	$FF, $B8, $F0, $05, $04, $85, $FF, $D8, $E8, $0A, $04, $89, $FF, $E8
 	dc.b	$E8, $0A, $0C, $89, $00, $00, $F0, $05, $0C, $85, $00, $18, $E8, $0E
 	dc.b	$0C, $79, $00, $28
-loc_129D4:
+;loc_129D4:
+Sign_tileset_table:
+; 8 bytes per sign
 	dc.b	$00, $02, $2A, $B4, $65, $40
 	dc.w	$0890
 	dc.b	$00, $02, $33, $44, $5B, $E0
@@ -20677,9 +20685,13 @@ loc_129D4:
 	dc.w	$09B0
 	dc.b	$00, $02, $65, $74, $65, $40
 	dc.w	$09B0
-	dc.b	$00, $02, $6F, $24, $65, $40, $09, $B0, $00, $02, $43, $74, $5B, $E0, $0E, $E0, $00, $02, $10, $04, $5B, $E0
+	dc.b	$00, $02, $6F, $24, $65, $40
+	dc.w	$09B0
+	dc.b	$00, $02, $43, $74, $5B, $E0
+	dc.w	$0EE0
+	dc.b	$00, $02, $10, $04, $5B, $E0
 	dc.w	$0AA0
-loc_12A34:
+loc_12A34: ; special sign, flagkeeper?
 	dc.b	$00, $02, $07, $A4, $65, $40
 	dc.w	$0860
 	dc.b	$00
@@ -40441,9 +40453,12 @@ loc_7173C: ; sign data
 	dc.w	$0BA0, $0401, $0C74, $0401, $0CD8, $0409, $0DE8, $0400, $0E1C, $0401, $0E60, $0900, $0F98, $0505, $1148, $041C
 	dc.w	$1198, $010A, $1248, $0408, $13E8, $0419, $15AC, $0401, $1688, $0401, $1714, $0411, $1858, $0408, $1940, $041C
 	dc.w	$1990, $010A, $19EC, $0400, $FFFF
-loc_717A6:
-	dc.w	$0306, $0038, $0716, $0018, $07A6, $0008, $0F7A, $0010, $112A, $0000, $13CA, $0028, $16F6, $0018, $1922, $0000
-	dc.b	$FF, $FF
+loc_717A6: ; tileset for signs
+; first word: location
+; second word: tileset
+	dc.w	$0306, $0038, $0716, $0018, $07A6, $0008, $0F7A, $0010
+	dc.w	$112A, $0000, $13CA, $0028, $16F6, $0018, $1922, $0000
+	dc.w	$FFFF
 loc_717C8:
 	dc.b	$00, $57, $5E, $00, $39
 	dc.b	$00, $0F, $41, $00, $AB
