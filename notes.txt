@@ -67,6 +67,8 @@ LOCATIONS
 ; 0xFCA6: Typically false, setting to true makes car almost always accelerate
 ; 0xFF04: Input key state bitset: start, A, C, B, right, left, down, up
 ; 0xFF05: Input key click bitset: Set for one frame if key clicked?
+; 0xFF08: Sent to VDP_control_port
+; 0xFF0A: Sent to VDP_control_port
 ; 0xFF10: Contains a pointer to a function
 ; 0xFF20: Input key mapping ("Control type" in settings)
 ; - 0xFF20: Key for Shift down
