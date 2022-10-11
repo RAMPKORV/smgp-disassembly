@@ -2694,11 +2694,19 @@ loc_2002:
 	dc.l	loc_1ECC
 	dc.l	loc_2010
 loc_2010:
-	dc.b	$E2, $72, $FB, $A7, $C0, $15, $0A, $19, $FB, $C4, $AC, $08, $1C, $FE, $FA, $FA, $FA, $09, $1D, $FF
+	dc.b	$E2, $72, $FB, $A7, $C0
+	txt "LAP"
+	dc.b $FB, $C4, $AC, $08, $1C, $FE, $FA, $FA, $FA, $09, $1D, $FF
 loc_2024:
-	dc.b	$E2, $44, $FB, $A7, $C0, $19, $18, $1C, $12, $1D, $12, $18, $17, $FE, $FA, $22, $18, $1E, $2B, $1B, $12, $1F, $0A, $15, $28, $FA, $FA, $FA, $FA, $FA, $2B, $FF
+	dc.b	$E2, $44, $FB, $A7, $C0
+	txt "POSITION", $FE, $FA
+	txt "YOU", $2B
+	txt "RIVAL"
+	dc.b	$28, $FA, $FA, $FA, $FA, $FA, $2B, $FF
 loc_2044:
-	dc.b	$E2, $46, $FB, $A7, $C0, $22, $18, $1E, $1B, $FE, $FA, $19, $18, $1C, $12, $1D, $12, $18, $17, $28, $FF, $00
+	dc.b	$E2, $46, $FB, $A7, $C0
+	txt	"YOUR", $FE, $FA
+	txt "POSITION", $28, $FF, $00
 loc_205A:
 	dc.w	$0000, $0000, $873B, $875C, $875D, $873B, $873B, $875C, $875E, $873B, $873B, $875C, $875E, $873B, $873B, $875C, $875E, $873B, $873B, $875C, $875E, $873B
 loc_2086:
