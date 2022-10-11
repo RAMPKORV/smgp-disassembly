@@ -52,6 +52,7 @@ LOCATIONS
 ; 0x9244: Pointer to current signs data location
 ; 0x924C.l: Pointer to signs data (in ROM)
 ; 0x9250: ?
+; 0x925C: Current sign tileset (10 bytes including $FFFF)
 ; 0xA980: ? Some struct
 ; 0xAE00: Player state struct ??
 ; 0xae12: Player horizontal position (0 middle, positive right, negative left)
@@ -66,6 +67,9 @@ LOCATIONS
 ; 0xFCA6: Typically false, setting to true makes car almost always accelerate
 ; 0xFF04: Input key state bitset: start, A, C, B, right, left, down, up
 ; 0xFF05: Input key click bitset: Set for one frame if key clicked?
+; 0xFF08: Sent to VDP_control_port
+; 0xFF0A: Sent to VDP_control_port
+; 0xFF10: Contains a pointer to a function
 ; 0xFF20: Input key mapping ("Control type" in settings)
 ; - 0xFF20: Key for Shift down
 ; - 0xFF21: Key for Shift up

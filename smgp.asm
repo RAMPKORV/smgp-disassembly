@@ -284,7 +284,7 @@ loc_430:
 	JMP	loc_982
 
 loc_46A:
-	MOVE.w	#$0100, $00A11100
+	MOVE.w	#$0100, Z80_bus_request
 	BSR.b	loc_49A
 	LEA	Z80_data, A5
 	LEA	$00A00000, A6
@@ -293,7 +293,7 @@ loc_484:
 	MOVE.b	(A5)+, (A6)+
 	DBF	D0, loc_484
 	BSR.b	loc_49A
-	MOVE.w	#0, $00A11100
+	MOVE.w	#0, Z80_bus_request
 	JMP	loc_75C4A
 
 loc_49A:
@@ -309,7 +309,7 @@ loc_4B4:
 	dc.l	$00003FFF	;D6
 	dc.l	$00000100	;D7
 	dc.l	$00A00000	;A0
-	dc.l	$00A11100	;A1
+	dc.l	Z80_bus_request	;A1
 	dc.l	$00A11200	;A2
 	dc.l	VDP_data_port	;A3
 	dc.l	VDP_control_port	;A4
@@ -388,15 +388,15 @@ loc_58A:
 
 ;loc_5A6
 Update_input_bitset:
-	MOVE.w	#$0100, $00A11100
-	BTST.b	#0, $00A11100
+	MOVE.w	#$0100, Z80_bus_request
+	BTST.b	#0, Z80_bus_request
 	BNE.b	Update_input_bitset
 	LEA	Input_state_bitset.w, A0
 	LEA	$00A10003, A1 ; Controller 1 data
 	JSR	loc_5D6(PC)
 	ADDQ.w	#2, A1 ; Controller 2 data
 	JSR	loc_5D6(PC)
-	MOVE.w	#0, $00A11100
+	MOVE.w	#0, Z80_bus_request
 	RTS
 
 loc_5D6:
@@ -502,7 +502,7 @@ loc_6FE:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96F495C0, D6
 	MOVE.l	#$C0000080, $FFFFFF08.w
-	JMP	loc_914(PC)
+	JMP	Send_D567_to_VDP(PC)
 
 loc_71A:
 	MOVE.w	#$0320, D0
@@ -515,7 +515,7 @@ loc_728:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96F495C0, D6
 	MOVE.l	#$C0000080, $FFFFFF08.w
-	JMP	loc_914(PC)
+	JMP	Send_D567_to_VDP(PC)
 
 loc_744:
 	MOVE.l	#$94019340, D5
@@ -528,7 +528,7 @@ loc_754:
 loc_762:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CD9560, D6
-	JMP	loc_914(PC)
+	JMP	Send_D567_to_VDP(PC)
 
 loc_770:
 	MOVE.l	#$01000000, D3
@@ -717,17 +717,18 @@ loc_910:
 	OR.w	D3, D5
 	RTS
 
-loc_914:
-	MOVE.w	#$0100, $00A11100
-	BTST.b	#0, $00A11100
-	BNE.b	loc_914
+;loc_914:
+Send_D567_to_VDP:
+	MOVE.w	#$0100, Z80_bus_request
+	BTST.b	#0, Z80_bus_request
+	BNE.b	Send_D567_to_VDP
 	LEA	VDP_control_port, A5
 	MOVE.l	D5, (A5)
 	MOVE.l	D6, (A5)
 	MOVE.w	D7, (A5)
 	MOVE.w	$FFFFFF08.w, (A5)
 	MOVE.w	$FFFFFF0A.w, (A5)
-	MOVE.w	#0, $00A11100
+	MOVE.w	#0, Z80_bus_request
 	RTS
 
 loc_944:
@@ -1161,6 +1162,7 @@ loc_D2C:
 loc_D36:
 	dc.w	$8004, $8134, $8238, $8338, $8406
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
+
 loc_D5C:
 	MOVEQ	#-1, D0
 	MOVE.l	D0, $FFFF9288.w
@@ -1188,11 +1190,11 @@ loc_D92:
 	MOVE.l	(A0), D0
 	BEQ.b	loc_D9A
 	MOVEA.l	D0, A1
-	JSR	(A1)
+	JSR	(A1) ; can jump to loc_A838, configured by loc_8B1C
 loc_D9A:
 	LEA	$40(A0), A0
 	SUBQ.w	#1, $FFFFFF14.w
-	BNE.b	loc_D92
+	BNE.b	loc_D92 ; loop from A0=$FFFFAD80 in jumps of $40 at most #$004C steps (final iteration at $FFFFC040)
 	LEA	$FFFF9AC0.w, A6
 	MOVEQ	#$00000052, D0
 	LEA	$FFFFA7A0.w, A5
@@ -1952,7 +1954,7 @@ loc_1666:
 	MOVE.l	$2(A0), D6
 	MOVE.l	#$940093F0, D5
 	MOVE.l	#$4A400082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	(A0)
 loc_1688:
 	MOVE.w	$6(A0), D7
@@ -1960,7 +1962,7 @@ loc_1688:
 	MOVE.l	$8(A0), D6
 	MOVE.l	#$940093C0, D5
 	MOVE.l	#$4C200082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	$6(A0)
 loc_16AA:
 	MOVE.w	$C(A0), D7
@@ -1968,12 +1970,12 @@ loc_16AA:
 	MOVE.l	$E(A0), D6
 	MOVE.l	#$940093C0, D5
 	MOVE.l	#$4DA00082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	$12(A0), D7
 	MOVE.l	$14(A0), D6
 	MOVE.l	#$940093C0, D5
 	MOVE.l	#$4F200082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	$C(A0)
 loc_16E8:
 	MOVE.w	$18(A0), D7
@@ -1981,7 +1983,7 @@ loc_16E8:
 	MOVE.l	$1A(A0), D6
 	MOVE.l	#$94019390, D5
 	MOVE.l	#$43000082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	$18(A0)
 loc_170A:
 	MOVE.w	$1E(A0), D7
@@ -1989,7 +1991,7 @@ loc_170A:
 	MOVE.l	$20(A0), D6
 	MOVE.l	#$940293D0, D5
 	MOVE.l	#$7A000081, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	$1E(A0)
 loc_172C:
 	MOVE.w	$24(A0), D7
@@ -1997,7 +1999,7 @@ loc_172C:
 	MOVE.l	$26(A0), D6
 	MOVE.l	#$94049380, D5
 	MOVE.l	#$7A000081, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	$24(A0)
 loc_174E:
 	MOVE.w	$FFFFFCA4.w, D0
@@ -2032,7 +2034,7 @@ loc_178E:
 	MOVE.b	(A0), D6
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$52400082, $FFFFFF08.w
-	JMP	loc_914
+	JMP	Send_D567_to_VDP
 loc_17B6:
 	TST.w	Track_index_arcade_mode.w
 	BNE.w	loc_184C
@@ -2044,11 +2046,11 @@ loc_17B6:
 	JSR	loc_19AC(PC)
 	MOVE.l	#$94009340, D5
 	MOVE.l	#$7F000083, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
 	JSR	loc_19AC(PC)
 	MOVE.l	#$7F800083, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	LEA	$00FF5980, A6
 	CMPI.w	#2, $FFFFFC74.w
 	BEQ.b	loc_1810
@@ -2080,11 +2082,11 @@ loc_184C:
 	JSR	loc_19AC(PC)
 	MOVE.l	#$94009340, D5
 	MOVE.l	#$52400082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
 	JSR	loc_19AC(PC)
 	MOVE.l	#$52C00082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	$FFFFFC78.w, D0
 	CMPI.w	#3, D0
 	BLS.b	loc_1898
@@ -2128,11 +2130,11 @@ loc_18FE:
 	JSR	loc_19AC(PC)
 	MOVE.l	#$94009390, D5
 	MOVE.l	#$53400082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
 	JSR	loc_19AC(PC)
 	MOVE.l	#$54600082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	$FFFFFF34.w, D0
 	CMPI.w	#3, D0
 	BLS.b	loc_194A
@@ -2268,7 +2270,7 @@ loc_1AA0:
 	MOVE.l	#$96C59580, D6
 	MOVE.l	#$94019300, D5
 	MOVE.l	#$40800083, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVEQ	#8, D2
 	BSR.b	loc_1AF8
 	BSR.b	loc_1B44
@@ -2321,14 +2323,14 @@ loc_1B44:
 	MOVE.l	#$96C59580, D6
 	MOVE.l	#$940193C0, D5
 	MOVE.l	#$42800083, $FFFFFF08.w
-	JMP	loc_914
+	JMP	Send_D567_to_VDP
 
 loc_1B62:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96C79540, D6
 	MOVE.l	#$94009380, D5
 	MOVE.l	#$46000083, $FFFFFF08.w
-	JMP	loc_914
+	JMP	Send_D567_to_VDP
 
 loc_1B80:
 	MOVE.w	$FFFF9220.w, D0
@@ -2534,12 +2536,13 @@ loc_1D82:
 	CLR.w	$FFFF9276.w
 	RTS
 
-loc_1DB6:
+;loc_1DB6:
+Send_sign_tileset_to_VDP:
 	TST.w	$FFFF9264.w
 	BEQ.b	loc_1E30
-	MOVE.w	$FFFF9262.w, D0
+	MOVE.w	$FFFF9262.w, D0 ; sign tilset byte 7-8
 	SUBI.w	#$01E1, D0
-	BCS.b	loc_1DD2
+	BCS.b	loc_1DD2 ; jump if D0 was < $01E1
 	ADDQ.w	#1, D0
 	MOVE.w	D0, $FFFF9262.w
 	MOVE.w	#$01E0, D0
@@ -2549,27 +2552,27 @@ loc_1DD2:
 	ADDI.w	#$01E1, D0
 loc_1DDA:
 	MOVE.l	#$00940000, D5
-	MOVE.w	D0, D5
-	LSL.l	#8, D5
-	MOVE.w	#$9300, D5
-	MOVE.b	D0, D5
-	MOVE.l	$FFFF925C.w, D0
+	MOVE.w	D0, D5 ; D5 = $009401Ex (x = 0 or 1)
+	LSL.l	#8, D5 ; D5 = $9401Ex00
+	MOVE.w	#$9300, D5 ; $94019300
+	MOVE.b	D0, D5 ; D5 = $940193Ex
+	MOVE.l	$FFFF925C.w, D0 ; sign tilset byte 1-4 (--zzxxyy)
 	MOVE.l	#$00960000, D6
-	MOVE.w	D0, D6
-	LSL.l	#8, D6
-	MOVE.w	#$9500, D6
-	MOVE.b	D0, D6
+	MOVE.w	D0, D6 ; D6 = $0096xxyy
+	LSL.l	#8, D6 ; D6 = $96xxyy00
+	MOVE.w	#$9500, D6 ; D6 = $96xx95yy
+	MOVE.b	D0, D6 ; D6 = $96xx95yy
 	MOVE.w	#$9700, D7
 	SWAP	D0
-	MOVE.b	D0, D7
+	MOVE.b	D0, D7 ; D7 = $97zz
 	MOVEQ	#0, D0
-	MOVE.w	$FFFF9260.w, D0
+	MOVE.w	$FFFF9260.w, D0 ; sign tilset byte 5-6
 	LSL.l	#2, D0
 	LSR.w	#2, D0
 	SWAP	D0
 	ORI.l	#$40000080, D0
-	MOVE.l	D0, $FFFFFF08.w
-	JSR	loc_914
+	MOVE.l	D0, $FFFFFF08.w ; sent to VDP
+	JSR	Send_D567_to_VDP
 	ADDI.l	#$000001E0, $FFFF925C.w
 	ADDI.w	#$03C0, $FFFF9260.w
 loc_1E30:
@@ -4170,6 +4173,7 @@ loc_36A8:
 	dc.b	$06, $EE, $04, $CE, $02, $AE
 	dc.l	$028E06EE
 	dc.l	$04CE02AE
+
 loc_36B6: ; Suspected in-game loop
 	JSR	loc_3A2(PC)
 	CLR.w	$FFFFFC60.w
@@ -4207,17 +4211,17 @@ loc_3708:
 	JSR	loc_8250(PC)
 	JSR	loc_785C(PC)
 	JSR	loc_A152(PC)
-	JSR	loc_89AC(PC) ; Commeiting out makes signs have the wrong textures
-	JSR	loc_89F4(PC) ; Commenting out makes signs and obstacles disappear (physical and visual)
+	JSR	Parse_tileset_for_signs(PC) ; Commenting out makes signs have the wrong textures
+	JSR	Parse_sign_data(PC) ; Commenting out makes signs and obstacles disappear (physical and visual)
 	JSR	loc_873A(PC)
 	JSR	loc_3FE0(PC)
 	JSR	loc_A278(PC)
 loc_3748:
 	CMPI.w	#4, $FFFFFC24.w
 	BLT.b	loc_3748
-	JSR	loc_D5C(PC)
-	JSR	loc_9AC4(PC)
-	JSR	loc_674E(PC)
+	JSR	loc_D5C(PC) ; Commenting out makes graphics freeze
+	JSR	loc_9AC4(PC) ; Commenting out removes sound
+	JSR	loc_674E(PC) ; Commenting out makes road graphics not updates (but signs still move)
 	RTS
 	JSR	loc_8C0(PC)
 	JSR	loc_656(PC)
@@ -4725,7 +4729,7 @@ loc_3E72:
 	MOVE.l	#$940093E0, D5
 	MOVE.l	#$68020083, $FFFFFF08.w
 	MOVE.w	#$8F04, VDP_control_port
-	JSR	loc_914(PC)
+	JSR	Send_D567_to_VDP(PC)
 	MOVE.w	#$8F02, VDP_control_port
 	JSR	loc_754(PC)
 	JSR	loc_71A(PC)
@@ -4735,7 +4739,7 @@ loc_3E72:
 loc_3EB0:
 	JSR	loc_1CCC(PC)
 	JSR	loc_72D6(PC)
-	JSR	loc_1DB6(PC)
+	JSR	Send_sign_tileset_to_VDP(PC)
 	BRA.b	loc_3ECE
 loc_3EBE:
 	JSR	Update_input_bitset(PC) ; Update_input_bitset called from multiple locations, from here during practice mode
@@ -8709,11 +8713,11 @@ loc_72A6:
 	MOVE.l	#$96FB9500, D6
 	MOVE.l	#$94039300, D5
 	MOVE.l	#$4D000083, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	CLR.w	$FFFF9282.w
 	RTS
 loc_72D0:
-	JMP	loc_1DB6
+	JMP	Send_sign_tileset_to_VDP
 
 loc_72D6:
 	MOVE.l	#$49800003, D0
@@ -10508,28 +10512,31 @@ loc_8998:
 	dc.w	$FFFE, $FFFA
 	dc.w	$FFFC, $FFF4
 
-loc_89AC:
+;loc_89AC:
+Parse_tileset_for_signs:
+; $FFFF9254 = track tileset for sign start memory location
+; $FFFF9258 = track tileset for sign current
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
-	MOVEA.l	$FFFF9258.w, A0
-	MOVE.w	(A0)+, D0
+	MOVEA.l	$FFFF9258.w, A0 ; current sign
+	MOVE.w	(A0)+, D0 ; distance to sign
 	BPL.b	loc_89C2
-	MOVE.l	$FFFF9254.w, $FFFF9258.w
-	BRA.b	loc_89AC
+	MOVE.l	$FFFF9254.w, $FFFF9258.w ; End of tileset ($FFFF), read from start again
+	BRA.b	Parse_tileset_for_signs
 loc_89C2:
-	SUB.w	Player_distance.w, D0
+	SUB.w	Player_distance.w, D0 ; D0 = distance to sign
 	CMPI.w	#$0078, D0
-	BCS.b	loc_89D6
+	BCS.b	loc_89D6 ; jump if distance to sign < 120
 	ADD.w	Track_length.w, D0
 	CMPI.w	#$0078, D0
-	BCC.b	loc_89F2
+	BCC.b	loc_89F2 ; continue if distance to sign? < 120 (sign appears after finish line next lap?)
 loc_89D6:
-	MOVE.w	(A0)+, D0
-	MOVE.l	A0, $FFFF9258.w
-	LEA	loc_129D4, A0
+	MOVE.w	(A0)+, D0 ; tilset offset
+	MOVE.l	A0, $FFFF9258.w ; next sign
+	LEA	Sign_tileset_table, A0
 	ADDA.w	D0, A0
 loc_89E4:
-	LEA	$FFFF925C.w, A1
+	LEA	$FFFF925C.w, A1 ; write tileset table entry to memory
 	MOVE.l	(A0)+, (A1)+
 	MOVE.w	(A0)+, (A1)+
 	MOVE.w	(A0), (A1)+
@@ -10537,7 +10544,8 @@ loc_89E4:
 loc_89F2:
 	RTS
 
-loc_89F4:
+;loc_89F4:
+Parse_sign_data:
 	TST.w	$FFFFFC72.w
 	BNE.b	loc_89F2
 	MOVE.w	Warm_up.w, D0
@@ -10568,7 +10576,7 @@ loc_8A44:
 	MOVE.w	(A0)+, D0 ; D0 = sign location (distance from start)
 	BPL.b	loc_8A54
 	MOVE.l	$FFFF9240.w, $FFFF9244.w ; reset sign data to start, done each new lap?
-	BRA.b	loc_89F4
+	BRA.b	Parse_sign_data
 loc_8A54: ; parse sign data
 	MOVE.w	D0, D1
 	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
@@ -10649,7 +10657,7 @@ loc_8B06:
 loc_8B1C:
 	RTS
 	dc.l	loc_A81A
-	dc.l	loc_A838
+	dc.l	loc_A838 ; first san marino sign
 	dc.l	loc_A944
 	dc.l	loc_A99A
 	dc.l	loc_A862
@@ -14637,7 +14645,7 @@ loc_BF08:
 	MOVE.l	#$96CE95A0, D6
 	MOVE.l	#$940193C0, D5
 	MOVE.l	#$68000083, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	JMP	loc_1666
 
 loc_BF66:
@@ -16992,11 +17000,11 @@ loc_E236:
 	JSR	loc_19AC
 	MOVE.l	#$94009390, D5
 	MOVE.l	#$53400082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
 	JSR	loc_19AC
 	MOVE.l	#$54600082, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	MOVE.w	$FFFFFF34.w, D0
 	CMPI.w	#3, D0
 	BLS.b	loc_E29C
@@ -20658,7 +20666,9 @@ loc_129AE:
 	dc.b	$FF, $B8, $F0, $05, $04, $85, $FF, $D8, $E8, $0A, $04, $89, $FF, $E8
 	dc.b	$E8, $0A, $0C, $89, $00, $00, $F0, $05, $0C, $85, $00, $18, $E8, $0E
 	dc.b	$0C, $79, $00, $28
-loc_129D4:
+;loc_129D4:
+Sign_tileset_table:
+; 8 bytes per sign
 	dc.b	$00, $02, $2A, $B4, $65, $40
 	dc.w	$0890
 	dc.b	$00, $02, $33, $44, $5B, $E0
@@ -20677,9 +20687,13 @@ loc_129D4:
 	dc.w	$09B0
 	dc.b	$00, $02, $65, $74, $65, $40
 	dc.w	$09B0
-	dc.b	$00, $02, $6F, $24, $65, $40, $09, $B0, $00, $02, $43, $74, $5B, $E0, $0E, $E0, $00, $02, $10, $04, $5B, $E0
+	dc.b	$00, $02, $6F, $24, $65, $40
+	dc.w	$09B0
+	dc.b	$00, $02, $43, $74, $5B, $E0
+	dc.w	$0EE0
+	dc.b	$00, $02, $10, $04, $5B, $E0
 	dc.w	$0AA0
-loc_12A34:
+loc_12A34: ; flagkeeper tileset
 	dc.b	$00, $02, $07, $A4, $65, $40
 	dc.w	$0860
 	dc.b	$00
@@ -21802,7 +21816,7 @@ loc_138F2:
 	MOVE.l	#$96CE95A0, D6
 	MOVE.l	#$940193C0, D5
 	MOVE.l	#$70000083, $FFFFFF08.w
-	JSR	loc_914
+	JSR	Send_D567_to_VDP
 	ADDQ.b	#1, $FFFFFC04.w
 	MOVE.b	$FFFFFC04.w, D0
 	LSR.l	#1, D0
@@ -40441,9 +40455,13 @@ loc_7173C: ; sign data
 	dc.w	$0BA0, $0401, $0C74, $0401, $0CD8, $0409, $0DE8, $0400, $0E1C, $0401, $0E60, $0900, $0F98, $0505, $1148, $041C
 	dc.w	$1198, $010A, $1248, $0408, $13E8, $0419, $15AC, $0401, $1688, $0401, $1714, $0411, $1858, $0408, $1940, $041C
 	dc.w	$1990, $010A, $19EC, $0400, $FFFF
-loc_717A6:
-	dc.w	$0306, $0038, $0716, $0018, $07A6, $0008, $0F7A, $0010, $112A, $0000, $13CA, $0028, $16F6, $0018, $1922, $0000
-	dc.b	$FF, $FF
+loc_717A6: ; tileset for signs
+; 2 words per tilset
+; first word: location
+; second word: Sign_tileset_table offset
+	dc.w	$0306, $0038, $0716, $0018, $07A6, $0008, $0F7A, $0010
+	dc.w	$112A, $0000, $13CA, $0028, $16F6, $0018, $1922, $0000
+	dc.w	$FFFF
 loc_717C8:
 	dc.b	$00, $57, $5E, $00, $39
 	dc.b	$00, $0F, $41, $00, $AB
@@ -42310,14 +42328,14 @@ loc_761DA:
 	MOVEA.l	A4, A5
 
 loc_761DC:
-	MOVE.w	#$0100, $00A11100
+	MOVE.w	#$0100, Z80_bus_request
 loc_761E4:
-	BTST.b	#0, $00A11100
+	BTST.b	#0, Z80_bus_request
 	BNE.b	loc_761E4
 loc_761EE:
 	MOVE.b	(A5)+, (A3)+
 	DBF	D7, loc_761EE
-	MOVE.w	#0, $00A11100
+	MOVE.w	#0, Z80_bus_request
 	RTS
 loc_761FE:
 	dc.b	$7F, $00, $00, $7F, $00, $00, $00, $00, $00, $00, $00, $00, $7F, $00, $00, $7F
