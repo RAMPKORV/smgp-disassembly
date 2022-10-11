@@ -15095,37 +15095,40 @@ loc_C610:
 loc_C618:
 	dc.b	$02, $06, $FB, $C7, $C0, $1B, $18, $1E, $17, $0D, $FA, $FF
 loc_C624:
-	dc.b	$1C, $0A, $17, $FA, $16, $0A, $1B, $12, $17, $18, $FF
+	txt "SAN", $FA
+	txt "MARINO", $FF
 loc_C62F:
-	dc.b	$0B, $1B, $0A, $23, $12, $15, $FF
+	txt "BRAZIL", $FF
 loc_C636:
-	dc.b	$0F, $1B, $0A, $17, $0C, $0E, $FF
+	txt "FRANCE", $FF
 loc_C63D:
-	dc.b	$11, $1E, $17, $10, $0A, $1B, $22, $FF
+	txt "HUNGARY", $FF
 loc_C645:
-	dc.b	$20, $0E, $1C, $1D, $FA, $10, $0E, $1B, $16, $0A, $17, $22, $FF
+	txt "WEST", $FA
+	txt "GERMANY", $FF
 loc_C652:
-	dc.b	$1E, $29, $1C, $29, $0A, $29, $FF
+	txt "U.S.A.", $FF
 loc_C659:
-	dc.b	$0C, $0A, $17, $0A, $0D, $0A, $FF
+	txt "CANADA", $FF
 loc_C660:
-	dc.b	$10, $1B, $0E, $0A, $1D, $FA, $0B, $1B, $12, $1D, $0A, $12, $17, $FF
+	txt "GREAT", $FA
+	txt "BRITAIN", $FF
 loc_C66E:
-	dc.b	$12, $1D, $0A, $15, $22, $FF
+	txt "ITALY", $FF
 loc_C674:
-	dc.b	$19, $18, $1B, $1D, $1E, $10, $0A, $15, $FF
+	txt "PORTUGAL", $FF
 loc_C67D:
-	dc.b	$1C, $19, $0A, $12, $17, $FF
+	txt "SPAIN", $FF
 loc_C683:
-	dc.b	$16, $0E, $21, $12, $0C, $18, $FF
+	txt "MEXICO", $FF
 loc_C68A:
-	dc.b	$13, $0A, $19, $0A, $17, $FF
+	txt "JAPAN", $FF
 loc_C690:
-	dc.b	$0B, $0E, $15, $10, $12, $1E, $16, $FF
+	txt "BELGIUM", $FF
 loc_C698:
-	dc.b	$0A, $1E, $1C, $1D, $1B, $0A, $15, $12, $0A, $FF
+	txt "AUSTRALIA", $FF
 loc_C6A2:
-	dc.b	$16, $18, $17, $0A, $0C, $18, $FF
+	txt "MONACO", $FF
 	dc.b	$00
 loc_C6AA:
 	MOVE.w	(A5)+, (A6)+
