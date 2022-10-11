@@ -1913,7 +1913,7 @@ loc_1622:
 	MOVE.w	D1, -(A3)
 	RTS
 
-loc_1626:
+loc_1626: ; Suspected number to hex digit conversion
 	MOVEQ	#$0000000F, D2
 	MOVE.w	D0, D1
 	AND.w	D2, D1
