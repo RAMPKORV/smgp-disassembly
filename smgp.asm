@@ -261,10 +261,12 @@ loc_3C4:
 ;$000003D8
 Default_vblank_handler:
 	JSR	Upload_h40_tilemap_buffer_to_vram
-	BRA.b	Default_vblank_handler_h32
+	BRA.b	Vblank_tail
+;$000003E0
+Default_vblank_handler_h32:
 	JSR	Upload_h32_tilemap_buffer_to_vram
 ;loc_3E6
-Default_vblank_handler_h32:
+Vblank_tail:
 	JSR	Update_input_bitset
 	JMP	Upload_palette_buffer_to_cram
 
@@ -2921,6 +2923,8 @@ loc_2250: ; Teams in-game palette
 	dc.b	$0C, $EE, $06, $88, $0C, $EE, $06, $88 ; Comet
 	dc.b	$06, $66, $02, $22, $00, $EE, $00, $8A ; Orchis
 	dc.b	$0E, $EE, $06, $66, $02, $6E, $00, $28 ; ZeroForce
+;$000022D0
+Attract_screen_logo_frame:
 	JSR	Wait_for_vblank
 	JSR	Start_streamed_decompression
 	JSR	Update_objects_and_build_sprite_buffer
@@ -2975,6 +2979,8 @@ loc_237C:
 	ADDQ.w	#4, $FFFFFC04.w
 	MOVE.w	#$017A, $FFFFFC00.w
 	RTS
+;$000023A2
+Race_preview_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -2996,17 +3002,21 @@ loc_237C:
 	MOVEQ	#0, D0
 	JSR	Load_streamed_decompression_descriptor
 	MOVE.l	#$00001032, $FFFFAD80.w
-	MOVE.l	#$000022D0, $FFFFFF10.w
+	MOVE.l	#Attract_screen_logo_frame, $FFFFFF10.w
 	MOVE.l	#$00002440, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+;$00002440
+Attract_screen_logo_vblank_handler:
 	JSR	Upload_h40_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
 	JSR	Upload_palette_buffer_to_cram
 	JMP	Continue_streamed_decompression
+;$00002458
+Attract_screen_frame:
 	JSR	Wait_for_vblank
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_2476
@@ -3177,7 +3187,7 @@ loc_264E:
 	CLR.w	Track_index.w
 	CLR.b	$FFFF900F.w
 	CLR.w	$FFFF9000.w
-	MOVE.l	#$00002458, $FFFFFF10.w
+	MOVE.l	#Attract_screen_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -3349,6 +3359,8 @@ loc_27E0:
 loc_27E8: ; Suspected main menu loop
 	dc.b	$0E, $60, $0C, $40, $06, $20, $0E, $80, $0A, $40, $08, $00, $0E, $A0, $0C, $60, $08, $40, $0E, $C8, $0C, $80, $0A, $40, $0E, $EE, $0E, $A4, $0C, $62, $0E, $C8
 	dc.b	$0C, $80, $0A, $40, $0E, $A0, $0C, $60, $08, $00, $0E, $80, $0A, $40, $08, $20
+;$00002818
+Title_anim_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	BTST.b	#0, $FFFF900F.w
@@ -3428,7 +3440,7 @@ loc_2900:
 	ADD.w	D0, $18(A0)
 	JMP	Queue_object_for_sprite_buffer
 loc_290E:
-	MOVE.l	#$000023A2, $FFFFFF10.w
+	MOVE.l	#Race_preview_screen_init, $FFFFFF10.w
 	RTS
 loc_2918:
 	MOVE.w	#9, $00FF5AC0
@@ -3444,6 +3456,8 @@ loc_2920:
 Title_menu:
 	BSET.b	#3, $FFFF900F.w
 	BRA.b	loc_2952
+;$00002944
+Title_menu_attract_cycle:
 	MOVE.w	#6, $FFFFFF4C.w
 	CLR.b	$FFFF900F.w
 	CLR.w	$FFFF9000.w
@@ -3528,7 +3542,7 @@ loc_2AE6:
 	MOVE.w	#$000C, D6
 	MOVE.w	#$0019, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	MOVE.l	#$00002818, $FFFFFF10.w
+	MOVE.l	#Title_anim_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	TST.w	$FFFFFF4C.w
 	BEQ.b	loc_2B20
@@ -3945,7 +3959,7 @@ loc_3106:
 	RTS
 loc_311E:
 	MOVE.l	#Title_menu, $FFFFFF2A.w
-	MOVE.l	#loc_32E0, $FFFFFF10.w
+	MOVE.l	#$000032E0, $FFFFFF10.w
 	RTS
 ;loc_3130:
 Title_menu_state_handlers:
@@ -3990,6 +4004,8 @@ loc_31C8:
 	txt "TRANSMISSION"
 loc_31F8:
 	txt "LAPS  "
+;$000031FE
+Options_setup_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.w	$FFFFFC82.w, D0
@@ -4054,7 +4070,8 @@ loc_32CC:
 	MOVE.w	Shift_type.w, $FFFFFF4A.w
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 	RTS
-loc_32E0:
+;$000032E0
+Options_screen_arcade_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	MOVE.w	$FFFFFF36.w, Shift_type.w
@@ -4118,7 +4135,7 @@ loc_3360:
 	MOVE.l	#$0030003C, $FFFFFC00.w
 	MOVE.l	#$000035A8, $FFFFAD80.w
 	JSR	Update_objects_and_build_sprite_buffer
-	MOVE.l	#$000031FE, $FFFFFF10.w
+	MOVE.l	#Options_setup_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -4340,6 +4357,8 @@ loc_3748:
 	JSR	Update_engine_and_tire_sounds(PC) ; Commenting out removes sound
 	JSR	Update_road_graphics(PC) ; Commenting out makes road graphics not updates (but signs still move)
 	RTS
+;$0000375E
+Championship_race_init:
 	JSR	Fade_palette_to_black(PC)
 	JSR	Initialize_h32_vdp_state(PC)
 	MOVE.w	#$8238, VDP_control_port
@@ -4371,7 +4390,8 @@ loc_3748:
 	JSR	Wait_for_practice_vblank_cycle(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-loc_3800:
+;$00003800
+Arcade_race_init:
 	JSR	Fade_palette_to_black(PC)
 	JSR	Initialize_h32_vdp_state(PC)
 	MOVE.w	#$8238, VDP_control_port
@@ -4787,6 +4807,8 @@ Reset_race_state:
 	MOVE.w	#1100, Visual_rpm.w
 	MOVE.w	#1, $FFFFFCA6.w
 	RTS
+;$00003D84
+Championship_warmup_race_frame:
 	JSR	Race_loop(PC)
 	SUBQ.w	#1, $FFFFFC2C.w
 	BNE.b	loc_3D96
@@ -4813,7 +4835,7 @@ Practice_mode_init:
 	MOVE.l	#$00001006, $FFFFB840.w
 	MOVE.w	#$01F4, $FFFFFC2C.w
 	MOVE.l	#$00073E08, $FFFFFF58.w
-	MOVE.l	#$00003D84, $FFFFFF10.w
+	MOVE.l	#Championship_warmup_race_frame, $FFFFFF10.w
 	MOVE.l	#Practice_mode_vblank_handler, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank(PC)
@@ -5090,6 +5112,8 @@ loc_41DE:
 loc_425E:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6
 	dc.b	$FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC
+;$0000429E
+Race_results_frame:
 	JSR	Wait_for_vblank
 	LEA	$FFFFE800.w, A0
 	BTST.b	#1, $FFFFFC20.w
@@ -5116,7 +5140,8 @@ loc_42F2:
 	MOVE.l	D0, $FFFFFF10.w
 loc_42F6:
 	RTS
-loc_42F8:
+;$000042F8
+Race_finish_results_init:
 	JSR	Fade_palette_to_black
 	JSR	Halt_audio_sequence
 	JSR	Initialize_h40_vdp_state
@@ -5160,7 +5185,7 @@ loc_437C:
 	CLR.w	$FFFFFF50.w
 loc_43A4:
 	MOVE.w	#$021C, $FFFFFC2C.w
-	MOVE.l	#$0000429E, $FFFFFF10.w
+	MOVE.l	#Race_results_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -5237,6 +5262,8 @@ loc_4498:
 	MOVE.w	D1, (A0)+
 	DBF	D0, loc_4498
 	RTS
+;$000044A8
+Pre_race_display_frame:
 	JSR	Wait_for_vblank
 	MOVE.b	$FFFFFC20.w, D0
 	MOVE.w	D0, D1
@@ -5317,7 +5344,7 @@ loc_45B0:
 	JSR	Copy_word_run_from_stream
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00A5, $FFFFFC2C.w
-	MOVE.l	#$000044A8, $FFFFFF10.w
+	MOVE.l	#Pre_race_display_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -5382,6 +5409,8 @@ loc_473C:
 	dc.w	$0063
 	dc.b	$00, $58, $00, $52, $00, $47, $00, $42, $00, $37, $00, $32, $00, $27, $00, $22, $00, $17
 	dc.w	$0000
+;$0000475C
+Name_entry_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_car_selection_screen(PC)
 	JSR	Upload_palette_buffer_to_vdp(PC)
@@ -5598,7 +5627,7 @@ loc_49CA:
 	JSR	loc_4A2C(PC)
 	MOVE.l	#$00004F5C, $FFFFB080.w
 	MOVE.w	#$603C, $FFFFFC2C.w
-	MOVE.l	#$0000475C, $FFFFFF10.w
+	MOVE.l	#Name_entry_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -5728,6 +5757,8 @@ loc_4B5A:
 	MOVE.b	#$36, (A0)+
 	MOVE.b	#$36, (A0)
 	RTS
+;$00004B76
+Pre_race_preview_car_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_car_selection_screen(PC)
 	JSR	Upload_palette_buffer_to_vdp(PC)
@@ -5743,6 +5774,8 @@ loc_4BA2:
 	MOVE.l	#$00002592, $FFFFFF10.w
 loc_4BB0:
 	RTS
+;$00004BB2
+Pre_race_screen_championship_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -5757,7 +5790,7 @@ loc_4BE2:
 	JSR	Initialize_race_track_scroll_tables(PC)
 	MOVE.l	#$00004F56, $FFFFB080.w
 	MOVE.w	#$01E0, $FFFFFC2C.w
-	MOVE.l	#$00004B76, $FFFFFF10.w
+	MOVE.l	#Pre_race_preview_car_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -6158,6 +6191,8 @@ loc_503A:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+;$0000509C
+Car_selection_frame:
 	JSR	Wait_for_vblank
 	MOVE.l	#$40000010, VDP_control_port
 	MOVE.w	$FFFFFC1C.w, VDP_data_port
@@ -6417,6 +6452,8 @@ loc_553E:
 	dc.b	$12, $22, $0E, $02, $00, $03, $28, $40, $04, $03, $28, $40, $20, $0A, $14, $00, $12, $20, $07, $00, $02, $03, $12, $47, $04, $03, $28, $00, $11, $0A, $16, $00
 	dc.b	$12, $19, $01, $00, $02, $03, $12, $47, $04, $03, $28, $00, $11, $12, $1B, $00, $10, $30, $09, $00, $FF, $00, $00, $00, $80, $00, $00, $00, $1D, $0A, $17, $00
 	dc.b	$10, $00, $00, $02, $FF, $00, $00, $00, $80, $00, $00, $00, $10, $0E, $1B, $00
+;$00005616
+Title_menu_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	SUBQ.w	#1, $FFFFFC08.w
@@ -6435,7 +6472,7 @@ loc_562A:
 	BNE.b	loc_5672
 	ANDI.b	#6, D1
 	BNE.b	loc_5678
-	MOVE.l	#loc_3800, $FFFFFF2A.w
+	MOVE.l	#$00003800, $FFFFFF2A.w
 	MOVE.l	#Options_screen_init, $FFFFFF10.w
 	CLR.w	$FFFFFF4C.w
 loc_5660:
@@ -6454,6 +6491,8 @@ loc_567C:
 	MOVE.w	$FFFFFF28.w, Track_index.w
 	MOVE.w	#$000F, $FFFFFC04.w
 	RTS
+;$00005690
+Championship_start_init:
 	MOVE.b	#0, Player_team.w
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h32_vdp_state
@@ -6516,7 +6555,7 @@ loc_578E:
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#$003C, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
-	MOVE.l	#$00005616, $FFFFFF10.w
+	MOVE.l	#Title_menu_frame, $FFFFFF10.w
 	MOVE.l	#$0000584E, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -6542,6 +6581,8 @@ loc_583A:
 	MOVEM.w	(A7)+, D0-D2/D7
 	DBF	D1, Fill_vram_rect
 	RTS
+;$0000584E
+Race_preview_vblank_handler:
 	JSR	Upload_h32_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
 	JSR	Upload_palette_buffer_to_cram
@@ -9909,7 +9950,7 @@ loc_8010:
 loc_801C:
 	MOVE.w	#$000E, $FFFFFF30.w
 	MOVE.b	#$FF, $FFFF92E0.w
-	MOVE.l	#$000042F8, $FFFFFF10.w
+	MOVE.l	#Race_finish_results_init, $FFFFFF10.w
 	RTS
 loc_8032:
 	MOVE.l	#loc_803E, (A0)
@@ -9949,7 +9990,7 @@ loc_80AE:
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_80C2
 	MOVE.b	#$FF, $FFFF92E0.w
-	MOVE.l	#$000042F8, $FFFFFF10.w
+	MOVE.l	#Race_finish_results_init, $FFFFFF10.w
 loc_80C2:
 	RTS
 
@@ -12476,7 +12517,7 @@ loc_9DB6:
 	LEA	loc_A2CA(PC), A2
 	MOVEQ	#4, D3
 	BSR.b	Spawn_trackside_objects
-	MOVE.l	#loc_BD56, $1E(A0)
+	MOVE.l	#$0000BD56, $1E(A0)
 	BRA.b	loc_9E26
 
 ;Spawn_trackside_objects
@@ -12506,7 +12547,7 @@ loc_9E06:
 	MOVE.l	#Pre_race_screen_init, $1E(A0)
 	TST.w	$FFFFFCBC.w
 	BEQ.b	loc_9E26
-	MOVE.l	#Startup_screen_init, $1E(A0)
+	MOVE.l	#$00002592, $1E(A0)
 loc_9E26:
 	MOVE.l	#loc_9E52, (A0)
 	MOVE.w	#$FFE2, $2C(A0)
@@ -12962,10 +13003,10 @@ loc_A526:
 	MOVE.l	#Title_menu, D1
 	TST.w	Warm_up.w
 	BNE.b	loc_A560
-	MOVE.l	#loc_42F8, D1
+	MOVE.l	#Race_finish_results_init, D1
 	MOVE.w	Track_index_arcade_mode.w, D0
 	BEQ.b	loc_A560
-	MOVE.l	#loc_BD56, D1
+	MOVE.l	#$0000BD56, D1
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_A560
 	MOVE.l	#loc_E0D4, D1
@@ -14049,6 +14090,8 @@ loc_B2DA:
 	dc.w	$A7CA, $A7DE, $A7DD, $A7D8, $A7D6, $A7CA, $A7DD, $A7D2, $A7CC, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD
 loc_B2F8:
 	dc.w	$0000, $A7D6, $A7CA, $A7D7, $A7DE, $A7CA, $A7D5, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD, $0000, $0000
+;$0000B316
+Race_result_overlay_frame:
 	JSR	Wait_for_vblank
 	MOVE.l	#$462E0000, D7
 	MOVE.w	$FFFFFC14.w, D0
@@ -14087,10 +14130,14 @@ loc_B37E:
 	BSR.w	loc_C12E
 	LEA	loc_B42C, A1
 	BRA.w	loc_B402
+;$0000B3C0
+Race_result_frame_2:
 	JSR	Wait_for_vblank
 	SUBI.l	#$00120000, $FFFFFC0C.w
 	LEA	loc_B43C, A1
 	BRA.w	loc_B402
+;$0000B3D8
+Race_result_frame_3:
 	JSR	Wait_for_vblank
 	SUBI.l	#$00090000, $FFFFFC0C.w
 	TST.l	$FFFFFF2A.w
@@ -14622,7 +14669,7 @@ loc_BB36:
 	ADDI.l	#$00000F00, $FFFFFC00.w
 	CMPI.l	#$00050000, $FFFFFC00.w
 	BCS.b	loc_BB58
-	MOVE.l	#$0000375E, $FFFFFF10.w
+	MOVE.l	#Championship_race_init, $FFFFFF10.w
 loc_BB58:
 	LEA	$FFFFB858.w, A1
 	MOVE.l	$FFFFFC00.w, D0
@@ -14698,6 +14745,8 @@ loc_BC28:
 loc_BC3E:
 	JSR	Queue_object_for_sprite_buffer
 	RTS
+;$0000BC46
+Race_finish_init:
 	JSR	Halt_audio_sequence
 	BSR.w	Initialize_results_screen
 	JSR	loc_C242(PC)
@@ -14749,7 +14798,7 @@ loc_BCA6:
 	MOVE.w	$FFFF9012.w, $FFFF901C.w
 	SUBQ.w	#5, $FFFF901C.w
 loc_BD26:
-	MOVE.l	#$0000B316, $FFFFFF10.w
+	MOVE.l	#Race_result_overlay_frame, $FFFFFF10.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
@@ -14757,7 +14806,8 @@ loc_BD26:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-loc_BD56:
+;$0000BD56
+Championship_next_race_init:
 	JSR	Clear_main_object_pool
 	TST.w	Track_index_arcade_mode.w
 	BNE.w	loc_BE12
@@ -14781,7 +14831,7 @@ loc_BD92:
 	DBF	D0, loc_BD92
 	MOVE.w	#$0EEE, $FFFFE9C4.w
 	MOVE.w	#$0800, $FFFFE9C6.w
-	MOVE.l	#$0000B3C0, $FFFFFF10.w
+	MOVE.l	#Race_result_frame_2, $FFFFFF10.w
 	MOVE.w	#$000D, $FFFFFF4C.w
 	BTST.b	#5, Player_team.w
 	BEQ.b	loc_BDE0
@@ -14828,7 +14878,7 @@ loc_BE6C:
 	MOVE.l	(A2)+, $1A(A1)
 	LEA	$40(A1), A1
 	DBF	D0, loc_BE6C
-	MOVE.l	#$0000B3D8, $FFFFFF10.w
+	MOVE.l	#Race_result_frame_3, $FFFFFF10.w
 	MOVE.w	#$0800, $FFFFE9C6.w
 	BSR.w	loc_12E60
 	JSR	loc_C324(PC)
@@ -14868,6 +14918,8 @@ loc_BF08:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+;$0000BF30
+Race_preview_vblank_handler_2:
 	JSR	Upload_h32_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
 	JSR	Upload_palette_buffer_to_cram
@@ -14972,7 +15024,7 @@ loc_C0E8:
 	MOVE.w	$FFFFE98E.w, $FFFFE9FC.w
 	MOVE.w	$FFFFE9F8.w, $FFFFE998.w
 	MOVE.w	$FFFFE9FC.w, $FFFFE99C.w
-	MOVE.l	#$0000BF30, $FFFFFF0C.w
+	MOVE.l	#Race_preview_vblank_handler_2, $FFFFFF0C.w
 	CLR.l	$FFFFFF2A.w
 	BCLR.b	#4, $FFFF902F.w
 	RTS
@@ -15812,6 +15864,8 @@ loc_CBD0:
 	ADDQ.b	#1, $FFFFFC19.w
 	BSR.w	loc_B480
 	RTS
+;$0000CBEE
+Driver_standings_frame:
 	JSR	Wait_for_vblank
 	ADDQ.w	#1, $FFFFFC08.w
 	MOVE.w	$FFFFFC08.w, D0
@@ -15877,11 +15931,13 @@ loc_CCC8:
 	BEQ.b	loc_CCDA
 	RTS
 loc_CCD0:
-	MOVE.l	#$00004BB2, $FFFFFF10.w
+	MOVE.l	#Pre_race_screen_championship_init, $FFFFFF10.w
 	RTS
 loc_CCDA:
 	ADDQ.w	#4, $FFFFFC14.w
 	RTS
+;$0000CCE0
+Driver_standings_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -15924,7 +15980,7 @@ loc_CD7C:
 	MOVE.w	#$000A, $FFFFFC0C.w
 	MOVE.w	#$0096, $FFFFFC18.w
 	MOVE.w	#$0034, $FFFFFC00.w
-	MOVE.l	#$0000CBEE, $FFFFFF10.w
+	MOVE.l	#Driver_standings_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -15939,6 +15995,8 @@ loc_CDD4:
 	dc.l	loc_1707C
 	dc.b	$2C, $E0
 	dc.l	loc_1891A
+;$0000CDE2
+Team_select_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	LEA	loc_CE00, A1
@@ -16465,13 +16523,15 @@ loc_D534:
 	MOVE.b	#5, $FFFFFC03.w
 	MOVE.w	#$0038, $FFFFFC08.w
 	MOVE.w	#$0096, $FFFFFC14.w
-	MOVE.l	#$0000CDE2, $FFFFFF10.w
+	MOVE.l	#Team_select_frame, $FFFFFF10.w
 	MOVE.l	#$0000D5B6, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+;$0000D5B6
+Team_select_vblank_handler:
 	JSR	Upload_h40_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
 	JSR	Upload_palette_buffer_to_cram
@@ -16510,6 +16570,8 @@ loc_D632:
 	dc.b	$00, $2C, $0A, $AA, $02, $8E, $00, $06, $0A, $22, $00, $A2, $0E, $66, $08, $02
 	dc.w	$00AC, $0AAA, $04CE, $0068
 	dc.b	$02, $A0, $02, $AC, $08, $E6, $02, $60, $06, $88, $0A, $AA, $08, $AA, $04, $66, $04, $44, $02, $AC, $08, $88, $02, $22, $00, $4E, $0C, $CC, $04, $8E, $00, $28
+;$0000D6B2
+Game_over_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	BSR.b	loc_D6C8
@@ -16737,7 +16799,7 @@ loc_D940:
 	MOVE.l	(A2)+, $74(A1)
 	MOVE.l	(A2)+, $78(A1)
 	MOVE.l	(A2)+, $7C(A1)
-	MOVE.l	#$0000D6B2, $FFFFFF10.w
+	MOVE.l	#Game_over_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
@@ -16746,6 +16808,8 @@ loc_D940:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+;$0000DA3C
+Game_over_confirm_frame:
 	JSR	Wait_for_vblank
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
@@ -16772,7 +16836,7 @@ loc_DA5A:
 	LEA	loc_23DBE, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$021C, $FFFFFC00.w
-	MOVE.l	#$0000DA3C, $FFFFFF10.w
+	MOVE.l	#Game_over_confirm_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -16790,6 +16854,8 @@ loc_DAFC:
 	dc.b	$E5, $06, $FB, $67, $C0, $22, $18, $1E, $26, $1F, $0E, $FA, $0D, $18, $17, $0E, $FA, $12, $1D, $2D, $FF, $00
 loc_DB12:
 	dc.b	$E8, $8A, $22, $18, $1E, $1B, $FA, $15, $12, $0C, $0E, $17, $1C, $0E, $FC, $17, $18, $29, $FA, $04, $06, $00, $00, $2C, $1D, $11, $06, $09, $FF, $00
+;$0000DB30
+Credits_scroll_frame:
 	JSR	Wait_for_vblank
 	BSR.b	loc_DB56
 	JSR	Update_objects_and_build_sprite_buffer
@@ -16909,7 +16975,7 @@ loc_DCF2:
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#1, $FFFFFC04.w
 	MOVE.w	#$0168, $FFFFFC00.w
-	MOVE.l	#$0000DB30, $FFFFFF10.w
+	MOVE.l	#Credits_scroll_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -17005,6 +17071,8 @@ loc_DE36:
 	dc.l	$FFFFEB52
 	dc.l	$FFFFECA4
 	dc.l	$FFFFEB52
+;$0000DE46
+Credits_object_anim_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.b	Input_click_bitset.w, D0
@@ -17056,6 +17124,8 @@ loc_DF16:
 	MOVE.w	D0, $16(A0)
 	JSR	Queue_object_for_sprite_buffer
 	RTS
+;$0000DF2A
+Credits_sequence_init:
 	JSR	Fade_palette_to_black
 	JSR	Halt_audio_sequence
 	JSR	Initialize_h40_vdp_state
@@ -17083,7 +17153,7 @@ loc_DF16:
 	BSR.w	loc_DFDA
 	LEA	loc_27F30, A6
 	JSR	Copy_word_run_from_stream
-	MOVE.l	#$0000DE46, $FFFFFF10.w
+	MOVE.l	#Credits_object_anim_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -17138,6 +17208,8 @@ loc_E074:
 	dc.l	loc_2A1F2
 	dc.b	$63, $20
 	dc.l	loc_2AB1C
+;$0000E088
+Endgame_car_anim_frame:
 	JSR	Wait_for_vblank
 	TST.w	$FFFFFC08.w
 	BEQ.b	loc_E0B6
@@ -17232,7 +17304,7 @@ loc_E1EE:
 	MOVE.w	D1, $FFFFFC82.w
 	MOVE.l	D2, $FFFFFF2A.w
 	MOVE.w	D3, $FFFFFC08.w
-	MOVE.l	#$0000E088, $FFFFFF10.w
+	MOVE.l	#Endgame_car_anim_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -17354,6 +17426,8 @@ loc_E3BE:
 	dc.l	$FFFF92DC
 loc_E3CE:
 	dc.w	$E890, $E990, $EA90, $EC10
+;$0000E3D6
+Championship_team_select_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	LEA	loc_E3F4, A1
@@ -17500,6 +17574,8 @@ loc_E5F4:
 	MOVE.w	#$0050, $FFFFFC08.w
 	ADDQ.w	#4, $FFFFFC04.w
 	RTS
+;$0000E600
+Championship_driver_select_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -17547,7 +17623,7 @@ loc_E6CE:
 	MOVE.w	#$0014, $FFFFFC08.w
 	MOVE.w	#$000A, $FFFFFC14.w
 	MOVE.w	#$00A0, $FFFFFC0C.w
-	MOVE.l	#$0000E3D6, $FFFFFF10.w
+	MOVE.l	#Championship_team_select_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -17561,6 +17637,8 @@ loc_E72A:
 	dc.b	$EA, $AE, $FB, $C3, $E8, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FD, $3A, $32, $32, $17, $0E, $21, $1D, $32, $22, $0E, $0A, $1B
 	dc.b	$32, $3B, $FD, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FD, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $32, $32, $3B
 	dc.b	$FD, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF
+;$0000E77A
+Championship_podium_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	BSR.w	loc_E8B4
@@ -17693,6 +17771,8 @@ loc_E932:
 	ADDQ.b	#1, $FFFFFC02.w
 loc_E94A:
 	RTS
+;$0000E94C
+Championship_standings_2_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -17716,7 +17796,7 @@ loc_E94A:
 	MOVE.w	#$000C, $FFFFE9A4.w
 	MOVE.w	#$0EEE, $FFFFE9C4.w
 	MOVE.b	#1, $FFFFFC01.w
-	MOVE.l	#$0000E77A, $FFFFFF10.w
+	MOVE.l	#Championship_podium_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	BCLR.b	#5, Player_team.w
 	MOVE.b	Rival_team.w, D0
@@ -17760,6 +17840,8 @@ loc_EA58:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
+;$0000EA8E
+Options_screen_frame:
 	JSR	Wait_for_vblank
 	BSR.b	loc_EAA0
 	BSR.w	Draw_conditional_overlay_tile
@@ -17996,6 +18078,8 @@ loc_ED70:
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
+;$0000ED90
+Options_screen_champ_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	MOVE.l	#$40200000, VDP_control_port
@@ -18023,7 +18107,7 @@ loc_ED70:
 	MOVE.w	#$00EE, $FFFFE984.w
 	MOVE.w	#$0EEE, $FFFFE9A4.w
 	MOVE.l	#$000E0000, $FFFFE9C4.w
-	MOVE.l	#$0000EA8E, $FFFFFF10.w
+	MOVE.l	#Options_screen_frame, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -18041,6 +18125,8 @@ Control_types: ; keys for Shift down, Shift up, Accelerate, Break
 	dc.b	KEY_DOWN, KEY_UP, KEY_A, KEY_B ; =$01000604, Type D
 	dc.b	KEY_A, KEY_B, KEY_DOWN, KEY_UP ; =$06040100, Type E
 	dc.b	KEY_A, KEY_B, KEY_UP, KEY_DOWN ; =$06040001, Type F
+;$0000EE78
+Team_select_driver_frame:
 	JSR	Wait_for_vblank
 	BSR.w	loc_EE88
 	BSR.w	loc_EF04
@@ -18101,6 +18187,8 @@ loc_EF28:
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC0C.w
 	RTS
+;$0000EF42
+Name_entry_frame_2:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	BSR.w	loc_EF5C
@@ -18340,6 +18428,8 @@ loc_F262:
 	MOVE.w	D0, $16(A0)
 	JSR	Queue_object_for_sprite_buffer
 	RTS
+;$0000F288
+Save_name_entry_init:
 	JSR	loc_13170
 	BSR.w	loc_F336
 	MOVE.l	#$40020010, VDP_control_port
@@ -18348,7 +18438,7 @@ loc_F262:
 	JSR	Draw_packed_tilemap_to_vdp
 	LEA	loc_39EB4, A6
 	JSR	Draw_packed_tilemap_to_vdp
-	MOVE.l	#$0000EE78, $FFFFFF10.w
+	MOVE.l	#Team_select_driver_frame, $FFFFFF10.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
@@ -18365,7 +18455,7 @@ Endgame_sequence_init:
 	JSR	Draw_packed_tilemap_to_vdp
 	LEA	loc_39E4E, A6
 	JSR	Draw_packed_tilemap_to_vdp
-	MOVE.l	#$0000EF42, $FFFFFF10.w
+	MOVE.l	#Name_entry_frame_2, $FFFFFF10.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
@@ -18395,7 +18485,7 @@ loc_F336:
 	MOVE.l	#$00E0000E, $FFFFE9E8.w
 	MOVE.w	#$0EE0, $FFFFE9EC.w
 	BSR.w	loc_F414
-	MOVE.l	#$000003E0, $FFFFFF0C.w
+	MOVE.l	#Default_vblank_handler_h32, $FFFFFF0C.w
 	RTS
 
 loc_F3DE:
@@ -21753,6 +21843,8 @@ Engine_data_offset_table:
 	dc.w	$005A
 	dc.w	$0078
 	dc.w	$0096
+;$00013418
+Endgame_sequence_frame:
 	JSR	Wait_for_vblank
 	SUBQ.w	#1, $FFFFFC16.w
 	BCC.b	loc_13484
@@ -21884,6 +21976,8 @@ loc_1359A:
 loc_135BE:
 	JSR	Queue_object_for_sprite_buffer
 	RTS
+;$000135C6
+Championship_final_init:
 	JSR	Halt_audio_sequence
 	JSR	Fade_palette_to_black
 	MOVE.w	#$000F, $00FF5AC0
@@ -21918,7 +22012,7 @@ loc_13668:
 	DBF	D0, loc_13668
 	MOVE.b	#$64, $FFFFFC00.w
 	MOVE.b	#1, $FFFFFC02.w
-	MOVE.l	#$00013418, $FFFFFF10.w
+	MOVE.l	#Endgame_sequence_frame, $FFFFFF10.w
 	MOVE.l	#$000138CE, $FFFFFF0C.w
 	LEA	loc_13938, A1
 	MOVE.w	#$000B, D0
@@ -22080,6 +22174,8 @@ loc_138C6:
 	MOVE.w	(A6)+, (A1)+
 	DBF	D0, loc_138C6
 	RTS
+;$000138CE
+Endgame_vblank_handler:
 	JSR	Upload_h40_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
 	JSR	Upload_palette_buffer_to_cram

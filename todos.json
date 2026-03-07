@@ -4,7 +4,7 @@
     "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
     "created": "2026-03-07",
     "phase": 1,
-    "label_progress": "42 named labels, 4203 loc_ labels remain",
+    "label_progress": "354 named labels, 3859 loc_ labels remain (all JSR/BSR targets now named)",
     "total_commits": 199,
     "current_state": [
       "Single monolithic smgp.asm source file (~43.7K lines)",
@@ -81,8 +81,8 @@
           "file": "smgp.asm",
           "priority": "critical",
           "effort": "very_large",
-          "status": "in_progress",
-          "progress_notes": "Renamed 58 routines across three batches. Named: Check_ai_lateral_bounds, Wrap_ai_track_position, Update_tire_wear_counter, Load_team_machine_stats, Upload_palette_buffer_to_vdp, Award_race_position_points, Set_vdp_mode_h32_variant_a, Compute_vram_tile_address/_neg, Load_rival_dialogue_pointer, Copy_ea00_block_to_a5, Rotate_standings_buffer, Compute_save_data_checksum, Initialize_results_screen, Pack_tile_palette_field, Draw_conditional_overlay_tile, Skip_if_hidden_flag, Check_ai_lateral_bounds_wide, Wait_for_button_press, Build_car_tilemap_buffers, Fill_tilemap_column_stride, Init_race_player_state, Init_race_object_pool, Read_vram_row_strip_priority, Render_number_tiles_at_row_col, Render_packed_digits_to_vdp, Sort_championship_standings, Fill_table_stride_loop, Bcd_add_lap_time, Copy_sprite_frame_data, Check_despawn_ai_car, Draw_car_machine_graphics, Draw_gear_indicator, Draw_race_timer, Draw_message_panel_wide/_narrow, Accumulate_bcd_race_time, Draw_car_selection_screen, Draw_car_stat_rows, Draw_bcd_value_display, Upload_words_to_vram, Menu_cursor_col_next/_prev, Write_digit_tile_nibble, Fill_vram_rect, Spawn_trackside_objects, Queue_gear_diagram_draw, Draw_lap_counter_tiles. Still ~180 JSR/BSR unnamed targets remain, all with 2 refs."
+          "status": "done",
+          "progress_notes": "All JSR/BSR-called loc_ targets renamed across four batches (0 remaining). Final batch: Decompress_tilemap_to_vdp_64_cell_rows (was loc_7AA, 28 callsites), Load_default_control_type_handler (loc_3C02), Load_control_type_handler (loc_3C06), Draw_car_machine_tilemap (loc_C2CE), Build_minimap_player_row_buffer (loc_C6D6), Build_minimap_standings_row_buffer (loc_C7E0), Advance_road_marker_sequence_b (loc_D164). Also corrected mislabeled Decompress_tilemap_to_vdp_64_cell_rows (was using 128-cell stride) to Decompress_tilemap_to_vdp_128cell_with_tile_offset. 354 named labels total, 3859 loc_ labels remain (mostly branch targets)."
         },
         {
           "id": "LABEL-002",
@@ -129,8 +129,8 @@
           "file": "smgp.asm",
           "priority": "high",
           "effort": "medium",
-          "status": "in_progress",
-          "progress_notes": "Named top-level interrupt anchors Return_from_exception and Vertical_blank_interrupt, plus Practice_mode_vblank_handler, Title_menu, Update_title_menu_state and its handler/layout tables. Added Default_vblank_handler, Default_vblank_handler_h32, Install_hblank_handler. Named state machine callbacks: Startup_screen_init, Practice_mode_init, Race_loop, Options_screen_init, Championship_mode_init, Team_select_screen_init, Championship_standings_init, Endgame_sequence_init, Pre_race_screen_init. Added Frame_callback, Vblank_callback, Saved_frame_callback constants. Many other loop/init entry points remain unnamed (see $FFFFFF10 assignment targets list in session notes)."
+          "status": "done",
+          "progress_notes": "Named all 46 Frame_callback and Vblank_callback assignment targets across the full ROM. Labels include all attract, title, pre-race, race result, championship, options, team-select, credits, endgame, and game-over screen init and frame callbacks. Added Default_vblank_handler ($3D8), Default_vblank_handler_h32 ($3E0, h32 variant start), Vblank_tail ($3E6, shared tail), Install_hblank_handler. Renamed loc_32E0->Options_screen_arcade_init, loc_3800->Arcade_race_init, loc_42F8->Race_finish_results_init. Applied 34 symbolic name replacements for backward-reference-safe MOVE.l targets. Corrected a mislabeled Vblank_tail (was named Default_vblank_handler_h32 pointing at wrong offset). All 20 forward-reference MOVE.l targets remain as raw hex literals per the single-pass assembler constraint. Build bit-perfect."
         },
         {
           "id": "LABEL-007",
