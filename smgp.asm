@@ -3424,7 +3424,7 @@ loc_28CE:
 	RTS
 
 loc_28D4:
-	LEA	$FFFFB080.w, A0
+	LEA	Ai_car_array.w, A0
 loc_28D8:
 	TST.l	(A0)
 	BEQ.b	loc_28E2
@@ -4442,7 +4442,7 @@ loc_38E0:
 	MOVE.l	#loc_A566, (A0)
 	LEA	$40(A0), A0
 	DBF	D1, loc_38E0
-	MOVE.l	#$00007AAE, $FFFFAE00.w
+	MOVE.l	#$00007AAE, Player_obj.w
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
 	BNE.b	loc_3948
@@ -4452,7 +4452,7 @@ loc_38E0:
 	MOVE.w	D0, Horizontal_position.w
 	NEG.w	D0
 	MOVE.w	D0, Player_x_negated.w
-	LEA	$FFFFB080.w, A0
+	LEA	Ai_car_array.w, A0
 	MOVE.l	#loc_8C9E, (A0)
 	MOVE.w	D0, $12(A0)
 	MOVE.w	Track_length.w, D0
@@ -4484,7 +4484,7 @@ loc_395C:
 	LEA	loc_418D(PC), A1
 loc_3986:
 	MOVEQ	#0, D6
-	LEA	$FFFFB080.w, A0
+	LEA	Ai_car_array.w, A0
 	MOVE.w	Track_length.w, D1
 	SUBQ.w	#6, D1
 	MOVEQ	#0, D3
@@ -4650,7 +4650,7 @@ loc_3B56:
 	ADDQ.w	#1, D3
 	CMPI.w	#$0010, D3
 	BNE.w	loc_3AC6
-	LEA	$FFFFB080.w, A0
+	LEA	Ai_car_array.w, A0
 	MOVE.l	#loc_9138, (A0)
 	MOVE.w	Screen_data_ptr.w, $12(A0)
 	MOVE.w	Menu_cursor.w, $1A(A0)
@@ -4676,7 +4676,7 @@ loc_3BA4:
 	MOVE.l	#$00000F66, $FFFFAEC0.w
 	MOVE.l	#$00007D7A, $FFFFAE40.w
 	MOVE.l	#$00007DAC, $FFFFAE80.w
-	MOVE.l	#$00007A3E, $FFFFAE00.w
+	MOVE.l	#$00007A3E, Player_obj.w
 	MOVE.w	#$0180, D0
 	MOVE.w	D0, Horizontal_position.w
 	NEG.w	D0
@@ -4685,7 +4685,7 @@ loc_3BA4:
 	MOVE.w	Total_distance.w, D0
 	ADD.w	D1, D0
 	MOVE.w	D1, Player_distance.w
-	MOVE.w	D0, $FFFFAE1E.w
+	MOVE.w	D0, Player_place_score.w
 	RTS
 
 loc_3C02:
@@ -5626,7 +5626,7 @@ loc_49CA:
 	JSR	Read_vram_row_strip_priority(PC)
 	JSR	Initialize_race_track_scroll_tables(PC)
 	JSR	loc_4A2C(PC)
-	MOVE.l	#$00004F5C, $FFFFB080.w
+	MOVE.l	#$00004F5C, Ai_car_array.w
 	MOVE.w	#$603C, Race_frame_counter.w
 	MOVE.l	#Name_entry_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
@@ -5789,7 +5789,7 @@ Pre_race_screen_championship_init:
 	JSR	loc_4D54(PC)
 loc_4BE2:
 	JSR	Initialize_race_track_scroll_tables(PC)
-	MOVE.l	#$00004F56, $FFFFB080.w
+	MOVE.l	#$00004F56, Ai_car_array.w
 	MOVE.w	#$01E0, Race_frame_counter.w
 	MOVE.l	#Pre_race_preview_car_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
@@ -6180,7 +6180,7 @@ loc_503A:
 	MOVE.b	Player_state_flags.w, D0
 	ANDI.b	#$FC, D0
 	MOVE.b	D0, Player_state_flags.w
-	MOVE.l	#$00004F5C, $FFFFB080.w
+	MOVE.l	#$00004F5C, Ai_car_array.w
 	MOVE.w	#$00F8, Anim_delay.w
 	MOVE.w	#$000A, Selection_count.w
 	MOVE.l	#$0000509C, Frame_callback.w
@@ -6920,7 +6920,7 @@ loc_5C46:
 	MOVE.w	Horizontal_position.w, D1
 	MOVE.w	#$0060, D2
 	MOVEQ	#0, D7
-	LEA	$FFFFB080.w, A2
+	LEA	Ai_car_array.w, A2
 	MOVEQ	#$0000000E, D0
 loc_5C5C:
 	MOVE.w	$26(A2), D5
@@ -8126,7 +8126,7 @@ loc_6B60:
 
 ;loc_6B68:
 Advance_player_distance:
-	LEA	$FFFFAE00.w, A0
+	LEA	Player_obj.w, A0
 	JSR	loc_80E0
 	MULU.w	Player_speed.w, D0
 	ADD.l	D0, $1E(A0)
@@ -9402,9 +9402,9 @@ loc_7876:
 	BEQ.b	loc_7890
 	TST.w	Has_rival_flag.w
 	BEQ.b	loc_7890
-	LEA	$FFFFB080.w, A0
+	LEA	Ai_car_array.w, A0
 loc_7890:
-	MOVE.w	$FFFFAE1E.w, D0
+	MOVE.w	Player_place_score.w, D0
 	MOVE.w	$1E(A0), D1
 	CMP.w	D1, D0
 	BCC.b	loc_789E
@@ -9770,7 +9770,7 @@ loc_7D78:
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$FFFF, $28(A0)
 loc_7D8C:
-	LEA	$FFFFAE00.w, A3
+	LEA	Player_obj.w, A3
 	MOVE.w	$16(A3), $16(A0)
 	MOVE.w	$18(A3), $18(A0)
 	LEA	loc_3CD45, A1
@@ -10226,8 +10226,8 @@ loc_82EA:
 	MOVE.l	#$000085A4, $FFFFADC0.w
 	MOVE.w	#1, Placement_anim_state.w
 loc_8312:
-	MOVE.w	$FFFFAE1E.w, D0
-	LEA	$FFFFB09E.w, A0
+	MOVE.w	Player_place_score.w, D0
+	LEA	Rival_car_place_score.w, A0
 	MOVEQ	#0, D1
 	MOVEQ	#0, D5
 	MOVEQ	#-1, D6
@@ -10310,7 +10310,7 @@ loc_840E:
 	TST.w	Race_started.w
 	BEQ.b	loc_8464
 	MOVEA.w	$FFFFFCAA.w, A0
-	MOVE.w	$FFFFAE1E.w, D1
+	MOVE.w	Player_place_score.w, D1
 	SUB.w	$1E(A0), D1
 	LSR.w	#4, D1
 	ADDQ.w	#1, D1
@@ -10343,8 +10343,8 @@ loc_8466:
 	BNE.b	loc_8464
 	TST.w	Has_rival_flag.w
 	BNE.w	loc_84E4
-	MOVE.w	$FFFFAE1E.w, D0
-	LEA	$FFFFB09E.w, A0
+	MOVE.w	Player_place_score.w, D0
+	LEA	Rival_car_place_score.w, A0
 	MOVEQ	#0, D1
 	MOVEQ	#0, D7
 	MOVEQ	#$0000000E, D2
@@ -10386,8 +10386,8 @@ Draw_placement_ordinal_to_vdp:
 loc_84E2:
 	RTS
 loc_84E4:
-	MOVE.w	$FFFFAE1E.w, D0
-	MOVE.w	$FFFFB09E.w, D1
+	MOVE.w	Player_place_score.w, D0
+	MOVE.w	Rival_car_place_score.w, D1
 	LEA	$FFFFB0DE.w, A0
 	MOVEQ	#0, D2
 	MOVEQ	#0, D3
@@ -10536,7 +10536,7 @@ loc_866A:
 ;loc_867C
 Advance_lap_checkpoint:
 	MOVE.w	$FFFFFC8E.w, D0
-	CMP.w	$FFFFAE1E.w, D0
+	CMP.w	Player_place_score.w, D0
 	BLS.b	loc_8688
 	RTS
 loc_8688:
@@ -10949,7 +10949,7 @@ loc_8BCC:
 loc_8C0A:
 	MOVE.w	Frame_subtick.w, D7
 	BEQ.w	loc_8CC0
-	MOVE.w	$FFFFAE1E.w, D0
+	MOVE.w	Player_place_score.w, D0
 	SUB.w	$1E(A0), D0
 	BMI.w	loc_8CC0
 	CMPI.w	#$00A0, D0
@@ -11039,7 +11039,7 @@ loc_8D1E:
 	SWAP	D3
 	ADD.w	$22(A0), D3
 	SWAP	D5
-	LEA	$FFFFAE00.w, A1
+	LEA	Player_obj.w, A1
 	BRA.b	loc_8D46
 loc_8D44:
 	MOVEA.w	D0, A1
@@ -11519,7 +11519,7 @@ loc_926C:
 	SWAP	D3
 	ADD.w	$22(A0), D3
 	SWAP	D5
-	LEA	$FFFFAE00.w, A1
+	LEA	Player_obj.w, A1
 	BRA.b	loc_9294
 loc_9292:
 	MOVEA.w	D0, A1
@@ -11740,7 +11740,7 @@ loc_94C0:
 loc_94C4:
 	TST.b	$3C(A0)
 	BPL.b	loc_94EA
-	MOVE.w	$FFFFAE1E.w, D0
+	MOVE.w	Player_place_score.w, D0
 	SUB.w	$1E(A0), D0
 	BPL.b	loc_94EA
 	NEG.w	D0
@@ -12116,7 +12116,7 @@ loc_98C6:
 	LEA	loc_9C08(PC), A1
 	MOVE.l	(A1,D1.w), $8(A0)
 	MOVE.b	D1, $2A(A0)
-	MOVE.w	$FFFFAE1E.w, D1
+	MOVE.w	Player_place_score.w, D1
 	CMP.w	$1E(A0), D1
 	BLS.b	loc_98E6
 	MOVE.w	#$4000, $C(A0)
@@ -13082,7 +13082,7 @@ loc_A634:
 	MOVE.w	#$0120, $16(A0)
 	MOVE.w	#$0100, $18(A0)
 	MOVE.w	#$000A, $24(A0)
-	MOVE.w	$FFFFAE1E.w, $2A(A0)
+	MOVE.w	Player_place_score.w, $2A(A0)
 loc_A65C:
 	MOVEQ	#0, D1
 	CMPI.w	#3, $24(A0)
@@ -13104,7 +13104,7 @@ loc_A68A:
 	BPL.b	loc_A696
 	MOVE.w	#$000A, $24(A0)
 loc_A696:
-	MOVE.w	$FFFFAE1E.w, D0
+	MOVE.w	Player_place_score.w, D0
 	SUB.w	$2A(A0), D0
 	CMPI.w	#700, D0
 	BCC.b	loc_A6AE
@@ -13135,7 +13135,7 @@ loc_A6DC:
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$00FD, $16(A0)
 	MOVE.w	#$0084, $18(A0)
-	MOVE.w	$FFFFAE1E.w, $2A(A0)
+	MOVE.w	Player_place_score.w, $2A(A0)
 	MOVE.w	#$0028, $2C(A0)
 	MOVE.w	#$FFFF, $FFFFFC34.w
 	BRA.b	loc_A764
@@ -13189,7 +13189,7 @@ loc_A7B0:
 	MOVE.w	loc_A800(PC,D0.w), $FFFFE998.w
 	BRA.b	loc_A764
 loc_A7BA:
-	MOVE.w	$FFFFAE1E.w, D0
+	MOVE.w	Player_place_score.w, D0
 	SUB.w	$2A(A0), D0
 	CMPI.w	#$0080, D0
 	BCS.b	loc_A7D2
@@ -13436,7 +13436,7 @@ Update_ai_car_screen_x:
 ; Inputs:  A0 = AI car object slot; $1E(A0) = AI car track position (horiz.)
 ; Outputs: $E(A0) = screen X offset; D7 = direction flag (0=ahead, 4=behind)
 	MOVE.w	$1E(A0), D0
-	SUB.w	$FFFFAE1E.w, D0
+	SUB.w	Player_place_score.w, D0
 	BMI.b	loc_AB24
 	CMPI.w	#$00A1, D0
 	BHI.b	loc_AB1A
@@ -15140,9 +15140,9 @@ loc_C242:
 	JSR	Clear_aux_object_pool
 	MOVE.w	Track_length.w, D1
 	ADD.w	D1, Total_distance.w
-	MOVE.w	Total_distance.w, $FFFFAE1E.w
+	MOVE.w	Total_distance.w, Player_place_score.w
 	ADDI.w	#$0040, Best_lap_vdp_step.w
-	LEA	$FFFFAE00.w, A0
+	LEA	Player_obj.w, A0
 	MOVEQ	#-2, D0
 	JSR	Load_minimap_position
 	LEA	$FFFFB440.w, A0

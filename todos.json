@@ -182,7 +182,8 @@
           ],
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Car object struct documented: size $40 bytes, fields at +$00 (fn ptr), +$12 (x pos), +$1A (track dist), +$1E (place score), +$2B (byte), +$30 (max speed), +$32 (max speed*128), +$34 (accel cap). Named Player_obj=$FFFFAE00, Horizontal_position=$FFFFAE12, Player_distance=$FFFFAE1A, Player_place_score=$FFFFAE1E. Defined Car_obj_* offset constants in constants.asm."
         },
         {
           "id": "CONST-004",
@@ -195,7 +196,8 @@
           ],
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "AI car array at $FFFFB080, 16 entries × $40 bytes. Entry 0 is rival car (Rival_car_obj=$FFFFB080), entries 1-15 are background AI. Defined Ai_car_array, Ai_car_stride, Rival_car_obj, Rival_car_place_score=$FFFFB09E. Same Car_obj_* field offsets apply as for player object. Remaining struct fields (+$04, +$0E, +$16, +$18, +$22, +$26, +$28) not yet named — needs deeper RE."
         },
         {
           "id": "CONST-005",

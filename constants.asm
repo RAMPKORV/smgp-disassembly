@@ -85,11 +85,46 @@ Practice_mode                 = $FFFF9148
 Warm_up                       = $FFFF914A
 
 ; ============================================================
-; Player object struct ($FFFFAE00 area)
-; The main player object lives at $FFFFAE00; these are named fields within it.
+; Car object struct layout (shared by player and AI cars)
+; Struct size: $40 bytes.
+; Player object base: $FFFFAE00
+; AI/rival car array:  $FFFFB080, 16 entries of $40 bytes each
+;
+; Field offsets (relative to object base):
+;   +$00 .l  update function pointer
+;   +$04 .l  palette data
+;   +$0E .w  animation state / display flags
+;   +$12 .w  horizontal screen X position (signed; $80 = centre lane)
+;   +$16 .w  ?
+;   +$18 .w  ?
+;   +$1A .w  track distance (integer steps from lap start)
+;   +$1E .w  placement score (used for race-position comparison)
+;   +$22 .w  ?
+;   +$26 .w  ?
+;   +$28 .w  previous animation frame index
+;   +$2B .b  ?
+;   +$30 .w  max speed (base value)
+;   +$32 .w  max speed × 128
+;   +$34 .w  acceleration / secondary speed cap
 ; ============================================================
-Horizontal_position = $FFFFAE12 ; longword: player lateral position (fixed-point, $80 = centre)
-Player_distance     = $FFFFAE1A ; longword: distance driven this lap (resets each lap)
+Car_obj_x_pos         = $12 ; +$12 .w  horizontal screen X (signed; $80 = centre)
+Car_obj_track_dist    = $1A ; +$1A .w  integer track steps from lap start
+Car_obj_place_score   = $1E ; +$1E .w  placement comparison score
+Car_obj_max_speed     = $30 ; +$30 .w  max speed (base)
+Car_obj_max_speed_shl = $32 ; +$32 .w  max speed << 7
+Car_obj_accel_cap     = $34 ; +$34 .w  acceleration / secondary speed cap
+
+Player_obj            = $FFFFAE00 ; base address of player car object
+Horizontal_position   = $FFFFAE12 ; = Player_obj + Car_obj_x_pos      (.w horizontal position)
+Player_distance       = $FFFFAE1A ; = Player_obj + Car_obj_track_dist  (.w track distance)
+Player_place_score    = $FFFFAE1E ; = Player_obj + Car_obj_place_score (.w placement score)
+
+Ai_car_array          = $FFFFB080 ; base of AI car object array (16 × $40 bytes)
+Ai_car_stride         = $40       ; bytes between consecutive AI car objects
+; Rival car (car 0) = Ai_car_array
+; Background AI cars (cars 1-15) = Ai_car_array + Ai_car_stride * n
+Rival_car_obj         = $FFFFB080 ; = Ai_car_array[0]: the main rival / opponent
+Rival_car_place_score = $FFFFB09E ; = Rival_car_obj + Car_obj_place_score
 
 ; ============================================================
 ; Player vehicle state  ($FFFF910x area)
