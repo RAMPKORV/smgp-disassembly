@@ -156,7 +156,8 @@
           ],
           "priority": "critical",
           "effort": "very_large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "constants.asm rewritten from 59 lines to ~260 lines with 100+ named constants covering hardware registers, frame dispatch, input, system flags, VDP cache, title/menu state, race event flags, player vehicle state, track/road state, screen scratch variables, tilemap draw queue, pause/music state, lap/overtake flags, race/standings state. 1217+38 raw $FFFFxxxx/$FFFFFFxx literals replaced in smgp.asm. Missing Horizontal_position ($FFFFAE12) and Player_distance ($FFFFAE1A) restored after rewrite. Build verified bit-perfect."
         },
         {
           "id": "CONST-002",
@@ -657,94 +658,8 @@
           "priority": "high",
           "effort": "medium",
           "depends_on": "LABEL-006",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-002",
-          "title": "Create a symbol-aware ROM diff tool",
-          "description": "Build a diff tool that compares two ROMs and annotates changes with nearby labels from smgp.lst. This mirrors one of vermilion's most useful maintenance tools for diagnosing verify failures and reviewing intentional hacks.",
-          "file": "tools/rom_diff.py",
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-003",
-          "title": "Create a track map extractor and viewer",
-          "description": "Turn the current notebook-based map rendering work into a reusable script that can dump, visualize, and compare track layouts directly from source or ROM data. The output should help validate Track_data and map-related edits.",
-          "files": [
-            "tools/Render_maps.ipynb",
-            "tools/map_viewer.py"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-004",
-          "title": "Create a slope and sign visualizer",
-          "description": "Add a script that renders decoded slope profiles and sign placement along each track, so TRACK-002 and TRACK-003 can be verified visually instead of by emulator trial and error alone.",
-          "file": "tools/track_visualizer.py",
-          "priority": "high",
-          "effort": "medium",
-          "depends_on": [
-            "TRACK-002",
-            "TRACK-003"
-          ],
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-005",
-          "title": "Create a palette and artwork inventory viewer",
-          "description": "Write a tool that dumps palettes, tile references, and asset usage summaries so artwork identification can be tracked systematically instead of through ad hoc notes.",
-          "file": "tools/palette_viewer.py",
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-006",
-          "title": "Create a raw-literal and magic-number auditor",
-          "description": "Scan smgp.asm for raw RAM addresses, I/O literals, and suspicious struct-offset patterns not covered by constants.asm. This supports CONST-001 through CONST-006 and guards against regression later.",
-          "file": "tools/audit_magic_numbers.py",
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-007",
-          "title": "Create comment-density and documentation coverage reporting",
-          "description": "Because the project is still monolithic, use a tool to report comment density, documented routine counts, and large undocumented regions. This helps prioritize DOC tasks and measure progress objectively.",
-          "file": "tools/comment_density.py",
-          "priority": "low",
-          "effort": "small",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-008",
-          "title": "Create machine-readable extraction and injection scripts",
-          "description": "Extract tracks, team data, text, and other structured assets into JSON or similarly editable representations, then support round-tripping them back into assembly while preserving the exact ROM output.",
-          "files": [
-            "tools/extract_game_data.py",
-            "tools/inject_game_data.py"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": [
-            "TRACK-001",
-            "DATA-001",
-            "DATA-002"
-          ],
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-009",
-          "title": "Create a safe whole-symbol label rename helper",
-          "description": "Add a small tool for asm label renames that only replaces full symbol references and preserves nearby original-address comments. This avoids accidental collisions with labels like loc_8AE8 while LABEL-001 is still being done in the monolithic source.",
-          "file": "tools/rename_label.py",
-          "priority": "medium",
-          "effort": "small",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Added Hblank_handler_stub = $FFFFFFD2 to constants.asm. Renamed loc_406 -> Hblank_handler_stub_src with ;loc_406 comment preserved. Replaced dc.l $FFFFFFD2 in vector table with Hblank_handler_stub. Replaced LEA $FFFFFFD2.w in Install_hblank_handler with Hblank_handler_stub.w. Replaced $FFFFFF10.w and $FFFFFF0C.w in main loop dispatch, VBI dispatch, and startup initialization with Frame_callback.w and Vblank_callback.w. Build verified bit-perfect."
         }
       ]
     },
