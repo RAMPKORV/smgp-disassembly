@@ -4309,7 +4309,42 @@ loc_36A8:
 	dc.l	$04CE02AE
 
 ;Race_loop
-Race_loop: ; Suspected in-game loop
+; ============================================================
+; Race_loop - per-frame race update routine
+; Called every frame by Championship_warmup_race_frame and by the
+; championship/practice race Frame_callback at $36B6.
+;
+; Frame update order:
+;   1. Sync with VBI cycle (Wait_for_practice_vblank_cycle)
+;   2. Reset tilemap draw queue
+;   3. Early-out if race is finished (Race_finish_flag set)
+;   4. Handle_pause  — process pause input; return early while paused
+;   5. Update_road_tile_scroll / Update_background_scroll_delta
+;   6. If retired: zero shift/RPM/speed; else drive model update:
+;        Update_shift → Update_rpm → Update_breaking →
+;        Update_engine_sound_pitch → Update_speed
+;   7. Render_speed  — speedometer gauge
+;   8. Advance_lap_checkpoint  — checkpoint and lap detection
+;   9. Render_placement_display  — "1ST" / "2ND" etc. ordinal HUD
+;  10. Update_steering  — steering input → Steering_output
+;  11. Update_horizontal_position  — lateral position integration
+;  12. Advance_player_distance  — advance track position
+;  13. Update_slope_data  — slope/gradient integrator
+;  14. Update_race_timer  — tick BCD race clock
+;  15. Update_race_position  — compute placement vs AI cars
+;  16. Update_gap_to_rival_display  — gap-to-rival HUD value
+;  17. Update_rival_sprite_tiles  — rival car sprite animation
+;  18. Parse_tileset_for_signs  — tileset pass for roadside signs
+;  19. Parse_sign_data  — sign/obstacle placement pass
+;  20. Update_pit_prompt  — pit-in display
+;  21. loc_3FE0  — (unknown, likely bonus/overtake logic)
+;  22. Apply_sorted_positions_to_cars  — sort AI car positions
+;  -- wait for VBI step 4 --
+;  23. Update_objects_and_build_sprite_buffer  — build sprite DMA list
+;  24. Update_engine_and_tire_sounds  — engine/tire SFX
+;  25. Update_road_graphics  — road scanline renderer
+; ============================================================
+Race_loop:
 	JSR	Wait_for_practice_vblank_cycle(PC)
 	CLR.w	Tilemap_queue_count.w
 	MOVE.l	#Tilemap_draw_queue, Tilemap_queue_ptr.w
@@ -4378,7 +4413,7 @@ Championship_race_init:
 	JSR	Decompress_asset_list_to_vdp(PC)
 	JSR	Initialize_race_hud(PC)
 	JSR	Draw_lap_number_and_times(PC)
-	MOVE.l	#$000036B6, Frame_callback.w
+	MOVE.l	#Race_loop, Frame_callback.w
 	MOVE.l	#Practice_mode_vblank_handler, Vblank_callback.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
@@ -4413,7 +4448,7 @@ Arcade_race_init:
 	BEQ.b	loc_385C
 	MOVE.w	#$0010, Options_cursor_update.w
 loc_385C:
-	MOVE.l	#$000036B6, Frame_callback.w
+	MOVE.l	#Race_loop, Frame_callback.w
 	MOVE.l	#Practice_mode_vblank_handler, Vblank_callback.w
 	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR

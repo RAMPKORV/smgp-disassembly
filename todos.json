@@ -253,7 +253,8 @@
           "file": "smgp.asm",
           "priority": "critical",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Added full Race_loop header comment documenting all 25 steps in per-frame update order. Race_loop is at $36B6. Replaced raw #$000036B6 forward references with #Race_loop in Championship_race_init and Arcade_race_init. Build bit-perfect."
         },
         {
           "id": "DOC-003",
