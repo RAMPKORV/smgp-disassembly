@@ -93,7 +93,7 @@
           "effort": "very_large",
           "depends_on": "LABEL-001",
           "status": "in_progress",
-          "progress_notes": "Batch 1 complete (123 replacements, 12 labels renamed, build bit-perfect). Renamed the top 12 highest-reference code loc_ labels: Update_horizontal_position_Done (loc_8244, 11 refs) — collision exit tail; Update_background_ai_car (loc_8CC0, 11 refs) — main background AI car per-frame handler; Advance_ai_track_position (loc_8F76, 10 refs) — AI track distance integrator merge point; Advance_rival_track_position (loc_94C4, 9 refs) — rival car distance integrator; Ai_screen_x_dispatch_table (loc_971C, 9 refs) — indexed dispatch table base for AI screen-X; Init_ai_car_fields (loc_9F12, 14 refs) — common AI object field init tail; Queue_countdown_lights (loc_A764, 9 refs) — countdown object sprite queue tail; Init_background_ai_car_b (loc_A906, 9 refs) — background AI car type-B init tail; Ai_car_lateral_dispatch_table (loc_AA0A, 13 refs) — lateral behavior dispatch table base; Check_ai_lateral_bounds_wide_Done (loc_B2BA, 9 refs) — crash/retire RTS; Demo_screen_transition (loc_F184, 10 refs) — attract mode fade transition; Copy_scratch_to_z80_ram (loc_761DA, 9 refs) — Z80 DMA copy entry. All have ;loc_XXXX preservation comments and major entry points have function header comments. Remaining: hundreds of loop/branch loc_ targets in inner bodies of large routines (race loop, track parsing, rendering, menus) — too large for one iteration."
+          "progress_notes": "Batch 1 complete (123 replacements, 12 labels renamed, build bit-perfect). Batch 2 complete (154 replacements, 20 labels, build bit-perfect). Batch 3 complete (94 replacements, 17 labels, build bit-perfect). Batch 4 complete (10 data/table labels renamed, build bit-perfect): Ai_screen_y_table (loc_6E750, 15 refs - screen Y lookup by distance for road/AI rendering), Ai_screen_y_table_b (loc_6E7F2, 11 refs - same table starting at offset /usr/bin/bash8), Ai_screen_x_to_angle_table (loc_9C28, 8 refs - screen X offset to sprite angle index), Team_msg_error (loc_3AA46, 9 refs - ERROR placeholder string), Team_msg_lets_compete (loc_3ACC2, 13 refs - NOW LET'S COMPETE message), Team_msg_jp_b (loc_3A844, 13 refs - Japanese text blob), Team_msg_jp_table (loc_3A27A, 2 refs - 288-entry JP message pointer table), Team_intro_layout_table (loc_2132E, 2 refs - 16-entry per-team intro layout pointer table), Team_intro_table (loc_3B07E, 2 refs - 64-entry per-team intro pointer table), Team_intro_anim_data (loc_21EEE, 17 refs - intro animation object data). Build verified bit-perfect after each batch."
         },
         {
           "id": "LABEL-003",
@@ -202,16 +202,16 @@
           "progress_notes": "AI car array at $FFFFB080, 16 entries × $40 bytes. Entry 0 is rival car (Rival_car_obj=$FFFFB080), entries 1-15 are background AI. Defined Ai_car_array, Ai_car_stride, Rival_car_obj, Rival_car_place_score=$FFFFB09E. Same Car_obj_* field offsets apply as for player object. Remaining struct fields (+$04, +$0E, +$16, +$18, +$22, +$26, +$28) not yet named — needs deeper RE."
         },
         {
-           "id": "CONST-005",
-           "title": "Define race, menu, and championship state constants",
-           "description": "Replace raw mode values controlling practice, warm-up, shift type, race start, result screens, standings, and championship progression with named constants. This will make control flow and conditionals much easier to follow.",
-           "files": [
-             "constants.asm",
-             "smgp.asm"
-           ],
-           "priority": "high",
-           "effort": "medium",
-           "status": "done"
+          "id": "CONST-005",
+          "title": "Define race, menu, and championship state constants",
+          "description": "Replace raw mode values controlling practice, warm-up, shift type, race start, result screens, standings, and championship progression with named constants. This will make control flow and conditionals much easier to follow.",
+          "files": [
+            "constants.asm",
+            "smgp.asm"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "status": "done"
         },
         {
           "id": "CONST-006",
@@ -312,7 +312,7 @@
     "data_formats_and_assets": {
       "description": "Decode the remaining opaque gameplay and asset formats so track, sign, art, and text data are understandable enough to support future editing tools.",
       "tasks": [
-         {
+        {
           "id": "TRACK-001",
           "title": "Fully decode the Track_data record layout",
           "description": "Document every field in Track_data, including pointers, lengths, tilesets, background assets, minimap assets, decompression targets, and any track-specific behavior flags. Every track entry should become self-describing.",
@@ -322,39 +322,39 @@
           "status": "done",
           "progress_notes": "All 19 Track_data entries (16 championship + 3 arcade Monaco variants) fully documented. Each entry is $48 bytes. Fields: +$00..+$1C 8×pointer (minimap tiles, BG tiles, BG mapping, minimap mapping, palette, sideline style, road style, finish line style), +$20 horizon override flag, +$22 track length, +$24 signs data ptr, +$28 signs tileset ptr, +$2C minimap position map ptr, +$30 curve data ptr, +$34 visual slope data ptr, +$38 physical slope data ptr, +$3C lap time base ptr, +$40 lap target time table ptr, +$44 steering sensitivity divisors (high=straight, low=curve). Added constants: Track_horizon_override_flag, Track_phys_slope_value, Visual_slope_data, Physical_slope_data, Steering_divisor_straight/curve, Track_lap_time_records, Track_lap_target_buf, Track_lap_time_base_ptr. All raw literals replaced with symbolic names throughout smgp.asm. Full structured comment block before Track_data and Load_track_data. Build verified bit-perfect."
         },
-         {
-           "id": "TRACK-002",
-           "title": "Crack slope data encoding and parser behavior",
-           "description": "Finish the open notes.txt task for slope data. Determine the exact ROM encoding, decompression behavior, integrator math, sentinel semantics, and any edge cases that currently freeze or glitch. Replace the partial notes with precise source-level documentation.",
-           "files": [
-             "smgp.asm",
-             "notes.txt",
-             "tools/Render_slopes.ipynb",
-             "tools/util.py"
-           ],
-           "priority": "critical",
-           "effort": "large",
-           "status": "done",
-           "progress_notes": "ROM encoding fully documented in smgp.asm (Update_slope_data, Integrate_curveslope headers). Visual slope uses 3/4-byte RLE records with initial background-displacement byte and per-record delta. Physical slope uses simpler 3-byte RLE. Both streams terminate with high-byte bit 7 set (BMI). Decompressed byte encoding identical to curve data: $00=flat, $01-$2F=downslope, $41-$6F=upslope, $80+=$FF sentinel/wrap. Track_phys_slope_value drives RPM drag in Update_rpm. notes.txt updated to SOLVED."
-         }
+        {
+          "id": "TRACK-002",
+          "title": "Crack slope data encoding and parser behavior",
+          "description": "Finish the open notes.txt task for slope data. Determine the exact ROM encoding, decompression behavior, integrator math, sentinel semantics, and any edge cases that currently freeze or glitch. Replace the partial notes with precise source-level documentation.",
+          "files": [
+            "smgp.asm",
+            "notes.txt",
+            "tools/Render_slopes.ipynb",
+            "tools/util.py"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "status": "done",
+          "progress_notes": "ROM encoding fully documented in smgp.asm (Update_slope_data, Integrate_curveslope headers). Visual slope uses 3/4-byte RLE records with initial background-displacement byte and per-record delta. Physical slope uses simpler 3-byte RLE. Both streams terminate with high-byte bit 7 set (BMI). Decompressed byte encoding identical to curve data: $00=flat, $01-$2F=downslope, $41-$6F=upslope, $80+=$FF sentinel/wrap. Track_phys_slope_value drives RPM drag in Update_rpm. notes.txt updated to SOLVED."
+        }
       ]
     },
     "audio_and_z80": {
       "description": "Bring the audio side of the ROM up to the same documentation standard as the 68K game logic, eventually ending with a real Z80 disassembly rather than an opaque data blob.",
       "tasks": [
-         {
-           "id": "TRACK-003",
-           "title": "Crack sign data format and per-track signage flow",
-           "description": "Finish the open notes.txt task for signs. Identify the sign record layout, tileset switching rules, parser state machine, pointer usage, placement semantics, and any compressed or banked data involved.",
-           "files": [
-             "smgp.asm",
-             "notes.txt"
-           ],
-           "priority": "critical",
-           "effort": "large",
-           "status": "done",
-           "progress_notes": "Sign data stream format fully documented: 4-byte records (distance.w, count.b, sign_id.b), $FFFF sentinel resets to stream start each lap. Tileset stream: 4-byte records (distance.w, tileset_offset.w), $FFFF sentinel. Sign_lookup_table: .l pointers to $FF-terminated frame-index lists. Values 1-$14=normal signs (aux object handler from loc_8B1C), $15+=special objects (tunnel etc., handler to $FFFFAFC0). Signs_in_row_count signs spaced $0010 apart at Signs_location. Finish-line flagkeeper spawned when player within 120 units of track end (Finish_line_sign_active flag). Added 10 sign RAM constants to constants.asm ($FFFF9240-$FFFF925C). All raw literals replaced in Parse_tileset_for_signs and Parse_sign_data with symbolic names and full header comments added. notes.txt updated to SOLVED."
-         }
+        {
+          "id": "TRACK-003",
+          "title": "Crack sign data format and per-track signage flow",
+          "description": "Finish the open notes.txt task for signs. Identify the sign record layout, tileset switching rules, parser state machine, pointer usage, placement semantics, and any compressed or banked data involved.",
+          "files": [
+            "smgp.asm",
+            "notes.txt"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "status": "done",
+          "progress_notes": "Sign data stream format fully documented: 4-byte records (distance.w, count.b, sign_id.b), $FFFF sentinel resets to stream start each lap. Tileset stream: 4-byte records (distance.w, tileset_offset.w), $FFFF sentinel. Sign_lookup_table: .l pointers to $FF-terminated frame-index lists. Values 1-$14=normal signs (aux object handler from loc_8B1C), $15+=special objects (tunnel etc., handler to $FFFFAFC0). Signs_in_row_count signs spaced $0010 apart at Signs_location. Finish-line flagkeeper spawned when player within 120 units of track end (Finish_line_sign_active flag). Added 10 sign RAM constants to constants.asm ($FFFF9240-$FFFF925C). All raw literals replaced in Parse_tileset_for_signs and Parse_sign_data with symbolic names and full header comments added. notes.txt updated to SOLVED."
+        }
       ]
     },
     "architecture_and_extraction": {

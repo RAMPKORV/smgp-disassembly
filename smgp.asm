@@ -1254,7 +1254,8 @@ loc_9F2:
 	BNE.b	loc_A00
 	JMP	(A3)
 
-loc_9FC:
+;Decompress_huffman_Next_group
+Decompress_huffman_Next_group:
 	MOVEQ	#0, D4
 	MOVEQ	#8, D3
 loc_A00:
@@ -1284,25 +1285,25 @@ loc_A32:
 	MOVE.l	D4, (A4)
 	SUBQ.w	#1, A5
 	MOVE.w	A5, D4
-	BNE.b	loc_9FC
+	BNE.b	Decompress_huffman_Next_group
 	RTS
 	EOR.l	D4, D2
 	MOVE.l	D2, (A4)
 	SUBQ.w	#1, A5
 	MOVE.w	A5, D4
-	BNE.b	loc_9FC
+	BNE.b	Decompress_huffman_Next_group
 	RTS
 loc_A48:
 	MOVE.l	D4, (A4)+
 	SUBQ.w	#1, A5
 	MOVE.w	A5, D4
-	BNE.b	loc_9FC
+	BNE.b	Decompress_huffman_Next_group
 	RTS
 	EOR.l	D4, D2
 	MOVE.l	D2, (A4)+
 	SUBQ.w	#1, A5
 	MOVE.w	A5, D4
-	BNE.b	loc_9FC
+	BNE.b	Decompress_huffman_Next_group
 	RTS
 
 ;loc_A5E:
@@ -1375,7 +1376,8 @@ Decompress_tilemap_to_buffer:
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
 	MOVEQ	#$00000010, D6
-loc_ADC:
+;Decompress_tilemap_to_buffer_Loop
+Decompress_tilemap_to_buffer_Loop:
 	MOVEQ	#7, D0
 	MOVE.w	D6, D7
 	SUB.w	D0, D7
@@ -1397,31 +1399,31 @@ loc_B06:
 	MOVE.w	A2, (A1)+
 	ADDQ.w	#1, A2
 	DBF	D2, loc_B06
-	BRA.b	loc_ADC
+	BRA.b	Decompress_tilemap_to_buffer_Loop
 loc_B10:
 	MOVE.w	A4, (A1)+
 	DBF	D2, loc_B10
-	BRA.b	loc_ADC
+	BRA.b	Decompress_tilemap_to_buffer_Loop
 loc_B18:
 	JSR	Decode_packed_tilemap_entry(PC)
 loc_B1C:
 	MOVE.w	D1, (A1)+
 	DBF	D2, loc_B1C
-	BRA.b	loc_ADC
+	BRA.b	Decompress_tilemap_to_buffer_Loop
 loc_B24:
 	JSR	Decode_packed_tilemap_entry(PC)
 loc_B28:
 	MOVE.w	D1, (A1)+
 	ADDQ.w	#1, D1
 	DBF	D2, loc_B28
-	BRA.b	loc_ADC
+	BRA.b	Decompress_tilemap_to_buffer_Loop
 loc_B32:
 	JSR	Decode_packed_tilemap_entry(PC)
 loc_B36:
 	MOVE.w	D1, (A1)+
 	SUBQ.w	#1, D1
 	DBF	D2, loc_B36
-	BRA.b	loc_ADC
+	BRA.b	Decompress_tilemap_to_buffer_Loop
 loc_B40:
 	CMPI.w	#$000F, D2
 	BEQ.b	loc_B62
@@ -1429,7 +1431,7 @@ loc_B46:
 	JSR	Decode_packed_tilemap_entry(PC)
 	MOVE.w	D1, (A1)+
 	DBF	D2, loc_B46
-	BRA.b	loc_ADC
+	BRA.b	Decompress_tilemap_to_buffer_Loop
 loc_B52:
 	BRA.b	loc_B06
 	BRA.b	loc_B06
@@ -1595,7 +1597,7 @@ Continue_streamed_decompression:
 	MOVE.w	#4, Decomp_stream_step.w
 loc_CE4:
 	MOVEA.w	#8, A5
-	BSR.w	loc_9FC
+	BSR.w	Decompress_huffman_Next_group
 	SUBQ.w	#1, Decomp_stream_rows.w
 	BEQ.b	loc_D1C
 	SUBQ.w	#1, Decomp_stream_step.w
@@ -2808,7 +2810,7 @@ Initialize_car_tile_scroll:
 ; as a circular index into the 32-entry tile ring.
 ; Then programs the VDP DMA registers for three sequential DMA copies
 ; (road car, road background, road priority strip) using fixed control
-; longwords and a $40800083 DMA setup word.  Also calls loc_1AF8 to fill in
+; longwords and a $40800083 DMA setup word.  Also calls Fill_opponent_scroll_ring to fill in
 ; the opponent car half of the road-car scroll buffer and
 ; Set_vdp_mode_h32_variant_a before the final DMA commit.
 ; Called from Initialize_race_hud (step 9) once before the first Race_loop frame.
@@ -2839,21 +2841,22 @@ loc_1AA0:
 	MOVE.l	#$40800083, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	MOVEQ	#8, D2
-	BSR.b	loc_1AF8
+	BSR.b	Fill_opponent_scroll_ring
 	BSR.b	Set_vdp_mode_h32_variant_a
 	BRA.w	loc_1B62
 
 loc_1AE0:
 	MOVEQ	#8, D2
 	CMPI.w	#2, $FFFF927E.w
-	BEQ.b	loc_1AF8
+	BEQ.b	Fill_opponent_scroll_ring
 	MOVE.w	$FFFFAFE8.w, D0
 	LSR.w	#3, D0
 	CMPI.w	#8, D0
-	BHI.b	loc_1AF8
+	BHI.b	Fill_opponent_scroll_ring
 	MOVE.w	D0, D2
 
-loc_1AF8:
+;Fill_opponent_scroll_ring
+Fill_opponent_scroll_ring:
 	MOVE.w	Player_distance_steps.w, D0
 	NEG.w	D0
 	SUBI.w	#$0010, D0
@@ -4848,28 +4851,29 @@ loc_35C8:
 loc_35DC:
 	ADD.w	D1, $18(A0)
 	SUBQ.w	#1, $2A(A0)
-	BRA.b	loc_3620
+	BRA.b	Options_shift_anim_Advance
 loc_35E6:
 	TST.w	Screen_scroll.w
-	BNE.b	loc_3620
+	BNE.b	Options_shift_anim_Advance
 	LEA	Shift_type.w, A3
 	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BEQ.b	loc_3606
 	CMPI.w	#2, (A3)
-	BEQ.b	loc_3620
+	BEQ.b	Options_shift_anim_Advance
 	ADDQ.w	#1, (A3)
 	CLR.w	$2C(A0)
 	BRA.b	loc_361A
 loc_3606:
 	BTST.b	#KEY_LEFT, Input_click_bitset.w
-	BEQ.b	loc_3620
+	BEQ.b	Options_shift_anim_Advance
 	TST.w	(A3)
-	BEQ.b	loc_3620
+	BEQ.b	Options_shift_anim_Advance
 	SUBQ.w	#1, (A3)
 	MOVE.w	#$FFFF, $2C(A0)
 loc_361A:
 	MOVE.w	#$000C, $2A(A0)
-loc_3620:
+;Options_shift_anim_Advance
+Options_shift_anim_Advance:
 	MOVE.w	$2E(A0), D0
 	MOVE.b	Frame_counter.w, D1
 	ANDI.w	#1, D1
@@ -5651,27 +5655,28 @@ loc_3FD2:
 loc_3FE0:
 	MOVEQ	#0, D7
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_4056
+	BEQ.b	Handle_pause_Done
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_4056
+	BEQ.b	Handle_pause_Done
 	MOVE.b	Control_key_brake.w, D0
 	BTST.b	D0, Input_click_bitset.w ; if break key clicked
-	BEQ.b	loc_4026
+	BEQ.b	Handle_race_marker_Update
 	CMPI.w	#$0080, Player_speed.w
-	BCS.b	loc_4026
+	BCS.b	Handle_race_marker_Update
 	MOVE.w	$FFFF915A.w, D0
 	SUB.w	D0, $FFFF9020.w
 	BCC.b	loc_400E
 	CLR.w	$FFFF9020.w
 loc_400E:
 	SUB.w	D0, $FFFF916E.w
-	BCC.b	loc_4026
+	BCC.b	Handle_race_marker_Update
 	ADDI.w	#$0014, $FFFF916E.w
 	MOVEQ	#1, D7
 	SUBQ.w	#2, Track_braking_index.w
-	BCC.b	loc_4026
+	BCC.b	Handle_race_marker_Update
 	CLR.w	Track_braking_index.w
-loc_4026:
+;Handle_race_marker_Update
+Handle_race_marker_Update:
 	TST.w	Collision_flag.w
 	BEQ.b	loc_403A
 	SUBQ.w	#1, $FFFF9170.w
@@ -5680,15 +5685,16 @@ loc_4026:
 	BSR.b	loc_4066
 loc_403A:
 	TST.w	Road_marker_state.w
-	BEQ.b	loc_4056
+	BEQ.b	Handle_pause_Done
 	TST.w	Player_speed.w
-	BEQ.b	loc_4056
+	BEQ.b	Handle_pause_Done
 	SUBQ.w	#1, $FFFF9172.w
-	BNE.b	loc_4056
+	BNE.b	Handle_pause_Done
 	MOVE.w	#$0028, $FFFF9172.w
 	BSR.b	loc_406C
 	BSR.b	loc_4096
-loc_4056:
+;Handle_pause_Done
+Handle_pause_Done:
 	TST.w	D7
 	BEQ.b	loc_4064
 	MOVE.w	D7, $FFFF9150.w
@@ -6234,24 +6240,25 @@ loc_48E6:
 	BNE.b	loc_4914
 	ADDQ.b	#1, D1
 	CMPI.b	#$1D, D1
-	BCS.b	loc_4928
+	BCS.b	Update_initials_entry_Write
 	CMPI.b	#3, Menu_substate.w
 	BNE.b	loc_4910
 	MOVEQ	#$0000001B, D1
-	BRA.b	loc_4928
+	BRA.b	Update_initials_entry_Write
 loc_4910:
 	CLR.w	D1
-	BRA.b	loc_4928
+	BRA.b	Update_initials_entry_Write
 loc_4914:
 	SUBQ.b	#1, D1
 	BCS.b	loc_4926
 	CMPI.b	#3, Menu_substate.w
-	BNE.b	loc_4928
+	BNE.b	Update_initials_entry_Write
 	CMPI.b	#$1A, D1
-	BNE.b	loc_4928
+	BNE.b	Update_initials_entry_Write
 loc_4926:
 	MOVEQ	#$0000001C, D1
-loc_4928:
+;Update_initials_entry_Write
+Update_initials_entry_Write:
 	MOVE.b	D1, Menu_cursor.w
 	RTS
 
@@ -6589,12 +6596,12 @@ loc_4D34:
 	MOVE.w	#1, Screen_item_count.w
 	LEA	loc_5397(PC), A6
 	TST.b	$4(A0)
-	BMI.b	loc_4D8E
+	BMI.b	Update_car_selection_Draw
 	LEA	loc_53C0(PC), A6
 	TST.b	$8(A0)
-	BMI.b	loc_4D8E
+	BMI.b	Update_car_selection_Draw
 	LEA	loc_53E9(PC), A6
-	BRA.b	loc_4D8E
+	BRA.b	Update_car_selection_Draw
 
 loc_4D54:
 	LEA	loc_532E(PC), A4
@@ -6609,12 +6616,13 @@ loc_4D66:
 loc_4D76:
 	LEA	loc_5463(PC), A6
 	TST.b	$4(A0)
-	BMI.b	loc_4D8E
+	BMI.b	Update_car_selection_Draw
 	LEA	loc_548C(PC), A6
 	TST.b	$8(A0)
-	BMI.b	loc_4D8E
+	BMI.b	Update_car_selection_Draw
 	LEA	loc_54B5(PC), A6
-loc_4D8E:
+;Update_car_selection_Draw
+Update_car_selection_Draw:
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	LEA	loc_543A(PC), A6
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
@@ -6835,7 +6843,8 @@ loc_4F74:
 	BNE.b	loc_4F90
 	MOVE.w	$2A(A0), $00FF5AC2
 loc_4F90:
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D0.w), D1
 	EXT.w	D1
 	ADD.w	D1, D1
@@ -6843,7 +6852,8 @@ loc_4F90:
 	MOVE.w	(A1,D1.w), $16(A0)
 	LEA	$FFFF9600.w, A1
 	MOVE.w	(A1,D1.w), $18(A0)
-	LEA	loc_9C28, A1
+	LEA	Ai_screen_x_to_angle_table, A1
+
 	MOVE.b	(A1,D0.w), D0
 	LEA	loc_2F068, A1
 	MOVE.l	(A1,D0.w), $4(A0)
@@ -7432,7 +7442,7 @@ loc_59CE:
 	BRA.w	loc_5A32
 loc_59DA: ; Jump to when shift type is Automatic
 	BTST.b	D5, Input_state_bitset.w ; if shift down key pressed
-	BNE.w	loc_5A62                 ; then shift down (even in automatic!)
+	BNE.w	Update_shift_Down                 ; then shift down (even in automatic!)
 	MOVE.w	#3, D0
 	CMPI.w	#1300, Player_rpm.w      ; else if rpm > 1300
 	BCC.b	loc_5A44                 ; then shift up
@@ -7447,15 +7457,15 @@ loc_59FE:
 	BRA.w	loc_5A22 ; shift is 3
 loc_5A0E:
 	CMPI.w	#649, Player_rpm.w ; automatic shift down RPM threshold for shift 1
-	BCS.b	loc_5A62
+	BCS.b	Update_shift_Down
 	RTS
 loc_5A18:
 	CMPI.w	#865, Player_rpm.w ; automatic shift down RPM threshold for shift 2
-	BCS.b	loc_5A62
+	BCS.b	Update_shift_Down
 	RTS
 loc_5A22:
 	CMPI.w	#974, Player_rpm.w ; automatic shift down RPM threshold for shift 3
-	BCS.b	loc_5A62
+	BCS.b	Update_shift_Down
 loc_5A2A:
 	RTS
 loc_5A2C: ; Jump to when shift type is 4-shift
@@ -7467,7 +7477,7 @@ loc_5A36:
 	BTST.b	D6, Input_click_bitset.w ; if shift up key clicked
 	BNE.b	loc_5A44        ; then shift up
 	BTST.b	D5, Input_click_bitset.w ; else if shift down key clicked
-	BNE.b	loc_5A62        ; then shift down
+	BNE.b	Update_shift_Down        ; then shift down
 	RTS
 loc_5A44:
 	CMP.w	Player_shift.w, D0 ; if max shift
@@ -7480,7 +7490,8 @@ loc_5A44:
 	DIVS.w	D1, D0
 	MOVE.w	D0, Player_rpm.w ; new_rpm = old_rpm * new_shift / (new_shift + 1)
 	BRA.b	loc_5A82
-loc_5A62:
+;Update_shift_Down
+Update_shift_Down:
 	CMPI.w	#0, Player_shift.w ; if shift 0
 	BEQ.b	loc_5A2A           ; then RTS
 
@@ -7699,27 +7710,28 @@ loc_5C46:
 	MOVEQ	#$0000000E, D0
 loc_5C5C:
 	MOVE.w	$26(A2), D5
-	BEQ.b	loc_5C90
+	BEQ.b	Update_visual_rpm_Next
 	SUB.w	D4, D5
 	BCC.b	loc_5C6C
 	ADDI.w	#100, D5
-	BMI.b	loc_5C90
+	BMI.b	Update_visual_rpm_Next
 loc_5C6C:
 	MOVE.w	$E(A2), D6
-	BMI.b	loc_5C90
+	BMI.b	Update_visual_rpm_Next
 	CMP.w	D6, D2
-	BCC.b	loc_5C90
+	BCC.b	Update_visual_rpm_Next
 	MOVE.w	$12(A2), D3
 	SUB.w	D1, D3
 	BPL.b	loc_5C80
 	NEG.w	D3
 loc_5C80:
 	CMPI.w	#$0040, D3
-	BCC.b	loc_5C90
+	BCC.b	Update_visual_rpm_Next
 	CMP.w	$E(A2), D7
-	BCC.b	loc_5C90
+	BCC.b	Update_visual_rpm_Next
 	MOVE.w	$E(A2), D7
-loc_5C90:
+;Update_visual_rpm_Next
+Update_visual_rpm_Next:
 	LEA	$40(A2), A2
 	DBF	D0, loc_5C5C
 	TST.w	D7
@@ -7815,26 +7827,27 @@ Acceleration_data: ; Derivative of RPM during acceleration
 Update_engine_sound_pitch:
 	MOVE.w	#$022E, D0
 	MOVE.w	Shift_type.w, D1
-	BEQ.b	loc_5F58
+	BEQ.b	Update_engine_sound_pitch_Write
 	CMPI.w	#700, Player_rpm.w
 	BCC.b	loc_5F2C
 	CMPI.w	#0, Player_shift.w
-	BEQ.b	loc_5F58
+	BEQ.b	Update_engine_sound_pitch_Write
 	BRA.b	loc_5F4C
 loc_5F2C:
 	CMPI.w	#1300, Player_rpm.w
-	BCS.b	loc_5F58
+	BCS.b	Update_engine_sound_pitch_Write
 	CMPI.w	#6, Player_shift.w
-	BEQ.b	loc_5F58
+	BEQ.b	Update_engine_sound_pitch_Write
 	CMPI.w	#2, Shift_type.w
 	BEQ.b	loc_5F4C
 	CMPI.w	#3, Player_shift.w
-	BEQ.b	loc_5F58
+	BEQ.b	Update_engine_sound_pitch_Write
 loc_5F4C:
 	BTST.b	#2, Frame_counter.w
-	BEQ.b	loc_5F58
+	BEQ.b	Update_engine_sound_pitch_Write
 	MOVE.w	#$0E86, D0
-loc_5F58:
+;Update_engine_sound_pitch_Write
+Update_engine_sound_pitch_Write:
 	MOVE.w	D0, Engine_sound_pitch.w ; $022E (normal) or $0E86 (shift-warning pulse)
 	RTS
 
@@ -8018,7 +8031,7 @@ loc_6136:
 	ANDI.b	#$0C, D0 ; Reset keys except left+right
 	BEQ.b	loc_61A8 ; Jump if no key pressed?
 	CMP.b	Track_boundary_type.w, D0
-	BEQ.b	loc_6188
+	BEQ.b	Update_steering_Boundary
 	BTST.l	#KEY_LEFT, D0
 	BNE.b	loc_6164
 	CMPI.b	#$55, D7
@@ -8026,23 +8039,24 @@ loc_6136:
 	MOVE.b	#8, Track_boundary_type.w
 	MOVE.b	D5, Track_boundary_wobble.w
 	CMPI.b	#$31, D7
-	BCC.b	loc_6188
+	BCC.b	Update_steering_Boundary
 	MOVE.b	D6, Track_boundary_wobble.w
-	BRA.b	loc_6188
+	BRA.b	Update_steering_Boundary
 loc_6164:
 	CMPI.b	#$AC, D7
 	BCS.b	loc_6180
 	MOVE.b	#4, Track_boundary_type.w
 	MOVE.b	D5, Track_boundary_wobble.w
 	CMPI.b	#$D0, D7
-	BCS.b	loc_6188
+	BCS.b	Update_steering_Boundary
 	MOVE.b	D6, Track_boundary_wobble.w
-	BRA.b	loc_6188
+	BRA.b	Update_steering_Boundary
 loc_6180:
 	CLR.b	Track_boundary_type.w
 	MOVE.w	D4, D1
 	BRA.b	loc_618C
-loc_6188:
+;Update_steering_Boundary
+Update_steering_Boundary:
 	MOVE.b	Track_boundary_wobble.w, D1
 loc_618C:
 	BTST.l	#KEY_RIGHT, D0
@@ -8052,29 +8066,30 @@ loc_6194:
 	ADD.b	D1, D7
 	BCC.b	loc_61A0
 	TST.b	D1
-	BMI.b	loc_61CA
+	BMI.b	Update_steering_Merge
 	MOVEQ	#-1, D7
-	BRA.b	loc_61CA
+	BRA.b	Update_steering_Merge
 loc_61A0:
 	TST.b	D1
-	BPL.b	loc_61CA
+	BPL.b	Update_steering_Merge
 	MOVEQ	#1, D7
-	BRA.b	loc_61CA
+	BRA.b	Update_steering_Merge
 loc_61A8:
 	CLR.b	Track_boundary_type.w
 	CMPI.b	#$80, D7
-	BEQ.b	loc_61CA
+	BEQ.b	Update_steering_Merge
 	TST.b	D7
 	BPL.b	loc_61B8
 	NEG.b	D3
 loc_61B8:
 	ADD.b	D3, D7
 	CMPI.b	#$79, D7
-	BCS.b	loc_61CA
+	BCS.b	Update_steering_Merge
 	CMPI.b	#$88, D7
-	BCC.b	loc_61CA
+	BCC.b	Update_steering_Merge
 	MOVE.w	#$0080, D7
-loc_61CA:
+;Update_steering_Merge
+Update_steering_Merge:
 	CMPI.b	#8, D7
 	BCC.b	loc_61D4
 	MOVEQ	#8, D7
@@ -8645,7 +8660,7 @@ Update_road_graphics:
 ;  5. Retire flash: if bit 0 is set in $FFFF9239, blank a row range (from
 ;     $FFFFAFEC) with $FF40.
 ;  6. Road-edge/turn sign placement: compute upcoming sign distance, look up
-;     edge Y position from the loc_6E750 Y-position table, fill the sign
+;     edge Y position from the Ai_screen_y_table Y-position table, fill the sign
 ;     row region with $FF40, and update sign position flag ($FFFFFC86).
 ;  7. Background zone colouring: if Background_zone_index != 0, AND the
 ;     appropriate scan-line words with $FF40 for the sky/ground colour split.
@@ -8746,7 +8761,8 @@ loc_6836:
 loc_685E:
 	MOVE.w	#$009F, D1
 	SUB.w	D0, D1
-	LEA	loc_6E750, A4
+	LEA	Ai_screen_y_table, A4
+
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D0
 	MOVE.b	(A4,D1.w), D2
@@ -8796,7 +8812,8 @@ loc_68DE:
 	MOVE.w	#$FF40, D7
 	MOVE.w	#$00A0, D1
 	SUB.w	Background_zone_index.w, D1
-	LEA	loc_6E750, A4
+	LEA	Ai_screen_y_table, A4
+
 	MOVE.b	(A4,D1.w), D1
 	MOVE.w	D1, D2
 	ADD.w	D1, D1
@@ -8965,13 +8982,13 @@ loc_6A80:
 	SUBQ.w	#1, D0
 	BEQ.b	loc_6AD6
 	SUBQ.w	#2, D0
-	BNE.b	loc_6B04
+	BNE.b	Update_road_graphics_Signs
 	MOVE.w	$FFFFFC3E.w, D0
-	BEQ.b	loc_6B04
+	BEQ.b	Update_road_graphics_Signs
 	SUBI.w	#$0080, D0
 	MOVE.w	Minimap_track_offset.w, D2
 	SUB.w	D0, D2
-	BLS.b	loc_6B04
+	BLS.b	Update_road_graphics_Signs
 	SUBQ.w	#1, D2
 	MOVE.w	#$01F2, D1
 	SUB.w	D0, D1
@@ -8984,10 +9001,10 @@ loc_6ACA:
 	MOVE.w	D3, (A3)+
 	SUBQ.w	#1, D1
 	DBF	D2, loc_6ACA
-	BRA.b	loc_6B04
+	BRA.b	Update_road_graphics_Signs
 loc_6AD6:
 	MOVE.w	$FFFFFC36.w, D0
-	BEQ.b	loc_6B04
+	BEQ.b	Update_road_graphics_Signs
 	SUBI.w	#$0080, D0
 	MOVE.w	Minimap_scroll_pos.w, D2
 	SUB.w	D0, D2
@@ -9003,7 +9020,8 @@ loc_6AFA:
 	MOVE.w	D3, (A3)+
 	SUBQ.w	#1, D1
 	DBF	D2, loc_6AFA
-loc_6B04:
+;Update_road_graphics_Signs
+Update_road_graphics_Signs:
 	LEA	$FFFFFC36.w, A1
 	MOVEQ	#1, D6
 loc_6B0A:
@@ -9066,48 +9084,50 @@ loc_6B96:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_6C06
+	BEQ.b	Update_road_graphics_Render
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_6C06
+	BEQ.b	Update_road_graphics_Render
 	MOVE.w	Player_distance.w, D4
 	MOVE.w	#$00A0, D1
 	MOVEQ	#1, D2
 	MOVE.w	#$00AF, D3
 	SUB.w	D4, D3
 	CMP.w	D1, D3
-	BCS.b	loc_6BE2
+	BCS.b	Update_road_graphics_Zone
 	ADDQ.w	#1, D2
 	MOVE.w	#$014F, D3
 	SUB.w	D4, D3
 	CMP.w	D1, D3
-	BCS.b	loc_6BE2
+	BCS.b	Update_road_graphics_Zone
 	ADDQ.w	#1, D2
 	MOVE.w	Background_zone_2_distance.w, D3
 	SUB.w	D4, D3
 	CMP.w	D1, D3
-	BCS.b	loc_6BE2
+	BCS.b	Update_road_graphics_Zone
 	ADDQ.w	#1, D2
 	MOVE.w	Background_zone_1_distance.w, D3
 	SUB.w	D4, D3
 	CMP.w	D1, D3
-	BCS.b	loc_6BE2
+	BCS.b	Update_road_graphics_Zone
 	MOVEQ	#0, D2
-loc_6BE2:
+;Update_road_graphics_Zone
+Update_road_graphics_Zone:
 	MOVE.w	Background_zone_prev.w, D4
 	MOVE.w	D2, Background_zone_prev.w
 	BNE.b	loc_6BF6
 	TST.w	D4
-	BEQ.b	loc_6C06
+	BEQ.b	Update_road_graphics_Render
 	CLR.w	Background_zone_index.w
 	BRA.b	loc_6C00
 loc_6BF6:
 	ADDQ.w	#1, D3
 	MOVE.w	D3, Background_zone_index.w
 	TST.w	D4
-	BNE.b	loc_6C06
+	BNE.b	Update_road_graphics_Render
 loc_6C00:
 	MOVE.w	#2, $FFFF9280.w
-loc_6C06:
+;Update_road_graphics_Render
+Update_road_graphics_Render:
 	LEA	$FFFF9850.w, A6
 	SWAP	D0
 	LSR.w	#2, D0 ; D0 = steps travelled from lap marker (starts at end of track since in front of marker)
@@ -10031,10 +10051,10 @@ loc_7464:
 	MOVE.w	Laps_completed.w, D1
 	MOVE.w	D1, Best_ai_distance.w
 	CMP.w	D1, D0
-	BEQ.w	loc_750E
+	BEQ.w	Update_race_timer_Next_lap
 	MOVE.w	#1, Placement_change_flag.w
 	TST.w	D1
-	BEQ.w	loc_750E
+	BEQ.w	Update_race_timer_Next_lap
 	MOVE.w	#1, New_lap_flag.w
 	MOVE.l	#$000076C2, Main_object_pool.w
 	CLR.l	(A0)
@@ -10055,7 +10075,7 @@ loc_74B2:
 	TST.w	Warm_up.w
 	BNE.b	loc_74DC
 	TST.w	Practice_mode.w
-	BNE.b	loc_750E
+	BNE.b	Update_race_timer_Next_lap
 	MOVE.w	#1, Overtake_event_flag.w
 	BRA.b	loc_74FC
 loc_74DC:
@@ -10063,19 +10083,20 @@ loc_74DC:
 	ADDQ.w	#1, D0
 	CMP.w	Laps_completed.w, D0
 	BEQ.b	loc_74FC
-	BRA.b	loc_750E
+	BRA.b	Update_race_timer_Next_lap
 loc_74EA:
 	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#3, D0
 	CMP.w	Laps_completed.w, D0
-	BHI.b	loc_750E
+	BHI.b	Update_race_timer_Next_lap
 	JSR	loc_7656(PC)
 loc_74FC:
 	MOVE.l	#$0000A50E, D1
 	JSR	Alloc_aux_object_slot
 	MOVE.w	#1, Laps_done_flag.w
-loc_750E:
+;Update_race_timer_Next_lap
+Update_race_timer_Next_lap:
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_758E
 	MOVE.l	(A0), D0
@@ -10094,24 +10115,24 @@ loc_7520:
 	JSR	Queue_tilemap_draw
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
-	BNE.w	loc_7612
+	BNE.w	Update_race_timer_Return
 	MOVE.w	Current_lap.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	LEA	Track_lap_target_buf.w, A1
 	MOVE.l	(A1,D0.w), D0
 	CMP.l	Lap_time_ptr.w, D0
-	BCC.w	loc_7612
+	BCC.w	Update_race_timer_Return
 	ADDQ.w	#1, Current_lap.w
 	MOVE.w	#1, Overtake_event_flag.w
 	CMPI.w	#$000E, Current_lap.w
-	BNE.w	loc_7612
+	BNE.w	Update_race_timer_Return
 	MOVE.l	#$00008076, D1
 	JSR	Alloc_aux_object_slot
-	BRA.w	loc_7612
+	BRA.w	Update_race_timer_Return
 loc_758E:
 	TST.w	Ai_active_flag.w
-	BNE.b	loc_7612
+	BNE.b	Update_race_timer_Return
 	TST.w	New_lap_flag.w
 	BEQ.b	loc_75AA
 	MOVE.w	Best_lap_vdp_step.w, D7
@@ -10131,7 +10152,7 @@ loc_75B0:
 	LEA	(A3), A6
 	JSR	Queue_tilemap_draw
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_7612
+	BNE.b	Update_race_timer_Return
 	MOVE.l	$FFFF92DC.w, $FFFF92D8.w
 	LEA	Track_lap_time_base_ptr.w, A1
 	LEA	$FFFF92DC.w, A2
@@ -10146,7 +10167,8 @@ loc_75B0:
 	MOVEQ	#1, D5
 	LEA	$FFFFE80C.w, A6
 	JSR	Queue_tilemap_draw
-loc_7612:
+;Update_race_timer_Return
+Update_race_timer_Return:
 	RTS
 
 loc_7614:
@@ -10644,23 +10666,24 @@ loc_7C90:
 	MOVE.w	$12(A0), D0
 	BMI.b	loc_7CCA
 	TST.w	Background_zone_index.w
-	BEQ.b	loc_7CCC
+	BEQ.b	Update_gap_to_rival_Classify
 	MOVE.w	$1A(A0), D5
 	CMPI.w	#$00AF, D5
-	BCS.b	loc_7CCC
+	BCS.b	Update_gap_to_rival_Classify
 	CMPI.w	#$014F, D5
 	BLS.b	loc_7CC0
 	CMP.w	Background_zone_2_distance.w, D5
-	BCS.b	loc_7CCC
+	BCS.b	Update_gap_to_rival_Classify
 	CMP.w	Background_zone_1_distance.w, D5
-	BCC.b	loc_7CCC
+	BCC.b	Update_gap_to_rival_Classify
 loc_7CC0:
 	ADDI.w	#$0040, D6
 	ADDI.w	#$0040, D7
-	BRA.b	loc_7CCC
+	BRA.b	Update_gap_to_rival_Classify
 loc_7CCA:
 	NEG.w	D0
-loc_7CCC:
+;Update_gap_to_rival_Classify
+Update_gap_to_rival_Classify:
 	MOVEQ	#0, D1
 	CMP.w	D6, D0
 	BCS.b	loc_7CDA
@@ -11274,7 +11297,7 @@ loc_8386:
 	MOVE.l	#$00010001, Placement_anim_state.w
 loc_8398:
 	SUB.w	Current_placement.w, D1
-	BCS.w	loc_8456
+	BCS.w	Update_race_position_Check_award
 	MOVEQ	#1, D0
 	BTST.b	#1, Frame_counter.w
 	BNE.b	loc_83AE
@@ -11291,18 +11314,18 @@ loc_83BE:
 	MOVE.w	#3, Placement_anim_state_b.w
 	MOVE.w	Retire_animation_flag.w, D0
 	OR.w	Player_eliminated.w, D0
-	BNE.w	loc_8456
+	BNE.w	Update_race_position_Check_award
 	MOVE.w	#1, Player_eliminated.w
 	MOVE.l	#$0000853E, D1
 	JSR	Alloc_aux_object_slot
 	TST.w	Retire_flag.w
-	BNE.b	loc_8456
+	BNE.b	Update_race_position_Check_award
 	MOVE.w	#1, Laps_done_flag.w
 	MOVE.w	#1, Race_finish_flag.w
 	CLR.w	Audio_engine_flags
 	MOVE.l	#$00009E08, D1
 	JSR	Alloc_aux_object_slot
-	BRA.b	loc_8456
+	BRA.b	Update_race_position_Check_award
 loc_840E:
 	TST.w	Race_started.w
 	BEQ.b	loc_8464
@@ -11322,12 +11345,13 @@ loc_8430:
 	MOVEQ	#1, D1
 loc_843E:
 	SUBQ.w	#1, $FFFFFCAE.w
-	BPL.b	loc_8456
+	BPL.b	Update_race_position_Check_award
 	MOVE.w	D1, $FFFFFCAE.w
 	TST.w	Retire_flag.w
-	BNE.b	loc_8456
+	BNE.b	Update_race_position_Check_award
 	MOVE.w	#Sfx_checkpoint, Audio_sfx_cmd      ; checkpoint / lap event SFX
-loc_8456:
+;Update_race_position_Check_award
+Update_race_position_Check_award:
 	TST.w	Placement_award_pending.w
 	BEQ.b	loc_8464
 	CLR.w	Placement_award_pending.w
@@ -11624,19 +11648,20 @@ Update_pit_prompt:
 	TST.w	$FFFF9150.w
 	BEQ.b	loc_87D0
 	CMPI.w	#4, Laps_completed.w
-	BEQ.b	loc_8788
+	BEQ.b	Update_pit_prompt_Display
 	MOVE.w	Background_zone_2_distance.w, D0
 	SUBI.w	#$012C, D0
 	CMP.w	Player_distance.w, D0
-	BHI.b	loc_8788
+	BHI.b	Update_pit_prompt_Display
 	ADDI.w	#$0154, D0
 	CMP.w	Player_distance.w, D0
-	BCS.b	loc_8788
+	BCS.b	Update_pit_prompt_Display
 	MOVE.w	#1, Pit_prompt_flag.w
 	BTST.b	#KEY_C, Input_state_bitset.w
-	BEQ.b	loc_8788
+	BEQ.b	Update_pit_prompt_Display
 	MOVE.w	#1, Pit_in_flag.w
-loc_8788:
+;Update_pit_prompt_Display
+Update_pit_prompt_Display:
 	LEA	loc_8870(PC), A6
 	MOVEQ	#1, D0
 	TST.w	Pit_in_flag.w
@@ -11817,28 +11842,29 @@ Parse_sign_data:
 	BNE.b	loc_89F2
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
-	BNE.b	loc_8A44
+	BNE.b	Parse_sign_data_Next
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_8A12
 	TST.w	Laps_completed.w
 	BEQ.b	loc_8A20
-	BRA.b	loc_8A44
+	BRA.b	Parse_sign_data_Next
 loc_8A12:
 	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#2, D0
 	CMP.w	Laps_completed.w, D0
-	BNE.b	loc_8A44
+	BNE.b	Parse_sign_data_Next
 loc_8A20:
 	MOVE.w	Track_length.w, D0
 	SUB.w	Player_distance.w, D0
 	CMPI.w	#$0078, D0
-	BCC.b	loc_8A44                          ; > 120 units to end → no finish-line sign yet
+	BCC.b	Parse_sign_data_Next                          ; > 120 units to end → no finish-line sign yet
 	MOVE.w	#1, Finish_line_sign_active.w      ; arm flagkeeper; block further sign spawns
 	MOVE.l	#$0000A174, $FFFFAF80.w            ; flagkeeper full-track handler pointer
 	LEA	loc_12A34, A0
 	BRA.b	loc_89E4                           ; write loc_12A34 tileset to Sign_tileset_buf
-loc_8A44:
+;Parse_sign_data_Next
+Parse_sign_data_Next:
 	MOVEA.l	Signs_data_ptr.w, A0
 	MOVE.w	(A0)+, D0                          ; D0 = sign group distance from track start
 	BPL.b	loc_8A54
@@ -11868,7 +11894,7 @@ loc_8A6A:
 	MOVE.l	(A0), Sign_table_entry_ptr.w       ; also set current read position
 loc_8A92:
 	MOVE.w	Signs_in_row_count.w, D0           ; D0 = signs remaining in row
-	BEQ.b	loc_8B04                            ; 0 → nothing to spawn; return
+	BEQ.b	Alloc_aux_object_slot_Return                            ; 0 → nothing to spawn; return
 	MOVE.w	Signs_location.w, D0               ; D0 = distance of next sign in row
 	MOVE.w	D0, D1
 	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
@@ -11876,7 +11902,7 @@ loc_8A92:
 	BCS.b	loc_8AB2 ; jump if distance to sign < 120
 	ADD.w	Track_length.w, D1
 	CMPI.w	#$0078, D1
-	BCC.b	loc_8B04 ; continue if distance to sign? < 120 (sign appears for next lap?)
+	BCC.b	Alloc_aux_object_slot_Return ; continue if distance to sign? < 120 (sign appears for next lap?)
 loc_8AB2:
 	ADDI.w	#$0010, Signs_location.w   ; advance location by spacing to next sign in row
 loc_8AB8:
@@ -11886,11 +11912,11 @@ loc_8AB8:
 	MOVE.l	Sign_table_entry_start.w, Sign_table_entry_ptr.w ; $FF sentinel → restart list
 	SUBQ.w	#1, Signs_in_row_count.w    ; one fewer sign in this row
 	BNE.b	loc_8AB8                    ; loop while more signs remain
-	BRA.b	loc_8B04
+	BRA.b	Alloc_aux_object_slot_Return
 loc_8ACE:
 	MOVE.l	A0, Sign_table_entry_ptr.w  ; save advanced frame-index list pointer
 	EXT.w	D1
-	BEQ.b	loc_8B04 ; jump to RTS if sign table byte = 0 (special sign?)
+	BEQ.b	Alloc_aux_object_slot_Return ; jump to RTS if sign table byte = 0 (special sign?)
 	CMPI.w	#$0015, D1
 	BCC.b	loc_8B06 ; jump if sign table byte >= $0015 (special sign, tunnel?)
 	ADD.w	D1, D1
@@ -11914,11 +11940,12 @@ Find_free_aux_object_slot:
 	LEA	$40(A1), A1
 	DBF	D2, Find_free_aux_object_slot
 	ADDQ.w	#2, D2
-	BRA.b	loc_8B04
+	BRA.b	Alloc_aux_object_slot_Return
 loc_8AFE:
 	MOVE.l	D1, (A1)
 	MOVE.w	D0, $1E(A1)
-loc_8B04:
+;Alloc_aux_object_slot_Return
+Alloc_aux_object_slot_Return:
 	RTS
 loc_8B06:
 	SUBI.w	#$0015, D1
@@ -12080,7 +12107,7 @@ loc_8D18:
 	MOVEQ	#1, D7
 loc_8D1E:
 	MOVE.w	(A2)+, D0
-	BEQ.w	loc_8DFA
+	BEQ.w	Update_background_ai_car_Curve
 	MOVE.l	#$00070008, D3
 	MOVE.l	#$00A00080, D5
 	CMPI.w	#$FFFF, D0
@@ -12099,13 +12126,13 @@ loc_8D46:
 	NEG.w	D0
 loc_8D52:
 	CMP.w	D5, D0
-	BCC.w	loc_8DFA
+	BCC.w	Update_background_ai_car_Curve
 	CMPI.w	#$0048, D0
 	SCS	D6
 	MOVE.w	$1E(A1), D0
 	SUB.w	$1E(A0), D0
 	CMPI.w	#$003C, D0
-	BCC.w	loc_8DFA
+	BCC.w	Update_background_ai_car_Curve
 	CMPI.w	#$0028, D0
 	BCC.b	loc_8DC2
 	CMPI.w	#$000C, D0
@@ -12136,7 +12163,7 @@ loc_8DAC:
 	MOVE.w	$26(A1), D1
 	SUB.w	$26(A0), D1
 	BEQ.b	loc_8DC2
-	BCC.b	loc_8DFA
+	BCC.b	Update_background_ai_car_Curve
 	TST.b	D6
 	BEQ.b	loc_8DC2
 	ASR.w	#2, D1
@@ -12144,27 +12171,29 @@ loc_8DAC:
 loc_8DC2:
 	MOVE.w	$12(A1), D1
 	CMPI.w	#$FFA0, D1
-	BLE.b	loc_8DE6
+	BLE.b	Update_background_ai_car_Steer
 	NEG.w	D3
 	CMPI.w	#$0060, D1
-	BGE.b	loc_8DE6
+	BGE.b	Update_background_ai_car_Steer
 	CMP.w	$12(A0), D1
 	BNE.b	loc_8DE2
 	TST.w	D1
-	BPL.b	loc_8DE6
+	BPL.b	Update_background_ai_car_Steer
 	NEG.w	D3
-	BRA.b	loc_8DE6
+	BRA.b	Update_background_ai_car_Steer
 loc_8DE2:
-	BGT.b	loc_8DE6
+	BGT.b	Update_background_ai_car_Steer
 	NEG.w	D3
-loc_8DE6:
+;Update_background_ai_car_Steer
+Update_background_ai_car_Steer:
 	MOVE.w	D3, D0
 	JSR	Apply_lateral_offset_clamped(PC)
 	CLR.b	$3D(A0)
 	TST.b	D6
-	BEQ.w	loc_8EFA
+	BEQ.w	Update_background_ai_car_Advance
 	BRA.w	Advance_ai_track_position
-loc_8DFA:
+;Update_background_ai_car_Curve
+Update_background_ai_car_Curve:
 	DBF	D7, loc_8D1E
 	LEA	Curve_data+1, A5
 	MOVE.w	$1A(A0), D0
@@ -12187,9 +12216,9 @@ loc_8E24:
 	CMPI.w	#$000B, D2
 	BHI.b	loc_8E84
 	TST.w	D3
-	BEQ.w	loc_8ED4
+	BEQ.w	Update_background_ai_car_Lateral
 	CMPI.w	#$000B, D3
-	BHI.w	loc_8ED4
+	BHI.w	Update_background_ai_car_Lateral
 	ADD.w	D3, D3
 	MOVE.w	D3, D0
 	ADD.w	D3, D3
@@ -12199,10 +12228,10 @@ loc_8E24:
 	CMP.w	$26(A0), D3
 	BCS.b	loc_8E6E
 	TST.b	$3D(A0)
-	BNE.w	loc_8EFA
+	BNE.w	Update_background_ai_car_Advance
 	MOVEQ	#4, D0
 	JSR	Apply_lateral_offset_clamped_with_flip(PC)
-	BRA.w	loc_8EFA
+	BRA.w	Update_background_ai_car_Advance
 loc_8E6E:
 	SUBQ.w	#3, $26(A0)
 	TST.b	$3D(A0)
@@ -12212,9 +12241,9 @@ loc_8E6E:
 	BRA.w	Advance_ai_track_position
 loc_8E84:
 	TST.w	D3
-	BEQ.b	loc_8ED4
+	BEQ.b	Update_background_ai_car_Lateral
 	CMPI.w	#$000B, D3
-	BHI.b	loc_8ED4
+	BHI.b	Update_background_ai_car_Lateral
 	BTST.l	#6, D5
 	BNE.b	loc_8E9E
 	CMPI.w	#$FF60, $12(A0)
@@ -12238,13 +12267,14 @@ loc_8EB4:
 	ADD.w	D0, D3
 	ADD.w	$34(A0), D3
 	CMP.w	$26(A0), D3
-	BCC.b	loc_8EFA
+	BCC.b	Update_background_ai_car_Advance
 	SUBI.w	#$000C, D2
 	ADD.w	D2, $26(A0)
 	BRA.b	loc_8F32
-loc_8ED4:
+;Update_background_ai_car_Lateral
+Update_background_ai_car_Lateral:
 	TST.b	$3D(A0)
-	BNE.b	loc_8EFA
+	BNE.b	Update_background_ai_car_Advance
 	MOVE.w	$12(A0), D1
 	SUB.w	$36(A0), D1
 	SLT	D2
@@ -12252,14 +12282,15 @@ loc_8ED4:
 	NEG.w	D1
 loc_8EE8:
 	CMPI.w	#8, D1
-	BCS.b	loc_8EFA
+	BCS.b	Update_background_ai_car_Advance
 	MOVEQ	#4, D0
 	TST.b	D2
 	BNE.b	loc_8EF6
 	NEG.w	D0
 loc_8EF6:
 	JSR	Apply_lateral_offset_clamped(PC)
-loc_8EFA:
+;Update_background_ai_car_Advance
+Update_background_ai_car_Advance:
 	MOVE.b	$2B(A0), D2
 	EXT.w	D2
 	LEA	loc_A502(PC), A1
@@ -12396,7 +12427,7 @@ loc_9086:
 	MOVE.b	Frame_counter.w, D0
 	ADD.w	Object_update_counter.w, D0
 	LSR.w	#1, D0
-	BCC.b	loc_910E
+	BCC.b	Advance_ai_track_position_Return
 	MOVE.w	$1A(A0), D0
 	LSR.w	#2, D0
 	MOVE.b	$2D(A0), D1
@@ -12418,25 +12449,26 @@ loc_90CC:
 	BPL.b	loc_90D8
 loc_90D0:
 	TST.b	D4
-	BEQ.b	loc_910E
+	BEQ.b	Advance_ai_track_position_Return
 	TST.b	D2
-	BNE.b	loc_910E
+	BNE.b	Advance_ai_track_position_Return
 loc_90D8:
 	TST.w	D7
-	BEQ.b	loc_910E
+	BEQ.b	Advance_ai_track_position_Return
 	CMPI.w	#$00A0, $26(A0)
-	BCS.b	loc_910E
+	BCS.b	Advance_ai_track_position_Return
 	BTST.b	#0, $1B(A0)
-	BEQ.b	loc_910E
+	BEQ.b	Advance_ai_track_position_Return
 	MOVE.w	$1A(A0), D0
 	MOVE.l	#$0000A0CC, D1
 	JSR	Alloc_and_init_aux_object_slot
-	BCS.b	loc_910E
+	BCS.b	Advance_ai_track_position_Return
 	MOVE.w	$12(A0), $12(A1)
 	MOVE.w	$26(A0), D0
 	LSR.w	#3, D0
 	MOVE.w	D0, $26(A1)
-loc_910E:
+;Advance_ai_track_position_Return
+Advance_ai_track_position_Return:
 	RTS
 
 ;Apply_lateral_offset_clamped_with_flip
@@ -12534,7 +12566,7 @@ loc_9206:
 	TST.w	Race_started.w
 	BEQ.w	loc_9542
 	TST.b	$3E(A0)
-	BNE.w	loc_94EA
+	BNE.w	Advance_rival_track_position_Step
 	TST.b	$10(A0)
 	BEQ.b	loc_9266
 	SUBQ.b	#1, $15(A0)
@@ -12552,7 +12584,7 @@ loc_9244:
 	SUBQ.b	#1, $10(A0)
 loc_924C:
 	TST.b	$3C(A0)
-	BNE.w	loc_9422
+	BNE.w	Update_rival_ai_car_Steer
 	MOVE.w	$26(A0), D0
 	SUBQ.w	#2, D0
 	BPL.b	loc_925E
@@ -12629,25 +12661,26 @@ loc_92FA:
 loc_9310:
 	MOVE.w	$12(A1), D1
 	CMPI.w	#$FFA0, D1
-	BLE.b	loc_9334
+	BLE.b	Update_rival_ai_car_Steer_Apply
 	NEG.w	D3
 	CMPI.w	#$0060, D1
-	BGE.b	loc_9334
+	BGE.b	Update_rival_ai_car_Steer_Apply
 	CMP.w	$12(A0), D1
 	BNE.b	loc_9330
 	TST.w	D1
-	BPL.b	loc_9334
+	BPL.b	Update_rival_ai_car_Steer_Apply
 	NEG.w	D3
-	BRA.b	loc_9334
+	BRA.b	Update_rival_ai_car_Steer_Apply
 loc_9330:
-	BGT.b	loc_9334
+	BGT.b	Update_rival_ai_car_Steer_Apply
 	NEG.w	D3
-loc_9334:
+;Update_rival_ai_car_Steer_Apply
+Update_rival_ai_car_Steer_Apply:
 	MOVE.w	D3, D0
 	JSR	Apply_lateral_offset_clamped(PC)
 	CLR.b	$3D(A0)
 	TST.b	D6
-	BEQ.w	loc_9448
+	BEQ.w	Update_rival_ai_car_Advance
 	BRA.w	Advance_rival_track_position
 loc_9348:
 	DBF	D7, loc_926C
@@ -12672,9 +12705,9 @@ loc_9372:
 	CMPI.w	#$000B, D2
 	BHI.b	loc_93D2
 	TST.w	D3
-	BEQ.w	loc_9422
+	BEQ.w	Update_rival_ai_car_Steer
 	CMPI.w	#$000B, D3
-	BHI.w	loc_9422
+	BHI.w	Update_rival_ai_car_Steer
 	ADD.w	D3, D3
 	MOVE.w	D3, D0
 	ADD.w	D3, D3
@@ -12684,10 +12717,10 @@ loc_9372:
 	CMP.w	$26(A0), D3
 	BCS.b	loc_93BC
 	TST.b	$3D(A0)
-	BNE.w	loc_9448
+	BNE.w	Update_rival_ai_car_Advance
 	MOVEQ	#4, D0
 	JSR	Apply_lateral_offset_clamped_with_flip(PC)
-	BRA.w	loc_9448
+	BRA.w	Update_rival_ai_car_Advance
 loc_93BC:
 	SUBQ.w	#3, $26(A0)
 	TST.b	$3D(A0)
@@ -12697,9 +12730,9 @@ loc_93BC:
 	BRA.w	Advance_rival_track_position
 loc_93D2:
 	TST.w	D3
-	BEQ.b	loc_9422
+	BEQ.b	Update_rival_ai_car_Steer
 	CMPI.w	#$000B, D3
-	BHI.b	loc_9422
+	BHI.b	Update_rival_ai_car_Steer
 	BTST.l	#6, D5
 	BNE.b	loc_93EC
 	CMPI.w	#$FF60, $12(A0)
@@ -12723,13 +12756,14 @@ loc_9402:
 	ADD.w	D0, D3
 	ADD.w	$34(A0), D3
 	CMP.w	$26(A0), D3
-	BCC.b	loc_9448
+	BCC.b	Update_rival_ai_car_Advance
 	SUBI.w	#$000C, D2
 	ADD.w	D2, $26(A0)
 	BRA.b	loc_9480
-loc_9422:
+;Update_rival_ai_car_Steer
+Update_rival_ai_car_Steer:
 	TST.b	$3D(A0)
-	BNE.b	loc_9448
+	BNE.b	Update_rival_ai_car_Advance
 	MOVE.w	$12(A0), D1
 	SUB.w	$36(A0), D1
 	SLT	D2
@@ -12737,14 +12771,15 @@ loc_9422:
 	NEG.w	D1
 loc_9436:
 	CMPI.w	#8, D1
-	BCS.b	loc_9448
+	BCS.b	Update_rival_ai_car_Advance
 	MOVEQ	#4, D0
 	TST.b	D2
 	BNE.b	loc_9444
 	NEG.w	D0
 loc_9444:
 	JSR	Apply_lateral_offset_clamped(PC)
-loc_9448:
+;Update_rival_ai_car_Advance
+Update_rival_ai_car_Advance:
 	MOVE.b	$2B(A0), D2
 	EXT.w	D2
 	LEA	loc_A502(PC), A1
@@ -12798,18 +12833,19 @@ Advance_rival_track_position:
 ; when the rival's place score is ahead of the player's by < 100 points.
 ; Mirror of Advance_ai_track_position but for the rival object.
 	TST.b	$3C(A0)
-	BPL.b	loc_94EA
+	BPL.b	Advance_rival_track_position_Step
 	MOVE.w	Player_place_score.w, D0
 	SUB.w	$1E(A0), D0
-	BPL.b	loc_94EA
+	BPL.b	Advance_rival_track_position_Step
 	NEG.w	D0
 	CMPI.w	#100, D0
-	BCC.b	loc_94EA
+	BCC.b	Advance_rival_track_position_Step
 	MOVE.w	Player_speed.w, D0
 	CMP.w	$26(A0), D0
-	BCS.b	loc_94EA
+	BCS.b	Advance_rival_track_position_Step
 	MOVE.w	D0, $26(A0)
-loc_94EA:
+;Advance_rival_track_position_Step
+Advance_rival_track_position_Step:
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
@@ -13094,7 +13130,8 @@ loc_97DA:
 loc_97EA:
 	LEA	$FFFF9480.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
-	LEA	loc_9C28(PC), A1
+	LEA	Ai_screen_x_to_angle_table(PC), A1
+
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
@@ -13193,7 +13230,8 @@ loc_98E6:
 	NEG.w	D1
 	ADDI.w	#$0130, D1
 	MOVE.w	D1, $16(A0)
-	LEA	loc_9C28(PC), A1
+	LEA	Ai_screen_x_to_angle_table(PC), A1
+
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
@@ -13220,7 +13258,8 @@ Compute_ai_position_and_depth_sort:
 	ADD.w	D5, D2
 	CMPI.w	#$0092, D2
 	BCS.b	loc_9958
-loc_994E:
+;Compute_ai_position_Offscreen
+Compute_ai_position_Offscreen:
 	MOVE.w	#$FFFF, $E(A0)
 	MOVEQ	#0, D7
 	RTS
@@ -13262,7 +13301,7 @@ loc_99AA:
 	MOVE.w	A0, $FFFF928E.w
 loc_99B8:
 	SUBQ.w	#8, D2
-	BCS.b	loc_994E
+	BCS.b	Compute_ai_position_Offscreen
 	MOVE.w	#$0091, D4
 	SUB.w	D2, D4
 	MOVE.w	#$8000, D3
@@ -13309,12 +13348,13 @@ loc_9A28:
 	MOVE.b	#$FF, $3D(A0)
 loc_9A34:
 	SUBQ.w	#4, D1
-	BCS.w	loc_994E
+	BCS.w	Compute_ai_position_Offscreen
 	MOVE.w	#$00A1, D4
 	SUB.w	D1, D4
 	MOVEQ	#0, D3
 loc_9A42:
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
 	ADD.w	D0, D0
@@ -13342,15 +13382,16 @@ Compute_ai_screen_x_offset:
 	ADD.w	D5, D2
 	CMPI.w	#$0092, D2
 	BCS.b	loc_9AB2
-	BRA.w	loc_994E
+	BRA.w	Compute_ai_position_Offscreen
 loc_9A8E:
 	SUBQ.w	#4, D1
-	BCS.w	loc_994E
+	BCS.w	Compute_ai_position_Offscreen
 	MOVE.w	#$00A1, D4
 	SUB.w	D1, D4
 	MOVEQ	#0, D3
 loc_9A9C:
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
 	ADD.w	D0, D0
@@ -13359,7 +13400,7 @@ loc_9A9C:
 	RTS
 loc_9AB2:
 	SUBQ.w	#8, D2
-	BCS.w	loc_994E
+	BCS.w	Compute_ai_position_Offscreen
 	MOVE.w	#$0091, D4
 	SUB.w	D2, D4
 	MOVE.w	#$8000, D3
@@ -13527,7 +13568,8 @@ loc_9C1C:
 	dc.l	loc_10538
 	dc.l	loc_10550
 	dc.l	loc_10580
-loc_9C28:
+;loc_9C28
+Ai_screen_x_to_angle_table:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04
 	dc.b	$04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $04, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08
@@ -13596,7 +13638,8 @@ loc_9D7E:
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D0.w), D0
 	MOVE.w	D0, D2
 	LSR.w	#3, D2
@@ -13799,7 +13842,8 @@ loc_9F7E:
 loc_9FC2:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D0.w), D0
 	LSR.w	#1, D0
 	SUB.w	D0, $16(A0)
@@ -13831,11 +13875,13 @@ loc_9FF8:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	MOVE.w	D0, D1
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D0.w), D0
 	LSR.w	#1, D0
 	SUB.w	D0, $16(A0)
-	LEA	loc_9C28(PC), A1
+	LEA	Ai_screen_x_to_angle_table(PC), A1
+
 	MOVE.b	(A1,D1.w), D1
 	MOVEA.l	$30(A0), A1
 	MOVEA.l	(A1,D1.w), A1
@@ -13974,26 +14020,27 @@ loc_A1C8:
 	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
-	BMI.b	loc_A226
+	BMI.b	Rival_collision_check_Return
 	CMPI.w	#$009B, D0
-	BCS.b	loc_A226
+	BCS.b	Rival_collision_check_Return
 	MOVE.w	Horizontal_position.w, D0
 	MOVE.w	D0, D1
 	SUBI.w	#$0040, D0
 	CMP.w	$12(A0), D0
-	BGE.b	loc_A226
+	BGE.b	Rival_collision_check_Return
 	ADDI.w	#$0050, D0
 	CMP.w	$12(A0), D0
-	BLE.b	loc_A226
+	BLE.b	Rival_collision_check_Return
 	MOVE.w	#1, Player_overtaken_flag.w
 	MOVE.l	#loc_A228, (A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#5, $2E(A0)
 	SUBI.w	#$0018, D1
 	CMP.w	$12(A0), D1
-	BLE.b	loc_A226
+	BLE.b	Rival_collision_check_Return
 	NEG.w	$2E(A0)
-loc_A226:
+;Rival_collision_check_Return
+Rival_collision_check_Return:
 	RTS
 loc_A228:
 	SUBQ.w	#2, $E(A0)
@@ -14005,12 +14052,14 @@ loc_A234:
 	MOVE.w	$E(A0), D4
 	MOVE.w	D4, D3
 	MOVEQ	#0, D0
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D4.w), D0
 	ADD.w	D0, D0
 	JSR	loc_980C(PC)
 	MOVE.w	$E(A0), D0
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D0.w), D0
 	MOVE.w	#$0080, D1
 	SUB.w	D0, D1
@@ -14323,7 +14372,7 @@ loc_A80A:
 loc_A81A:
 	MOVE.l	#$00010650, D1
 	MOVE.w	#$FE90, D0
-	BRA.w	loc_A900
+	BRA.w	Init_background_ai_car_b_screen_right
 loc_A828:
 	MOVE.l	#$0000A862, D1
 	MOVE.w	$1E(A0), D0
@@ -14335,7 +14384,7 @@ loc_A838:
 loc_A846:
 	MOVE.l	#$00010698, D1
 	MOVE.w	#$FE90, D0
-	BRA.w	loc_A900
+	BRA.w	Init_background_ai_car_b_screen_right
 loc_A854:
 	MOVE.l	#$000106BC, D1
 	MOVE.w	#$0170, D0
@@ -14343,7 +14392,7 @@ loc_A854:
 loc_A862:
 	MOVE.l	#$000106E0, D1
 	MOVE.w	#$FE80, D0
-	BRA.w	loc_A900
+	BRA.w	Init_background_ai_car_b_screen_right
 loc_A870:
 	MOVE.l	#$00010704, D1
 	MOVE.w	#$0180, D0
@@ -14351,7 +14400,7 @@ loc_A870:
 loc_A87E:
 	MOVE.l	#$00010728, D1
 	MOVE.w	#$FE90, D0
-	BRA.b	loc_A900
+	BRA.b	Init_background_ai_car_b_screen_right
 loc_A88A:
 	MOVE.l	#$0001074C, D1
 	MOVE.w	#$0170, D0
@@ -14359,7 +14408,7 @@ loc_A88A:
 loc_A896:
 	MOVE.l	#$00010770, D1
 	MOVE.w	#$FE90, D0
-	BRA.b	loc_A900
+	BRA.b	Init_background_ai_car_b_screen_right
 loc_A8A2:
 	MOVE.l	#$00010794, D1
 	MOVE.w	#$0170, D0
@@ -14367,7 +14416,7 @@ loc_A8A2:
 loc_A8AE:
 	MOVE.l	#$00010800, D1
 	MOVE.w	#$FE9C, D0
-	BRA.b	loc_A900
+	BRA.b	Init_background_ai_car_b_screen_right
 loc_A8BA:
 	MOVE.l	#$00010824, D1
 	MOVE.w	#$0164, D0
@@ -14375,7 +14424,7 @@ loc_A8BA:
 loc_A8C6:
 	MOVE.l	#$00010848, D1
 	MOVE.w	#$FE7C, D0
-	BRA.b	loc_A900
+	BRA.b	Init_background_ai_car_b_screen_right
 loc_A8D2:
 	MOVE.l	#$0001086C, D1
 	MOVE.w	#$0184, D0
@@ -14389,14 +14438,15 @@ loc_A8F0:
 	MOVE.l	#$000107B8, D1
 	MOVE.w	#$FE98, D0
 	MOVE.w	#$6000, $C(A0)
-loc_A900:
+;Init_background_ai_car_b_screen_right
+Init_background_ai_car_b_screen_right:
 	MOVE.w	#$FFFF, $12(A0)
 ;loc_A906
 Init_background_ai_car_b:
 ; Init tail for background AI car type-B objects.
 ; Installs loc_A922 as the update handler, copies D1 to $8(A0) (sprite data),
 ; sets $24(A0)=2, loads loc_6E894 speed table into $30(A0), D0 to $34(A0).
-; Multiple entry stubs above set D1/D0 per car and BRA here or to loc_A900
+; Multiple entry stubs above set D1/D0 per car and BRA here or to Init_background_ai_car_b_screen_right
 ; (which also sets $12(A0)=$FFFF for screen-right spawn before falling here).
 	MOVE.l	#loc_A922, (A0)
 	MOVE.l	D1, $8(A0)
@@ -14444,7 +14494,8 @@ loc_A9B0:
 	JSR	Check_despawn_ai_car(PC)
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D0.w), D0
 	SUB.w	D0, $16(A0)
 	RTS
@@ -14511,7 +14562,8 @@ loc_AA4E:
 loc_AA66:
 	RTS
 loc_AA68:
-	LEA	loc_9C28, A1
+	LEA	Ai_screen_x_to_angle_table, A1
+
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
@@ -14544,7 +14596,8 @@ loc_AAB6:
 loc_AACE:
 	RTS
 loc_AAD0:
-	LEA	loc_9C28, A1
+	LEA	Ai_screen_x_to_angle_table, A1
+
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
@@ -14553,7 +14606,7 @@ loc_AAD0:
 ;Update_ai_car_screen_x
 Update_ai_car_screen_x:
 ; Computes the AI car's screen X displacement relative to the player and writes
-; it to $E(A0). Uses a road displacement look-up table at loc_6E750.
+; it to $E(A0). Uses a road displacement look-up table at Ai_screen_y_table.
 ; Inputs:  A0 = AI car object slot; $1E(A0) = AI car track position (horiz.)
 ; Outputs: $E(A0) = screen X offset; D7 = direction flag (0=ahead, 4=behind)
 	MOVE.w	$1E(A0), D0
@@ -14566,7 +14619,8 @@ Update_ai_car_screen_x:
 	MOVEQ	#0, D3
 	MOVEQ	#4, D7
 loc_AB04:
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
 	ADD.w	D0, D0
@@ -14629,7 +14683,8 @@ loc_ABD2:
 	MOVE.w	$E(A0), D4
 	MOVE.w	D4, D1
 	ANDI.w	#$7FFF, D4
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D4.w), D4
 	MOVE.w	D4, D2
 	LSR.w	#1, D2
@@ -14648,7 +14703,8 @@ loc_ABFC:
 loc_AC0C:
 	MOVE.w	D2, $FFFFFC38.w
 	MOVE.w	$E(A0), D0
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D0.w), D0
 	CMPI.w	#$005F, D0
 	BLS.b	loc_AC28
@@ -14701,7 +14757,8 @@ loc_ACB2:
 	MOVE.w	$E(A0), D4
 	MOVE.w	D4, D1
 	ANDI.w	#$7FFF, D4
-	LEA	loc_6E7F2, A1
+	LEA	Ai_screen_y_table_b, A1
+
 	MOVE.b	(A1,D4.w), D4
 	MOVE.w	D4, D2
 	LSR.w	#1, D2
@@ -14712,7 +14769,8 @@ loc_ACB2:
 	BMI.b	loc_AD3A
 loc_ACDC:
 	MOVE.w	$E(A0), D0
-	LEA	loc_6E750, A1
+	LEA	Ai_screen_y_table, A1
+
 	MOVE.b	(A1,D0.w), D0
 	CMPI.w	#$005F, D0
 	BLS.b	loc_ACF4
@@ -14859,7 +14917,8 @@ Update_ai_car_sprite_frame:
 ; correct sprite frame index and stores it in $4(A0).
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
-	LEA	loc_9C28, A1
+	LEA	Ai_screen_x_to_angle_table, A1
+
 	MOVE.b	(A1,D0.w), D0
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D0.w), $4(A0)
@@ -14886,7 +14945,8 @@ loc_AEC8:
 loc_AED4:
 	MOVE.w	D1, D0
 	ANDI.w	#$7FFF, D0
-	LEA	loc_6E7F2, A2
+	LEA	Ai_screen_y_table_b, A2
+
 	MOVE.b	(A2,D0.w), D0
 	MOVE.w	$16(A1), D2
 	SUB.w	D0, D2
@@ -14948,8 +15008,10 @@ loc_AFAE:
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	$E(A0), D4
-	LEA	loc_6E7F2, A1
-	LEA	loc_6E750, A2
+	LEA	Ai_screen_y_table_b, A1
+
+	LEA	Ai_screen_y_table, A2
+
 	MOVEQ	#0, D0
 	MOVE.b	(A2,D4.w), D0
 	CMPI.w	#$005F, D0
@@ -15003,7 +15065,8 @@ loc_B072:
 	JSR	(A1,D7.w)
 	CLR.l	$4(A0)
 	MOVE.w	$E(A0), D4
-	LEA	loc_6E750, A2
+	LEA	Ai_screen_y_table, A2
+
 	MOVE.b	(A2,D4.w), D4
 	MOVE.w	#$005F, D0
 	SUB.w	D4, D0
@@ -15053,8 +15116,10 @@ loc_B128:
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	$E(A0), D4
-	LEA	loc_6E7F2, A1
-	LEA	loc_6E750, A2
+	LEA	Ai_screen_y_table_b, A1
+
+	LEA	Ai_screen_y_table, A2
+
 	MOVEQ	#0, D0
 	MOVE.b	(A2,D4.w), D0
 	CMPI.w	#$005F, D0
@@ -15781,25 +15846,26 @@ loc_BAD8:
 	RTS
 loc_BB06:
 	SUBI.l	#$00001070, Screen_timer.w
-	BCC.b	loc_BB58
+	BCC.b	Pre_race_scroll_Update
 	ADDQ.w	#4, Anim_delay.w
 	CLR.l	Screen_timer.w
 	ADDQ.w	#1, Laps_completed.w
-	BRA.b	loc_BB58
+	BRA.b	Pre_race_scroll_Update
 loc_BB1E:
 	JSR	loc_C34C(PC)
 	SUBI.l	#$00001070, Screen_timer.w
-	BCC.b	loc_BB58
+	BCC.b	Pre_race_scroll_Update
 	ADDQ.w	#4, Anim_delay.w
 	CLR.l	Screen_timer.w
-	BRA.b	loc_BB58
+	BRA.b	Pre_race_scroll_Update
 loc_BB36:
 	SUBI.l	#$00030000, Screen_data_ptr.w
 	ADDI.l	#$00000F00, Screen_timer.w
 	CMPI.l	#$00050000, Screen_timer.w
-	BCS.b	loc_BB58
+	BCS.b	Pre_race_scroll_Update
 	MOVE.l	#Championship_race_init, Frame_callback.w
-loc_BB58:
+;Pre_race_scroll_Update
+Pre_race_scroll_Update:
 	LEA	$FFFFB858.w, A1
 	MOVE.l	Screen_timer.w, D0
 	MOVE.l	D0, D1
@@ -17943,7 +18009,7 @@ loc_D904:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	LSL.w	#2, D0
-	LEA	loc_2132E, A1
+	LEA	Team_intro_layout_table, A1
 	ADDA.l	D0, A1
 	MOVEA.l	(A1), A2
 	MOVE.w	(A2)+, D1
@@ -19069,7 +19135,7 @@ Options_screen_frame:
 
 loc_EAA0:
 	MOVE.b	Input_click_bitset.w, D0
-	BEQ.b	loc_EAE2
+	BEQ.b	Options_input_Return
 	JSR	Halt_audio_sequence
 	MOVE.b	Input_click_bitset.w, D0
 	BTST.b	#KEY_B, Input_click_bitset.w
@@ -19084,7 +19150,8 @@ loc_EAA0:
 	ADD.w	D1, D1
 	MOVEA.l	(A1,D1.w), A2
 	JSR	(A2)
-loc_EAE2:
+;Options_input_Return
+Options_input_Return:
 	RTS
 loc_EAE4:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
@@ -19110,7 +19177,7 @@ loc_EB26:
 	RTS
 loc_EB2C:
 	ANDI.b	#$0C, D0
-	BEQ.b	loc_EAE2
+	BEQ.b	Options_input_Return
 	BTST.l	#2, D0
 	BEQ.b	loc_EB46
 	SUBQ.w	#1, Control_type.w
@@ -19134,7 +19201,7 @@ loc_EB56:
 	RTS
 loc_EB76:
 	ANDI.b	#$0C, D0
-	BEQ.w	loc_EAE2
+	BEQ.w	Options_input_Return
 	ADDQ.w	#1, Easy_flag.w
 
 loc_EB82:
@@ -19149,7 +19216,7 @@ loc_EB82:
 	RTS
 loc_EBA8:
 	ANDI.b	#$0C, D0
-	BEQ.w	loc_EAE2
+	BEQ.w	Options_input_Return
 	ADDQ.w	#1, English_flag.w
 
 loc_EBB4:
@@ -19265,7 +19332,7 @@ loc_ED00:
 loc_ED1E:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
-	BEQ.w	loc_EAE2
+	BEQ.w	Options_input_Return
 	MOVE.w	#9, Selection_count.w
 	MOVE.l	#Title_menu, Frame_callback.w
 	RTS
@@ -19774,7 +19841,7 @@ loc_F498:
 	ANDI.b	#$0F, D7
 	MULS.w	#$0024, D7
 	ADD.l	D6, D7
-	LEA	loc_3A27A, A1
+	LEA	Team_msg_jp_table, A1
 	TST.w	English_flag.w
 	BEQ.b	loc_F4B8
 	ADDA.l	#$00000240, A1
@@ -19818,7 +19885,7 @@ loc_F518:
 	MOVE.b	Player_team.w, D7
 	ANDI.b	#$0F, D7 ; isolate the player's team number
 	LSL.l	#2, D7
-	LEA	loc_3B07E, A1
+	LEA	Team_intro_table, A1
 	TST.w	English_flag.w
 	BEQ.b	loc_F536
 	ADDA.l	#$00000080, A1
@@ -26051,7 +26118,9 @@ loc_20FAE: ; Team palette (everywhere except while driving)
 	dc.w	$0CCC, $0666, $004E, $0028                        ; Zeroforce car
 	dc.b	$0E, $EE, $08, $88, $04, $44, $02, $4E, $00, $2A, $00, $04, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00
-loc_2132E: ; Pointers to team introduction layouts
+;loc_2132E
+; 16-entry pointer table: per-team intro animation layout records (one per team)
+Team_intro_layout_table: ; Pointers to team introduction layouts
 	dc.l	loc_2136E ; Madonna
 	dc.l	loc_21426 ; Firenze
 	dc.l	loc_214D0 ; Millions
@@ -26092,9 +26161,9 @@ loc_2136E:
 	dc.b	$20, $01, $6D, $0C, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $16, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $32, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
 loc_21426:
 	dc.w  	$000B
@@ -26116,9 +26185,9 @@ loc_21426:
 	dc.b	$60, $01, $69, $42, $00, $03, $00, $01, $00, $07
 	dc.l	loc_21EC0
 	dc.b	$20, $01, $6C, $82, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $0A, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $14, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
@@ -26168,9 +26237,9 @@ loc_2157A:
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $3A, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $44, $00, $03, $00, $04, $00, $01
 loc_21616:
 	dc.w	$000A
@@ -26188,7 +26257,7 @@ loc_21616:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F2E
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ED4
 	dc.b	$20, $01, $6D, $12, $00, $03, $00, $06, $00, $01
@@ -26210,9 +26279,9 @@ loc_216B2:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F14
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $12, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
@@ -26238,7 +26307,7 @@ loc_21740:
 	dc.b	$20, $01, $6D, $0E, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $18, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
 loc_217CE:
 	dc.w	$0008
@@ -26254,7 +26323,7 @@ loc_217CE:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F4A
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ED4
 	dc.b	$20, $01, $6D, $32, $00, $03, $00, $06, $00, $01
@@ -26272,9 +26341,9 @@ loc_2184E:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F1E
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21EC0
 	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
@@ -26312,7 +26381,7 @@ loc_2194E: ; Linden team introduction layout
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F54
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $38, $00, $03, $00, $04, $00, $01
@@ -26330,7 +26399,7 @@ loc_219C0: ; Minarae team introduction layout
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21EF6
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21ECC
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
@@ -26360,7 +26429,7 @@ loc_21A88:
 	dc.b	$60, $01, $69, $30, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EEE
+	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $08, $00, $03, $00, $04, $00, $01
 	dc.l	loc_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
@@ -26502,7 +26571,8 @@ loc_21ED4:
 	dc.b	$59, $0A, $49, $49, $0D, $E5, $87
 	dc.b	$21
 	dc.b	$B9, $27, $F0, $00
-loc_21EEE:
+;loc_21EEE
+Team_intro_anim_data:
 	dc.b	$09, $00, $01, $25, $01, $25, $27, $F8
 loc_21EF6:
 	dc.b	$09, $00, $01, $2F, $00, $00, $40, $04, $0F, $13, $F8, $00
@@ -30047,7 +30117,9 @@ loc_39F68:
 	dc.b	$1A, $E3, $5C, $6B, $8D, $71, $AE, $24, $AE, $35, $FA, $4D, $7E, $93, $5C, $4D, $71, $7C, $4D, $7F, $12, $B8, $7C, $5F, $19, $FD, $26, $78, $97, $C4, $9C, $BD
 	dc.b	$EF, $CB, $5F, $D6, $AF, $EB, $3F, $2E, $5E, $F2, $4F, $7E, $5E, $4F, $FA, $D5, $FD, $6D, $79, $5F, $BC, $7F, $B6, $CF, $95, $FE, $DB, $3E, $55, $FA, $63, $FD
 	dc.b	$63, $EF, $9F, $23, $EF, $9F, $23, $EF, $9F, $D3, $1F, $F2, $9F, $F2, $C9, $24, $84, $00
-loc_3A27A:
+;loc_3A27A
+; 288-entry pointer table: Japanese pre-race team messages, indexed by [team × 18 + lap?]
+Team_msg_jp_table:
 	dc.l	loc_3A6FA
 	dc.l	loc_3A6FA
 	dc.l	loc_3A6FA
@@ -30085,23 +30157,23 @@ loc_3A27A:
 	dc.l	loc_3A818
 	dc.l	loc_3A7DA
 	dc.l	loc_3A838
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A84E
 	dc.l	loc_3A858
 	dc.l	loc_3A80E
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A6FE
 	dc.l	loc_3A804
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A7D0
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A7E6
 	dc.l	loc_3A7F0
 	dc.l	loc_3A86A
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A828
 	dc.l	loc_3A878
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A888
 	dc.l	loc_3A896
 	dc.l	loc_3A8A0
@@ -30120,24 +30192,24 @@ loc_3A27A:
 	dc.l	loc_3A8EE
 	dc.l	loc_3A906
 	dc.l	loc_3A8DC
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3B2B4
 	dc.l	loc_3A8DC
 	dc.l	loc_3A858
 	dc.l	loc_3A86A
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A828
 	dc.l	loc_3A878
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A7FC
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A84E
 	dc.l	loc_3C2DE
 	dc.l	loc_3A828
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A80E
 	dc.l	loc_3A906
-	dc.l	loc_3A844
+	dc.l	Team_msg_jp_b
 	dc.l	loc_3A920
 	dc.l	loc_3A932
 	dc.l	loc_3A946
@@ -30192,10 +30264,10 @@ loc_3A27A:
 	dc.l	loc_3A6FA
 	dc.l	loc_3A6FA
 	dc.l	loc_3A7DA
-	dc.l	loc_3AA46
-	dc.l	loc_3AA46
-	dc.l	loc_3AA46
-	dc.l	loc_3AA46
+	dc.l	Team_msg_error
+	dc.l	Team_msg_error
+	dc.l	Team_msg_error
+	dc.l	Team_msg_error
 	dc.l	loc_3AA4C
 	dc.l	loc_3AA62
 	dc.l	loc_3AA86
@@ -30229,23 +30301,23 @@ loc_3A27A:
 	dc.l	loc_3AC66
 	dc.l	loc_3ABD6
 	dc.l	loc_3ACA0
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ACEA
 	dc.l	loc_3AD02
 	dc.l	loc_3AC4C
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AA4C
 	dc.l	loc_3AC38
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ABC0
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ABF4
 	dc.l	loc_3AC10
 	dc.l	loc_3AD24
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AC8A
 	dc.l	loc_3AD3C
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AD5A
 	dc.l	loc_3AD74
 	dc.l	loc_3AD86
@@ -30264,24 +30336,24 @@ loc_3A27A:
 	dc.l	loc_3AE18
 	dc.l	loc_3AE34
 	dc.l	loc_3ADF4
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3B4FC
 	dc.l	loc_3ADF4
 	dc.l	loc_3AD02
 	dc.l	loc_3AD24
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AC8A
 	dc.l	loc_3AD3C
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AC24
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ACEA
 	dc.l	loc_3C882
 	dc.l	loc_3AC8A
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AC4C
 	dc.l	loc_3AE34
-	dc.l	loc_3ACC2
+	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AE56
 	dc.l	loc_3AE7E
 	dc.l	loc_3AE9E
@@ -30331,10 +30403,10 @@ loc_3A27A:
 	dc.l	loc_3ABD6
 	dc.l	loc_3AC4C
 	dc.l	loc_3AF5A
-	dc.l	loc_3AA46
-	dc.l	loc_3AA46
-	dc.l	loc_3AA46
-	dc.l	loc_3AA46
+	dc.l	Team_msg_error
+	dc.l	Team_msg_error
+	dc.l	Team_msg_error
+	dc.l	Team_msg_error
 	dc.l	loc_3ABD6
 loc_3A6FA:
 	dc.b	$42, $65, $2C, $FF
@@ -30387,7 +30459,8 @@ loc_3A828:
 	dc.b	$40, $5D, $58, $32, $89, $7C, $A2, $57, $32, $B8, $BC, $40, $BC, $64, $79, $FF
 loc_3A838:
 	dc.b	$01, $00, $56, $6C, $32, $58, $62, $40, $64, $79, $FF, $00
-loc_3A844:
+;loc_3A844
+Team_msg_jp_b:
 	dc.b	$4A, $74, $41, $C3, $32, $4A, $64, $41, $79, $FF
 loc_3A84E:
 	dc.b	$5F, $BC, $53, $32, $48, $52, $6B, $79, $FF, $00
@@ -30457,7 +30530,8 @@ loc_3AA2C:
 	dc.b	$41, $67, $4C, $42, $53, $79, $32, $B8, $75, $52, $32, $4A, $51, $69, $79, $FF
 loc_3AA3C:
 	dc.b	$51, $48, $B9, $65, $4C, $67, $53, $64, $79, $FF
-loc_3AA46:
+;loc_3AA46
+Team_msg_error:
 	txt "ERROR", $FF
 loc_3AA4C:
 	dc.b	$FD
@@ -30508,7 +30582,8 @@ loc_3AC8A:
 	txt "IT'S CEARA'S ERA\nNOW!", $FF
 loc_3ACA0:
 	txt "I GUESS YOU NEED\nMORE EXPERIENCE.", $FF
-loc_3ACC2:
+;loc_3ACC2
+Team_msg_lets_compete:
 	txt "NOW, LET'S COMPETE\nAGAINST EACH OTHER!", $FF, $00
 loc_3ACEA:
 	txt	"YOUR EFFORT IS\nIN VAIN.", $FF
@@ -30579,7 +30654,9 @@ loc_3B042:
 	txt "DON'T BOTHER ME.\nJUST GET AWAY!", $FF
 loc_3B062:
 	txt "DON'T GIVE ME\nANY TROUBLE!", $FF, $00
-loc_3B07E: ; Pointers to team introductions
+;loc_3B07E
+; 64-entry pointer table: per-team introduction text/data records
+Team_intro_table: ; Pointers to team introductions
 	dc.l	loc_3B17E
 	dc.l	loc_3B1A6
 	dc.l	loc_3B1BC
@@ -40590,14 +40667,16 @@ loc_6DCF8:
 	dc.b	$39, $7F, $11, $F9, $5D, $E7, $73, $CE, $EE, $57, $72, $74, $9D, $C9, $3E, $BC, $BA, $D3, $F4, $AF, $7D, $C9, $72, $5D, $92, $5C, $97, $25, $CE, $8F, $B3, $C9
 	dc.b	$E4, $FD, $27, $CF, $39, $4E, $53, $97, $29, $79, $CA, $72, $BB, $95, $DE, $77, $4F, $AE, $77, $4E, $E9, $DD, $3F, $FA, $FF, $D7, $67, $0F, $27, $E9, $3B, $F6
 	dc.b	$9C, $A7, $21, $7C, $E5, $39, $4D, $02, $5D, $39, $72, $09, $74, $AE, $08, $10, $20, $EB, $08, $10, $7F, $D7, $AC, $00
-loc_6E750:
+;loc_6E750
+Ai_screen_y_table:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01
 	dc.b	$01, $01, $01, $01, $01, $01, $01, $02, $02, $02, $02, $02, $02, $02, $02, $02, $02, $02, $02, $02, $02, $03, $03, $03, $03, $03, $03, $03, $03, $03, $03, $03
 	dc.b	$03, $04, $04, $04, $04, $04, $04, $04, $04, $04, $05, $05, $05, $05, $05, $05, $05, $05, $06, $06, $06, $06, $06, $06, $06, $07, $07, $07, $07, $07, $08, $08
 	dc.b	$08, $08, $08, $09, $09, $09, $09, $09, $0A, $0A, $0A, $0A, $0B, $0B, $0B, $0C, $0C, $0C, $0D, $0D, $0D, $0E, $0E, $0F, $0F, $0F, $10, $10, $11, $11, $12, $13
 	dc.b	$13, $14, $14, $15, $16, $17, $18, $18, $19, $1A, $1B, $1C, $1E, $1F, $20, $22, $23, $25, $27, $29, $2B, $2E, $30, $33, $37, $3A, $3F, $43, $49, $4F, $57, $5F
 	dc.b	$6A, $77
-loc_6E7F2:
+;loc_6E7F2
+Ai_screen_y_table_b:
 	dc.b	$08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09, $09
 	dc.b	$09, $09, $09, $09, $09, $09, $09, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0A, $0B, $0B, $0B, $0B, $0B, $0B, $0B, $0B, $0B, $0B, $0B
 	dc.b	$0B, $0D, $0D, $0D, $0D, $0D, $0D, $0D, $0D, $0D, $0E, $0E, $0E, $0E, $0E, $0E, $0E, $0E, $0F, $0F, $0F, $0F, $0F, $0F, $0F, $10, $10, $10, $10, $10, $12, $12
