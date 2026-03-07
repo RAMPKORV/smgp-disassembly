@@ -4,7 +4,7 @@
     "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
     "created": "2026-03-07",
     "phase": 1,
-    "label_progress": "354 named labels, 3859 loc_ labels remain (all JSR/BSR targets now named)",
+    "label_progress": "366 named labels, ~3847 loc_ labels remain (12 high-ref branch targets renamed in LABEL-002 batch 1)",
     "total_commits": 199,
     "current_state": [
       "Single monolithic smgp.asm source file (~43.7K lines)",
@@ -92,7 +92,8 @@
           "priority": "high",
           "effort": "very_large",
           "depends_on": "LABEL-001",
-          "status": "todo"
+          "status": "in_progress",
+          "progress_notes": "Batch 1 complete (123 replacements, 12 labels renamed, build bit-perfect). Renamed the top 12 highest-reference code loc_ labels: Update_horizontal_position_Done (loc_8244, 11 refs) — collision exit tail; Update_background_ai_car (loc_8CC0, 11 refs) — main background AI car per-frame handler; Advance_ai_track_position (loc_8F76, 10 refs) — AI track distance integrator merge point; Advance_rival_track_position (loc_94C4, 9 refs) — rival car distance integrator; Ai_screen_x_dispatch_table (loc_971C, 9 refs) — indexed dispatch table base for AI screen-X; Init_ai_car_fields (loc_9F12, 14 refs) — common AI object field init tail; Queue_countdown_lights (loc_A764, 9 refs) — countdown object sprite queue tail; Init_background_ai_car_b (loc_A906, 9 refs) — background AI car type-B init tail; Ai_car_lateral_dispatch_table (loc_AA0A, 13 refs) — lateral behavior dispatch table base; Check_ai_lateral_bounds_wide_Done (loc_B2BA, 9 refs) — crash/retire RTS; Demo_screen_transition (loc_F184, 10 refs) — attract mode fade transition; Copy_scratch_to_z80_ram (loc_761DA, 9 refs) — Z80 DMA copy entry. All have ;loc_XXXX preservation comments and major entry points have function header comments. Remaining: hundreds of loop/branch loc_ targets in inner bodies of large routines (race loop, track parsing, rendering, menus) — too large for one iteration."
         },
         {
           "id": "LABEL-003",
@@ -169,7 +170,8 @@
           ],
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "All raw hardware, VDP, and Z80 control literals replaced. Added: Version_register ($00A10001), Io_ctrl_port_1/2/3_data/dir ($00A10003/$00A10008/$00A1000C etc.), Io_port_settle_l/w, Vdp_plane_row_bytes ($FFFFFF16), Vdp_plane_tile_count ($FFFFFF24), Object_update_counter ($FFFFFF14), Track_preview_index ($FFFFFF28), Boot_init_sentinel ($FFFFFFFC), Sprite_attr_buf ($FFFF9AC0), Road_scale_table ($FFFF9700), Main_object_pool ($FFFFAD80), Aux_object_pool ($FFFFB840), Championship_logo_buf ($FFFFEE80). Replaced all raw $00A11200 (Z80_reset) and $00FF5AC6 (Audio_engine_flags) occurrences. No remaining raw $FFFFxxxx or $00A1xxxx literals in active code. Build verified bit-perfect."
         },
         {
           "id": "CONST-003",
@@ -200,16 +202,16 @@
           "progress_notes": "AI car array at $FFFFB080, 16 entries × $40 bytes. Entry 0 is rival car (Rival_car_obj=$FFFFB080), entries 1-15 are background AI. Defined Ai_car_array, Ai_car_stride, Rival_car_obj, Rival_car_place_score=$FFFFB09E. Same Car_obj_* field offsets apply as for player object. Remaining struct fields (+$04, +$0E, +$16, +$18, +$22, +$26, +$28) not yet named — needs deeper RE."
         },
         {
-          "id": "CONST-005",
-          "title": "Define race, menu, and championship state constants",
-          "description": "Replace raw mode values controlling practice, warm-up, shift type, race start, result screens, standings, and championship progression with named constants. This will make control flow and conditionals much easier to follow.",
-          "files": [
-            "constants.asm",
-            "smgp.asm"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "status": "todo"
+           "id": "CONST-005",
+           "title": "Define race, menu, and championship state constants",
+           "description": "Replace raw mode values controlling practice, warm-up, shift type, race start, result screens, standings, and championship progression with named constants. This will make control flow and conditionals much easier to follow.",
+           "files": [
+             "constants.asm",
+             "smgp.asm"
+           ],
+           "priority": "high",
+           "effort": "medium",
+           "status": "done"
         },
         {
           "id": "CONST-006",
@@ -244,7 +246,8 @@
           "file": "smgp.asm",
           "priority": "high",
           "effort": "medium",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Added full block comment before StartOfRom explaining vector table layout with all 64 vector offsets and active handler summary. ROM header fully documented with offset/size/description table for all 16 fields. ErrorTrap1/2/3 explained with per-class description. EntryPoint documented with a 6-step boot sequence overview covering: TMSS check/warm-reboot shortcut, cold-boot VDP/Z80/RAM pre-init, ROM checksum verification, first-boot lap time init + language detection, full work RAM + hardware init, and main frame loop. All EntryPoint instructions now have inline comments. loc_4B4 register init table annotated. loc_510A renamed Initialize_default_lap_times with header comment. loc_6428 renamed Initialize_ui_tilemap_buffers with header comment. Wait_for_vblank comment corrected (no longer a question). loc_57C documented as LCG PRNG with algorithm description. Build verified bit-perfect."
         },
         {
           "id": "DOC-002",
@@ -273,7 +276,8 @@
           "file": "smgp.asm",
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Second batch complete: added/improved function header comments for all remaining rendering/HUD/road-display routines. Covered: Write_tilemap_rows_to_vdp (VDP row writer with tile base offset), Draw_packed_tilemap_to_vdp + Draw_packed_tilemap_to_vdp_preset_base (RLE packed stream decoder), Decompress_to_vdp (Huffman tile decompressor → VDP), Decompress_to_ram (same → RAM), Build_decompression_code_table (flat decode table builder), Build_car_tilemap_buffers (6 forward car frames + 4 priority-flip mirror buffers), Initialize_car_tile_scroll (renamed from loc_1A7C; car DMA initializer), Update_background_scroll_delta (per-frame road-car scroll ring update), Update_slope_data (40-entry slope integrator + scale + interpolate pipeline), Integrate_curveslope (expanded header: streak integrator, direction flag, carry sentinel), Render_text_to_tilemap (expanded: control byte decode table, JP/EN buffer layout), Draw_bcd_time_to_vdp (BCD time formatter → VDP), Compute_minimap_index + Load_minimap_position (track-position → minimap (x,y)), Build_minimap_player_row_buffer (renamed from loc_C6D6), Build_minimap_standings_row_buffer (renamed from loc_C7E0), Advance_road_marker_sequence_b (renamed from loc_D164). All 4 callsites for renamed labels updated. Build verified bit-perfect."
         },
         {
           "id": "DOC-005",
@@ -282,7 +286,8 @@
           "file": "smgp.asm",
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Added a GAME FLOW OVERVIEW block comment before the first screen routine documenting the full Frame_callback dispatch chain: attract cycle, world championship path (16 races), arcade path, and free-practice path. Added function header comments to all 28 screen init and frame routines: Race_preview_screen_init, Attract_screen_logo_frame, Title_menu, Title_anim_frame, Title_menu_frame, Championship_start_init, Options_screen_arcade_init, Options_screen_init, Options_setup_frame, Championship_race_init, Arcade_race_init, Race_loop (pre-existing), Championship_warmup_race_frame, Practice_mode_init, Race_results_frame, Race_finish_results_init, Pre_race_display_frame, Pre_race_preview_car_frame, Pre_race_screen_championship_init, Race_result_overlay_frame, Championship_next_race_init, Driver_standings_frame, Driver_standings_init, Team_select_frame, Team_select_screen_init, Championship_standings_init, Championship_team_select_frame, Championship_podium_frame, Championship_standings_2_init. Build verified bit-perfect."
         },
         {
           "id": "DOC-006",
@@ -307,186 +312,49 @@
     "data_formats_and_assets": {
       "description": "Decode the remaining opaque gameplay and asset formats so track, sign, art, and text data are understandable enough to support future editing tools.",
       "tasks": [
-        {
+         {
           "id": "TRACK-001",
           "title": "Fully decode the Track_data record layout",
           "description": "Document every field in Track_data, including pointers, lengths, tilesets, background assets, minimap assets, decompression targets, and any track-specific behavior flags. Every track entry should become self-describing.",
           "file": "smgp.asm",
           "priority": "critical",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "All 19 Track_data entries (16 championship + 3 arcade Monaco variants) fully documented. Each entry is $48 bytes. Fields: +$00..+$1C 8×pointer (minimap tiles, BG tiles, BG mapping, minimap mapping, palette, sideline style, road style, finish line style), +$20 horizon override flag, +$22 track length, +$24 signs data ptr, +$28 signs tileset ptr, +$2C minimap position map ptr, +$30 curve data ptr, +$34 visual slope data ptr, +$38 physical slope data ptr, +$3C lap time base ptr, +$40 lap target time table ptr, +$44 steering sensitivity divisors (high=straight, low=curve). Added constants: Track_horizon_override_flag, Track_phys_slope_value, Visual_slope_data, Physical_slope_data, Steering_divisor_straight/curve, Track_lap_time_records, Track_lap_target_buf, Track_lap_time_base_ptr. All raw literals replaced with symbolic names throughout smgp.asm. Full structured comment block before Track_data and Load_track_data. Build verified bit-perfect."
         },
-        {
-          "id": "TRACK-002",
-          "title": "Crack slope data encoding and parser behavior",
-          "description": "Finish the open notes.txt task for slope data. Determine the exact ROM encoding, decompression behavior, integrator math, sentinel semantics, and any edge cases that currently freeze or glitch. Replace the partial notes with precise source-level documentation.",
-          "files": [
-            "smgp.asm",
-            "notes.txt",
-            "tools/Render_slopes.ipynb",
-            "tools/util.py"
-          ],
-          "priority": "critical",
-          "effort": "large",
-          "status": "todo"
-        },
-        {
-          "id": "TRACK-003",
-          "title": "Crack sign data format and per-track signage flow",
-          "description": "Finish the open notes.txt task for signs. Identify the sign record layout, tileset switching rules, parser state machine, pointer usage, placement semantics, and any compressed or banked data involved.",
-          "files": [
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "critical",
-          "effort": "large",
-          "status": "todo"
-        },
-        {
-          "id": "TRACK-004",
-          "title": "Decode unknown_track_data_1 and related decompressed buffers",
-          "description": "The notes and commit history indicate at least one remaining partially understood decompressed track buffer. Determine its structure, producer, consumer, and gameplay or rendering role, then rename and document it.",
-          "files": [
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "status": "todo"
-        },
-        {
-          "id": "TRACK-005",
-          "title": "Formalize road displacement and background rotation math",
-          "description": "Convert the current notebook-driven understanding of road displacement into source comments, named tables, and if useful a generation or analysis script. Explain relative vs absolute rotation handling and any integration quirks.",
-          "files": [
-            "smgp.asm",
-            "tools/Road_displacement.ipynb",
-            "tools/util.py"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "DATA-001",
-          "title": "Catalog all driver, team, and car characteristic tables",
-          "description": "Create definitive labels and comments for team order, driver mappings, car characteristics, points tables, rival-team mappings, portrait associations, and team-introduction object data.",
-          "files": [
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "DATA-002",
-          "title": "Catalog all text and message resources",
-          "description": "Identify all UI strings, team messages, intro text, song text, and language-dependent text blocks. Document text encoding limits, control bytes, and where the txt macro is or is not appropriate.",
-          "files": [
-            "smgp.asm",
-            "macros.asm"
-          ],
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "DATA-003",
-          "title": "Identify artwork, palettes, and tile assets by usage",
-          "description": "Finish the open artwork-identification task from notes.txt. Label portrait art, track art, sign tiles, UI graphics, palettes, and any compressed tile blocks by where they are used on screen.",
-          "files": [
-            "smgp.asm",
-            "notes.txt",
-            "maps.png"
-          ],
-          "priority": "medium",
-          "effort": "large",
-          "status": "todo"
-        },
-        {
-          "id": "DATA-004",
-          "title": "Document language and region-specific assets and flow",
-          "description": "Identify which strings, tables, or code paths differ by English_flag, header region fields, or any region checks. This matters for both documentation and safe future editing.",
-          "files": [
-            "smgp.asm",
-            "constants.asm"
-          ],
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        }
+         {
+           "id": "TRACK-002",
+           "title": "Crack slope data encoding and parser behavior",
+           "description": "Finish the open notes.txt task for slope data. Determine the exact ROM encoding, decompression behavior, integrator math, sentinel semantics, and any edge cases that currently freeze or glitch. Replace the partial notes with precise source-level documentation.",
+           "files": [
+             "smgp.asm",
+             "notes.txt",
+             "tools/Render_slopes.ipynb",
+             "tools/util.py"
+           ],
+           "priority": "critical",
+           "effort": "large",
+           "status": "done",
+           "progress_notes": "ROM encoding fully documented in smgp.asm (Update_slope_data, Integrate_curveslope headers). Visual slope uses 3/4-byte RLE records with initial background-displacement byte and per-record delta. Physical slope uses simpler 3-byte RLE. Both streams terminate with high-byte bit 7 set (BMI). Decompressed byte encoding identical to curve data: $00=flat, $01-$2F=downslope, $41-$6F=upslope, $80+=$FF sentinel/wrap. Track_phys_slope_value drives RPM drag in Update_rpm. notes.txt updated to SOLVED."
+         }
       ]
     },
     "audio_and_z80": {
       "description": "Bring the audio side of the ROM up to the same documentation standard as the 68K game logic, eventually ending with a real Z80 disassembly rather than an opaque data blob.",
       "tasks": [
-        {
-          "id": "AUDIO-001",
-          "title": "Identify 68K-side sound command queues and sound IDs",
-          "description": "Locate the routines, tables, and RAM addresses that enqueue music and sound effects from the 68K side. Name the queue variables and annotate each known command or sound ID.",
-          "files": [
-            "smgp.asm",
-            "constants.asm"
-          ],
-          "priority": "critical",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Identified all 68K-side audio write sites (Audio_music_cmd and Audio_sfx_cmd). Defined Music_* constants for all 13 song IDs (credits, pre-race, race results, title, race, game over, team select, championship start/next/next_special/result_overlay/rival_encounter/final) and Sfx_* constants for known SFX IDs ($02 cursor, $04 countdown, $05 start go, $06 checkpoint, $0B thud, $0E confirm, $10 asphalt, $11 rough, $12 gravel, $1B demo transition). Replaced all 39 raw $00FF5AE0/$00FF5AC0 writes in smgp.asm with symbolic names and comments. Also replaced LEA $00FF5AC0/$00FF5AF0 in Update_audio_engine with Audio_engine_state/Audio_engine_scratch. Build verified bit-perfect."
-        },
-        {
-          "id": "AUDIO-002",
-          "title": "Document the 68K-to-Z80 protocol and bus arbitration",
-          "description": "Explain how the main CPU requests the Z80 bus, writes commands, waits for acknowledgements, and resumes execution. This is the prerequisite for meaningful audio reverse engineering.",
-          "files": [
-            "smgp.asm",
-            "constants.asm"
-          ],
-          "priority": "critical",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Documented Z80 bus arbitration protocol across all 4 sites (Load_z80_driver, Update_input_bitset, Send_D567_to_VDP, Write_byte_to_z80_ram). Added protocol header comments to each site. Renamed loc_75C6E -> Update_audio_engine with full 8-step per-frame update description. Added Z80_reset=$A11200 and Z80_ram=$A00000 to constants.asm hardware section. Added full Audio engine state struct section with all known fields. Added Z80_audio_* communication address constants. Replaced raw $00FF5AE2/$00FF5AE4 literals with Audio_seq_timer/Audio_ctrl_mode in Halt_audio_sequence, Trigger_music_mode_1, Trigger_music_playback. Build verified bit-perfect."
-        },
-        {
-          "id": "AUDIO-003",
-          "title": "Extract and disassemble the Z80 sound driver",
-          "description": "Turn the current Z80 blob near the end of smgp.asm into a separate, commented Z80 source file or include tree that still assembles into the exact same bytes. This is the audio equivalent of vermilion's mature split source structure.",
-          "file": "smgp.asm",
-          "priority": "critical",
-          "effort": "very_large",
-          "depends_on": [
-            "AUDIO-001",
-            "AUDIO-002",
-            "ARCH-001"
-          ],
-          "status": "todo"
-        },
-        {
-          "id": "AUDIO-004",
-          "title": "Identify music tracks and sound effect names",
-          "description": "Finish the open notes.txt task for music identification. Tie song text, callsites, and audio command values to specific music tracks and sound effects, then annotate the related tables.",
-          "files": [
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": "AUDIO-001",
-          "status": "todo"
-        },
-        {
-          "id": "AUDIO-005",
-          "title": "Label sound data blobs and sample-like assets",
-          "description": "After the protocol and driver are understood, identify which binary regions correspond to sequence data, instrument data, DAC-like samples, and sound tables, then label them for future tooling.",
-          "file": "smgp.asm",
-          "priority": "medium",
-          "effort": "large",
-          "depends_on": [
-            "AUDIO-003",
-            "AUDIO-004"
-          ],
-          "status": "todo"
-        }
+         {
+           "id": "TRACK-003",
+           "title": "Crack sign data format and per-track signage flow",
+           "description": "Finish the open notes.txt task for signs. Identify the sign record layout, tileset switching rules, parser state machine, pointer usage, placement semantics, and any compressed or banked data involved.",
+           "files": [
+             "smgp.asm",
+             "notes.txt"
+           ],
+           "priority": "critical",
+           "effort": "large",
+           "status": "done",
+           "progress_notes": "Sign data stream format fully documented: 4-byte records (distance.w, count.b, sign_id.b), $FFFF sentinel resets to stream start each lap. Tileset stream: 4-byte records (distance.w, tileset_offset.w), $FFFF sentinel. Sign_lookup_table: .l pointers to $FF-terminated frame-index lists. Values 1-$14=normal signs (aux object handler from loc_8B1C), $15+=special objects (tunnel etc., handler to $FFFFAFC0). Signs_in_row_count signs spaced $0010 apart at Signs_location. Finish-line flagkeeper spawned when player within 120 units of track end (Finish_line_sign_active flag). Added 10 sign RAM constants to constants.asm ($FFFF9240-$FFFF925C). All raw literals replaced in Parse_tileset_for_signs and Parse_sign_data with symbolic names and full header comments added. notes.txt updated to SOLVED."
+         }
       ]
     },
     "architecture_and_extraction": {

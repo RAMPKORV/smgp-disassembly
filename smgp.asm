@@ -1,97 +1,181 @@
 	include "macros.asm"
 	include "constants.asm"
 
+; =============================================================================
+; ROM HEADER AND EXCEPTION VECTOR TABLE  ($000000 - $0001FF)
+; =============================================================================
+; The first $200 bytes of a Sega Mega Drive ROM contain two fixed structures
+; required by the 68000 hardware and the Mega Drive BIOS:
+;
+;  $000000 - $0000FF  M68K exception vector table (64 longword handlers)
+;  $000100 - $0001FF  Sega Mega Drive ROM header (ASCII strings + memory map)
+;
+; VECTOR TABLE ($000000 - $0000FF)
+; ---------------------------------
+; The M68K reads this table on reset.  Each entry is a 32-bit handler address.
+;  Offset  Vector #  Description
+;  $00     0         Initial Supervisor Stack Pointer (loaded into A7/SSP)
+;  $04     1         Initial Program Counter (first instruction = EntryPoint)
+;  $08     2         Bus error
+;  $0C     3         Address error
+;  $10     4         Illegal instruction
+;  $14     5         Division by zero
+;  $18     6         CHK instruction exception
+;  $1C     7         TRAPV instruction exception
+;  $20     8         Privilege violation
+;  $24     9         TRACE exception
+;  $28     10        Line-A emulator (unimplemented instruction $Axxx)
+;  $2C     11        Line-F emulator (unimplemented instruction $Fxxx)
+;  $30-$5C 12-23     Reserved (unused by 68000)
+;  $60     24        Spurious interrupt
+;  $64-$6C 25-27     IRQ levels 1-3 (unused)
+;  $70     28        IRQ level 4 = horizontal blank interrupt (HINT)
+;  $74     29        IRQ level 5 (unused)
+;  $78     30        IRQ level 6 = vertical blank interrupt (VINT)
+;  $7C     31        IRQ level 7 (NMI, unused)
+;  $80-$BC 32-47     TRAP #0-#15 (all unused — return immediately)
+;  $C0-$FF 48-63     Reserved (point to ErrorTrap3 infinite-loop halt)
+;
+; ACTIVE INTERRUPT HANDLERS:
+;  IRQ 4 (HINT, $70): Points to Hblank_handler_stub in RAM ($FFFFFFD2).
+;    The stub is copied there at startup by Install_hblank_handler and
+;    contains a short inline handler (road-line palette effect + hscroll update).
+;  IRQ 6 (VINT, $78): Points to Vertical_blank_interrupt, which calls the
+;    Vblank_callback function pointer, runs Update_audio_engine, and increments
+;    Vblank_counter so the main loop can sync to 50/60 Hz.
+
 StartOfRom:
 Vectors:
 loc_0:
-	dc.l	$00FF0100  ; Initial stack pointer value
+	dc.l	$00FF0100  ; Initial stack pointer value ($00FF0100 = top of 68K work RAM)
 loc_4:
-	dc.l	EntryPoint ; Start of program
+	dc.l	EntryPoint ; Reset vector: first instruction executed on power-on
 loc_8:
-	dc.l	ErrorTrap1 ; Bus error
-	dc.l	ErrorTrap1 ; Address error (4)
-	dc.l	ErrorTrap2 ; Illegal instruction
-	dc.l	ErrorTrap2 ; Division by zero
-	dc.l	ErrorTrap3 ; CHK exception
-	dc.l	ErrorTrap3 ; TRAPV exception (8)
-	dc.l	ErrorTrap3 ; Privilege violation
-	dc.l	ErrorTrap3 ; TRACE exception
-	dc.l	ErrorTrap3 ; Line-A emulator
-	dc.l	ErrorTrap3 ; Line-F emulator (12)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (16)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (20)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (24)
-	dc.l	ErrorTrap3 ; Spurious exception
-	dc.l	Return_from_exception ; IRQ level 1
-	dc.l	Return_from_exception ; IRQ level 2
-	dc.l	Return_from_exception ; IRQ level 3 (28)
-	dc.l	Hblank_handler_stub  ; IRQ level 4 (horizontal retrace interrupt)
-	dc.l	Return_from_exception ; IRQ level 5
-	dc.l	Vertical_blank_interrupt ; IRQ level 6 (vertical retrace interrupt)
-	dc.l	Return_from_exception ; IRQ level 7 (32)
-	dc.l	Return_from_exception ; TRAP #00 exception
-	dc.l	Return_from_exception ; TRAP #01 exception
-	dc.l	Return_from_exception ; TRAP #02 exception
-	dc.l	Return_from_exception ; TRAP #03 exception (36)
-	dc.l	Return_from_exception ; TRAP #04 exception
-	dc.l	Return_from_exception ; TRAP #05 exception
-	dc.l	Return_from_exception ; TRAP #06 exception
-	dc.l	Return_from_exception ; TRAP #07 exception (40)
-	dc.l	Return_from_exception ; TRAP #08 exception
-	dc.l	Return_from_exception ; TRAP #09 exception
-	dc.l	Return_from_exception ; TRAP #10 exception
-	dc.l	Return_from_exception ; TRAP #11 exception (44)
-	dc.l	Return_from_exception ; TRAP #12 exception
-	dc.l	Return_from_exception ; TRAP #13 exception
-	dc.l	Return_from_exception ; TRAP #14 exception
-	dc.l	Return_from_exception ; TRAP #15 exception (48)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (52)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (56)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (60)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved)
-	dc.l	ErrorTrap3 ; Unused (reserved) (64)
+	dc.l	ErrorTrap1 ; Bus error        — NOP + infinite branch
+	dc.l	ErrorTrap1 ; Address error    — NOP + infinite branch
+	dc.l	ErrorTrap2 ; Illegal instruction — NOP + infinite branch
+	dc.l	ErrorTrap2 ; Division by zero — NOP + infinite branch
+	dc.l	ErrorTrap3 ; CHK exception    — NOP + infinite branch
+	dc.l	ErrorTrap3 ; TRAPV exception  — NOP + infinite branch
+	dc.l	ErrorTrap3 ; Privilege violation — NOP + infinite branch
+	dc.l	ErrorTrap3 ; TRACE exception  — NOP + infinite branch
+	dc.l	ErrorTrap3 ; Line-A emulator  — NOP + infinite branch
+	dc.l	ErrorTrap3 ; Line-F emulator  — NOP + infinite branch
+	dc.l	ErrorTrap3 ; Reserved #12
+	dc.l	ErrorTrap3 ; Reserved #13
+	dc.l	ErrorTrap3 ; Reserved #14
+	dc.l	ErrorTrap3 ; Reserved #15
+	dc.l	ErrorTrap3 ; Reserved #16
+	dc.l	ErrorTrap3 ; Reserved #17
+	dc.l	ErrorTrap3 ; Reserved #18
+	dc.l	ErrorTrap3 ; Reserved #19
+	dc.l	ErrorTrap3 ; Reserved #20
+	dc.l	ErrorTrap3 ; Reserved #21
+	dc.l	ErrorTrap3 ; Reserved #22
+	dc.l	ErrorTrap3 ; Reserved #23
+	dc.l	ErrorTrap3 ; Spurious interrupt
+	dc.l	Return_from_exception ; IRQ level 1 (unused — RTE)
+	dc.l	Return_from_exception ; IRQ level 2 (unused — RTE)
+	dc.l	Return_from_exception ; IRQ level 3 (unused — RTE)
+	dc.l	Hblank_handler_stub  ; IRQ level 4 — horizontal blank (HINT), handler in RAM
+	dc.l	Return_from_exception ; IRQ level 5 (unused — RTE)
+	dc.l	Vertical_blank_interrupt ; IRQ level 6 — vertical blank (VINT)
+	dc.l	Return_from_exception ; IRQ level 7 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #00 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #01 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #02 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #03 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #04 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #05 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #06 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #07 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #08 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #09 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #10 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #11 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #12 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #13 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #14 (unused — RTE)
+	dc.l	Return_from_exception ; TRAP #15 (unused — RTE)
+	dc.l	ErrorTrap3 ; Reserved #48
+	dc.l	ErrorTrap3 ; Reserved #49
+	dc.l	ErrorTrap3 ; Reserved #50
+	dc.l	ErrorTrap3 ; Reserved #51
+	dc.l	ErrorTrap3 ; Reserved #52
+	dc.l	ErrorTrap3 ; Reserved #53
+	dc.l	ErrorTrap3 ; Reserved #54
+	dc.l	ErrorTrap3 ; Reserved #55
+	dc.l	ErrorTrap3 ; Reserved #56
+	dc.l	ErrorTrap3 ; Reserved #57
+	dc.l	ErrorTrap3 ; Reserved #58
+	dc.l	ErrorTrap3 ; Reserved #59
+	dc.l	ErrorTrap3 ; Reserved #60
+	dc.l	ErrorTrap3 ; Reserved #61
+	dc.l	ErrorTrap3 ; Reserved #62
+	dc.l	ErrorTrap3 ; Reserved #63
 
+; =============================================================================
+; SEGA MEGA DRIVE ROM HEADER  ($000100 - $0001FF)
+; =============================================================================
+; This 256-byte block is read by the Mega Drive BIOS/TMSS hardware to verify
+; the cartridge and provide metadata.  All text fields are ASCII, padded with
+; spaces to their fixed widths.  The BIOS checks the console name field for
+; "SEGA MEGA DRIVE" (or "SEGA GENESIS") before granting VDP access on TMSS
+; hardware.  Emulators also use the region field and ROM/RAM map entries.
+;
+;  Offset  Size  Description
+;  $00     16    Console name: "SEGA MEGA DRIVE "
+;  $10     16    Copyright/date: "(C)SEGA 1990.JUN"
+;  $20     48    Domestic (JP) game name: "Super Monaco GP" + spaces
+;  $50     48    International game name: "Super Monaco GP" + spaces
+;  $80     14    Product/version code: "GM     4026-01"
+;  $8E      2    Checksum word (sum of all ROM words from $0200 to end)
+;  $90     16    I/O device support: 'J' = 3-button joypad, rest spaces
+;  $A0      4    ROM start address: $00000000
+;  $A4      4    ROM end address: EndOfRom - 1
+;  $A8      4    RAM start address: $00FF0000
+;  $AC      4    RAM end address: $00FFFFFF
+;  $B0      4    Backup RAM ID: "    " (no SRAM)
+;  $B4      4    Backup RAM start address: spaces (no SRAM)
+;  $B8      4    Backup RAM end address: spaces (no SRAM)
+;  $BC     12    Modem support: blank (no modem)
+;  $C8     52    Notes/memo: blank (unused, free to use without affecting the ROM)
+;  $FC     16    Region codes: "JUE " = Japan, USA, Europe supported
 Header:
-	dc.b "SEGA MEGA DRIVE " ; Console name
+	dc.b "SEGA MEGA DRIVE " ; Console name (must match for TMSS unlock on VA1+ hardware)
 	dc.b "(C)SEGA 1990.JUN" ; Copyright holder and release date
-	dc.b "Super Monaco GP                                 " ; Domestic name
-	dc.b "Super Monaco GP                                 " ; International name
-	dc.b "GM     4026-01" ; Version
+	dc.b "Super Monaco GP                                 " ; Domestic (Japan) title (48 bytes)
+	dc.b "Super Monaco GP                                 " ; International title (48 bytes)
+	dc.b "GM     4026-01" ; Product code (GM = game, 4026-01 = part/revision number)
 loc_18E:
-	dc.w	$65B5 ; Checksum
-	dc.b	'J               '
-	dc.l StartOfRom
+	dc.w	$65B5 ; Checksum: sum of all ROM words from $0200 to end of ROM
+	dc.b	'J               ' ; I/O device support ('J' = standard 3-button joystick/joypad)
+	dc.l StartOfRom ; ROM start address ($00000000)
 ;loc_1A4:
 ROMEndLoc:
-	dc.l EndOfRom-1
-	dc.l $00FF0000 ; Start of RAM
-	dc.l $00FFFFFF ; End of RAM
-	dc.b "    "		; Backup RAM ID
-	dc.l $20202020		; Backup RAM start address
-	dc.l $20202020		; Backup RAM end address
-	dc.b "            "	; Modem support
-	dc.b "                                        "	; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
-	dc.b "JUE             " ; Region
+	dc.l EndOfRom-1 ; ROM end address (assembled at link time from EndOfRom label)
+	dc.l $00FF0000 ; Work RAM start address
+	dc.l $00FFFFFF ; Work RAM end address
+	dc.b "    "		; Backup/SRAM ID ("    " = no battery-backed SRAM present)
+	dc.l $20202020		; Backup RAM start address (spaces = unused)
+	dc.l $20202020		; Backup RAM end address (spaces = unused)
+	dc.b "            "	; Modem support string (blank = no modem)
+	dc.b "                                        "	; Memo/notes field (52 bytes, no ROM effect)
+	dc.b "JUE             " ; Region support: J=Japan, U=USA, E=Europe
+; =============================================================================
+; ERROR TRAP HANDLERS  ($000200 - $00020F)
+; =============================================================================
+; Three variants, all structurally identical: NOP + infinite BRA.b back to self.
+; The three variants exist so the vector table can point distinct addresses at
+; each class of exception, making it possible to identify which exception fired
+; in a hardware debugger by inspecting the PC of the halted CPU.
+;
+;  ErrorTrap1 ($0200): Bus error, Address error
+;  ErrorTrap2 ($0204): Illegal instruction, Division by zero
+;  ErrorTrap3 ($0208): All other reserved/unused exception vectors
+;
+; In all cases the CPU halts here indefinitely with interrupts still masked.
+; There is no error display; the screen freezes or shows corrupted output.
 ;loc_200:
 ErrorTrap1:
 	NOP
@@ -107,131 +191,230 @@ ErrorTrap3:
 ;loc_20C:
 Return_from_exception:
 	RTE
+; =============================================================================
+; ENTRY POINT AND HARDWARE INITIALISATION  ($000210 - ...)
+; =============================================================================
+; Called from the reset vector.  Full boot sequence:
+;
+;  1. TMSS check ($210-$225):
+;       Test Io_port_settle_l / Io_port_settle_w (slow I/O settle delay area).
+;       If non-zero, Boot_init_sentinel is already set → skip to InitDone path.
+;       Otherwise fall into the cold-boot VDP/Z80 pre-init block.
+;
+;  2. Cold-boot pre-init ($226-$2A0):
+;       Load register set from loc_4B4 (register init table):
+;         D5 = $00008000, D6 = $3FFF, D7 = $0100
+;         A0 = Z80 RAM ($00A00000), A1 = Z80_bus_request ($A11100)
+;         A2 = Z80_reset ($A11200), A3 = VDP_data_port ($C00000)
+;         A4 = VDP_control_port ($C00004)
+;       Read Z80 RAM word (A1-$1100 = $A00000); if non-zero the TMSS ASIC is
+;       present — write "SEGA" ($53454741) to TMSS register ($A14000) to unlock
+;       VDP access.  Skip if TMSS not present (older hardware revisions).
+;       Clear D0, set USP to 0.
+;       Write 24 VDP initialisation bytes from loc_4B4+$1C to VDP_control_port.
+;       Set VRAM write at $0080 via VDP_control_port.
+;       Request Z80 bus ($A11100 = $0100), assert Z80 reset ($A11200 = $0100,
+;       $0000, then $0100), wait for bus grant, copy 40 bytes to Z80 RAM.
+;       Release Z80 bus ($A11100 = $0000, $A11200 = $0000).
+;       Zero $10000 bytes of work RAM via pre-decrement from address 0 ($D6=$3FFF
+;       iterations of MOVE.l D0=0, -(A6=0) wraps through $FFFFFFFC downward).
+;       Write VDP mode registers $81048F02 (display on, H-int enabled, sprite base).
+;       Set VRAM write target at $C0000000.
+;       Clear $20 VRAM longwords (32-bit writes to VDP_data_port × $20).
+;       Set VRAM write at $0010.
+;       Write 4 bytes ($10 area) from remaining loc_4B4 bytes.
+;       Release Z80 reset and restore registers from USP (zeroed) area.
+;       Disable interrupts (SR = $2700).
+;
+;  3. ROM checksum verification ($2A0-$2C0):
+;       Compute 16-bit checksum: sum all words from ErrorTrap1 ($0200) to
+;       EndOfRom-1 (ROMEndLoc gives the byte address; divided by 2 for word
+;       count, adjusted for DBF semantics).  Uses a two-level DBF loop to
+;       handle the >$10000 iteration count: D0.high holds the outer loop count,
+;       D2.low the inner.  Compare result against the stored checksum word at
+;       loc_18E ($018E in ROM).  If mismatch → jump to bad-ROM handler at
+;       loc_376 (fills plane A with tile $000E, then infinite-loops = red/dark
+;       screen, emulator refuses to boot).
+;
+;  4. First-boot-only initialization ($2C0-$2EE):
+;       Call loc_510A (Initialize_default_lap_times): copies ROM default BCD
+;       lap-time records into RAM at Track_lap_time_records.
+;       Read Version_register ($00A10001) bit 7 (1 = overseas/NTSC).
+;       Store result via SNE to $FFFFFF27 (low byte of English_flag word):
+;         overseas → English_flag.l = $FFFF (English text)
+;         domestic → English_flag.l = $0000 (Japanese text)
+;       Write "init" sentinel ($696E6974) to Boot_init_sentinel ($FFFFFFFC) so
+;       power-cycle warm-reboots skip the full hardware pre-init.
+;
+;  5. Full RAM/hardware init ($2EE-$36A): (also entered on warm reboot)
+;       Clear entire 64 KB work RAM via CLR.l loop ($1F3F iterations = $8000
+;       longwords = $20000 bytes). Note this clears English_flag set above —
+;       English_flag is re-initialised by the Options screen later.
+;       Set all three I/O direction ports to $40 (port 1-3 output enable).
+;       Read Version_register again and set Overseas_flag / Pal_flag via SNE.
+;       Initialize VDP registers (Initialize_vdp).
+;       Clear audio engine state (Audio_engine_flags = 0).
+;       Load Z80 sound driver (Load_z80_driver).
+;       Install hblank handler in RAM (Install_hblank_handler).
+;       Call loc_6428 (Initialize_ui_buffers): decompresses and sets up all
+;         persistent UI tilemap buffers used by the attract/title screens.
+;       Load startup graphics (Load_startup_graphics): decompresses initial
+;         title/attract tile data to VRAM and RAM.
+;       Set Frame_callback = Race_preview_screen_init ($2592).
+;       Set Vblank_callback = Default_vblank_handler ($03D8).
+;       Enable VBI (Vblank_enable = 1), unmask interrupts (SR &= ~$0700).
+;
+;  6. Main loop ($36A):
+;       Increment Frame_counter.
+;       Load and JSR to Frame_callback (function pointer, updated each screen).
+;       Loop forever.
 EntryPoint:
-	TST.l	$00A10008
+	TST.l	Io_port_settle_l    ; check I/O settle area — non-zero = warm reboot already done
 loc_214:
-	BNE.w	loc_2EE
-	TST.w	$00A1000C
+	BNE.w	loc_2EE             ; warm reboot: skip to full RAM init (Boot_init_sentinel check)
+	TST.w	Io_port_settle_w    ; second half of settle area (debounce complete)
 	BNE.b	loc_214
 loc_220:
-	LEA	loc_4B4(PC), A5
-	MOVEM.l	(A5)+, D5-D7/A0-A4
-	MOVE.w	-$1100(A1), D0
-	ANDI.w	#$0F00, D0
-	BEQ.b	loc_23A
-	MOVE.l	#$53454741, $2F00(A1)
+	; ---- Cold-boot: load register-init table and perform pre-boot hardware setup ----
+	LEA	loc_4B4(PC), A5         ; A5 = register init data table (VDP init bytes follow)
+	MOVEM.l	(A5)+, D5-D7/A0-A4  ; load D5-D7 and A0-A4 from table; A5 advances past them
+	; After MOVEM: D5=$8000, D6=$3FFF, D7=$0100,
+	;   A0=Z80_ram($A00000), A1=Z80_bus_request($A11100),
+	;   A2=Z80_reset($A11200), A3=VDP_data_port($C00000), A4=VDP_control_port($C00004)
+	MOVE.w	-$1100(A1), D0      ; read $A00000 (Z80 RAM[0]) — non-zero indicates TMSS present
+	ANDI.w	#$0F00, D0          ; isolate TMSS detect bits
+	BEQ.b	loc_23A             ; TMSS not present → skip unlock
+	MOVE.l	#$53454741, $2F00(A1) ; write "SEGA" to TMSS register ($A14000) to unlock VDP
 loc_23A:
-	MOVE.w	(A4), D0
-	MOVEQ	#0, D0
-	MOVEA.l	D0, A6
-	MOVE.l	A6, USP
-	MOVEQ	#$00000017, D1
+	MOVE.w	(A4), D0            ; dummy read of VDP control port (status register)
+	MOVEQ	#0, D0              ; D0 = 0 (also zeroes address for USP)
+	MOVEA.l	D0, A6              ; A6 = $00000000 (used as pre-decrement base for RAM clear)
+	MOVE.l	A6, USP             ; USP = 0
+	MOVEQ	#$00000017, D1      ; D1 = 23 (24-1 VDP init bytes)
 loc_244:
-	MOVE.b	(A5)+, D5
-	MOVE.w	D5, (A4)
-	ADD.w	D7, D5
+	; Write 24 VDP register init values from A5 (loc_4B4 data) to VDP_control_port.
+	; Each byte is written as a word after adding D7=$0100 (register address prefix).
+	MOVE.b	(A5)+, D5           ; read next init byte
+	MOVE.w	D5, (A4)            ; write to VDP control port
+	ADD.w	D7, D5              ; advance register index by 1 (D7=$0100 = reg base)
 	DBF	D1, loc_244
-	MOVE.l	#$40000080, (A4)
-	MOVE.w	D0, (A3)
-	MOVE.w	D7, (A1)
-	MOVE.w	D7, (A2)
+	MOVE.l	#$40000080, (A4)    ; set VDP VRAM write address to $0080
+	; ---- Z80 bus: assert reset and wait for grant, then copy 40 bytes to Z80 RAM ----
+	MOVE.w	D0, (A3)            ; D0=0 → write 0 to VDP_data_port (clear VRAM at $0080)
+	MOVE.w	D7, (A1)            ; Z80_bus_request = $0100 → 68K requests Z80 bus
+	MOVE.w	D7, (A2)            ; Z80_reset = $0100 → deassert Z80 reset
 loc_25A:
-	BTST.b	D0, (A1)
-	BNE.b	loc_25A
-	MOVEQ	#$00000027, D2
+	BTST.b	D0, (A1)            ; D0=0: test bit 0 of Z80_bus_request — 0 = bus granted
+	BNE.b	loc_25A             ; wait until Z80 grants the bus
+	MOVEQ	#$00000027, D2      ; D2 = 39 (40-1 bytes to copy)
 loc_260:
-	MOVE.b	(A5)+, (A0)+
+	MOVE.b	(A5)+, (A0)+        ; copy Z80 init bytes from A5 → Z80 RAM at A0
 	DBF	D2, loc_260
-	MOVE.w	D0, (A2)
-	MOVE.w	D0, (A1)
-	MOVE.w	D7, (A2)
+	MOVE.w	D0, (A2)            ; Z80_reset = 0 → assert Z80 reset
+	MOVE.w	D0, (A1)            ; Z80_bus_request = 0 → release bus (Z80 can run)
+	MOVE.w	D7, (A2)            ; Z80_reset = $0100 → deassert reset (Z80 starts)
 loc_26C:
-	MOVE.l	D0, -(A6)
-	DBF	D6, loc_26C
-	MOVE.l	#$81048F02, (A4)
-	MOVE.l	#$C0000000, (A4)
-	MOVEQ	#$0000001F, D3
+	; Zero entire work RAM ($10000 bytes) by pushing D0=0 via pre-decrement from A6=0.
+	; 68K address space wraps: first write goes to $FFFFFFFC, then $FFFFFFF8, etc.,
+	; filling all $10000 bytes of work RAM ($FFFF0000-$FFFFFFFF) with zero.
+	MOVE.l	D0, -(A6)           ; D0=0, A6 pre-decremented; wraps through all work RAM
+	DBF	D6, loc_26C             ; D6=$3FFF → 16384 iterations = $10000 bytes cleared
+	MOVE.l	#$81048F02, (A4)    ; VDP: mode reg $01=$04 (display on), mode reg $0F=$02
+	MOVE.l	#$C0000000, (A4)    ; VDP VRAM write mode at address $0000 (start of VRAM)
+	MOVEQ	#$0000001F, D3      ; D3 = 31 (32-1 longwords)
 loc_280:
-	MOVE.l	D0, (A3)
+	MOVE.l	D0, (A3)            ; write 0 to VDP_data_port — clears $80 bytes of VRAM
 	DBF	D3, loc_280
-	MOVE.l	#$40000010, (A4)
-	MOVEQ	#$00000013, D4
+	MOVE.l	#$40000010, (A4)    ; VDP VRAM write address = $0010 (sprite attr table base)
+	MOVEQ	#$00000013, D4      ; D4 = 19 (20-1 longwords)
 loc_28E:
-	MOVE.l	D0, (A3)
+	MOVE.l	D0, (A3)            ; write 0 to VDP_data_port — clears $50 bytes at $0010
 	DBF	D4, loc_28E
-	MOVEQ	#3, D5
+	MOVEQ	#3, D5              ; D5 = 3 (4-1 bytes)
 loc_296:
-	MOVE.b	(A5)+, $10(A3)
+	MOVE.b	(A5)+, $10(A3)      ; copy 4 bytes from A5 to VDP_data_port+$10 (write reg)
 	DBF	D5, loc_296
-	MOVE.w	D0, (A2)
-	MOVEM.l	(A6), D0-D7/A0-A6
-	MOVE	#$2700, SR
+	MOVE.w	D0, (A2)            ; Z80_reset = 0
+	MOVEM.l	(A6), D0-D7/A0-A6  ; restore D0-D7/A0-A6 from USP area (all zero at this point)
+	; ---- ROM checksum verification ----
+	MOVE	#$2700, SR          ; disable all interrupts for checksum calculation
 	LEA	ROMEndLoc.w, A0
-	MOVE.l	(A0), D0
-	ADDQ.l	#1, D0
-	LEA	ErrorTrap1.w, A0
-	SUB.l	A0, D0
-	ASR.l	#1, D0
-	MOVE.w	D0, D2
-	SUBQ.w	#1, D2
-	SWAP	D0
-	MOVEQ	#0, D1
+	MOVE.l	(A0), D0            ; D0 = last ROM byte address (EndOfRom - 1)
+	ADDQ.l	#1, D0              ; D0 = ROM size in bytes
+	LEA	ErrorTrap1.w, A0    ; A0 = $0200 (start of checksum region, skip vector table+header)
+	SUB.l	A0, D0              ; D0 = byte count of checksum region
+	ASR.l	#1, D0              ; D0 = word count of checksum region
+	MOVE.w	D0, D2              ; D2 = low word (inner loop count)
+	SUBQ.w	#1, D2              ; adjust for DBF (first iteration is 'free')
+	SWAP	D0                  ; D0.h = 0, D0.l = high word (outer loop count for DBF)
+	MOVEQ	#0, D1              ; D1 = running checksum accumulator
 loc_2C0:
-	ADD.w	(A0)+, D1
-	DBF	D2, loc_2C0
-	DBF	D0, loc_2C0
-	CMP.w	loc_18E.w, D1
-	BNE.w	loc_376
-	JSR	loc_510A
-	MOVE.b	$00A10001, D0
-	BTST.l	#7, D0
-	SNE	$FFFFFF27.w
-	MOVE.l	#$696E6974, $FFFFFFFC.w
+	ADD.w	(A0)+, D1           ; sum each ROM word into D1 (16-bit, discards carry)
+	DBF	D2, loc_2C0         ; inner loop: $10000 words max per outer iteration
+	DBF	D0, loc_2C0         ; outer loop: handles ROMs larger than $10000 words
+	CMP.w	loc_18E.w, D1       ; compare checksum with stored value at ROM header $018E
+	BNE.w	loc_376             ; mismatch → bad ROM handler (blue screen, infinite loop)
+	; ---- First-boot only: init default lap times, detect language, set sentinel ----
+	JSR	Initialize_default_lap_times ; copy ROM default BCD lap records to RAM
+	MOVE.b	Version_register, D0 ; read hardware version register
+	BTST.l	#7, D0              ; bit 7: 1 = overseas/NTSC cartridge
+	SNE	$FFFFFF27.w         ; English_flag.l = $FFFF (English) or $0000 (Japanese)
+	MOVE.l	#$696E6974, Boot_init_sentinel.w ; write "init" — skip cold-boot on next reset
 loc_2EE:
-	CMPI.l	#$696E6974, $FFFFFFFC.w
-	BNE.w	loc_220
-	LEA	$FFFF8000.w, A0
-	MOVE.w	#$1F3F, D0
+	; ---- Warm-reboot entry / full hardware + RAM init ----
+	CMPI.l	#$696E6974, Boot_init_sentinel.w ; check sentinel ("init")
+	BNE.w	loc_220             ; not set yet → loop back to cold-boot pre-init
+	LEA	Work_ram_start.w, A0
+	MOVE.w	#$1F3F, D0          ; $1F40 longwords = $7D00 bytes (full 32 KB work RAM)
 loc_302:
-	CLR.l	(A0)+
-	DBF	D0, loc_302
-	MOVEQ	#$00000040, D0
-	LEA	$00A10009, A0
-	MOVE.b	D0, $0(A0)
-	MOVE.b	D0, $2(A0)
-	MOVE.b	D0, $4(A0)
-	MOVE.b	$00A10001, D0
-	BTST.l	#7, D0
-	SNE	Overseas_flag.w
-	BTST.l	#6, D0
-	SNE	Pal_flag.w
+	CLR.l	(A0)+               ; zero 4 bytes
+	DBF	D0, loc_302         ; repeat $1F40 times — clears all work RAM
+	MOVEQ	#$00000040, D0      ; $40 = I/O dir register value (all outputs)
+	LEA	Io_ctrl_port_1_dir, A0
+	MOVE.b	D0, $0(A0)          ; I/O port 1 direction = all outputs
+	MOVE.b	D0, $2(A0)          ; I/O port 2 direction = all outputs
+	MOVE.b	D0, $4(A0)          ; I/O port 3 direction = all outputs
+	MOVE.b	Version_register, D0 ; read version register again
+	BTST.l	#7, D0              ; bit 7: 1 = overseas
+	SNE	Overseas_flag.w     ; Overseas_flag = $FF (overseas) or $00 (domestic)
+	BTST.l	#6, D0              ; bit 6: 1 = PAL
+	SNE	Pal_flag.w          ; Pal_flag = $FF (PAL 50 Hz) or $00 (NTSC 60 Hz)
 	JSR	Initialize_vdp
-	CLR.w	$00FF5AC6
+	CLR.w	Audio_engine_flags  ; disable audio engine before loading Z80 driver
 	JSR	Load_z80_driver(PC)
 	JSR	Install_hblank_handler(PC)
-	JSR	loc_6428
-	JSR	Load_startup_graphics(PC)
-	MOVE.l	#$00002592, Frame_callback.w
-	MOVE.l	#$000003D8, Vblank_callback.w
-	MOVE.w	#1, Vblank_enable.w
-	ANDI	#$F8FF, SR
+	JSR	Initialize_ui_tilemap_buffers ; decompress and arrange all UI tilemap buffers
+	JSR	Load_startup_graphics(PC) ; decompress initial attract/title tile data
+	MOVE.l	#$00002592, Frame_callback.w  ; first screen = Race_preview_screen_init
+	MOVE.l	#$000003D8, Vblank_callback.w ; VBI handler = Default_vblank_handler
+	MOVE.w	#1, Vblank_enable.w ; allow VBI handler to fire
+	ANDI	#$F8FF, SR          ; unmask CPU interrupts (IPL → 0)
 loc_36A:
-	ADDQ.b	#1, Frame_counter.w
-	MOVEA.l	Frame_callback.w, A0
-	JSR	(A0)
-	BRA.b	loc_36A
+	; ---- Main game loop (runs forever, ~50/60 Hz via VBI) ----
+	ADDQ.b	#1, Frame_counter.w ; increment per-frame counter (wraps at 256)
+	MOVEA.l	Frame_callback.w, A0 ; load current screen handler pointer
+	JSR	(A0)                ; call it — each screen updates its own Frame_callback
+	BRA.b	loc_36A             ; loop unconditionally
 loc_376:
+	; ---- Bad-ROM handler: checksum mismatch ----
+	; Initializes VDP, writes tile $000E (dark colour) to all 64 plane-A cells,
+	; then halts in an infinite loop.  Emulators detect the blank dark screen as
+	; the "wrong region / bad checksum" error; some show a red screen overlay.
 	JSR	Initialize_vdp
-	MOVE.l	#$C0000000, VDP_control_port
-	MOVEQ	#$0000003F, D7
+	MOVE.l	#$C0000000, VDP_control_port ; VRAM write at address $0000
+	MOVEQ	#$0000003F, D7      ; 64-1 words
 loc_388:
-	MOVE.w	#$000E, VDP_data_port
+	MOVE.w	#$000E, VDP_data_port ; write tile index $000E (dark palette entry)
 	DBF	D7, loc_388
 loc_394:
-	BRA.b	loc_394
+	BRA.b	loc_394             ; infinite loop — CPU halted
 
 ;loc_396:
-Wait_for_vblank: ; Set Vblank_counter and loop until it changes, some kind of synchronization?
+Wait_for_vblank:
+; Synchronise the caller to the next vertical blank interrupt.
+; Clears Vblank_counter then busy-waits until the VBI handler increments it.
+; This produces one full frame of latency and is used before palette/VDP
+; operations that must complete outside the active display period.
 	CLR.w	Vblank_counter.w
 loc_39A:
 	TST.w	Vblank_counter.w
@@ -336,22 +519,49 @@ Reset_z80:
 ; NOTE: The 68K must already hold Z80_bus_request ($A11100 = $0100) before
 ; calling this routine; the Z80 bus must not be released between the reset
 ; assertion and the data copy that follows in Load_z80_driver.
-	MOVE.w	#0, $00A11200
+	MOVE.w	#0, Z80_reset
 	MOVEQ	#$0000000D, D0
 loc_4A4:
 	NOP
 	DBF	D0, loc_4A4
-	MOVE.w	#$0100, $00A11200
+	MOVE.w	#$0100, Z80_reset
 	RTS
 loc_4B4:
-	dc.l	$00008000	;D5
-	dc.l	$00003FFF	;D6
-	dc.l	$00000100	;D7
-	dc.l	$00A00000	;A0
-	dc.l	Z80_bus_request	;A1
-	dc.l	$00A11200	;A2
-	dc.l	VDP_data_port	;A3
-	dc.l	VDP_control_port	;A4
+; Register initialisation table used by EntryPoint cold-boot pre-init.
+; MOVEM.l (A5)+, D5-D7/A0-A4 loads the first 7 longwords into registers;
+; the byte arrays that follow are consumed as init data by subsequent loops.
+;
+; Register values loaded:
+;   D5 = $00008000  (TMSS check threshold / VDP reg write scratch)
+;   D6 = $00003FFF  (RAM clear loop count: $4000 iterations = $10000 bytes)
+;   D7 = $00000100  (Z80/reset port enable value; VDP register address step)
+;   A0 = $00A00000  (Z80 RAM base)
+;   A1 = Z80_bus_request  ($00A11100)
+;   A2 = Z80_reset        ($00A11200)
+;   A3 = VDP_data_port    ($00C00000)
+;   A4 = VDP_control_port ($00C00004)
+;
+; VDP register init bytes (24 bytes, written with D7=$0100 offset per byte):
+;   Written as MOVE.w D5, VDP_control_port with D5 = byte + $0100.
+;   Bytes: $04 $14 $30 $3C $07 $6C $00 $00 $00 $00 $FF $00
+;          $81 $37 $00 $01 $01 $00 $00 $FF $FF $00 $00 $80
+;
+; Z80 init bytes (40 bytes, copied verbatim to Z80 RAM at $A00000):
+;   These bytes set up the Z80 register state and minimal startup code
+;   that the Z80 runs briefly before Load_z80_driver copies the full driver.
+;   $AF $01 $D7 $1F $11 $29 $00 $21 $28 $00 $F9 $77 $ED $B0 $DD $E1
+;   $FD $E1 $ED $47 $ED $4F $08 $D9 $F1 $C1 $D1 $E1 $08 $D9 $F1 $D1
+;   $E1 $F9 $F3 $ED $56 $36 $E9 $E9
+;
+; Trailing 4 bytes written to VDP_data_port+$10 at loc_296: $9F $BF $DF $FF
+	dc.l	$00008000	;D5 = TMSS check / VDP reg scratch
+	dc.l	$00003FFF	;D6 = RAM clear loop count
+	dc.l	$00000100	;D7 = Z80 bus request / VDP register address step
+	dc.l	$00A00000	;A0 = Z80 RAM base
+	dc.l	Z80_bus_request	;A1 = $00A11100
+	dc.l	Z80_reset	;A2 = $00A11200
+	dc.l	VDP_data_port	;A3 = $00C00000
+	dc.l	VDP_control_port	;A4 = $00C00004
 	dc.b	$04, $14, $30, $3C, $07, $6C, $00, $00, $00, $00, $FF, $00, $81, $37, $00, $01, $01, $00, $00, $FF, $FF, $00, $00, $80, $AF, $01, $D7, $1F, $11, $29, $00, $21
 	dc.b	$28, $00, $F9, $77, $ED, $B0, $DD, $E1, $FD, $E1, $ED, $47, $ED, $4F, $08, $D9, $F1, $C1, $D1, $E1, $08, $D9, $F1, $D1, $E1, $F9, $F3, $ED, $56, $36, $E9, $E9
 	dc.b	$9F, $BF, $DF, $FF
@@ -376,6 +586,12 @@ Divide_fractional:
 
 ;loc_52E:
 Decompress_asset_list_to_vdp:
+; Decompress and upload a list of compressed graphics assets directly to VRAM.
+; Each list entry specifies a VRAM tile address and a compressed data pointer.
+; A1 points to the list: first word is item count minus 1, followed by entries
+; each containing a tile-index word and a long pointer to compressed source data.
+; Inputs:
+;  A1 = pointer to asset list (consumed)
 	MOVE.w	(A1)+, D0
 loc_530:
 	MOVE.w	(A1)+, D7
@@ -388,12 +604,18 @@ loc_530:
 	dc.b	$30, $19, $49, $F9, $00, $00, $07, $70, $60, $12
 ;loc_552:
 Draw_tilemap_list_to_vdp_64_cell_rows:
+; Draw a list of pre-decompressed tilemaps to VRAM using 64-cell (512-byte) row strides.
+; Inputs:
+;  A1 = pointer to list: first word is item count minus 1, then per-entry:
+;       tile-index word, width byte (tiles-1), height byte (rows-1), source ptr
 	MOVE.w	(A1)+, D0
 	LEA	Draw_tilemap_buffer_to_vdp_64_cell_rows, A4
 	BRA.b	loc_564
 
 ;loc_55C:
 Draw_tilemap_list_to_vdp_32_cell_rows:
+; Same as Draw_tilemap_list_to_vdp_64_cell_rows but with 32-cell (256-byte) row stride.
+; Used for the normal H40/H32 background plane width (32 or 40 tiles wide).
 	MOVE.w	(A1)+, D0
 	LEA	Draw_tilemap_buffer_to_vdp_32_cell_rows, A4
 loc_564:
@@ -409,6 +631,18 @@ loc_564:
 	RTS
 
 loc_57C:
+; Pseudo-random number generator (LCG-style).
+;
+; Maintains a 32-bit state in Saved_vdp_state.  On each call, advances the
+; state using a multiply-by-41 recurrence (x = x*5 then x*8+x):
+;   step 1: D1 = x*4 + x = x*5   (ADD.l twice then ADD.l original)
+;   step 2: D1 = D1*8 + x*5 = x*41  (ASL.l #3 then ADD.l)
+;   (correction: ADD D1+D1 = 2x, ADD again = 4x, ADD D0 = 5x; ASL*8=40x; ADD D0=41x)
+; The high and low 16-bit halves are XOR-folded to produce a 16-bit output in D0.
+; Returns: D0.w = 16-bit pseudo-random value.
+; Uses: Saved_vdp_state ($FFFFFF18) as the PRNG state.
+;       D0 = output, D1 = scratch (destroyed).
+;       Default seed $2A6D365B used if state is currently zero.
 	MOVE.l	Saved_vdp_state.w, D1
 	TST.w	D1
 	BNE.b	loc_58A
@@ -444,7 +678,7 @@ Update_input_bitset:
 	BTST.b	#0, Z80_bus_request
 	BNE.b	Update_input_bitset
 	LEA	Input_state_bitset.w, A0
-	LEA	$00A10003, A1 ; Controller 1 data
+	LEA	Io_ctrl_port_1_data, A1 ; Controller 1 data
 	JSR	Read_controller_input(PC)
 	ADDQ.w	#2, A1 ; Controller 2 data
 	JSR	Read_controller_input(PC)
@@ -475,6 +709,9 @@ Read_controller_input:
 
 ;loc_604:
 Initialize_vdp:
+; Write the 19-entry VDP register initialisation table at loc_D36 to the
+; VDP control port one word at a time, then clear 64 words of VRAM at address
+; $C0000000 (VRAM write mode).  Called once at boot from EntryPoint.
 	LEA	loc_D36(PC), A0
 	MOVEQ	#$00000012, D0
 loc_60A:
@@ -489,25 +726,32 @@ loc_620:
 
 ;loc_62E:
 Initialize_h40_vdp_state:
+; Set the VDP to H40 (320-pixel wide) mode and DMA-clear VRAM.
+; Writes mode register $85 ($8576+1) for H40, $8C81 for H40 cell width,
+; $8D3C for hscroll table at $E000.  Stores H40 column count ($50 = 80 bytes/row)
+; and tile count ($01C0 = 448) for the DMA transfer size.  Then DMA-fills VRAM.
 	LEA	VDP_control_port, A0
 	MOVE.w	#$857A, (A0)
 	MOVE.w	#$8C81, (A0)
 	MOVE.w	#$8D3C, (A0)
 	BSR.b	Reset_vdp_update_state
-	MOVE.w	#$0050, $FFFFFF16.w
-	MOVE.w	#$01C0, $FFFFFF24.w
+	MOVE.w	#$0050, Vdp_plane_row_bytes.w
+	MOVE.w	#$01C0, Vdp_plane_tile_count.w
 	MOVE.l	#$943793FF, D6
 	BRA.b	loc_67C
 
 ;loc_656:
 Initialize_h32_vdp_state:
+; Set the VDP to H32 (256-pixel wide) mode and DMA-clear VRAM.
+; Writes $8576 for H32 mode, $8C00 for H32 cell width, $8D3A for hscroll table.
+; Stores H32 column count ($40 = 64 bytes/row) and tile count ($0180 = 384).
 	LEA	VDP_control_port, A0
 	MOVE.w	#$8576, (A0)
 	MOVE.w	#$8C00, (A0)
 	MOVE.w	#$8D3A, (A0)
 	BSR.b	Reset_vdp_update_state
-	MOVE.w	#$0040, $FFFFFF16.w
-	MOVE.w	#$0180, $FFFFFF24.w
+	MOVE.w	#$0040, Vdp_plane_row_bytes.w
+	MOVE.w	#$0180, Vdp_plane_tile_count.w
 	MOVE.l	#$942D93FF, D6
 loc_67C:
 	MOVE.l	#$40000083, D7
@@ -515,6 +759,15 @@ loc_67C:
 
 ;loc_686:
 Reset_vdp_update_state:
+; Reset VDP display state, zero screen state variables, and clear the sprite
+; attribute table scratch buffer.
+; Disables interrupts (ORI #$0700,SR), then:
+;  - $8134: mode register 1 (H-int disabled, display on)
+;  - $8004: mode register 2 (DMA disabled, PAL=0)
+;  - $8AFF: H-interrupt every line (register $0A = $FF)
+;  - $40000010: VRAM write at $0010 (clear 1 longword = sprite attr table base)
+; Then clears $40×4 = $100 bytes from Screen_timer ($FFFFFF00 area),
+; and $A0×4 = $280 bytes from $FFFF9AC0 (sprite attribute table buffer).
 	ORI	#$0700, SR
 	MOVE.w	#$8134, VDP_control_port
 	MOVE.w	#$8004, VDP_control_port
@@ -526,12 +779,12 @@ Reset_vdp_update_state:
 loc_6BE:
 	CLR.l	(A0)+
 	DBF	D0, loc_6BE
-	LEA	$FFFF9AC0.w, A0
+	LEA	Sprite_attr_buf.w, A0
 	MOVE.w	#$009F, D0
 loc_6CC:
 	CLR.l	(A0)+
 	DBF	D0, loc_6CC
-	CLR.w	$00FF5AC6
+	CLR.w	Audio_engine_flags
 	RTS
 
 ;loc_6DA:
@@ -543,7 +796,7 @@ Copy_word_run_from_stream:
 
 ;loc_6E2:
 Copy_word_run_to_buffer:
-	LEA	$FFFFE980.w, A5
+	LEA	Palette_buffer.w, A5
 	ADDA.w	D0, A5
 loc_6E8:
 	MOVE.w	(A6)+, (A5)+
@@ -552,6 +805,10 @@ loc_6E8:
 
 ;loc_6F0:
 Upload_palette_buffer_to_cram:
+; DMA the 64-entry (128-byte) palette buffer at $FFFFE980 to CRAM.
+; Spins for ~$400 cycles first if Pal_flag is set (PAL timing compensation).
+; Uses Send_D567_to_VDP with D5=$94009340, D6=$96F495C0, D7=$977F and
+; Vdp_dma_setup=$C0000080 (CRAM DMA transfer mode).
 	MOVE.w	#$0400, D0
 	TST.b	Pal_flag.w
 	BEQ.b	loc_6FE
@@ -566,6 +823,8 @@ loc_6FE:
 
 ;loc_71A:
 Upload_palette_buffer_to_cram_delayed:
+; Same as Upload_palette_buffer_to_cram but with a shorter ~$320 spin delay.
+; Used in contexts where less PAL-mode wait time is needed.
 	MOVE.w	#$0320, D0
 	TST.b	Pal_flag.w
 	BEQ.b	loc_728
@@ -580,12 +839,17 @@ loc_728:
 
 ;loc_744:
 Upload_h40_tilemap_buffer_to_vram:
+; DMA the tilemap buffer to VRAM in H40 (40-cell wide) mode.
+; Sets the DMA source register to H40 stride ($94019340) and VRAM DMA mode ($74000083).
+; The tilemap buffer spans 40 cells wide × N rows at the plane B address.
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$74000083, Vdp_dma_setup.w
 	BRA.b	loc_762
 
 ;loc_754:
 Upload_h32_tilemap_buffer_to_vram:
+; DMA the tilemap buffer to VRAM in H32 (32-cell wide) mode.
+; Sets stride to H32 ($94019300) and VRAM DMA mode ($6C000083).
 	MOVE.l	#$94019300, D5
 	MOVE.l	#$6C000083, Vdp_dma_setup.w
 loc_762:
@@ -595,16 +859,29 @@ loc_762:
 
 ;loc_770:
 Draw_tilemap_buffer_to_vdp_128_cell_rows:
+; Write rows of tilemap data directly to the VDP data port.
+; Uses a row stride of $01000000 (128 cells = 256 bytes) per row.
+; Inputs:
+;  D7 = VDP address command longword (first destination row)
+;  D6 = tile count per row minus 1
+;  D5 = row count minus 1
+;  A6 = source tilemap word buffer (consumed)
 	MOVE.l	#$01000000, D3
 	BRA.b	loc_786
 
 ;loc_778:
 Draw_tilemap_buffer_to_vdp_64_cell_rows:
+; Write rows of tilemap data to VDP with 64-cell (128-byte) row stride.
+; Used for plane B when the VDP scroll size is set to 64 cells wide.
+; Same inputs as Draw_tilemap_buffer_to_vdp_128_cell_rows.
 	MOVE.l	#$00800000, D3
 	BRA.b	loc_786
 
 ;loc_780:
 Draw_tilemap_buffer_to_vdp_32_cell_rows:
+; Write rows of tilemap data to VDP with 32-cell (64-byte) row stride.
+; Used for normal 32-cell wide plane layouts (H32 mode and some H40 tilemaps).
+; Same inputs as Draw_tilemap_buffer_to_vdp_128_cell_rows.
 	MOVE.l	#$00400000, D3
 loc_786:
 	LEA	VDP_data_port, A5
@@ -620,14 +897,24 @@ loc_792:
 
 ;loc_7A0:
 Decompress_tilemap_to_vdp_128_cell_rows:
+; Decompress a packed tilemap to the $FFFFEA00 work buffer then upload it
+; to VDP using 128-cell row stride.
+; Inputs:
+;  A0 = pointer to compressed tilemap data
+;  D7 = VDP address command (first destination row)
+;  D6 = tile count per row minus 1
+;  D5 = row count minus 1
+;  D0 = tile index base offset for non-zero tiles
 	JSR	Decompress_tilemap_to_buffer(PC)
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	BRA.b	Draw_tilemap_buffer_to_vdp_128_cell_rows
 
 ;loc_7AA:
 Decompress_tilemap_to_vdp_64_cell_rows:
+; Decompress a packed tilemap to the $FFFFEA00 work buffer then upload it
+; to VDP using 64-cell row stride.  Same inputs as the 128-cell variant.
 	JSR	Decompress_tilemap_to_buffer(PC)
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	BRA.b	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	dc.b	$4E, $BA, $02, $FA, $4D, $F8, $EA, $00, $60, $C2
 loc_7BE:
@@ -636,10 +923,19 @@ loc_7BE:
 	dc.b	$26, $3C, $00, $80, $00, $00, $60, $06
 ;loc_7CE:
 Decompress_tilemap_to_vdp_32_cell_rows_with_base:
+; Decompress a packed tilemap to $FFFFEA00 then call Write_tilemap_rows_to_vdp
+; with a caller-supplied tile base offset (D1).  Uses 32-cell row stride.
+; Inputs:
+;  A0 = pointer to compressed tilemap data
+;  D7 = VDP address command (first destination row)
+;  D6 = tile count per row minus 1
+;  D5 = row count minus 1
+;  D1 = tile base offset added to non-zero tile indices
+;  D0 = decompression mode / base word passed to Decompress_tilemap_to_buffer
 	MOVE.l	#$00400000, D3
 loc_7D4:
 	JSR	Decompress_tilemap_to_buffer(PC)
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 
 ;Write_tilemap_rows_to_vdp
 Write_tilemap_rows_to_vdp:
@@ -702,13 +998,27 @@ loc_838:
 
 ;loc_846:
 Draw_packed_tilemap_to_vdp:
+; Draw a run-length-encoded packed tilemap stream to the VDP.
+; Reads the first word from A6 as the tile base index (D6), then falls through.
+; Inputs:
+;  A6 = pointer to packed tilemap byte stream
+; (tile base read from first word in stream; see Draw_packed_tilemap_to_vdp_preset_base for format)
 	LEA	VDP_data_port, A5
 	MOVE.w	(A6)+, D6
 
 ;Draw_packed_tilemap_to_vdp_preset_base
 Draw_packed_tilemap_to_vdp_preset_base:
-; Entry point for Draw_packed_tilemap_to_vdp that uses a caller-supplied D6
-; tile base instead of reading the first word from the stream.
+; Entry point for Draw_packed_tilemap_to_vdp with caller-supplied tile base in D6.
+; Converts D6 tile index to a VDP VRAM write command, then decodes a byte stream:
+;  - byte < $FA: emit tile at (D0 + byte) to current VDP column position
+;  - byte $FA: read next word from stream to replace D0 base
+;  - byte $FB: D6 += $80, restart with new base
+;  - byte $FC: D6 += $C0, restart with new base
+;  - byte $FD: D6 += $100, restart with new base
+;  - byte $FE: RTS (end of packed tilemap)
+; Inputs:
+;  A6 = packed byte stream
+;  D6 = initial tile base index
 	MOVE.w	D6, D7
 	JSR	Tile_index_to_vdp_command(PC)
 	MOVE.l	D7, $4(A5)
@@ -767,11 +1077,17 @@ Tile_index_to_vdp_command:
 
 ;loc_8C0:
 Fade_palette_to_black:
+; Fade all 64 palette entries ($FFFFE980..$FFFFE9FF) to black over 6 VBlanks.
+; Each pass darkens all three colour components of all 64 entries by subtracting
+; 2 from each 4-bit channel using Darken_palette_component, then waits for a
+; VBlank (and an extra VBlank on PAL systems where Pal_flag != 0) before the
+; next pass.  After 7 iterations the palette is fully black.
+; Also clears Practice_vblank_step each pass.
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVEQ	#6, D0
 loc_8CC:
-	LEA	$FFFFE980.w, A0
+	LEA	Palette_buffer.w, A0
 	MOVEQ	#$0000003F, D1
 loc_8D2:
 	MOVEQ	#0, D5
@@ -793,6 +1109,11 @@ loc_8FA:
 
 ;loc_900:
 Darken_palette_component:
+; Darken one 4-bit colour component extracted from the current palette word.
+; Rolls D2 left by 4 to bring the next nibble into bits [3:0], subtracts 2
+; (minimum 0), and ORs the result into D5 which accumulates the darkened word.
+; Called three times per palette entry: once for each of R, G, B components.
+; Inputs: D2 = packed colour word (rotated in-place), D5 = output accumulator
 	LSL.w	#4, D5
 	ROL.w	#4, D2
 	MOVE.w	D2, D3
@@ -834,6 +1155,16 @@ Send_D567_to_VDP:
 
 ;loc_944:
 Start_vdp_dma_fill:
+; Initiate a VDP DMA fill operation and spin-wait until it completes.
+; Sets VDP auto-increment to 1 byte ($8F01), writes the fill command longword
+; (D6) and fill length ($9780) to VDP control, then writes the VRAM destination
+; address (D7) and triggers the fill by writing one byte to VDP data port.
+; Polls VDP status bit 1 (DMA busy) until clear, then restores auto-increment
+; to 2 bytes ($8F02).
+;
+; Inputs:
+;  D6.l = VDP DMA fill command longword (fill value + VRAM address setup)
+;  D7.l = VRAM write address command longword
 	MOVEQ	#0, D5
 	MOVE.w	#$8F01, VDP_control_port
 	LEA	VDP_control_port, A5
@@ -850,6 +1181,13 @@ loc_960:
 
 ;loc_972:
 Decompress_to_vdp:
+; Decompress tile graphics data from A0 and stream the decompressed pixels
+; directly to the VDP data port (A4 = VDP_data_port).
+; Uses a Huffman-like code table built by Build_decompression_code_table
+; from a header embedded in the data stream.  Output is written as 32-bit
+; longwords directly to VDP_data_port (tiles land in VRAM at whatever address
+; the VDP is currently set to via a prior control-port write).
+; Inputs:  A0 = compressed data pointer (consumed on return)
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A32(PC), A3
 	LEA	VDP_data_port, A4
@@ -857,10 +1195,15 @@ Decompress_to_vdp:
 
 ;loc_982:
 Decompress_to_ram:
+; Decompress tile graphics data from A0 into a RAM buffer at A4.
+; Identical algorithm to Decompress_to_vdp but the output sink is a
+; sequential RAM destination (A4 incremented each longword) rather than
+; the VDP data port.
+; Inputs:  A0 = compressed data pointer (consumed on return)
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A48(PC), A3
 loc_98A:
-	LEA	$FFFFFA00.w, A1
+	LEA	Decomp_code_table.w, A1
 	MOVE.w	(A0)+, D2
 	LSL.w	#1, D2
 	BCC.b	loc_998
@@ -964,6 +1307,13 @@ loc_A48:
 
 ;loc_A5E:
 Build_decompression_code_table:
+; Build a flat decode table at A1 ($FFFFFA00) from a compact descriptor in A0.
+; Each descriptor entry encodes a bit-pattern length and its decoded nibble
+; value, terminated by $FF.  The routine expands each entry into one or more
+; slots in A1 so that the decompressor can look up a code nibble directly.
+; Called once per compressed stream at the start of Decompress_to_vdp /
+; Decompress_to_ram.
+; Inputs:  A0 = descriptor stream (consumed), A1 = decode table output ($FFFFFA00)
 	MOVE.b	(A0)+, D0
 loc_A60:
 	CMPI.b	#$FF, D0
@@ -1007,7 +1357,7 @@ loc_AA4:
 Decompress_tilemap_to_buffer:
 	MOVEM.l	A5/A4/A3/A2/A1/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	MOVEA.w	D0, A3
-	LEA	$FFFFEA00.w, A1
+	LEA	Tilemap_work_buf.w, A1
 	MOVE.b	(A0)+, D0
 	EXT.w	D0
 	MOVEA.w	D0, A5
@@ -1175,12 +1525,12 @@ Load_streamed_decompression_descriptor:
 	ADD.w	D0, D0
 	MOVE.w	(A1,D0.w), D0
 	LEA	(A1,D0.w), A1
-	LEA	$FFFFC080.w, A2
+	LEA	Decomp_stream_buf.w, A2
 	MOVEQ	#$0000003F, D0
 loc_C28:
 	CLR.w	(A2)+
 	DBF	D0, loc_C28
-	LEA	$FFFFC080.w, A2
+	LEA	Decomp_stream_buf.w, A2
 	MOVE.w	(A1)+, D0
 	BMI.b	loc_C3E
 loc_C36:
@@ -1193,40 +1543,40 @@ loc_C3E:
 
 ;loc_C44:
 Start_streamed_decompression:
-	TST.l	$FFFFC080.w
+	TST.l	Decomp_stream_src_ptr.w
 	BEQ.b	loc_C98
-	TST.w	$FFFFC0D8.w
+	TST.w	Decomp_stream_rows.w
 	BNE.b	loc_C98
-	MOVEA.l	$FFFFC080.w, A0
+	MOVEA.l	Decomp_stream_src_ptr.w, A0
 	LEA	loc_A32, A3
-	LEA	$FFFFFA00.w, A1
+	LEA	Decomp_code_table.w, A1
 	MOVE.w	(A0)+, D2
 	BPL.b	loc_C66
 	ADDA.w	#$000A, A3
 loc_C66:
 	ANDI.w	#$7FFF, D2
-	MOVE.w	D2, $FFFFC0D8.w
+	MOVE.w	D2, Decomp_stream_rows.w
 	BSR.w	Build_decompression_code_table
 	MOVE.b	(A0)+, D5
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
 	MOVEQ	#$00000010, D6
 	MOVEQ	#0, D0
-	MOVE.l	A0, $FFFFC080.w
-	MOVE.l	A3, $FFFFC0C0.w
-	MOVE.l	D0, $FFFFC0C4.w
-	MOVE.l	D0, $FFFFC0C8.w
-	MOVE.l	D0, $FFFFC0CC.w
-	MOVE.l	D5, $FFFFC0D0.w
-	MOVE.l	D6, $FFFFC0D4.w
+	MOVE.l	A0, Decomp_stream_src_ptr.w
+	MOVE.l	A3, Decomp_stream_jump_ptr.w
+	MOVE.l	D0, Decomp_stream_d0.w
+	MOVE.l	D0, Decomp_stream_d1.w
+	MOVE.l	D0, Decomp_stream_d2.w
+	MOVE.l	D5, Decomp_stream_d5.w
+	MOVE.l	D6, Decomp_stream_d6.w
 loc_C98:
 	RTS
 ;loc_C9A:
 Continue_streamed_decompression:
-	TST.w	$FFFFC0D8.w
+	TST.w	Decomp_stream_rows.w
 	BEQ.b	loc_D1A
 	LEA	VDP_control_port, A4
-	MOVE.w	$FFFFC084.w, D0
+	MOVE.w	Decomp_stream_tile_ofs.w, D0
 	ANDI.l	#$0000FFFF, D0
 	LSL.l	#2, D0
 	LSR.w	#2, D0
@@ -1234,34 +1584,34 @@ Continue_streamed_decompression:
 	SWAP	D0
 	MOVE.l	D0, (A4)
 	SUBQ.w	#4, A4
-	MOVEA.l	$FFFFC080.w, A0
-	MOVEA.l	$FFFFC0C0.w, A3
-	MOVE.l	$FFFFC0C4.w, D0
-	MOVE.l	$FFFFC0C8.w, D1
-	MOVE.l	$FFFFC0CC.w, D2
-	MOVE.l	$FFFFC0D0.w, D5
-	MOVE.l	$FFFFC0D4.w, D6
-	LEA	$FFFFFA00.w, A1
-	MOVE.w	#4, $FFFFC0DA.w
+	MOVEA.l	Decomp_stream_src_ptr.w, A0
+	MOVEA.l	Decomp_stream_jump_ptr.w, A3
+	MOVE.l	Decomp_stream_d0.w, D0
+	MOVE.l	Decomp_stream_d1.w, D1
+	MOVE.l	Decomp_stream_d2.w, D2
+	MOVE.l	Decomp_stream_d5.w, D5
+	MOVE.l	Decomp_stream_d6.w, D6
+	LEA	Decomp_code_table.w, A1
+	MOVE.w	#4, Decomp_stream_step.w
 loc_CE4:
 	MOVEA.w	#8, A5
 	BSR.w	loc_9FC
-	SUBQ.w	#1, $FFFFC0D8.w
+	SUBQ.w	#1, Decomp_stream_rows.w
 	BEQ.b	loc_D1C
-	SUBQ.w	#1, $FFFFC0DA.w
+	SUBQ.w	#1, Decomp_stream_step.w
 	BNE.b	loc_CE4
-	ADDI.w	#$0080, $FFFFC084.w
-	MOVE.l	A0, $FFFFC080.w
-	MOVE.l	A3, $FFFFC0C0.w
-	MOVE.l	D0, $FFFFC0C4.w
-	MOVE.l	D1, $FFFFC0C8.w
-	MOVE.l	D2, $FFFFC0CC.w
-	MOVE.l	D5, $FFFFC0D0.w
-	MOVE.l	D6, $FFFFC0D4.w
+	ADDI.w	#$0080, Decomp_stream_tile_ofs.w
+	MOVE.l	A0, Decomp_stream_src_ptr.w
+	MOVE.l	A3, Decomp_stream_jump_ptr.w
+	MOVE.l	D0, Decomp_stream_d0.w
+	MOVE.l	D1, Decomp_stream_d1.w
+	MOVE.l	D2, Decomp_stream_d2.w
+	MOVE.l	D5, Decomp_stream_d5.w
+	MOVE.l	D6, Decomp_stream_d6.w
 loc_D1A:
 	RTS
 loc_D1C:
-	LEA	$FFFFC080.w, A0
+	LEA	Decomp_stream_buf.w, A0
 	MOVEQ	#$0000000B, D0
 loc_D22:
 	MOVE.l	$6(A0), (A0)+
@@ -1277,8 +1627,8 @@ loc_D36:
 ;loc_D5C:
 Update_objects_and_build_sprite_buffer:
 	MOVEQ	#-1, D0
-	MOVE.l	D0, $FFFF9288.w
-	LEA	$FFFF8F80.w, A0
+	MOVE.l	D0, Depth_sort_value.w
+	LEA	Depth_sort_buf.w, A0
 	MOVE.l	D0, (A0)+
 	MOVE.l	D0, (A0)+
 	MOVE.l	D0, (A0)+
@@ -1296,8 +1646,8 @@ Update_objects_and_build_sprite_buffer:
 	MOVE.l	D0, (A0)+
 	MOVE.l	D0, (A0)+
 	MOVE.l	D0, (A0)+
-	MOVE.w	#$004C, $FFFFFF14.w
-	LEA	$FFFFAD80.w, A0
+	MOVE.w	#$004C, Object_update_counter.w
+	LEA	Main_object_pool.w, A0
 loc_D92:
 	MOVE.l	(A0), D0
 	BEQ.b	loc_D9A
@@ -1305,13 +1655,13 @@ loc_D92:
 	JSR	(A1) ; can jump to loc_A838, configured by loc_8B1C
 loc_D9A:
 	LEA	$40(A0), A0
-	SUBQ.w	#1, $FFFFFF14.w
+	SUBQ.w	#1, Object_update_counter.w
 	BNE.b	loc_D92 ; loop from A0=$FFFFAD80 in jumps of $40 at most #$004C steps (final iteration at $FFFFC040)
-	LEA	$FFFF9AC0.w, A6
+	LEA	Sprite_attr_buf.w, A6
 	MOVEQ	#$00000052, D0
 	LEA	$FFFFA7A0.w, A5
-	MOVE.w	$FFFFFF16.w, $FFFFFC30.w
-	MOVE.w	$FFFFFF24.w, D7
+	MOVE.w	Vdp_plane_row_bytes.w, $FFFFFC30.w
+	MOVE.w	Vdp_plane_tile_count.w, D7
 loc_DB8:
 	MOVEA.l	A5, A4
 	MOVE.w	(A4)+, D1
@@ -1405,8 +1755,8 @@ loc_E90:
 	MOVE.w	D1, (A0)
 	LEA	$10(A0), A0
 	DBF	D0, loc_E90
-	LEA	$FFFF9AC4.w, A0
-	MOVE.w	$FFFFFF16.w, D0
+	LEA	Sprite_attr_buf+4.w, A0
+	MOVE.w	Vdp_plane_row_bytes.w, D0
 	SUBQ.w	#1, D0
 loc_EA4:
 	CMPI.w	#$FFFE, (A0)
@@ -1419,8 +1769,8 @@ loc_EB4:
 loc_EB8:
 	ADDQ.w	#8, A0
 	DBF	D0, loc_EA4
-	LEA	$FFFF9AC3.w, A0
-	MOVE.w	$FFFFFF16.w, D0
+	LEA	Sprite_attr_buf+3.w, A0
+	MOVE.w	Vdp_plane_row_bytes.w, D0
 	SUB.w	$FFFFFC30.w, D0
 	BNE.b	loc_ED6
 	MOVE.w	#$0168, -$3(A0)
@@ -1463,19 +1813,19 @@ loc_F10:
 
 ;loc_F16:
 Clear_main_object_pool:
-	LEA	$FFFFAD80.w, A0
+	LEA	Main_object_pool.w, A0
 	MOVEQ	#$0000004B, D1
 	BRA.b	loc_F2C
 
 ;loc_F1E:
 Clear_partial_main_object_pool:
-	LEA	$FFFFAD80.w, A0
+	LEA	Main_object_pool.w, A0
 	MOVEQ	#$0000000B, D1
 	BRA.b	loc_F2C
 
 ;loc_F26:
 Clear_aux_object_pool:
-	LEA	$FFFFB840.w, A0
+	LEA	Aux_object_pool.w, A0
 	MOVEQ	#$00000020, D1
 loc_F2C:
 	BSR.b	Clear_object_slot
@@ -1506,7 +1856,7 @@ loc_F7A:
 	RTS
 loc_F82:
 	ADD.w	D0, D0
-	LEA	$FFFF9700.w, A1
+	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D0.w), D1
 	SUBI.w	#$002F, D1
 	NEG.w	D1
@@ -1560,6 +1910,21 @@ loc_107E:
 
 ;loc_10A2:
 Load_race_hud_graphics:
+; Decompress and upload all graphics assets needed for the race HUD and road
+; display to VRAM.
+;
+; Steps:
+;  1. Decompress asset list at loc_1E50 (12 entries: road tiles, car sprite,
+;     HUD background, digit font, minimap tiles, etc.) to their VRAM addresses.
+;  2. Load the current track's road tileset into VRAM at $5940 and $7000.
+;  3. Decompress the car machine tilemap to $FFFFEA00 and build the car
+;     tilemap priority-flip buffers via Build_car_tilemap_buffers.
+;  4. If Track_index == $0C (Monaco), fill $0100 words of VRAM at $4840
+;     with $DDDD (special track tile fill).
+;  5. If Warm_up mode: load warm-up HUD tileset from loc_56C6C.
+;     Else if Practice mode: load practice HUD tileset from loc_56B4C.
+;     Else if normal arcade race (Track_index_arcade_mode == 0): load normal
+;     HUD tileset from loc_56A1C.  Championship race skips this step.
 	LEA	loc_1E50(PC), A1
 	JSR	Decompress_asset_list_to_vdp
 	JSR	Load_track_data_pointer
@@ -1603,6 +1968,27 @@ loc_1142:
 
 ;loc_1144:
 Initialize_race_hud:
+; Build the initial race HUD layout in VRAM and the palette buffer.
+;
+; Called once at race start (after Load_race_hud_graphics).  Performs:
+;  1. Copy HUD palette entries from stream at loc_21FA to $FFFFE980 palette buffer.
+;  2. Initialize sprite objects via loc_13F6.
+;  3. Draw HUD tilemap list (background panels, border tiles) from loc_1E9A
+;     to plane B using 32-cell row stride.
+;  4. Decompress minimap track background tilemap (loc_5860A) into VRAM at
+;     $62C4 (or $6370 for world championship), 9×10 cells.
+;  5. Fill 64 words at $4000 and $5F80 with the blank tile index ($073F/$873F)
+;     to clear the road plane rows before the first frame.
+;  6. Fill 32 words at $6200 with priority road blank tile ($873C).
+;  7. Decompress per-track minimap shape tilemap (from track data pointer) to
+;     VRAM at $63B0 (or $6370 for championship), 7×11 cells.
+;  8. Copy four 96/54-byte car portrait palette strips into $FFFFE980 via
+;     Copy_word_run_to_buffer.
+;  9. Initialize remaining objects: loc_1E32 (team palette VDP commands),
+;     loc_658C (road graphics state), Initialize_car_tile_scroll (car tile DMA).
+; 10. Call Render_speed to show initial speed (0 km/h).
+; 11. Draw shift indicator tilemap (manual/auto/semi, 8 or 6 tiles wide).
+; 12. If championship, normal race, or practice: draw lap time table / timer.
 	LEA	loc_21FA(PC), A6
 	JSR	Copy_word_run_from_stream
 	JSR	loc_13F6(PC)
@@ -1661,7 +2047,7 @@ loc_11E8:
 	JSR	Copy_word_run_to_buffer
 	JSR	loc_1E32(PC)
 	JSR	loc_658C
-	JSR	loc_1A7C(PC)
+	JSR	Initialize_car_tile_scroll(PC)
 	JSR	Render_speed(PC)
 	MOVE.l	#$63800003, D7
 	MOVEQ	#7, D6
@@ -1683,14 +2069,14 @@ loc_1262:
 	BNE.b	loc_1296
 loc_1274:
 	MOVE.l	#$61460003, VDP_control_port
-	MOVEA.l	$FFFF92FC.w, A2
+	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_1EB4(PC), A1
 	JMP	Draw_packed_tilemap_list
 loc_1296:
 	MOVE.l	#$61040003, VDP_control_port
-	MOVEA.l	$FFFF92FC.w, A2
+	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
 	MOVE.l	#$61840003, VDP_control_port
@@ -1704,7 +2090,7 @@ loc_12D2:
 	TST.w	Warm_up.w
 	BEQ.b	loc_131A
 	MOVE.l	#$61460003, VDP_control_port
-	MOVEA.l	$FFFF92FC.w, A2
+	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_2002(PC), A1
@@ -1724,7 +2110,7 @@ loc_131A:
 	TST.w	Track_index_arcade_mode.w
 	BEQ.w	loc_1274
 	MOVE.l	#$61040003, VDP_control_port
-	MOVEA.l	$FFFF92FC.w, A2
+	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
 	MOVE.l	#$61840003, VDP_control_port
@@ -1844,6 +2230,11 @@ Queue_tilemap_draw:
 
 ;Flush_tilemap_draw_queue
 Flush_tilemap_draw_queue:
+; Drain the deferred tilemap draw queue built during the game frame.
+; Each entry was enqueued by Queue_tilemap_draw during gameplay update.
+; Processes all pending entries by calling Draw_tilemap_buffer_to_vdp_32_cell_rows
+; for each, then implicitly resets by re-reading Tilemap_queue_count.
+; Called from the VBlank handler once per frame.
 	MOVE.w	Tilemap_queue_count.w, D0
 	BEQ.b	loc_14A4
 	SUBQ.w	#1, D0
@@ -1862,6 +2253,12 @@ loc_14A4:
 
 ;loc_14A6
 Render_placement_display:
+; Redraw the race placement (position) tile strip if the dirty flag is set.
+; Reads Race_time_bcd, unpacks three BCD nibbles (hundreds/tens/units of
+; race time used for position display), converts each to a tile word using
+; the base tile $87C0, then enqueues a 4-tile strip at VDP address $63360003
+; (bottom-left HUD area) via Queue_tilemap_draw.
+; Clears Placement_display_dirty after drawing.
 	TST.w	Placement_display_dirty.w
 	BEQ.b	loc_14F0
 
@@ -1910,6 +2307,11 @@ loc_14F2:
 
 ;loc_14FE:
 Render_speed:
+; Redraw the speedometer digit tiles on the HUD.
+; Reads Player_speed (km/h, binary), converts to BCD via Binary_to_decimal,
+; unpacks three BCD digits into tile words in $FFFFE800 (no leading-zero
+; suppression), then enqueues a 3×2 tile block at VDP address $66720003
+; (speedometer area, plane B) via Queue_tilemap_draw.
 	MOVE.w	Player_speed.w, D0
 	JSR	Binary_to_decimal(PC) ; Output value D1 is $0123 if speed is 123km/h
 	LEA	$FFFFE800.w, A1
@@ -1982,7 +2384,7 @@ loc_1586: ; iterate through each bit in D0
 	SUBQ.w	#3, A1
 	BRA.b	loc_159C
 loc_158E:            ; then add corresponding value from byte table below
-	LEA	$FFFFFD00.w, A2
+	LEA	Track_lap_time_records.w, A2 ; reuse lap-time block as BCD scratch (ABCD pre-dec: bytes at $FFFFFD00-$FFFFFD02)
 	ADDI.w	#0, D0 ; clear extend bit
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
@@ -2332,10 +2734,19 @@ Load_palette_vdp_commands_from_table:
 
 ;Build_car_tilemap_buffers
 Build_car_tilemap_buffers:
+; Copy the decompressed player car tilemap from $FFFFEA00 into six 9×32-word
+; sub-buffers at $FFFFC080/$FFFFC0C0/$FFFFC100/$FFFFC140/$FFFFC180/$FFFFC1C0,
+; each offset by tile base $057F.  These represent the six forward-facing car
+; animation frames used during driving.
+; Then build four 32×4 priority-flip mirror buffers at $FFFFCE00-$FFFFCF40
+; by reading source tiles from $FFFFC8C0/$FFFFC880/$FFFFC840/$FFFFC900 and
+; toggling bit 11 (V-flip) via Copy_tiles_with_priority_flip.  These are
+; used for rendering the car from a low-angle perspective on hill sections.
+; Inputs:  A6 initially $FFFFEA00 (decompressed car tilemap, see Decompress_to_vdp)
 	MOVE.w	#$057F, D1
 	MOVEQ	#$0000001F, D6
 	MOVEQ	#8, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	LEA	$FFFFC080.w, A5
 	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
@@ -2348,7 +2759,7 @@ Build_car_tilemap_buffers:
 	LEA	$FFFFC140.w, A5
 	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	LEA	$FFFFC180.w, A5
 	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
@@ -2389,7 +2800,18 @@ loc_1A62:
 	DBF	D0, loc_1A5C
 	RTS
 
-loc_1A7C:
+;loc_1A7C
+Initialize_car_tile_scroll:
+; Initialize the car road-scroll tile display at the start of a race.
+; Copies 4×32 longwords from the player car forward-facing buffer ($FFFFCE00)
+; into the road-car scroll work buffer ($FFFF8B00), using Player_distance_steps
+; as a circular index into the 32-entry tile ring.
+; Then programs the VDP DMA registers for three sequential DMA copies
+; (road car, road background, road priority strip) using fixed control
+; longwords and a $40800083 DMA setup word.  Also calls loc_1AF8 to fill in
+; the opponent car half of the road-car scroll buffer and
+; Set_vdp_mode_h32_variant_a before the final DMA commit.
+; Called from Initialize_race_hud (step 9) once before the first Race_loop frame.
 	MOVE.w	Player_distance_steps.w, D0
 	MOVE.w	D0, $FFFF9266.w
 	SUBI.w	#$0080, D0
@@ -2480,6 +2902,21 @@ loc_1B62:
 
 ;loc_1B80
 Update_background_scroll_delta:
+; Compute the per-frame horizontal scroll delta for the road background plane
+; and update the car-tile scroll ring buffers with new column data.
+;
+; Each frame: compares Player_distance_steps against the cached value at
+; $FFFF9266.  If the player moved forward ($FFFF9266 > current), calls
+; Compute_vram_tile_address to compute new tile pointers for both the
+; forward car buffer ($FFFFC080) and the priority-flip buffer ($FFFFCE00)
+; and stores them at $FFFF9268.  If the player moved backward, calls
+; Compute_vram_tile_address_neg instead.
+;
+; If $FFFF927E != 0 (car-column update pending flag), calls loc_1AE0 to
+; copy fresh car tiles into the road-car scroll buffer ($FFFF8B00) and
+; then optionally writes road-edge marker tiles into $FFFF8B00 columns
+; using Fill_tilemap_column_stride, based on $FFFFAFD8 (road width) and
+; $FFFFB018.  Sets $FFFF9276 = 2 to signal a full column update.
 	MOVE.w	Player_distance_steps.w, D0
 	MOVE.w	$FFFF9266.w, D1
 	MOVE.w	D0, $FFFF9266.w
@@ -2688,6 +3125,18 @@ loc_1D82:
 
 ;loc_1DB6:
 Send_sign_tileset_to_VDP:
+; Stream the next frame of a sign tileset into VRAM via DMA.
+; Signs are animated by uploading sequential 480-tile ($1E0) chunks from the
+; sign tileset data.  This routine handles the frame counter and wraps around.
+;
+; $FFFF9264: non-zero = sign DMA pending this frame
+; $FFFF9262: current frame counter within the tileset (counts down from $01E1)
+; $FFFF925C: 4-byte DMA source address (updated each call by $1E0 tiles)
+; $FFFF9260: 2-byte DMA length word
+;
+; DMA setup words D5/D6/D7 are built by packing the source address into
+; VDP DMA length/address registers ($94/$93/$96/$95/$97) and the DMA command
+; is stored in Vdp_dma_setup before calling Send_D567_to_VDP.
 	TST.w	$FFFF9264.w
 	BEQ.b	loc_1E30
 	MOVE.w	$FFFF9262.w, D0 ; sign tilset byte 7-8
@@ -2973,7 +3422,81 @@ loc_2250: ; Teams in-game palette
 	dc.b	$0C, $EE, $06, $88, $0C, $EE, $06, $88 ; Comet
 	dc.b	$06, $66, $02, $22, $00, $EE, $00, $8A ; Orchis
 	dc.b	$0E, $EE, $06, $66, $02, $6E, $00, $28 ; ZeroForce
+
+; ============================================================
+; GAME FLOW OVERVIEW
+;
+; The game runs a per-frame callback loop (Frame_callback at $FFFFFF10).
+; Each screen installs the next screen's init routine or frame handler
+; into Frame_callback when it is ready to transition.
+;
+; Power-on attract cycle:
+;   Race_preview_screen_init  ($23A2)  logo dissolve screen
+;     → Attract_screen_logo_frame  ($22D0)  [frame]
+;         [START]  → Title_menu ($293C)
+;         [timeout] → Practice_mode_init ($3D96)  attract demo lap
+;             → Championship_warmup_race_frame ($3D84)  [frame]
+;                 → Driver_standings_init ($CCE0)  championship standings scroll
+;                     → Driver_standings_frame ($CBEE)  [frame]
+;                         [START]  → Title_menu
+;                         [auto]   → Pre_race_screen_championship_init ($4BB2)  spinning-car preview
+;                             → Pre_race_preview_car_frame ($4B76)  [frame]
+;                                 [START/timeout] → Title_menu   (loops attract)
+;
+; Title screen:
+;   Title_menu ($293C)
+;     → Title_anim_frame ($2818)  [frame]
+;
+; From the title menu the player selects one of three modes:
+;
+;   WORLD CHAMPIONSHIP path:
+;     Championship_start_init ($5690)  intro + track select
+;       → Title_menu_frame ($5616)  [frame]  track chooser
+;           → Options_screen_init ($32E6)  warm-up / race / machine / transmission
+;               → Options_setup_frame ($31FE)  [frame]
+;                   → Team_select_screen_init ($D2B0)  car/team selection
+;                       → Team_select_frame ($CDE2)  [frame]
+;                           → Championship_race_init ($375E)  race setup
+;                               → Race_loop ($36B6)  [frame]  (full driving engine)
+;                                   [finish] → Race_finish_results_init ($42F8)
+;                                       → Race_results_frame ($429E)  [frame]
+;                                           → Championship_next_race_init ($BD56)
+;                                               → Race_result_overlay_frame ($B316)  [frame]
+;                                                   → Championship_race_init  (next lap)
+;                                           ... (16 races total)
+;                                   [last race] → Championship_standings_init ($D5A0)
+;                                       → Championship_team_select_frame ($E3D6)  [frame]
+;                                           → Team_select_screen_init
+;                                   → Championship_standings_2_init ($E94C)
+;                                       → Championship_podium_frame ($E77A)  [frame]
+;                                           → Team_select_screen_init (next season)
+;
+;   ARCADE path:
+;     Options_screen_arcade_init ($32E0)
+;       → Options_setup_frame ($31FE)  [frame]
+;           → Arcade_race_init ($3800)  race setup
+;               → Race_loop ($36B6)  [frame]
+;                   [finish] → Race_finish_results_init ($42F8)
+;                       → Race_results_frame ($429E)  [frame]
+;                           [repeat] → Pre_race_display_frame ($44A8)  countdown overlay
+;                               → Arcade_race_init  (next race)
+;                           [game over] → Title_menu
+;
+;   FREE PRACTICE / WARM-UP:
+;     Practice_mode_init ($3D96)
+;       → Championship_warmup_race_frame ($3D84)  [frame]
+;           → Driver_standings_init (after timer, re-joins attract cycle)
+; ============================================================
 ;$000022D0
+; Attract_screen_logo_frame — per-frame handler for the opening attract-mode logo dissolve.
+; Pumps the streamed Huffman decompressor each frame and updates sprite objects.
+; Dispatches through a 4-phase Screen_scroll table:
+;   phase 0/2 — tick countdown timer
+;   phase 1   — write one tilemap row chunk (dissolve step)
+;   phase 3   — load background tilemap, arm Screen_timer=$017A (≈8 s long-timer)
+; On START press → jumps immediately to Title_menu.
+; On long-timer expiry → sets default game-mode state and jumps to Practice_mode_init
+;   (begins the attract-demo race).
 Attract_screen_logo_frame:
 	JSR	Wait_for_vblank
 	JSR	Start_streamed_decompression
@@ -3014,7 +3537,7 @@ loc_235C:
 	MOVE.l	#$60820003, D7
 	MOVEQ	#$00000026, D6
 	MOVEQ	#$00000015, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	ADDQ.w	#4, Screen_scroll.w
 	MOVE.w	#$0017, Screen_timer.w
@@ -3030,6 +3553,11 @@ loc_237C:
 	MOVE.w	#$017A, Screen_timer.w
 	RTS
 ;$000023A2
+; Race_preview_screen_init — initialise the attract-mode logo screen (Sega/game logo dissolve).
+; Fades palette to black, resets to H40 VDP mode, clears objects.
+; Decompresses background and overlay tilemaps into VRAM.
+; Arms Screen_timer=$0095 (149-frame display limit) and installs Attract_screen_logo_frame
+; as the per-frame callback, then re-enables VBlank.
 Race_preview_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -3051,7 +3579,7 @@ Race_preview_screen_init:
 	MOVE.w	#$0095, Screen_timer.w
 	MOVEQ	#0, D0
 	JSR	Load_streamed_decompression_descriptor
-	MOVE.l	#$00001032, $FFFFAD80.w
+	MOVE.l	#$00001032, Main_object_pool.w
 	MOVE.l	#Attract_screen_logo_frame, Frame_callback.w
 	MOVE.l	#$00002440, Vblank_callback.w
 	ANDI	#$F8FF, SR
@@ -3077,7 +3605,7 @@ loc_2476:
 	TST.w	$FFFFFB08.w
 	BEQ.b	loc_24A8
 	MOVEQ	#$0000001F, D7
-	LEA	$FFFFFA00.w, A6
+	LEA	Decomp_code_table.w, A6
 loc_2482:
 	TST.w	(A6)
 	BMI.b	loc_2498
@@ -3094,7 +3622,7 @@ loc_2498:
 	LEA	$FFFFF200.w, A0
 	BRA.w	Upload_words_to_vram
 loc_24A8:
-	LEA	$FFFFEA00.w, A0
+	LEA	Tilemap_work_buf.w, A0
 	BSR.w	Upload_words_to_vram
 	TST.w	Anim_delay.w
 	BEQ.b	loc_24C6
@@ -3186,7 +3714,7 @@ Startup_screen_init:
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	LEA	loc_542B8, A0
-	LEA	$FFFFEA00.w, A4
+	LEA	Tilemap_work_buf.w, A4
 	JSR	Decompress_to_ram
 	MOVE.w	#$0187, D2
 	LEA	$FFFFF200.w, A0
@@ -3212,7 +3740,7 @@ loc_2604:
 	DBF	D3, loc_25FC
 	ORI.w	#$2000, D4
 	DBF	D5, loc_25FA
-	LEA	$FFFFE980.w, A1
+	LEA	Palette_buffer.w, A1
 	MOVE.l	#$00000EEE, D1
 	MOVEQ	#3, D3
 loc_262A:
@@ -3224,7 +3752,7 @@ loc_262E:
 	DBF	D3, loc_262A
 	MOVE.w	#1, $FFFFFB08.w
 	LEA	loc_27E0(PC), A0
-	LEA	$FFFFFA00.w, A1
+	LEA	Decomp_code_table.w, A1
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0)+, (A1)+
 	MOVEQ	#-1, D1
@@ -3299,7 +3827,7 @@ loc_2708:
 	LSL.w	#2, D0
 	ADD.w	D0, D6
 	ADD.w	D4, D6
-	LEA	$FFFFEA00.w, A0
+	LEA	Tilemap_work_buf.w, A0
 	MOVE.b	(A0,D6.w), D0
 	AND.w	D7, D0
 	CMP.b	D5, D0
@@ -3410,6 +3938,13 @@ loc_27E8: ; Suspected main menu loop
 	dc.b	$0E, $60, $0C, $40, $06, $20, $0E, $80, $0A, $40, $08, $00, $0E, $A0, $0C, $60, $08, $40, $0E, $C8, $0C, $80, $0A, $40, $0E, $EE, $0E, $A4, $0C, $62, $0E, $C8
 	dc.b	$0C, $80, $0A, $40, $0E, $A0, $0C, $60, $08, $00, $0E, $80, $0A, $40, $08, $20
 ;$00002818
+; Title_anim_frame — per-frame handler for the animated title screen.
+; Updates sprite objects and processes player input.
+; If bit 0 of Title_menu_flags is set (attract-cycle state) and the animation sequence
+;   ends, transitions back to Race_preview_screen_init to loop the attract sequence.
+; A secondary attract-cycle timer also fires back to Race_preview_screen_init.
+; On START press: plays team-select music (Music_team_select), begins cursor processing,
+;   and arms the appropriate title sub-menu handler based on Title_menu_state.
 Title_anim_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
@@ -3503,6 +4038,12 @@ loc_2920:
 	BSR.w	Update_title_menu_state
 	RTS
 ;loc_293C:
+; Title_menu — entry point when player presses START on the title screen.
+; Sets "player-pressed START" bit (bit 3 of Title_menu_flags) then falls through to
+; loc_2952 which fades to black, inits H40 VDP, decompresses the full title screen
+; (three tile sets + four tilemaps for background and Super Monaco GP logo), optionally
+; loads track-preview art when Title_menu_state==2, and installs Title_anim_frame as
+; the per-frame callback with music from Selection_count.
 Title_menu:
 	BSET.b	#3, Title_menu_flags.w
 	BRA.b	loc_2952
@@ -4055,6 +4596,12 @@ loc_31C8:
 loc_31F8:
 	txt "LAPS  "
 ;$000031FE
+; Options_setup_frame — per-frame handler for the WARM UP / RACE / MACHINE / TRANSMISSION
+; options screen.  Fires cursor-move SFX (Sfx_menu_cursor) from Options_cursor_update, then
+; counts down the Screen_scroll transition timer.  When a valid selection is committed
+; (scroll reaches 0) saves Shift_type to Saved_shift_type_2 and restores the frame
+; callback that launched the options screen (via Saved_frame_callback), returning to
+; either the arcade or championship path.
 Options_setup_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
@@ -4121,6 +4668,9 @@ loc_32CC:
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
 	RTS
 ;$000032E0
+; Options_screen_arcade_init — arcade-path entry for the options screen.
+; Restores Saved_shift_type → Shift_type, sets Anim_delay=1, then falls through to
+; Options_screen_init.
 Options_screen_arcade_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -4128,6 +4678,11 @@ Options_screen_arcade_init:
 	MOVE.w	#1, Anim_delay.w
 	BRA.b	loc_3306
 ;Options_screen_init
+; Options_screen_init — initialise the options setup screen (shared between arcade and
+; championship paths).  Fades to black, inits H40 VDP, decompresses the options tileset
+; and four tilemaps (WARM UP / RACE / MACHINE / TRANSMISSION selector panels), draws
+; lap-count and control-type graphics, arms the options cursor object, and installs
+; Options_setup_frame as the per-frame callback.
 Options_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -4183,7 +4738,7 @@ loc_3360:
 	LEA	loc_3432, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.l	#$0030003C, Screen_timer.w
-	MOVE.l	#$000035A8, $FFFFAD80.w
+	MOVE.l	#$000035A8, Main_object_pool.w
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.l	#Options_setup_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
@@ -4212,7 +4767,7 @@ loc_34AC:
 loc_34C6:
 	dc.b	$00, $05
 	dc.b	$E0, $8C, $1A, $02
-	dc.l	$FFFFEA00
+	dc.l	Tilemap_work_buf
 	dc.b	$EC, $32, $0D, $01
 	dc.l	$FFFFEB8E
 	dc.b	$E2, $86, $07, $02
@@ -4335,18 +4890,18 @@ loc_3638:
 	MOVE.l	#$47840003, D7
 	MOVEQ	#9, D6
 	MOVEQ	#8, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	MOVE.w	(A1)+, D1
 	MOVE.l	#$00800000, D3
 	JSR	Write_tilemap_rows_to_vdp
 	MOVE.l	#$479E0003, D7
 	MOVEQ	#8, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	MOVE.w	(A1)+, D1
 	JSR	Write_tilemap_rows_to_vdp
 	MOVE.l	#$47B80003, D7
 	MOVEQ	#8, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	MOVE.w	(A1)+, D1
 	JSR	Write_tilemap_rows_to_vdp
 	JMP	Queue_object_for_sprite_buffer
@@ -4443,6 +4998,13 @@ loc_3748:
 	JSR	Update_road_graphics(PC) ; Commenting out makes road graphics not updates (but signs still move)
 	RTS
 ;$0000375E
+; Championship_race_init — initialise a championship-mode race.
+; Fades to black, inits H32 VDP with raster-split registers ($8238/$8B03/$9011/$9280).
+; Calls Reset_race_state (zeroes all race RAM), Load_track_data, Initialize_race_objects,
+; Initialize_road_graphics_state.  Renders one full frame (road + sprites + HUD) to
+; pre-populate VRAM, decompresses the HUD asset list, draws lap number and target times.
+; Re-enables VBlank, installs Race_loop as Frame_callback and
+; Practice_mode_vblank_handler as Vblank_callback.
 Championship_race_init:
 	JSR	Fade_palette_to_black(PC)
 	JSR	Initialize_h32_vdp_state(PC)
@@ -4476,6 +5038,11 @@ Championship_race_init:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 ;$00003800
+; Arcade_race_init — initialise an arcade-mode race (also used for free-practice races).
+; Near-identical to Championship_race_init but calls Init_race_player_state instead of
+; Reset_race_state (preserves existing championship state).  Conditionally plays
+; Music_race ($10) if Track_index_arcade_mode != 0 (skips music for warmup/demo path).
+; Arms Race_loop + Practice_mode_vblank_handler.
 Arcade_race_init:
 	JSR	Fade_palette_to_black(PC)
 	JSR	Initialize_h32_vdp_state(PC)
@@ -4799,7 +5366,7 @@ loc_3C26:
 	MOVE.l	#Tilemap_draw_queue, Tilemap_queue_ptr.w
 	MOVE.b	#$80, Road_x_offset.w
 	MOVE.w	#802, Visual_rpm.w
-	MOVE.b	#$14, $FFFF92F8.w
+	MOVE.b	#$14, Race_timer_bcd.w
 	MOVE.w	#$E12C, D7
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_3C6A
@@ -4893,6 +5460,10 @@ Reset_race_state:
 	MOVE.w	#1, Crash_spin_flag.w
 	RTS
 ;$00003D84
+; Championship_warmup_race_frame — per-frame handler for the attract-demo race and
+; free-practice/warm-up laps.  Calls Race_loop each frame (full physics + graphics),
+; then decrements Race_frame_counter.  When the counter reaches zero, installs
+; Driver_standings_init ($CCE0) as Frame_callback, completing one attract cycle.
 Championship_warmup_race_frame:
 	JSR	Race_loop(PC)
 	SUBQ.w	#1, Race_frame_counter.w
@@ -4901,6 +5472,11 @@ Championship_warmup_race_frame:
 loc_3D96:
 	RTS
 ;Practice_mode_init
+; Practice_mode_init — initialise a free-practice / warm-up / attract-demo lap.
+; Fades to black, inits H32 VDP, calls Init_race_player_state and Load_track_data.
+; Sets Race_time_bcd=$0012, loads Replay_input_ptr with recorded attract-demo input data,
+; and arms Race_frame_counter=$01F4 (500 frames ≈ 8 s).
+; Installs Championship_warmup_race_frame as Frame_callback (no race music).
 Practice_mode_init:
 	JSR	Fade_palette_to_black(PC)
 	JSR	Initialize_h32_vdp_state(PC)
@@ -4917,7 +5493,7 @@ Practice_mode_init:
 	JSR	Update_objects_and_build_sprite_buffer(PC)
 	JSR	Load_race_hud_graphics(PC)
 	JSR	Initialize_race_hud(PC)
-	MOVE.l	#$00001006, $FFFFB840.w
+	MOVE.l	#$00001006, Aux_object_pool.w
 	MOVE.w	#$01F4, Race_frame_counter.w
 	MOVE.l	#$00073E08, Replay_input_ptr.w
 	MOVE.l	#Championship_warmup_race_frame, Frame_callback.w
@@ -5198,6 +5774,13 @@ loc_425E:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6
 	dc.b	$FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC
 ;$0000429E
+; Race_results_frame — per-frame handler for the post-race PRELIMINARY RACE RESULTS screen.
+; Each frame alternates writing two cached VDP tilemap rows (blinking "P.P" / placement
+; text) from the buffer at $FFFFE800.  Counts down Screen_timer ($021C ≈ 8.5 s) or
+; responds to any face-button press.
+; On expiry or button press:
+;   championship path (Use_world_championship_tracks != 0) → Championship_next_race_init
+;   arcade path → resets Track_index_arcade_mode=1, jumps to Arcade_race_init
 Race_results_frame:
 	JSR	Wait_for_vblank
 	LEA	$FFFFE800.w, A0
@@ -5226,6 +5809,13 @@ loc_42F2:
 loc_42F6:
 	RTS
 ;$000042F8
+; Race_finish_results_init — initialise the PRELIMINARY RACE RESULTS screen shown after
+; the player crosses the finish line.  Fades to black, halts audio, inits H40 VDP.
+; Decompresses the "PRELIMINARY RACE RESULTS" tileset and background tilemap to VRAM.
+; Renders placement strings (P.P / 2nd–15th) at fixed screen positions.
+; Accumulates a BCD lap-time penalty from a lap-count table ($473C) indexed by
+; Current_lap.  Sets Screen_timer=$021C, plays Music_race_results, and installs
+; Race_results_frame as the per-frame callback.
 Race_finish_results_init:
 	JSR	Fade_palette_to_black
 	JSR	Halt_audio_sequence
@@ -5293,13 +5883,13 @@ loc_43FA:
 	MOVE.w	Current_lap.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	$FFFFAD40.w, A0
+	LEA	Track_lap_target_buf.w, A0
 	MOVE.l	Lap_time_ptr.w, (A0,D0.w)
 	RTS
 
 loc_440E:
 	LEA	VDP_data_port, A1
-	LEA	$FFFFAD40.w, A0
+	LEA	Track_lap_target_buf.w, A0
 	LEA	$FFFFE810.w, A3
 	LEA	loc_471E(PC), A2
 	MOVEQ	#$0000000D, D4
@@ -5348,6 +5938,14 @@ loc_4498:
 	DBF	D0, loc_4498
 	RTS
 ;$000044A8
+; Pre_race_display_frame — per-frame handler for the arcade inter-race countdown overlay
+; (the "5, 4, 3…" flashing counter shown before race 2+).
+; Writes a pulsing tile word to VDP ($70000003 address) based on Frame_counter parity.
+; Copies a 2-of-4-frame palette buffer each frame.  Decrements Race_frame_counter:
+;   at $A4 frames → plays Sfx_checkpoint (SFX $06)
+;   at $2E frames → plays Sfx_race_start  (SFX $05)
+; When the counter reaches zero or a face button is pressed: sets
+;   Track_index_arcade_mode=2 and jumps to Arcade_race_init.
 Pre_race_display_frame:
 	JSR	Wait_for_vblank
 	MOVE.b	Frame_counter.w, D0
@@ -5358,7 +5956,7 @@ Pre_race_display_frame:
 	MOVE.w	D0, VDP_data_port
 	ANDI.w	#4, D1
 	MULU.w	#$009B, D1
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	ADDA.w	D1, A6
 	MOVE.l	#$658A0003, D7
 	MOVEQ	#$0000001E, D6
@@ -5406,7 +6004,7 @@ loc_4528:
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	$FFFF9AC0.w, A0
+	LEA	Sprite_attr_buf.w, A0
 	MOVE.w	#$010C, D0
 	MOVEQ	#1, D1
 	MOVEQ	#1, D2
@@ -5774,6 +6372,13 @@ loc_4AA8:
 
 ;Upload_palette_buffer_to_vdp
 Upload_palette_buffer_to_vdp:
+; Write 16 longwords (64 bytes) of palette tile data to the VDP data port
+; using the current Screen_scroll address command.
+; Used during certain non-race screens (menus, results) to update per-tile
+; colour selection data rather than the full CRAM palette.
+; Alternates between two 64-byte sub-buffers at $FFFFCE00/$FFFFCE40 on even/odd
+; frames (Frame_counter bit 0) to implement double-buffering of the tile strip.
+; Does nothing if Screen_scroll is 0.
 	MOVE.l	Screen_scroll.w, D0
 	BEQ.b	loc_4AE0
 	LEA	VDP_data_port, A6
@@ -5843,6 +6448,11 @@ loc_4B5A:
 	MOVE.b	#$36, (A0)
 	RTS
 ;$00004B76
+; Pre_race_preview_car_frame — per-frame handler for the spinning-car pre-race preview
+; screen.  Updates the car-selection animation (Update_car_selection_screen), uploads
+; palettes, builds the sprite list.
+; On START press → plays music 9 (Music_pre_race), returns to Title_menu.
+; When Screen_timer expires → transitions to the name/initials entry screen ($2592).
 Pre_race_preview_car_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_car_selection_screen(PC)
@@ -5860,6 +6470,11 @@ loc_4BA2:
 loc_4BB0:
 	RTS
 ;$00004BB2
+; Pre_race_screen_championship_init — initialise the pre-championship spinning-car
+; preview screen.  Fades to black, inits H40 VDP, clears objects.
+; Decompresses one-row tilemap and the track-panorama background into VRAM.
+; Sets up car-preview sprite object and arms Screen_timer=$01E0 (480 frames ≈ 8 s).
+; Installs Pre_race_preview_car_frame as the per-frame callback.
 Pre_race_screen_championship_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -5887,7 +6502,7 @@ loc_4BE2:
 
 ;Initialize_race_track_scroll_tables
 Initialize_race_track_scroll_tables:
-	LEA	$FFFF9700.w, A0
+	LEA	Road_scale_table.w, A0
 	LEA	$FFFF9600.w, A1
 	MOVEQ	#$00000077, D0
 	MOVE.l	#$00000148, D1
@@ -5916,7 +6531,7 @@ loc_4C44:
 Update_car_selection_screen:
 	MOVE.w	Screen_tick.w, D0
 	MULU.w	#$02B4, D0
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	ADDA.w	D0, A6
 	MOVE.l	#$4C000003, D7
 	MOVEQ	#8, D6
@@ -6165,7 +6780,7 @@ Render_number_tiles_at_row_col:
 ;Render_packed_digits_to_vdp
 Render_packed_digits_to_vdp:
 	JSR	Set_vdp_command_from_tile_index(PC)
-	LEA	$FFFFFCB0.w, A1
+	LEA	Digit_scratch_buf.w, A1
 	MOVE.l	D0, (A1)
 	MOVEQ	#8, D2
 	SUB.w	D1, D2
@@ -6224,7 +6839,7 @@ loc_4F90:
 	MOVE.b	(A1,D0.w), D1
 	EXT.w	D1
 	ADD.w	D1, D1
-	LEA	$FFFF9700.w, A1
+	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D1.w), $16(A0)
 	LEA	$FFFF9600.w, A1
 	MOVE.w	(A1,D1.w), $18(A0)
@@ -6312,9 +6927,23 @@ loc_5104:
 loc_5108:
 	RTS
 
-loc_510A:
+;loc_510A
+Initialize_default_lap_times:
+; Copy ROM default BCD lap-time records into RAM.
+;
+; Copies the per-track default best-lap and target-lap time data from ROM
+; (loc_553E) into the Track_lap_time_records block in work RAM.
+;
+; First pass ($24 iterations = 36 tracks × 4 bytes):
+;   Each 4-byte RAM record is filled as: 0x00, rom_byte0, rom_byte1, 0x00.
+;   (Minutes=0, seconds=BCD, frames=BCD, sub=0.)
+;
+; Second pass ($24 iterations = 36 longwords):
+;   Copy 36 longwords verbatim (target-lap time table data).
+;
+; Called once during first-boot initialization before the warm-reboot path.
 	LEA	loc_553E(PC), A0
-	LEA	$FFFFFD00.w, A1
+	LEA	Track_lap_time_records.w, A1 ; base of per-track BCD lap-time records block
 	MOVEQ	#$00000023, D0
 loc_5114:
 	CLR.b	(A1)+
@@ -6403,7 +7032,7 @@ loc_519A:
 
 loc_51E4:
 	JSR	Sort_championship_standings(PC)
-	LEA	$FFFF8FA0.w, A0
+	LEA	Score_scratch_buf.w, A0
 	LEA	$FFFF8FC0.w, A1
 	LEA	Drivers_and_teams_map.w, A2
 	MOVE.b	Player_team.w, D7
@@ -6538,6 +7167,10 @@ loc_553E:
 	dc.b	$12, $19, $01, $00, $02, $03, $12, $47, $04, $03, $28, $00, $11, $12, $1B, $00, $10, $30, $09, $00, $FF, $00, $00, $00, $80, $00, $00, $00, $1D, $0A, $17, $00
 	dc.b	$10, $00, $00, $02, $FF, $00, $00, $00, $80, $00, $00, $00, $10, $0E, $1B, $00
 ;$00005616
+; Title_menu_frame — per-frame handler for the track-selection sub-screen shown in the
+; championship path (from Championship_start_init).  Updates sprites and decrements
+; Screen_subcounter.  On directional input adjusts Track_index; on button press routes
+; to Options_screen_init (confirm selection) or Title_menu (cancel/back).
 Title_menu_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
@@ -6567,16 +7200,21 @@ loc_5662:
 	MOVE.l	#Title_menu, Frame_callback.w
 	RTS
 loc_5672:
-	ADDQ.w	#1, $FFFFFF28.w
+	ADDQ.w	#1, Track_preview_index.w
 	BRA.b	loc_567C
 loc_5678:
-	SUBQ.w	#1, $FFFFFF28.w
+	SUBQ.w	#1, Track_preview_index.w
 loc_567C:
-	ANDI.w	#$000F, $FFFFFF28.w
-	MOVE.w	$FFFFFF28.w, Track_index.w
+	ANDI.w	#$000F, Track_preview_index.w
+	MOVE.w	Track_preview_index.w, Track_index.w
 	MOVE.w	#$000F, Screen_scroll.w
 	RTS
 ;$00005690
+; Championship_start_init — entry point when the player selects WORLD CHAMPIONSHIP from
+; the title menu.  Clears Player_team, fades to black, inits H32 VDP, clears objects.
+; Sets Selection_count=$000E (Music_championship_start), Use_world_championship_tracks=1.
+; Decompresses the championship intro tilemaps, loads the scrolling team-logo strip,
+; and installs Title_menu_frame as the per-frame callback.
 Championship_start_init:
 	MOVE.b	#0, Player_team.w
 	JSR	Fade_palette_to_black
@@ -6585,7 +7223,7 @@ Championship_start_init:
 	MOVE.w	#$000E, Selection_count.w
 	MOVE.w	#$9003, VDP_control_port
 	MOVE.w	#1, Use_world_championship_tracks.w
-	MOVE.w	$FFFFFF28.w, Track_index.w
+	MOVE.w	Track_preview_index.w, Track_index.w
 	MOVE.w	#8, D0
 loc_56C6:
 	MOVE.l	#0, VDP_data_port
@@ -6596,7 +7234,7 @@ loc_56C6:
 	MOVE.w	#$001F, D6
 	MOVE.w	#$0011, D5
 	JSR	Decompress_tilemap_to_vdp_128_cell_rows
-	LEA	$FFFFEE80.w, A6
+	LEA	Championship_logo_buf.w, A6
 	MOVE.l	#$64800003, D7
 	MOVE.w	#$001F, D6
 	MOVE.w	#9, D5
@@ -6727,7 +7365,7 @@ loc_58C4:
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	CLR.l	D0
 	LEA	loc_32228, A6
-	MOVE.w	$FFFFFF28.w, D0
+	MOVE.w	Track_preview_index.w, D0
 	MULS.w	#$003B, D0
 	ADDA.l	D0, A6
 	LEA	VDP_data_port, A5
@@ -6746,6 +7384,14 @@ loc_58C4:
 
 ;loc_5996:
 Draw_bcd_time_to_vdp:
+; Format a BCD lap/race time longword from (A2) into a 4-longword tile buffer
+; at $FFFFE85C via Format_bcd_time_to_tile_buffer, then write those 16 bytes
+; directly to VDP_data_port to update the on-screen time display.
+; The VDP must already be positioned to the correct VRAM row by the caller
+; (via a prior VDP_control_port write, e.g. $61460003).
+; Inputs:
+;  A2 = pointer to BCD time longword (minutes/seconds/centiseconds packed)
+;  D3 = tile attribute word (palette / priority bits ORed into tile indices)
 	MOVE.l	(A2), D0
 	LEA	$FFFFE85C.w, A3
 	JSR	Format_bcd_time_to_tile_buffer
@@ -6910,7 +7556,7 @@ loc_5B00:
 ;   else:
 ;     1. loc_5C1E: collision RPM penalty (Rpm_derivative spike)
 ;     2. loc_5C46: slipstream / drafting boost from nearby AI cars
-;     3. loc_5CAA: track-based RPM modifier (unknown_track_data_1)
+;     3. loc_5CAA: track-based RPM modifier (Track_phys_slope_value: hill gradient drag)
 ;     4. loc_5CC4: obstacle collision deceleration
 ;     5. If brake key held → skip to Update_visual_rpm (Update_breaking handles RPM)
 ;     6. Read Acceleration_data[shift_type][shift][rpm/50]:
@@ -7086,7 +7732,7 @@ loc_5CA8:
 	RTS
 
 loc_5CAA:
-	MOVE.w	$FFFF920A.w, D0 ; unknown_track_data_1
+	MOVE.w	Track_phys_slope_value.w, D0 ; physical slope at current position (negative = uphill → RPM drag)
 	BEQ.b	loc_5CC2
 	BTST.b	#0, Frame_counter.w
 	BNE.b	loc_5CC2
@@ -7114,9 +7760,9 @@ loc_5CC4:
 	CLR.w	Player_speed_raw.w ; then speed = 0
 	BRA.b	loc_5CFC
 loc_5CF0:
-	TST.w	$FFFFFC9A.w
+	TST.w	Ai_speed_override.w
 	BEQ.b	loc_5D30
-	MOVE.w	$FFFFFC9A.w, Player_speed_raw.w
+	MOVE.w	Ai_speed_override.w, Player_speed_raw.w
 loc_5CFC:
 	MOVE.w	Player_speed_raw.w, Player_speed.w ; Deacceleration from non-lethal obstacle collision
 	CLR.l	D0
@@ -7456,10 +8102,24 @@ loc_61FC: ; Suspected backwindow tile mappings
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008
 
 ;loc_6224:
-Load_track_data: ; Suspected: Level initialization
+Load_track_data:
+; Load and decompress all per-track data for the current track.
+; Calls Load_track_data_pointer to get A1 → Track_data entry, then:
+;   1. Read Track_horizon_override_flag (+$20) and track length (+$22)
+;   2. Copy signs data (+$24) and tileset (+$28) pointers to $FFFF9240/$FFFF9254
+;   3. Read minimap position map pointer (+$2C) → Minimap_track_map_ptr
+;   4. RLE-decompress curve data (+$30) → Curve_data and Background_horizontal_displacement
+;   5. RLE-decompress visual slope data (+$34) → Visual_slope_data and Background_vertical_displacement
+;   6. RLE-decompress physical slope data (+$38) → Physical_slope_data
+;   7. Load BCD lap-time base pointer (+$3C) → Track_lap_time_base_ptr
+;   8. Expand per-lap target times (+$40) → Track_lap_target_buf (15 × 4-byte BCD records)
+;   9. Initialise BCD lap time accumulator at $FFFFAD74 from Shift_type
+;  10. Load steering divisors (+$44) → Steering_divisor_straight / Steering_divisor_curve
+;  11. Initialise placement sequence from loc_73CA/loc_73DC
+
 	JSR	Load_track_data_pointer
 	LEA	$20(A1), A1
-	MOVE.w	(A1)+, Track_unknown_field_1.w ; ?
+	MOVE.w	(A1)+, Track_horizon_override_flag.w ; 1 = special horizon palette (West Germany, Italy, Belgium)
 	MOVE.w	(A1)+, D2 ; track length
 	MOVE.w	D2, Track_length.w
 	SUBI.w	#$00A9, D2
@@ -7516,7 +8176,7 @@ loc_62A8:
 loc_62BC:
 	MOVE.b	#$FF, (A3)
 	MOVEA.l	(A1)+, A0 ; slope data
-	LEA	$00FF7300, A3
+	LEA	Visual_slope_data, A3
 	LEA	Background_vertical_displacement, A2
 	MOVE.b	(A0)+, D2 ; initial vertical background displacement
 	EXT.w	D2
@@ -7546,8 +8206,8 @@ loc_62F2:
 	BRA.b	loc_62D6
 loc_6302:
 	MOVE.b	#$FF, (A3)
-	MOVEA.l	(A1)+, A0 ; unknown_track_data_1
-	LEA	$00FF8300, A2
+	MOVEA.l	(A1)+, A0 ; physical slope data (decoded to Physical_slope_data at $00FF8300)
+	LEA	Physical_slope_data, A2 ; destination: physical slope table
 loc_630E:
 	MOVE.b	(A0)+, D6
 	BMI.b	loc_6322
@@ -7560,9 +8220,9 @@ loc_631A:
 	DBF	D6, loc_631A
 	BRA.b	loc_630E
 loc_6322:
-	MOVE.l	(A1)+, $FFFF92FC.w
+	MOVE.l	(A1)+, Track_lap_time_base_ptr.w ; Track_data +$3C: pointer into Track_lap_time_records for current track
 	MOVEA.l	(A1)+, A2
-	LEA	$FFFFAD40.w, A3
+	LEA	Track_lap_target_buf.w, A3
 	MOVEQ	#$0000000E, D0
 loc_632E:
 	CLR.b	(A3)+
@@ -7618,7 +8278,7 @@ loc_63AC:
 	LEA	-$4(A6), A6
 	DBF	D1, loc_6360
 loc_63B8:
-	MOVE.l	(A1)+, $FFFFFF52.w
+	MOVE.l	(A1)+, Steering_divisor_straight.w ; Track_data +$44: steering divisors (.w straight, .w curve)
 	MOVE.w	Track_length.w, $FFFF922C.w
 	MOVE.l	loc_FDCA, $FFFF922E.w
 	LEA	loc_73CA(PC), A6
@@ -7627,13 +8287,25 @@ loc_63B8:
 	LEA	loc_73DC(PC), A6
 loc_63DA:
 	MOVE.w	(A6), Current_placement.w
-	MOVE.w	(A6)+, $FFFFFC7A.w
+	MOVE.w	(A6)+, Placement_next_threshold.w
 	MOVE.l	A6, $FFFF9284.w
 	RTS
 
 ;loc_63E8:
 Initialize_road_graphics_state:
-	LEA	$FFFF9700.w, A0
+; Initialise the per-row road scale table at $FFFF9700 and the per-row
+; Y-position table at $FFFF9480, then seed Player_distance_fixed from the
+; Background_horizontal_displacement table at the current Player_distance.
+;
+; $FFFF9700: 60 pairs of words, counting down from $2F ($47 iterations).
+;            These represent scan-line scale factors for the road perspective.
+; $FFFF9480: 19 pairs of words, counting up from $B4 ($12 iterations).
+;            These represent screen Y positions for road row boundaries.
+;
+; Player_distance_fixed is the smooth (sub-step) parallax integration
+; accumulator.  Seeding it from the displacement table at startup prevents
+; a one-frame snap on the first rendered frame.
+	LEA	Road_scale_table.w, A0
 	MOVEQ	#$0000003B, D0
 	MOVEQ	#$0000002F, D1
 loc_63F0:
@@ -7657,7 +8329,28 @@ loc_6404:
 	MOVE.w	D0, Player_distance_fixed.w
 	RTS
 
-loc_6428:
+;loc_6428
+Initialize_ui_tilemap_buffers:
+; Decompress and arrange all persistent UI tilemap buffers in work RAM.
+;
+; These buffers hold the pre-rendered tile-attribute words for the title screen,
+; championship standings, options screen, team select, and related UI panels.
+; They are built once at boot and reused each time the corresponding screen is
+; entered, avoiding repeated decompression during gameplay.
+;
+; Steps:
+;  1. Fill $FFFFD900 with $0700 words of $04F9 (blank tile pattern) to clear
+;     the UI scratch area.
+;  2. Decompress the packed UI tilemap from ROM (loc_54724) into the scratch
+;     area via Decompress_tilemap_to_buffer.
+;  3. Copy multiple 2D rectangular sub-regions from the decompressed tilemap
+;     into their permanent layout RAM slots using Copy_2d_rect_words.
+;     Each slot corresponds to one re-usable screen panel (results, standings,
+;     options rows, team select boxes, etc.).
+;  4. Duplicate the main panel block to a second bank for double-buffering.
+;  5. Repeat for a second packed tilemap (H32-mode variant or second set of
+;     screens) with additional Copy_2d_rect_words calls.
+;  6. Copy the assembled set to $FFFFE000 (the tilemap draw queue input area).
 	LEA	$FFFFD900.w, A0
 	MOVE.w	#$04F9, D0
 	MOVE.w	#$06FF, D1
@@ -7821,6 +8514,17 @@ loc_6622:
 
 ;Write_road_scroll_with_sky_to_vdp
 Write_road_scroll_with_sky_to_vdp:
+; Write 768 H-scroll words from the road scroll work buffer ($FFFFF600) to
+; the VDP data port.  Each word has its top nibble masked off (AND $9FFF) and
+; the sky colour (D0) ORed in, so the sky row colour can be changed without
+; rebuilding the whole scroll table.
+;
+; Called from the VBlank handler after the HScroll table has been set up in
+; VRAM by Update_road_tile_scroll.  The 768 words cover all 224 scan lines
+; in per-line HScroll mode.
+;
+; Inputs:
+;  D0.w = sky colour / palette bits to OR into each HScroll word
 	MOVE.w	#$02FF, D1
 	MOVE.w	#$9FFF, D2
 	LEA	$FFFFF600.w, A0
@@ -7835,8 +8539,21 @@ loc_664E:
 
 ;Copy_displacement_rows_to_work_buffer
 Copy_displacement_rows_to_work_buffer:
-; Bulk-copies road scroll displacement rows from A0 into the work buffer
-; at $FFFFF600 using MOVEM for speed.
+; Bulk-copy a road scroll displacement row table from A0 into the work buffer
+; at $FFFFF600 using MOVEM for maximum throughput (14 × 48-byte chunks +
+; one 16-byte partial), then patch 7 rows using the curved-road displacement
+; values from the $FFFF9658 per-scanline curve table.
+;
+; The main copy covers the straight/flat road H-scroll values pre-computed for
+; the current background zone.  The patch loop applies lateral displacement for
+; curves: each of the 7 road rows gets 32 displacement entries re-indexed from
+; a 256-entry displacement look-up table, centred at $80 and negated.
+;
+; Inputs:
+;  A0 = source road scroll row table (one of $FFFFD400, $FFFFD680, or similar)
+;  A1 = base of displacement reference table (set by caller in Update_road_tile_scroll)
+; Outputs:
+;  $FFFFF600 = updated road H-scroll work buffer (ready for Write_road_scroll_with_sky_to_vdp)
 	LEA	$FFFFF600.w, A2
 	MOVEM.l	(A0)+, D0-D7/A3-A6
 	MOVEM.l	D0-D7/A3-A6, (A2)
@@ -7909,6 +8626,33 @@ loc_674C:
 
 ;loc_674E:
 Update_road_graphics:
+; Main per-frame road and background rendering update.
+; Called once per frame from Race_loop (step 15).  Skipped when Race_finish_flag is set.
+;
+; Steps:
+;  1. Background vertical scroll: read Background_vertical_displacement at
+;     Player_distance/4, sign-extend, store in $FFFF9236 (VDP V-scroll register cache).
+;  2. Background horizontal parallax: read Background_horizontal_displacement at
+;     Player_distance/2 (even index), shift left 6, convert to 32-bit fixed-point,
+;     then integrate toward target using Player_distance_fixed accumulator
+;     (smooth parallax scrolling).  Store integer part in Player_distance_steps.
+;  3. Road scanline descriptors: select one of 16 sub-step offset blocks from
+;     the pre-computed road scan-line descriptor table at loc_6F940 based on
+;     (Player_distance & $F).  Copy 4 × 48-byte blocks to $FFFFAC40 (road
+;     scan-line work area used by the road tile painter).
+;  4. HUD scroll blanking: if HUD_scroll_base != 0, fill that row in the
+;     scan-line work area with $FF40 (blank/transparent tile) and clear the flag.
+;  5. Retire flash: if bit 0 is set in $FFFF9239, blank a row range (from
+;     $FFFFAFEC) with $FF40.
+;  6. Road-edge/turn sign placement: compute upcoming sign distance, look up
+;     edge Y position from the loc_6E750 Y-position table, fill the sign
+;     row region with $FF40, and update sign position flag ($FFFFFC86).
+;  7. Background zone colouring: if Background_zone_index != 0, AND the
+;     appropriate scan-line words with $FF40 for the sky/ground colour split.
+;  8. Road tile row builder: build the per-scanline road tile index sequence
+;     at $FFFF9D40 from the current Tileset_base_offset, scale table, and
+;     per-row Y table; handles retire flash (alternating pattern at bit 0 of
+;     Frame_counter).
 	TST.w	Race_finish_flag.w
 	BNE.b	loc_674C
 	MOVE.w	Player_distance.w, D0
@@ -8038,7 +8782,7 @@ loc_68A2:
 loc_68C6:
 	MOVE.w	D0, $FFFF922A.w
 loc_68CA:
-	TST.w	Track_unknown_field_1.w
+	TST.w	Track_horizon_override_flag.w
 	BEQ.b	loc_68DE
 	LEA	loc_7356(PC), A0
 loc_68D4:
@@ -8508,14 +9252,35 @@ loc_6D5A:
 
 ;loc_6D66:
 Update_slope_data:
+; Rebuild the 40-entry slope displacement table for the current track position.
+; Called from Race_loop step 13 whenever the player advances.
+;
+; Steps:
+;  1. Look up physical slope byte at Physical_slope_data[Player_distance/4] and
+;     store at Track_phys_slope_value (used by Update_rpm to apply hill RPM drag).
+;  2. Call Integrate_curveslope 40 times for the slope data stream at
+;     Visual_slope_data+1, storing 40 signed displacement words descending from
+;     $FFFF984E (A6 -= 2 each call).  Sentinel (carry set) fills remainder
+;     with $8000.
+;  3. Scale the integrated entries using Scale_curveslope_entry and a
+;     look-up table at loc_6EBE (40 reciprocal scale factors).
+;  4. Interpolate the scaled slope entries into the 96-entry display buffer
+;     at $FFFF97C0 using Interpolate_curveslope_segment and a segment-count
+;     table at loc_6F0E.
+;  5. Add a ramp offset (0..47) to each of the 96 display entries to produce
+;     the final per-scanline slope contribution.
+;  6. Push a snapshot of the current register set into $FFFF9AC0 (8×14 regs)
+;     using MOVEM to allow the road renderer to replay the slope state.
+;  7. Build the road-centre vertical position lookup at $FFFF9900 from the
+;     slope data at $FFFF9700 using a gap-fill scan for the rival-car sprite.
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
-	LEA	$00FF8300, A5
-	MOVE.b	(A5,D0.w), D1 ; unknown_track_data_1 lookup
+	LEA	Physical_slope_data, A5
+	MOVE.b	(A5,D0.w), D1 ; physical slope at current track step (index = Player_distance/4)
 	EXT.w	D1
-	MOVE.w	D1, $FFFF920A.w
+	MOVE.w	D1, Track_phys_slope_value.w
 	LEA	$FFFF9850.w, A6
-	LEA	$00FF7301, A5 ; slope data
+	LEA	Visual_slope_data+1, A5 ; visual slope data stream (+1 to skip sentinel byte)
 	MOVEQ	#$00000027, D7
 	MOVEQ	#0, D6
 	MOVEQ	#0, D4
@@ -8570,7 +9335,7 @@ loc_6DF0:
 	ADDQ.w	#1, D6
 	DBF	D7, loc_6DF0
 	MOVEM.l	$00FF5980, D0-D7/A0-A3/A4/A5
-	LEA	$FFFF9AC0.w, A6
+	LEA	Sprite_attr_buf.w, A6
 	MOVEM.l	A5/A4/A3/A2/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A6)
 	MOVEM.l	A5/A4/A3/A2/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A6)
 	MOVEM.l	A5/A4/A3/A2/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A6)
@@ -8581,7 +9346,7 @@ loc_6DF0:
 	MOVEM.l	A5/A4/A3/A2/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A6)
 	LEA	$FFFFAEDA.w, A2
 	CLR.w	(A2)
-	LEA	$FFFF9700.w, A1
+	LEA	Road_scale_table.w, A1
 	LEA	$FFFF9900.w, A0
 	MOVE.w	(A1)+, D0
 	BMI.w	loc_6E88
@@ -8737,16 +9502,24 @@ loc_6F1A:
 
 ;loc_6F5E:
 Integrate_curveslope:
-; Called stepwise for a constant value D2, storing its corresponding integral in A6
-; Integrates an entry from Road_displacement_table, and continues with a new entry when D2 changes (new "streak")
-; Used for curve and slope data for road graphical displacement
-; Left turn and down slope produces negative values, right turn and up slope positive.
+; Stepwise integrator for curve or slope data.  Appends one displacement word
+; to the output array at A6 (A6 decrements by 2 each call).  Looks up the
+; road displacement value for the current streak from Road_displacement_table
+; via A4.  A new A4 pointer is loaded only when D2 changes from the previous
+; call (start of a new turn / gradient streak).  Returns with carry clear on
+; success, carry set when the displacement table sentinel is reached (end of
+; streak data).
+; Used for curve data (called from loc_6BDA / loc_6C4C) and slope data
+; (called from Update_slope_data) to produce per-step road graphical offsets.
+; Left turn / down slope → negative displacement; right turn / up slope → positive.
 ; Inputs:
-;D0 = "step" (distance travelled on track)
-;D1 = value of curve/slope data at previous step, initially -1
-;D2 = curve/slope data for step
-;D4 = accumulated integral, initially 0. Written to A6.
-;D6 = accumulated integral for current curve/slope "streak", initially 0. Also: bit $1F set if previous call was right turn/up slope.
+;  D0 = track step index (distance travelled)
+;  D1 = curve/slope byte from previous step, initially -1 (forces table reload)
+;  D2 = curve/slope byte for current step
+;  D4 = accumulated integral (initially 0); written as word to (A6), A6 -= 2
+;  D6 = streak integral accumulator (initially 0); bit 31 = direction flag
+;  A4 = Road_displacement_table pointer for current streak (updated when D2 changes)
+;  A6 = output array pointer (word, predecrement)
 	CMP.b	D2, D1
 	BEQ.b	loc_6F82 ; jump if same curve/slope data as last step (continues with precious A4 value)
 	MOVE.w	D2, D1
@@ -8873,6 +9646,26 @@ loc_7048:
 
 ;loc_704C
 Update_road_tile_scroll:
+; Update the per-scanline HScroll table in the $FFFFF600 work buffer and
+; optionally update the road edge guard-rail tile positions.
+; Called once per frame from Race_loop (step 16).
+;
+; Steps:
+;  1. If $FFFF9280 == 0, skip scroll rebuild and jump directly to the curve
+;     interpolation section.
+;  2. Select source road scroll table based on Background_zone_index:
+;     zone 0 → $FFFFD400/$FFFFD900, other → $FFFFD680/$FFFFE000.
+;  3. Call Copy_displacement_rows_to_work_buffer to populate $FFFFF600.
+;  4. If $FFFF9280 == 2, skip guard-rail update (jump to loc_710A).
+;  5. Determine road edge tile column positions from $FFFFAFD6/$FFFFAFD8
+;     (player horizontal position / road width), clamp to 12 road rows.
+;  6. Call Fill_table_stride_loop twice to write left/right guard-rail tile
+;     indices at the computed column positions across the scroll table.
+;  7. At loc_7114: Regardless of $FFFF9280, process 7 curve interpolation
+;     rows at $FFFF9658 using $FFFF91BA (previous values); compare old vs new
+;     displacement and interpolate intermediate scroll values in $FFFFEA00
+;     buffers for smooth curve entry/exit transitions.
+;  8. Clear $FFFF9280, set $FFFF9282 = 1 (scroll updated flag).
 	TST.w	$FFFF9280.w
 	BEQ.w	loc_7114
 	TST.w	Background_zone_index.w
@@ -8948,7 +9741,7 @@ loc_710A:
 loc_7114:
 	LEA	$FFFF9658.w, A0
 	LEA	$FFFF91BA.w, A1
-	LEA	$FFFFEA00.w, A2
+	LEA	Tilemap_work_buf.w, A2
 	MOVE.w	#$FFF8, D7
 	MOVEQ	#0, D0
 	MOVEQ	#6, D2
@@ -9108,7 +9901,7 @@ loc_72D6:
 	MOVE.l	#$49800003, D0
 	LEA	$FFFF91BC.w, A0
 	LEA	VDP_data_port, A1
-	LEA	$FFFFEA00.w, A2
+	LEA	Tilemap_work_buf.w, A2
 	MOVEQ	#6, D1
 loc_72EC:
 	TST.w	(A0)
@@ -9192,7 +9985,7 @@ loc_73DC:
 	dc.b	$00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05, $00, $03, $00, $02
 ;loc_73EE:
 Update_race_timer:
-	TST.w	$FFFFFCB6.w
+	TST.w	Race_timer_freeze.w
 	BNE.b	loc_73FE
 	CLR.w	New_lap_flag.w
 	TST.w	Race_started.w
@@ -9202,9 +9995,9 @@ loc_73FE:
 loc_7400:
 	dc.b	$95, $90, $85, $80, $75, $70, $65, $60, $55, $50, $45, $40, $35, $30, $25, $20, $15, $10, $05, $00
 loc_7414:
-	TST.w	$FFFFFC6E.w
+	TST.w	Laps_done_flag.w
 	BNE.b	loc_73FE
-	LEA	$FFFF92F8.w, A0
+	LEA	Race_timer_bcd.w, A0
 	SUBQ.b	#1, (A0)
 	BNE.b	loc_745A
 	MOVE.b	#$14, (A0)
@@ -9234,16 +10027,16 @@ loc_745A:
 loc_7464:
 	MOVE.l	(A0), Lap_time_ptr.w
 	CLR.b	Lap_time_ptr.w
-	MOVE.w	$FFFF9234.w, D0
+	MOVE.w	Best_ai_distance.w, D0
 	MOVE.w	Laps_completed.w, D1
-	MOVE.w	D1, $FFFF9234.w
+	MOVE.w	D1, Best_ai_distance.w
 	CMP.w	D1, D0
 	BEQ.w	loc_750E
 	MOVE.w	#1, Placement_change_flag.w
 	TST.w	D1
 	BEQ.w	loc_750E
 	MOVE.w	#1, New_lap_flag.w
-	MOVE.l	#$000076C2, $FFFFAD80.w
+	MOVE.l	#$000076C2, Main_object_pool.w
 	CLR.l	(A0)
 	MOVE.b	#$14, (A0)
 	TST.w	Track_index_arcade_mode.w
@@ -9281,12 +10074,12 @@ loc_74EA:
 loc_74FC:
 	MOVE.l	#$0000A50E, D1
 	JSR	Alloc_aux_object_slot
-	MOVE.w	#1, $FFFFFC6E.w
+	MOVE.w	#1, Laps_done_flag.w
 loc_750E:
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_758E
 	MOVE.l	(A0), D0
-	TST.w	$FFFFFC6E.w
+	TST.w	Laps_done_flag.w
 	BEQ.b	loc_7520
 	MOVE.l	Lap_time_ptr.w, D0
 loc_7520:
@@ -9305,7 +10098,7 @@ loc_7520:
 	MOVE.w	Current_lap.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	$FFFFAD40.w, A1
+	LEA	Track_lap_target_buf.w, A1
 	MOVE.l	(A1,D0.w), D0
 	CMP.l	Lap_time_ptr.w, D0
 	BCC.w	loc_7612
@@ -9317,7 +10110,7 @@ loc_7520:
 	JSR	Alloc_aux_object_slot
 	BRA.w	loc_7612
 loc_758E:
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BNE.b	loc_7612
 	TST.w	New_lap_flag.w
 	BEQ.b	loc_75AA
@@ -9340,7 +10133,7 @@ loc_75B0:
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_7612
 	MOVE.l	$FFFF92DC.w, $FFFF92D8.w
-	LEA	$FFFF92FC.w, A1
+	LEA	Track_lap_time_base_ptr.w, A1
 	LEA	$FFFF92DC.w, A2
 	JSR	Bcd_add_lap_time(PC)
 	MOVE.l	$FFFF92D8.w, D0
@@ -9362,7 +10155,7 @@ loc_7614:
 	CMP.l	(A1), D0
 	BCC.b	loc_7654
 	MOVE.l	D0, (A1)
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BNE.b	loc_7654
 	MOVE.w	#$8000, D3
 	LEA	$FFFFE85C.w, A3
@@ -9425,11 +10218,11 @@ loc_76B0:
 	MOVE.b	D0, $1(A2)
 loc_76C0:
 	RTS
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BNE.b	loc_7704
 	TST.w	Warm_up.w
 	BEQ.b	loc_76F8
-	TST.w	$FFFFFC6E.w
+	TST.w	Laps_done_flag.w
 	BNE.w	loc_7778
 	MOVE.l	#$62780003, D7
 	MOVE.w	Laps_completed.w, D1
@@ -9500,7 +10293,7 @@ loc_7782:
 	MOVE.l	#loc_77A6, (A0)
 	MOVE.w	#$000E, $1C(A0)
 loc_77A6:
-	TST.w	$FFFFFCAC.w
+	TST.w	Player_eliminated.w
 	BEQ.b	loc_77B4
 	CLR.w	$1A(A0)
 	BSR.b	loc_77E4
@@ -9571,13 +10364,13 @@ Update_gap_to_rival_display:
 	CMPI.w	#$00C8, Aux_object_counter.w
 	BCC.b	loc_7876
 	ADDQ.w	#1, Aux_object_counter.w
-	MOVE.w	#$FFFF, $FFFFFC96.w
+	MOVE.w	#$FFFF, Best_ai_place.w
 loc_7874:
 	RTS
 loc_7876:
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_7874
-	MOVEA.w	$FFFFFC90.w, A0
+	MOVEA.w	Rival_ai_car_ptr.w, A0
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	loc_7890
 	TST.w	Has_rival_flag.w
@@ -9620,7 +10413,7 @@ loc_78E4:
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE82C.w, A6
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BEQ.b	loc_7908
 	MOVE.l	#$41000000, D7
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
@@ -9645,12 +10438,12 @@ loc_7930:
 	BEQ.b	loc_793A
 	ADDQ.w	#8, A6
 loc_793A:
-	CMP.w	$FFFFFC96.w, D0
+	CMP.w	Best_ai_place.w, D0
 	BEQ.b	loc_7966
-	MOVE.w	D0, $FFFFFC96.w
+	MOVE.w	D0, Best_ai_place.w
 	MOVEA.l	(A6), A6
 	MOVEQ	#1, D5
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BEQ.b	loc_795A
 	MOVE.l	#$41100000, D7
 	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
@@ -9715,12 +10508,12 @@ loc_7AA4:
 	MOVE.w	D0, $FFFFFC8E.w
 	MOVE.w	#$FFFF, $28(A0)
 	MOVE.w	#$FFFF, Laps_completed.w
-	MOVE.w	#$FFFF, $FFFF9234.w
+	MOVE.w	#$FFFF, Best_ai_distance.w
 loc_7AF0:
 	TST.w	Race_finish_flag.w
 	BNE.w	loc_7B82
-	MOVE.w	$1E(A0), $FFFF8F80.w
-	MOVE.w	#$FFFF, $FFFF8FA0.w
+	MOVE.w	$1E(A0), Depth_sort_buf.w
+	MOVE.w	#$FFFF, Score_scratch_buf.w
 	MOVE.w	Player_speed.w, $26(A0)
 	TST.w	Pit_in_flag.w
 	BEQ.b	loc_7B76
@@ -9763,10 +10556,10 @@ loc_7B84:
 	MOVE.w	#$1234, $28(A0)
 	MOVEQ	#0, D7
 	JSR	loc_7D16(PC)
-	LEA	$FFFFFCDE.w, A2
+	LEA	Collision_palette_buf.w, A2
 	MOVE.l	#$00007E2A, D1
 	MOVE.l	#$00007EE2, D3
-	TST.b	$FFFFFC9C.w
+	TST.b	Ai_side_flag.w
 	BNE.b	loc_7BB4
 	ADDQ.w	#6, A2
 	MOVE.l	#$00007E32, D1
@@ -9810,7 +10603,7 @@ loc_7C0A:
 	NEG.w	Overtake_delta.w
 loc_7C26:
 	MOVEQ	#$0000001E, D0
-	TST.b	$FFFFFC9C.w
+	TST.b	Ai_side_flag.w
 	BNE.b	loc_7C30
 	MOVEQ	#$0000001C, D0
 loc_7C30:
@@ -9821,7 +10614,7 @@ loc_7C3A:
 	JSR	Decrement_lap_time_bcd(PC)
 	JSR	Update_tire_wear_counter(PC)
 loc_7C42:
-	CLR.w	$FFFFFC9A.w
+	CLR.w	Ai_speed_override.w
 	MOVE.w	Overtake_position_delta.w, D0
 	BEQ.b	loc_7C6E
 	BMI.b	loc_7C58
@@ -9833,18 +10626,18 @@ loc_7C58:
 	ADDQ.w	#1, D0
 loc_7C60:
 	MOVE.w	D0, Overtake_position_delta.w
-	CLR.w	$FFFFFCBA.w
-	CLR.w	$FFFFFC98.w
+	CLR.w	Ai_x_delta.w
+	CLR.w	Ai_overtake_ready.w
 	BRA.b	loc_7C90
 loc_7C6E:
-	MOVE.w	$FFFFFC98.w, D0
+	MOVE.w	Ai_overtake_ready.w, D0
 	BEQ.b	loc_7C90
-	MOVE.w	$FFFFFCB4.w, $FFFFFC9A.w
+	MOVE.w	Ai_speed_delta.w, Ai_speed_override.w
 	JSR	Decrement_lap_time_bcd(PC)
 	JSR	Update_tire_wear_counter(PC)
-	MOVE.w	$FFFFFCBA.w, Overtake_position_delta.w
-	CLR.w	$FFFFFCBA.w
-	CLR.w	$FFFFFC98.w
+	MOVE.w	Ai_x_delta.w, Overtake_position_delta.w
+	CLR.w	Ai_x_delta.w
+	CLR.w	Ai_overtake_ready.w
 loc_7C90:
 	MOVE.w	#$00E0, D6
 	MOVE.w	#$0140, D7
@@ -9940,7 +10733,7 @@ loc_7D4C:
 	ADD.w	D1, D0
 	LEA	loc_3CE09, A1
 	ADDA.w	D0, A1
-	LEA	$FFFFFCDE.w, A2
+	LEA	Collision_palette_buf.w, A2
 	JSR	Write_3_palette_vdp_bytes(PC)
 	ADDQ.w	#2, A1
 	JSR	Write_3_palette_vdp_bytes(PC)
@@ -10101,9 +10894,9 @@ loc_7F8E:
 loc_7FA2:
 	JMP	Clear_object_slot
 loc_7FA8:
-	MOVE.w	#1, $FFFFFC6E.w
+	MOVE.w	#1, Laps_done_flag.w
 	MOVE.w	#1, Race_finish_flag.w
-	CLR.w	$00FF5AC6
+	CLR.w	Audio_engine_flags
 	TST.w	Warm_up.w
 	BNE.b	loc_8032
 	TST.w	Practice_mode.w
@@ -10177,6 +10970,10 @@ loc_80C2:
 
 ;Compute_minimap_index
 Compute_minimap_index:
+; Convert a raw track distance in D0 to a word-aligned minimap position index.
+; Shifts D0 right by 5 and clears bit 0, giving a 2-byte-aligned index into
+; the minimap position map.  Falls through to Load_minimap_position.
+; Inputs:  D0 = track distance (e.g. Car_obj_dist field)
 	MOVEQ	#0, D1
 	MOVEQ	#0, D2
 	LSR.w	#5, D0
@@ -10184,9 +10981,11 @@ Compute_minimap_index:
 
 ;Load_minimap_position
 Load_minimap_position:
-; Reads two position bytes from the track minimap data (via ptr at Minimap_track_map_ptr)
-; at index D0 and stores them into $2C(A0) and $2E(A0) of the object slot.
-; Inputs:  D0 = track position index, A0 = object slot
+; Read the (x, y) minimap pixel position for a car at track index D0 and
+; store the two bytes into the object slot at +$2C (x) and +$2E (y).
+; The position map is a flat array of (x,y) pairs indexed by track position;
+; Minimap_track_map_ptr holds the address of the current track's map.
+; Inputs:  D0 = minimap position index (word-aligned), A0 = object slot
 	MOVEA.l	Minimap_track_map_ptr.w, A1
 	MOVE.b	(A1,D0.w), $2C(A0)
 	MOVE.b	$1(A1,D0.w), $2E(A0)
@@ -10250,20 +11049,20 @@ loc_8140:
 ;   3. Read curve data at current track step:
 ;        curve displacement = curve_sharpness × speed  (positive = pushed to outside of turn)
 ;   4. Steering contribution = (Steering_output << 6) / divisor  (scaled by speed at low speeds)
-;        divisor from $FFFFFF52 table; in championship mode adjusted per track via Track_steering_index_b.
+;        divisor from Steering_divisor_straight/Steering_divisor_curve table; in championship mode adjusted per track via Track_steering_index_b.
 ;   5. Integrate both into Horizontal_position, clamped to ±$01900000 (±$01500000 on some tracks).
 ;   6. Collision detection: if on a curve, steering hard into the curve (|Steering_output| ≥ $64),
 ;      car is far off-centre, and speed ≥ $20 → set Collision_flag = $FFFF.
 ; Player_x_negated = −Horizontal_position.w is written for the road renderer.
 Update_horizontal_position:
 	CLR.w	Collision_flag.w
-	LEA	$FFFFFF52.w, A0
+	LEA	Steering_divisor_straight.w, A0
 	LEA	loc_8998(PC), A2
 	MOVE.w	Overtake_delta.w, D3
 	OR.w	Overtake_position_delta.w, D3
-	BNE.w	loc_8244
+	BNE.w	Update_horizontal_position_Done
 	MOVE.w	Player_speed.w, D3
-	BEQ.w	loc_8244
+	BEQ.w	Update_horizontal_position_Done
 	MOVE.l	#$01900000, D6
 	CMPI.w	#2, $FFFF9238.w
 	BCS.b	loc_8176
@@ -10327,34 +11126,35 @@ loc_81F0:
 loc_81F6:
 	MOVE.l	D7, Horizontal_position.w ; commenting out makes car never mode sideways
 	TST.l	D1
-	BEQ.b	loc_8244
+	BEQ.b	Update_horizontal_position_Done
 	MOVE.w	D5, D0
 	ANDI.w	#$003F, D0
-	BEQ.b	loc_8244
+	BEQ.b	Update_horizontal_position_Done
 	MOVE.b	Steering_output.w, D0
 	SMI	D7
 	BPL.b	loc_8210
 	NEG.b	D0
 loc_8210:
 	CMPI.b	#$64, D0
-	BCS.b	loc_8244
+	BCS.b	Update_horizontal_position_Done
 	BTST.l	#6, D5
 	BNE.b	loc_822A
 	TST.b	D7
-	BEQ.b	loc_8244
+	BEQ.b	Update_horizontal_position_Done
 	CMPI.l	#$FFFF4000, D1
-	BLT.b	loc_8244
+	BLT.b	Update_horizontal_position_Done
 	BRA.b	loc_8236
 loc_822A:
 	TST.b	D7
-	BNE.b	loc_8244
+	BNE.b	Update_horizontal_position_Done
 	CMPI.l	#$0000C000, D1
-	BGT.b	loc_8244
+	BGT.b	Update_horizontal_position_Done
 loc_8236:
 	CMPI.w	#$0020, Player_speed.w
-	BCS.b	loc_8244
+	BCS.b	Update_horizontal_position_Done
 	MOVE.w	#$FFFF, Collision_flag.w
-loc_8244:
+;loc_8244
+Update_horizontal_position_Done:
 	MOVE.w	Horizontal_position.w, D0
 	NEG.w	D0
 	MOVE.w	D0, Player_x_negated.w
@@ -10395,11 +11195,11 @@ loc_8290:
 	MOVEQ	#0, D0
 loc_82AC:
 	MOVE.w	D0, New_placement.w
-	MOVE.w	#1, $FFFFFC8C.w
+	MOVE.w	#1, Placement_award_pending.w
 loc_82B6:
 	MOVEA.l	$FFFF9284.w, A0
 	MOVE.w	(A0)+, D0
-	MOVE.w	D0, $FFFFFC7A.w
+	MOVE.w	D0, Placement_next_threshold.w
 	MOVE.l	A0, $FFFF9284.w
 	CMP.w	Player_grid_position.w, D0
 	BCS.b	loc_82CE
@@ -10415,7 +11215,7 @@ loc_82E0:
 loc_82EA:
 	CLR.w	Placement_change_flag.w
 	MOVE.w	Current_placement.w, D1
-	CMP.w	$FFFFFC7A.w, D1
+	CMP.w	Placement_next_threshold.w, D1
 	BEQ.b	loc_8312
 	CMP.w	Player_grid_position.w, D1
 	BLS.b	loc_8312
@@ -10453,17 +11253,17 @@ loc_8344:
 	LEA	$40(A0), A0
 	DBF	D2, loc_8324
 	LEA	-$1E(A4), A4
-	MOVE.w	A4, $FFFFFCAA.w
+	MOVE.w	A4, Best_ai_car_ptr.w
 	LEA	-$1E(A5), A5
-	MOVE.w	A5, $FFFFFC92.w
-	MOVE.w	$FFFFFC90.w, D0
+	MOVE.w	A5, Second_ai_car_ptr.w
+	MOVE.w	Rival_ai_car_ptr.w, D0
 	BEQ.b	loc_8370
 	MOVEA.w	D0, A4
 	LEA	$400(A4), A4
 	MOVE.l	#loc_127C8, $4(A4)
 loc_8370:
 	LEA	-$1E(A6), A6
-	MOVE.w	A6, $FFFFFC90.w
+	MOVE.w	A6, Rival_ai_car_ptr.w
 	LEA	(A6), A4
 	LEA	$400(A4), A4
 	MOVE.l	#loc_127C0, $4(A4)
@@ -10490,23 +11290,23 @@ loc_83BE:
 	MOVE.w	#3, Placement_anim_state.w
 	MOVE.w	#3, Placement_anim_state_b.w
 	MOVE.w	Retire_animation_flag.w, D0
-	OR.w	$FFFFFCAC.w, D0
+	OR.w	Player_eliminated.w, D0
 	BNE.w	loc_8456
-	MOVE.w	#1, $FFFFFCAC.w
+	MOVE.w	#1, Player_eliminated.w
 	MOVE.l	#$0000853E, D1
 	JSR	Alloc_aux_object_slot
 	TST.w	Retire_flag.w
 	BNE.b	loc_8456
-	MOVE.w	#1, $FFFFFC6E.w
+	MOVE.w	#1, Laps_done_flag.w
 	MOVE.w	#1, Race_finish_flag.w
-	CLR.w	$00FF5AC6
+	CLR.w	Audio_engine_flags
 	MOVE.l	#$00009E08, D1
 	JSR	Alloc_aux_object_slot
 	BRA.b	loc_8456
 loc_840E:
 	TST.w	Race_started.w
 	BEQ.b	loc_8464
-	MOVEA.w	$FFFFFCAA.w, A0
+	MOVEA.w	Best_ai_car_ptr.w, A0
 	MOVE.w	Player_place_score.w, D1
 	SUB.w	$1E(A0), D1
 	LSR.w	#4, D1
@@ -10516,7 +11316,7 @@ loc_840E:
 	MOVE.w	#8, D1
 	BRA.b	loc_843E
 loc_8430:
-	MOVEA.w	$FFFFFC92.w, A0
+	MOVEA.w	Second_ai_car_ptr.w, A0
 	CMPI.w	#$0078, $E(A0)
 	BCS.b	loc_83BE
 	MOVEQ	#1, D1
@@ -10528,9 +11328,9 @@ loc_843E:
 	BNE.b	loc_8456
 	MOVE.w	#Sfx_checkpoint, Audio_sfx_cmd      ; checkpoint / lap event SFX
 loc_8456:
-	TST.w	$FFFFFC8C.w
+	TST.w	Placement_award_pending.w
 	BEQ.b	loc_8464
-	CLR.w	$FFFFFC8C.w
+	CLR.w	Placement_award_pending.w
 	JSR	Award_race_position_points(PC)
 loc_8464:
 	RTS
@@ -10557,18 +11357,18 @@ loc_848A:
 loc_8490:
 	LEA	$40(A0), A0
 	DBF	D2, loc_8482
-	MOVE.w	$FFFFFC90.w, D0
+	MOVE.w	Rival_ai_car_ptr.w, D0
 	BEQ.b	loc_84AC
 	MOVEA.w	D0, A4
 	LEA	$400(A4), A4
 	MOVE.l	#loc_127C8, $4(A4)
 loc_84AC:
 	LEA	-$1E(A6), A6
-	MOVE.w	A6, $FFFFFC90.w
+	MOVE.w	A6, Rival_ai_car_ptr.w
 	LEA	$400(A6), A6
 	MOVE.l	#loc_127C0, $4(A6)
 	MOVE.w	D1, Player_grid_position.w
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BNE.b	loc_84E2
 	MOVE.l	#$625C0003, D7
 
@@ -10612,7 +11412,7 @@ loc_8516:
 loc_8518:
 	MOVE.w	D2, Player_grid_position.w
 	MOVE.w	D3, Rival_grid_position.w
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BNE.b	loc_84E2
 	MOVE.w	D2, D1
 	MOVE.l	#$625C0003, D7
@@ -10657,7 +11457,7 @@ loc_85A4:
 	CLR.w	$22(A0)
 	CLR.w	$1A(A0)
 loc_85B8:
-	TST.w	$FFFFFCAC.w
+	TST.w	Player_eliminated.w
 	BEQ.b	loc_85C6
 	CLR.w	$1A(A0)
 	BSR.b	loc_85F6
@@ -10820,7 +11620,7 @@ Update_pit_prompt:
 	BEQ.w	loc_87D0
 	TST.w	Track_index_arcade_mode.w
 	BEQ.w	loc_87D0
-	CLR.w	$FFFFFC9E.w
+	CLR.w	Pit_prompt_flag.w
 	TST.w	$FFFF9150.w
 	BEQ.b	loc_87D0
 	CMPI.w	#4, Laps_completed.w
@@ -10832,7 +11632,7 @@ Update_pit_prompt:
 	ADDI.w	#$0154, D0
 	CMP.w	Player_distance.w, D0
 	BCS.b	loc_8788
-	MOVE.w	#1, $FFFFFC9E.w
+	MOVE.w	#1, Pit_prompt_flag.w
 	BTST.b	#KEY_C, Input_state_bitset.w
 	BEQ.b	loc_8788
 	MOVE.w	#1, Pit_in_flag.w
@@ -10841,7 +11641,7 @@ loc_8788:
 	MOVEQ	#1, D0
 	TST.w	Pit_in_flag.w
 	BNE.b	loc_87BC
-	TST.w	$FFFFFC9E.w
+	TST.w	Pit_prompt_flag.w
 	BEQ.b	loc_87A4
 	BTST.b	#0, Frame_counter.w
 	BNE.b	loc_87BC
@@ -10936,29 +11736,46 @@ loc_8998:
 
 ;loc_89AC:
 Parse_tileset_for_signs:
-; $FFFF9254 = track tileset for sign start memory location
-; $FFFF9258 = track tileset for sign current
-	TST.w	$FFFFFC72.w
+; Advance the sign tileset stream pointer to the next entry whose track
+; distance is within 120 units of the player, then write its 10-byte DMA
+; descriptor into Sign_tileset_buf ($FFFF925C).
+;
+; Called once per frame from the race loop (step that handles signage).
+; No-op while Finish_line_sign_active is set (flagkeeper tileset already loaded).
+;
+; Sign tileset stream format (Track_data +$28):
+;   Word 0 (.w) : track distance of this tileset switch
+;   Word 1 (.w) : byte offset into Sign_tileset_table
+;   Terminated by $FFFF (negative distance → BPL falls through → reset pointer)
+;
+; Sign_tileset_table entry format (8 bytes):
+;   Longword : DMA source address
+;   Word     : DMA transfer length
+;   Word     : secondary word field
+;
+; Output: Sign_tileset_buf ($FFFF925C) filled with 8 bytes from the table
+;         entry plus a $FFFF sentinel word.
+	TST.w	Finish_line_sign_active.w
 	BNE.b	loc_89F2
-	MOVEA.l	$FFFF9258.w, A0 ; current sign
-	MOVE.w	(A0)+, D0 ; distance to sign
+	MOVEA.l	Signs_tileset_ptr.w, A0   ; current read position in tileset stream
+	MOVE.w	(A0)+, D0                  ; track distance of next tileset entry
 	BPL.b	loc_89C2
-	MOVE.l	$FFFF9254.w, $FFFF9258.w ; End of tileset ($FFFF), read from start again
+	MOVE.l	Signs_tileset_start_ptr.w, Signs_tileset_ptr.w ; end sentinel ($FFFF) → reset to start
 	BRA.b	Parse_tileset_for_signs
 loc_89C2:
-	SUB.w	Player_distance.w, D0 ; D0 = distance to sign
+	SUB.w	Player_distance.w, D0     ; D0 = distance from player to entry
 	CMPI.w	#$0078, D0
-	BCS.b	loc_89D6 ; jump if distance to sign < 120
-	ADD.w	Track_length.w, D0
+	BCS.b	loc_89D6                   ; jump if within 120 units
+	ADD.w	Track_length.w, D0         ; wrap: check again relative to track end
 	CMPI.w	#$0078, D0
-	BCC.b	loc_89F2 ; continue if distance to sign? < 120 (sign appears after finish line next lap?)
+	BCC.b	loc_89F2                   ; still > 120 → not yet; return
 loc_89D6:
-	MOVE.w	(A0)+, D0 ; tilset offset
-	MOVE.l	A0, $FFFF9258.w ; next sign
+	MOVE.w	(A0)+, D0                  ; D0 = byte offset into Sign_tileset_table
+	MOVE.l	A0, Signs_tileset_ptr.w    ; save advanced stream pointer
 	LEA	Sign_tileset_table, A0
 	ADDA.w	D0, A0
 loc_89E4:
-	LEA	$FFFF925C.w, A1 ; write tileset table entry to memory
+	LEA	Sign_tileset_buf.w, A1       ; write 10-byte DMA descriptor + $FFFF sentinel
 	MOVE.l	(A0)+, (A1)+
 	MOVE.w	(A0)+, (A1)+
 	MOVE.w	(A0), (A1)+
@@ -10968,7 +11785,35 @@ loc_89F2:
 
 ;loc_89F4:
 Parse_sign_data:
-	TST.w	$FFFFFC72.w
+; Advance the sign data stream pointer to the next sign whose track distance
+; is within 120 units of the player, then allocate an aux object slot for it.
+;
+; Called once per frame from the race loop alongside Parse_tileset_for_signs.
+; No-op while Finish_line_sign_active is set.
+;
+; In practice/warm-up mode: jumps straight to the main sign-spawn path.
+; In championship/arcade mode: only spawns signs during the first lap
+;   (championship) or during the correct lap count (arcade multi-lap).
+; Near the finish line (< 120 units from track end): loads the flagkeeper
+;   tileset (loc_12A34) and sets Finish_line_sign_active = 1.
+;
+; Sign data stream format (Track_data +$24):
+;   Word 0 (.w) : track distance of this sign group
+;   Byte 2      : number of signs in the row group
+;   Byte 3      : sign identifier (index into Sign_lookup_table × 4)
+;   Terminated by $FFFF distance word (negative → reset pointer to stream start)
+;
+; Sign lookup table (Sign_lookup_table):
+;   Each entry is a .l pointer to a byte list of tile-frame indices, $FF-terminated.
+;   Values 0       = special/null sign
+;   Values 1–$14   = normal signs → aux object handler from loc_8B1C dispatch table
+;   Values $15+    = special objects (tunnel, etc.) → stored at Tunnel_handler_ptr
+;
+; Signs in a row: Signs_in_row_count signs are placed at Signs_location,
+;   Signs_location+$10, +$20, … (spacing of $10 per sign).
+;
+; On sign spawn: Alloc_aux_object_slot is called with D1=handler, D0=location.
+	TST.w	Finish_line_sign_active.w
 	BNE.b	loc_89F2
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
@@ -10988,43 +11833,43 @@ loc_8A20:
 	MOVE.w	Track_length.w, D0
 	SUB.w	Player_distance.w, D0
 	CMPI.w	#$0078, D0
-	BCC.b	loc_8A44 ; continue if distance to track end < 120
-	MOVE.w	#1, $FFFFFC72.w
-	MOVE.l	#$0000A174, $FFFFAF80.w
+	BCC.b	loc_8A44                          ; > 120 units to end → no finish-line sign yet
+	MOVE.w	#1, Finish_line_sign_active.w      ; arm flagkeeper; block further sign spawns
+	MOVE.l	#$0000A174, $FFFFAF80.w            ; flagkeeper full-track handler pointer
 	LEA	loc_12A34, A0
-	BRA.b	loc_89E4
+	BRA.b	loc_89E4                           ; write loc_12A34 tileset to Sign_tileset_buf
 loc_8A44:
-	MOVEA.l	$FFFF9244.w, A0
-	MOVE.w	(A0)+, D0 ; D0 = sign location (distance from start)
+	MOVEA.l	Signs_data_ptr.w, A0
+	MOVE.w	(A0)+, D0                          ; D0 = sign group distance from track start
 	BPL.b	loc_8A54
-	MOVE.l	$FFFF9240.w, $FFFF9244.w ; reset sign data to start, done each new lap?
+	MOVE.l	Signs_data_start_ptr.w, Signs_data_ptr.w ; end sentinel → reset to start (new lap)
 	BRA.b	Parse_sign_data
-loc_8A54: ; parse sign data
+loc_8A54: ; sign is at D0 distance from start
 	MOVE.w	D0, D1
-	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
+	SUB.w	Player_distance.w, D1             ; D1 = distance to sign
 	CMPI.w	#$0078, D1
-	BCS.b	loc_8A6A ; jump if distance to sign < 120
-	ADD.w	Track_length.w, D1
+	BCS.b	loc_8A6A                           ; jump if within 120 units
+	ADD.w	Track_length.w, D1                 ; wrap: check again relative to track end
 	CMPI.w	#$0078, D1
-	BCC.b	loc_8A92 ; continue if distance to sign? < 120 (sign appears after finish line next lap?)
+	BCC.b	loc_8A92                           ; still out of range → return
 loc_8A6A:
-	ADDQ.l	#4, $FFFF9244.w
-	MOVE.w	D0, $FFFF9250.w ; sign location
-	MOVE.b	(A0)+, D0 ; D0 = how many signs in a row
+	ADDQ.l	#4, Signs_data_ptr.w               ; consume this 4-byte record
+	MOVE.w	D0, Signs_location.w               ; store sign's track distance
+	MOVE.b	(A0)+, D0                          ; D0 = signs-in-row count
 	EXT.w	D0
-	MOVE.w	D0, $FFFF9252.w
-	MOVE.b	(A0)+, D0 ; D0 = sign identifier to lookup
+	MOVE.w	D0, Signs_in_row_count.w
+	MOVE.b	(A0)+, D0                          ; D0 = sign identifier (index into Sign_lookup_table)
 	EXT.w	D0
 	ADD.w	D0, D0
-	ADD.w	D0, D0
+	ADD.w	D0, D0                             ; D0 × 4 = byte offset into Sign_lookup_table
 	LEA	Sign_lookup_table, A0
 	ADDA.w	D0, A0
-	MOVE.l	(A0), $FFFF9248.w ; sign table entry (start)
-	MOVE.l	(A0), $FFFF924C.w ; sign table entry (current)
+	MOVE.l	(A0), Sign_table_entry_start.w     ; save pointer to start of frame-index list
+	MOVE.l	(A0), Sign_table_entry_ptr.w       ; also set current read position
 loc_8A92:
-	MOVE.w	$FFFF9252.w, D0 ; D0 = how many signs in a row remaining
-	BEQ.b	loc_8B04        ; return if 0
-	MOVE.w	$FFFF9250.w, D0 ; D0 = sign location
+	MOVE.w	Signs_in_row_count.w, D0           ; D0 = signs remaining in row
+	BEQ.b	loc_8B04                            ; 0 → nothing to spawn; return
+	MOVE.w	Signs_location.w, D0               ; D0 = distance of next sign in row
 	MOVE.w	D0, D1
 	SUB.w	Player_distance.w, D1 ; D1 = distance to sign
 	CMPI.w	#$0078, D1
@@ -11033,17 +11878,17 @@ loc_8A92:
 	CMPI.w	#$0078, D1
 	BCC.b	loc_8B04 ; continue if distance to sign? < 120 (sign appears for next lap?)
 loc_8AB2:
-	ADDI.w	#$0010, $FFFF9250.w ; add spacing to next sign in row?
+	ADDI.w	#$0010, Signs_location.w   ; advance location by spacing to next sign in row
 loc_8AB8:
-	MOVEA.l	$FFFF924C.w, A0 ; ...
-	MOVE.b	(A0)+, D1       ; D1 = sign table byte
+	MOVEA.l	Sign_table_entry_ptr.w, A0 ; current position in frame-index list
+	MOVE.b	(A0)+, D1                   ; D1 = frame-index byte ($FF = end of list)
 	BPL.b	loc_8ACE
-	MOVE.l	$FFFF9248.w, $FFFF924C.w ; restart at first byte in sign table entry after $FF
-	SUBQ.w	#1, $FFFF9252.w ; decrement signs in a row count
-	BNE.b	loc_8AB8 ; loop for each sign in a row
+	MOVE.l	Sign_table_entry_start.w, Sign_table_entry_ptr.w ; $FF sentinel → restart list
+	SUBQ.w	#1, Signs_in_row_count.w    ; one fewer sign in this row
+	BNE.b	loc_8AB8                    ; loop while more signs remain
 	BRA.b	loc_8B04
 loc_8ACE:
-	MOVE.l	A0, $FFFF924C.w ; next byte in sign table entry
+	MOVE.l	A0, Sign_table_entry_ptr.w  ; save advanced frame-index list pointer
 	EXT.w	D1
 	BEQ.b	loc_8B04 ; jump to RTS if sign table byte = 0 (special sign?)
 	CMPI.w	#$0015, D1
@@ -11058,7 +11903,7 @@ Alloc_aux_object_slot:
 ; Finds a free slot (handler == 0) in the aux object pool at $FFFFB840,
 ; writes handler pointer D1 and initial data D0 into it.
 ; Carry clear = slot allocated; Carry set (via fallthrough branch) = pool full.
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	MOVEQ	#$00000020, D2
 
 ;Find_free_aux_object_slot
@@ -11120,7 +11965,7 @@ loc_8BA2:
 	BEQ.b	loc_8BCC
 	MOVE.w	#$2000, $C(A0)
 	JSR	Compute_ai_position_and_depth_sort(PC)
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	CMPA.w	#0, A6
 	BEQ.b	loc_8BC6
@@ -11130,9 +11975,9 @@ loc_8BC6:
 	RTS
 loc_8BCC:
 	TST.b	$3F(A0)
-	BNE.w	loc_8CC0
+	BNE.w	Update_background_ai_car
 	CMPI.w	#$28BC, $1E(A0)
-	BCS.w	loc_8CC0
+	BCS.w	Update_background_ai_car
 	CMPI.w	#$000C, Player_grid_position.w
 	BCS.b	loc_8C0A
 	MOVE.b	#$FF, $3F(A0)
@@ -11142,15 +11987,15 @@ loc_8BCC:
 	MOVE.w	D0, $32(A0)
 	MOVE.w	#$00E6, $34(A0)
 	MOVE.b	#4, $2B(A0)
-	BRA.w	loc_8CC0
+	BRA.w	Update_background_ai_car
 loc_8C0A:
 	MOVE.w	Frame_subtick.w, D7
-	BEQ.w	loc_8CC0
+	BEQ.w	Update_background_ai_car
 	MOVE.w	Player_place_score.w, D0
 	SUB.w	$1E(A0), D0
-	BMI.w	loc_8CC0
+	BMI.w	Update_background_ai_car
 	CMPI.w	#$00A0, D0
-	BCS.w	loc_8CC0
+	BCS.w	Update_background_ai_car
 	MOVE.w	#$0AFC, D0
 	MOVE.w	#$0100, D1
 	LSR.w	#1, D7
@@ -11159,10 +12004,10 @@ loc_8C0A:
 	NEG.w	D1
 loc_8C38:
 	CMP.w	$1A(A0), D0
-	BHI.w	loc_8CC0
+	BHI.w	Update_background_ai_car
 	ADDQ.w	#8, D0
 	CMP.w	$1A(A0), D0
-	BCS.b	loc_8CC0
+	BCS.b	Update_background_ai_car
 	MOVE.b	#$FF, $25(A0)
 	MOVE.w	D1, $12(A0)
 	TST.b	$10(A0)
@@ -11185,21 +12030,28 @@ loc_8C74:
 	MOVE.b	#1, $3C(A0)
 loc_8C98:
 	JSR	Skip_if_hidden_flag(PC)
-	BRA.b	loc_8CC0
+	BRA.b	Update_background_ai_car
 loc_8C9E:
-	MOVE.l	#loc_8CC0, (A0)
+	MOVE.l	#Update_background_ai_car, (A0)
 	MOVE.w	$12(A0), $36(A0)
 	MOVE.w	$1A(A0), $1E(A0)
 	MOVE.w	#$FFFF, $22(A0)
 	MOVE.b	#3, $24(A0)
 	CLR.b	$3C(A0)
-loc_8CC0:
+;loc_8CC0
+Update_background_ai_car:
+; Per-frame update handler for background AI competitor cars.
+; Installed via: MOVE.l #Update_background_ai_car, (A0)
+; A0 = pointer to AI car object slot ($40 bytes).
+; Skips movement if race not started or finished.
+; When obstacle flag ($3E) is set, skips straight to Advance_ai_track_position.
+; Otherwise runs lateral lane-change oscillation, then falls to Advance_ai_track_position.
 	TST.w	Race_finish_flag.w
 	BNE.w	loc_8FE4
 	TST.w	Race_started.w
 	BEQ.w	loc_8FE4
 	TST.b	$3E(A0)
-	BNE.w	loc_8F76
+	BNE.w	Advance_ai_track_position
 	TST.b	$10(A0)
 	BEQ.b	loc_8D18
 	SUBQ.b	#1, $15(A0)
@@ -11222,7 +12074,7 @@ loc_8D06:
 	MOVEQ	#8, D0
 loc_8D10:
 	MOVE.w	D0, $26(A0)
-	BRA.w	loc_8F76
+	BRA.w	Advance_ai_track_position
 loc_8D18:
 	LEA	$38(A0), A2
 	MOVEQ	#1, D7
@@ -11311,7 +12163,7 @@ loc_8DE6:
 	CLR.b	$3D(A0)
 	TST.b	D6
 	BEQ.w	loc_8EFA
-	BRA.w	loc_8F76
+	BRA.w	Advance_ai_track_position
 loc_8DFA:
 	DBF	D7, loc_8D1E
 	LEA	Curve_data+1, A5
@@ -11357,7 +12209,7 @@ loc_8E6E:
 	BNE.w	loc_8F32
 	MOVEQ	#-7, D0
 	JSR	Apply_lateral_offset_clamped_with_flip(PC)
-	BRA.w	loc_8F76
+	BRA.w	Advance_ai_track_position
 loc_8E84:
 	TST.w	D3
 	BEQ.b	loc_8ED4
@@ -11428,15 +12280,15 @@ loc_8EFA:
 	CLR.w	$28(A0)
 loc_8F32:
 	TST.b	$3D(A0)
-	BEQ.b	loc_8F76
+	BEQ.b	Advance_ai_track_position
 	MOVE.w	$12(A0), D0
 	BPL.b	loc_8F40
 	NEG.w	D0
 loc_8F40:
 	CMPI.w	#$0090, D0
-	BCC.b	loc_8F76
+	BCC.b	Advance_ai_track_position
 	TST.w	$22(A0)
-	BMI.b	loc_8F76
+	BMI.b	Advance_ai_track_position
 	MOVE.w	Horizontal_position.w, D0
 	SUB.w	$12(A0), D0
 	SLT	D1
@@ -11444,9 +12296,9 @@ loc_8F40:
 	NEG.w	D0
 loc_8F5A:
 	CMPI.w	#$0048, D0
-	BCS.b	loc_8F76
+	BCS.b	Advance_ai_track_position
 	CMPI.w	#$00B8, D0
-	BCC.b	loc_8F76
+	BCC.b	Advance_ai_track_position
 	MOVEQ	#4, D0
 	SUB.w	$22(A0), D0
 	TST.b	D1
@@ -11454,7 +12306,12 @@ loc_8F5A:
 	NEG.w	D0
 loc_8F72:
 	JSR	Apply_lateral_offset_clamped(PC)
-loc_8F76:
+;loc_8F76
+Advance_ai_track_position:
+; Shared merge point: advance AI car track position by its current speed.
+; Uses loc_6EC60 speed-to-distance table: D0 = speed*4 word index.
+; Adds distance delta to $1E(A0) (AI track distance lo-word) and $1A(A0) (hi-word offset).
+; When position wraps past Track_length, increments lap count and may set obstacle flag.
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
@@ -11469,7 +12326,7 @@ loc_8F76:
 	ADDQ.w	#1, $22(A0)
 	TST.b	$3C(A0)
 	BEQ.b	loc_8FC8
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BEQ.b	loc_8FB8
 	TST.w	$FFFFFCC0.w
 	BNE.b	loc_8FB8
@@ -11492,7 +12349,7 @@ loc_8FE4:
 	MOVE.w	#$2000, $C(A0)
 	CLR.b	$3D(A0)
 	JSR	Compute_ai_position_and_depth_sort(PC)
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	TST.b	$3C(A0)
 	BEQ.b	loc_9008
@@ -11537,15 +12394,15 @@ loc_907C:
 loc_9086:
 	CLR.l	$38(A0)
 	MOVE.b	Frame_counter.w, D0
-	ADD.w	$FFFFFF14.w, D0
+	ADD.w	Object_update_counter.w, D0
 	LSR.w	#1, D0
 	BCC.b	loc_910E
 	MOVE.w	$1A(A0), D0
 	LSR.w	#2, D0
 	MOVE.b	$2D(A0), D1
 	MOVE.b	$2F(A0), D2
-	LEA	$00FF8300, A5
-	MOVE.b	(A5,D0.w), D3 ; unknown_track_data_1 lookup
+	LEA	Physical_slope_data, A5
+	MOVE.b	(A5,D0.w), D3 ; physical slope at AI car's track position
 	MOVE.b	D3, $2D(A0)
 	LEA	Curve_data+1, A5
 	MOVE.b	(A5,D0.w), D4
@@ -11702,7 +12559,7 @@ loc_924C:
 	MOVEQ	#8, D0
 loc_925E:
 	MOVE.w	D0, $26(A0)
-	BRA.w	loc_94C4
+	BRA.w	Advance_rival_track_position
 loc_9266:
 	LEA	$38(A0), A2
 	MOVEQ	#1, D7
@@ -11791,7 +12648,7 @@ loc_9334:
 	CLR.b	$3D(A0)
 	TST.b	D6
 	BEQ.w	loc_9448
-	BRA.w	loc_94C4
+	BRA.w	Advance_rival_track_position
 loc_9348:
 	DBF	D7, loc_926C
 	LEA	Curve_data+1, A5
@@ -11837,7 +12694,7 @@ loc_93BC:
 	BNE.w	loc_9480
 	MOVEQ	#-7, D0
 	JSR	Apply_lateral_offset_clamped_with_flip(PC)
-	BRA.w	loc_94C4
+	BRA.w	Advance_rival_track_position
 loc_93D2:
 	TST.w	D3
 	BEQ.b	loc_9422
@@ -11908,15 +12765,15 @@ loc_9448:
 	CLR.w	$28(A0)
 loc_9480:
 	TST.b	$3D(A0)
-	BEQ.b	loc_94C4
+	BEQ.b	Advance_rival_track_position
 	MOVE.w	$12(A0), D0
 	BPL.b	loc_948E
 	NEG.w	D0
 loc_948E:
 	CMPI.w	#$0090, D0
-	BCC.b	loc_94C4
+	BCC.b	Advance_rival_track_position
 	TST.w	$22(A0)
-	BMI.b	loc_94C4
+	BMI.b	Advance_rival_track_position
 	MOVE.w	Horizontal_position.w, D0
 	SUB.w	$12(A0), D0
 	SLT	D1
@@ -11924,9 +12781,9 @@ loc_948E:
 	NEG.w	D0
 loc_94A8:
 	CMPI.w	#$0048, D0
-	BCS.b	loc_94C4
+	BCS.b	Advance_rival_track_position
 	CMPI.w	#$00B8, D0
-	BCC.b	loc_94C4
+	BCC.b	Advance_rival_track_position
 	MOVEQ	#4, D0
 	SUB.w	$22(A0), D0
 	TST.b	D1
@@ -11934,7 +12791,12 @@ loc_94A8:
 	NEG.w	D0
 loc_94C0:
 	JSR	Apply_lateral_offset_clamped(PC)
-loc_94C4:
+;loc_94C4
+Advance_rival_track_position:
+; Shared merge point for the rival car: advance track position by speed,
+; and also check proximity to player to clamp rival speed to player speed
+; when the rival's place score is ahead of the player's by < 100 points.
+; Mirror of Advance_ai_track_position but for the rival object.
 	TST.b	$3C(A0)
 	BPL.b	loc_94EA
 	MOVE.w	Player_place_score.w, D0
@@ -11958,7 +12820,7 @@ loc_94EA:
 	SWAP	D0
 	CMP.w	Track_length.w, D0
 	BCS.b	loc_9534
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BEQ.b	loc_951E
 	TST.w	$FFFFFCC0.w
 	BNE.b	loc_951E
@@ -11977,7 +12839,7 @@ loc_9534:
 loc_9542:
 	CLR.b	$3D(A0)
 	JSR	Compute_ai_position_and_depth_sort(PC)
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	#$4000, $C(A0)
 	TST.b	$3E(A0)
@@ -12049,8 +12911,8 @@ loc_9626:
 	BNE.b	loc_9630
 	MOVE.w	D0, Overtake_flag.w
 loc_9630:
-	MOVE.w	#1, $FFFFFC98.w
-	MOVE.w	D6, $FFFFFCBA.w
+	MOVE.w	#1, Ai_overtake_ready.w
+	MOVE.w	D6, Ai_x_delta.w
 	TST.b	$25(A0)
 	BEQ.b	loc_965E
 	MOVEQ	#4, D6
@@ -12059,10 +12921,10 @@ loc_9630:
 	BGE.b	loc_964E
 	MOVEQ	#-4, D6
 loc_964E:
-	MOVE.w	D6, $FFFFFCBA.w
+	MOVE.w	D6, Ai_x_delta.w
 	MOVE.w	Player_speed.w, D0
 	LSR.w	#2, D0
-	MOVE.w	D0, $FFFFFCB4.w
+	MOVE.w	D0, Ai_speed_delta.w
 loc_965C:
 	RTS
 loc_965E:
@@ -12107,13 +12969,13 @@ loc_96D2:
 	BPL.b	loc_96D8
 	MOVEQ	#0, D1
 loc_96D8:
-	MOVE.w	D1, $FFFFFCB4.w
+	MOVE.w	D1, Ai_speed_delta.w
 	RTS
 loc_96DE:
 	SWAP	D3
 	MOVE.b	D3, $10(A0)
 	LSR.w	#1, D1
-	MOVE.w	D1, $FFFFFCB4.w
+	MOVE.w	D1, Ai_speed_delta.w
 	CMP.w	D0, D1
 	BCC.b	loc_96F0
 	NEG.w	D2
@@ -12133,13 +12995,20 @@ loc_970E:
 
 ;Skip_if_hidden_flag
 Skip_if_hidden_flag:
-	TST.w	$FFFFFCB6.w
+	TST.w	Race_timer_freeze.w
 	BEQ.b	loc_971A
 	MOVE.l	(A7)+, D0
 	RTS
 loc_971A:
 	RTS
-loc_971C:
+;loc_971C
+Ai_screen_x_dispatch_table:
+; Indexed jump table for AI car screen-X update behavior.
+; Called via: LEA Ai_screen_x_dispatch_table, A1 / JSR (A1,D7.w)
+; Index 0 (D7=0): RTS (no-op, car hidden or not updating screen X).
+; Index +2: NOP word ($4E71) padding.
+; Index +4: BRA to loc_980C (standard screen-X calculation path).
+; D7 is used as the byte offset into the table.
 	RTS
 	dc.b	$4E, $71
 	BRA.w	loc_980C
@@ -12318,7 +13187,7 @@ loc_98C6:
 	BLS.b	loc_98E6
 	MOVE.w	#$4000, $C(A0)
 loc_98E6:
-	LEA	$FFFF9700.w, A1
+	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D0.w), D1
 	SUBI.w	#$002F, D1
 	NEG.w	D1
@@ -12358,7 +13227,7 @@ loc_994E:
 loc_9958:
 	MOVE.w	$1E(A0), D0
 	MOVEQ	#$0000000E, D3
-	LEA	$FFFF8F80.w, A1
+	LEA	Depth_sort_buf.w, A1
 loc_9962:
 	CMP.w	(A1)+, D0
 	BCS.b	loc_996A
@@ -12367,7 +13236,7 @@ loc_9962:
 loc_996A:
 	TST.w	D3
 	BMI.b	loc_9980
-	LEA	$FFFF8FA0.w, A2
+	LEA	Score_scratch_buf.w, A2
 loc_9972:
 	MOVE.w	$1C(A2), $1E(A2)
 	MOVE.w	-$4(A2), -(A2)
@@ -12379,17 +13248,17 @@ loc_9980:
 	BHI.b	loc_998E
 	ADDQ.w	#2, A6
 loc_998E:
-	CMP.w	$FFFF9288.w, D2
+	CMP.w	Depth_sort_value.w, D2
 	BCC.b	loc_99AA
-	MOVE.w	$FFFF9288.w, $FFFF928A.w
+	MOVE.w	Depth_sort_value.w, Depth_sort_prev.w
 	MOVE.w	$FFFF928C.w, $FFFF928E.w
-	MOVE.w	D2, $FFFF9288.w
+	MOVE.w	D2, Depth_sort_value.w
 	MOVE.w	A0, $FFFF928C.w
 	BRA.b	loc_99B8
 loc_99AA:
-	CMP.w	$FFFF928A.w, D2
+	CMP.w	Depth_sort_prev.w, D2
 	BCC.b	loc_99B8
-	MOVE.w	D2, $FFFF928A.w
+	MOVE.w	D2, Depth_sort_prev.w
 	MOVE.w	A0, $FFFF928E.w
 loc_99B8:
 	SUBQ.w	#8, D2
@@ -12401,7 +13270,7 @@ loc_99B8:
 loc_99C8:
 	MOVE.w	$1E(A0), D0
 	MOVEQ	#$0000000E, D3
-	LEA	$FFFF8F80.w, A1
+	LEA	Depth_sort_buf.w, A1
 loc_99D2:
 	CMP.w	(A1)+, D0
 	BCS.b	loc_99DA
@@ -12410,7 +13279,7 @@ loc_99D2:
 loc_99DA:
 	TST.w	D3
 	BMI.b	loc_99F0
-	LEA	$FFFF8FA0.w, A2
+	LEA	Score_scratch_buf.w, A2
 loc_99E2:
 	MOVE.w	$1C(A2), $1E(A2)
 	MOVE.w	-$4(A2), -(A2)
@@ -12422,17 +13291,17 @@ loc_99F0:
 	BHI.b	loc_99FE
 	ADDQ.w	#1, A6
 loc_99FE:
-	CMP.w	$FFFF9288.w, D1
+	CMP.w	Depth_sort_value.w, D1
 	BCC.b	loc_9A1A
-	MOVE.w	$FFFF9288.w, $FFFF928A.w
+	MOVE.w	Depth_sort_value.w, Depth_sort_prev.w
 	MOVE.w	$FFFF928C.w, $FFFF928E.w
-	MOVE.w	D1, $FFFF9288.w
+	MOVE.w	D1, Depth_sort_value.w
 	MOVE.w	A0, $FFFF928C.w
 	BRA.b	loc_9A28
 loc_9A1A:
-	CMP.w	$FFFF928A.w, D1
+	CMP.w	Depth_sort_prev.w, D1
 	BCC.b	loc_9A28
-	MOVE.w	D1, $FFFF928A.w
+	MOVE.w	D1, Depth_sort_prev.w
 	MOVE.w	A0, $FFFF928E.w
 loc_9A28:
 	CMPI.w	#$001C, D1
@@ -12553,7 +13422,7 @@ loc_9B0C:
 	MOVE.w	D0, $00FF5AC4
 	MOVE.w	$FFFF923A.w, D0
 	ADDQ.w	#1, D0
-	MOVE.w	D0, $00FF5AC6
+	MOVE.w	D0, Audio_engine_flags
 loc_9B1E:
 	MOVE.w	$FFFFFC5E.w, D0
 	MOVE.w	Road_marker_state.w, D2
@@ -12608,7 +13477,7 @@ loc_9B94:
 	CLR.w	Overtake_flag.w
 loc_9BA4:
 	LEA	$00FF5AC8, A4
-	LEA	$FFFF9288.w, A5
+	LEA	Depth_sort_value.w, A5
 	LEA	$FFFF928C.w, A6
 	BSR.b	loc_9BBA
 	ADDQ.w	#4, A4
@@ -12723,7 +13592,7 @@ loc_9D7E:
 	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
 	BEQ.b	loc_9DB6
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
@@ -12769,7 +13638,7 @@ loc_9E06:
 	MOVEQ	#6, D3
 	BSR.b	Spawn_trackside_objects
 	MOVE.l	#Pre_race_screen_init, $1E(A0)
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BEQ.b	loc_9E26
 	MOVE.l	#$00002592, $1E(A0)
 loc_9E26:
@@ -12778,7 +13647,7 @@ loc_9E26:
 	MOVE.w	#$0180, $2E(A0)
 	MOVE.w	#$0082, $22(A0)
 	MOVE.w	#Music_race, Audio_music_cmd        ; in-race background music
-	TST.w	$FFFFFCBC.w
+	TST.w	Ai_active_flag.w
 	BEQ.b	loc_9E52
 	MOVE.w	#$00A0, $22(A0)
 loc_9E52:
@@ -12826,46 +13695,59 @@ loc_9EBA:
 	RTS
 loc_9EC0
 	LEA	loc_A382(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EC6
 	LEA	loc_A396(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9ECC
 	LEA	loc_A3AA(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9ED2
 	LEA	loc_A3BE(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9ED8
 	LEA	loc_A3D2(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EDE
 	LEA	loc_A3E6(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EE4:
 	LEA	loc_A2E2(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EEA:
 	LEA	loc_A2F6(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EF0:
 	LEA	loc_A30A(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EF6:
 	LEA	loc_A31E(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9EFC:
 	LEA	loc_A332(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9F02:
 	LEA	loc_A346(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9F08:
 	LEA	loc_A35A(PC), A1
-	BRA.b	loc_9F12
+	BRA.b	Init_ai_car_fields
 loc_9F0E:
 	LEA	loc_A36E(PC), A1
-loc_9F12:
+;loc_9F12
+Init_ai_car_fields:
+; Common AI car object initialization tail.
+; Installs loc_9F40 as the update handler pointer, then reads 7 words/longs
+; from the data record pointed to by A1:
+;   A1[0].l -> $8(A0)   (sprite base / tile index)
+;   A1[4].l -> $1E(A0)  (initial track position)
+;   A1[8].l -> $30(A0)  (speed lookup table pointer)
+;   A1[12].w -> $C(A0)  (VDP tile flags)
+;   A1[14].w -> $10(A0) (lateral oscillation range)
+;   A1[16].w -> $2E(A0) (screen X step)
+;   A1[18].w -> $2A(A0) (screen X base)
+; Also sets $22(A0)=$0015, $24(A0)=1.
+; All 14 entry stubs above this label load a different A1 data pointer and BRA here.
 	MOVE.l	#loc_9F40, (A0)
 	MOVE.l	(A1)+, $8(A0)
 	MOVE.l	(A1)+, $1E(A0)
@@ -12877,7 +13759,7 @@ loc_9F12:
 	MOVE.w	(A1)+, $2E(A0)
 	MOVE.w	(A1)+, $2A(A0)
 loc_9F40:
-	TST.w	$FFFFFCB6.w
+	TST.w	Race_timer_freeze.w
 	BEQ.b	loc_9F4C
 	JMP	Queue_object_for_sprite_buffer
 loc_9F4C:
@@ -12910,7 +13792,7 @@ loc_9F7E:
 	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
 	BEQ.w	loc_A066
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BCS.b	loc_9FC2
 	SUBQ.w	#2, (A1)
@@ -12944,7 +13826,7 @@ loc_9FF8:
 	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
 	BEQ.b	loc_A066
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
@@ -13018,7 +13900,7 @@ loc_A112:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
 	JSR	Compute_ai_screen_x_offset(PC)
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_A132
@@ -13029,7 +13911,7 @@ loc_A132:
 
 ;Alloc_and_init_aux_object_slot
 Alloc_and_init_aux_object_slot:
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	MOVEQ	#$00000020, D2
 
 ;Find_free_aux_slot_loop
@@ -13068,7 +13950,7 @@ loc_A17C:
 	MOVE.l	#loc_108FC, $8(A0)
 	MOVE.w	#4, $1A(A0)
 	MOVE.b	#1, $24(A0)
-	LEA	$FFFFE980.w, A1
+	LEA	Palette_buffer.w, A1
 	MOVE.w	#$044E, $14(A1)
 	MOVE.w	#$06AE, $18(A1)
 	CLR.w	Player_overtaken_flag.w
@@ -13089,7 +13971,7 @@ loc_A1C2:
 loc_A1C8:
 	MOVE.w	D0, $12(A0)
 	JSR	Compute_ai_screen_x_offset(PC)
-	LEA	loc_971C, A1
+	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
 	BMI.b	loc_A226
@@ -13142,7 +14024,7 @@ loc_A234:
 
 ;loc_A278
 Apply_sorted_positions_to_cars:
-	LEA	$FFFF8FA0.w, A0
+	LEA	Score_scratch_buf.w, A0
 	MOVEQ	#$0000000D, D7
 loc_A27E:
 	MOVE.w	(A0)+, D0
@@ -13361,17 +14243,17 @@ loc_A6DC:
 	MOVE.w	Player_place_score.w, $2A(A0)
 	MOVE.w	#$0028, $2C(A0)
 	MOVE.w	#$FFFF, $FFFFFC34.w
-	BRA.b	loc_A764
+	BRA.b	Queue_countdown_lights
 loc_A716:
 	SUBQ.w	#1, $2C(A0)
-	BNE.b	loc_A764
+	BNE.b	Queue_countdown_lights
 	TST.w	Practice_flag.w
 	BEQ.b	loc_A72A
 	MOVE.w	#Sfx_pre_race_countdown, Audio_sfx_cmd ; pre-race countdown SFX (practice mode)
 loc_A72A:
 	MOVE.w	#$0014, $2C(A0)
 	MOVE.l	#loc_A738, (A0)
-	BRA.b	loc_A764
+	BRA.b	Queue_countdown_lights
 loc_A738:
 	SUBQ.w	#1, $2C(A0)
 	BNE.b	loc_A76A
@@ -13383,7 +14265,8 @@ loc_A74C:
 	MOVE.w	#$0028, $2C(A0)
 	MOVE.w	#$0064, $2E(A0)
 	MOVE.l	#loc_A788, (A0)
-loc_A764:
+;loc_A764
+Queue_countdown_lights:
 	JMP	Queue_object_for_sprite_buffer
 loc_A76A:
 	MOVE.l	#loc_12730, $4(A0)
@@ -13394,13 +14277,13 @@ loc_A76A:
 loc_A77E:
 	ADD.w	D0, D0
 	MOVE.w	loc_A7FA-2(PC,D0.w), $FFFFE998.w
-	BRA.b	loc_A764
+	BRA.b	Queue_countdown_lights
 loc_A788:
 	SUBQ.w	#1, $2C(A0)
 	BNE.b	loc_A79C
 	MOVE.w	$2E(A0), $2C(A0)
 	MOVE.l	#loc_A7BA, (A0)
-	BRA.b	loc_A764
+	BRA.b	Queue_countdown_lights
 loc_A79C:
 	MOVE.l	#loc_12774, $4(A0)
 	MOVE.w	$2C(A0), D0
@@ -13410,7 +14293,7 @@ loc_A79C:
 loc_A7B0:
 	ADD.w	D0, D0
 	MOVE.w	loc_A800(PC,D0.w), $FFFFE998.w
-	BRA.b	loc_A764
+	BRA.b	Queue_countdown_lights
 loc_A7BA:
 	MOVE.w	Player_place_score.w, D0
 	SUB.w	$2A(A0), D0
@@ -13421,12 +14304,12 @@ loc_A7BA:
 loc_A7D2:
 	MOVE.l	#loc_126EC, $4(A0)
 	SUBQ.w	#1, $2C(A0)
-	BNE.b	loc_A764
+	BNE.b	Queue_countdown_lights
 	MOVE.w	#$000A, $2C(A0)
 	MOVE.w	#3, $2E(A0)
 	MOVE.l	#loc_A788, (A0)
 	CLR.w	$FFFFFC34.w
-	BRA.w	loc_A764
+	BRA.w	Queue_countdown_lights
 loc_A7FA:
 	dc.w	$0008
 	dc.w	$000A
@@ -13448,7 +14331,7 @@ loc_A828:
 loc_A838:
 	MOVE.l	#$00010674, D1
 	MOVE.w	#$0170, D0
-	BRA.w	loc_A906
+	BRA.w	Init_background_ai_car_b
 loc_A846:
 	MOVE.l	#$00010698, D1
 	MOVE.w	#$FE90, D0
@@ -13456,7 +14339,7 @@ loc_A846:
 loc_A854:
 	MOVE.l	#$000106BC, D1
 	MOVE.w	#$0170, D0
-	BRA.w	loc_A906
+	BRA.w	Init_background_ai_car_b
 loc_A862:
 	MOVE.l	#$000106E0, D1
 	MOVE.w	#$FE80, D0
@@ -13464,7 +14347,7 @@ loc_A862:
 loc_A870:
 	MOVE.l	#$00010704, D1
 	MOVE.w	#$0180, D0
-	BRA.w	loc_A906
+	BRA.w	Init_background_ai_car_b
 loc_A87E:
 	MOVE.l	#$00010728, D1
 	MOVE.w	#$FE90, D0
@@ -13472,7 +14355,7 @@ loc_A87E:
 loc_A88A:
 	MOVE.l	#$0001074C, D1
 	MOVE.w	#$0170, D0
-	BRA.b	loc_A906
+	BRA.b	Init_background_ai_car_b
 loc_A896:
 	MOVE.l	#$00010770, D1
 	MOVE.w	#$FE90, D0
@@ -13480,7 +14363,7 @@ loc_A896:
 loc_A8A2:
 	MOVE.l	#$00010794, D1
 	MOVE.w	#$0170, D0
-	BRA.b	loc_A906
+	BRA.b	Init_background_ai_car_b
 loc_A8AE:
 	MOVE.l	#$00010800, D1
 	MOVE.w	#$FE9C, D0
@@ -13488,7 +14371,7 @@ loc_A8AE:
 loc_A8BA:
 	MOVE.l	#$00010824, D1
 	MOVE.w	#$0164, D0
-	BRA.b	loc_A906
+	BRA.b	Init_background_ai_car_b
 loc_A8C6:
 	MOVE.l	#$00010848, D1
 	MOVE.w	#$FE7C, D0
@@ -13496,19 +14379,25 @@ loc_A8C6:
 loc_A8D2:
 	MOVE.l	#$0001086C, D1
 	MOVE.w	#$0184, D0
-	BRA.b	loc_A906
+	BRA.b	Init_background_ai_car_b
 loc_A8DE:
 	MOVE.l	#$000107DC, D1
 	MOVE.w	#$0168, D0
 	MOVE.w	#$6000, $C(A0)
-	BRA.b	loc_A906
+	BRA.b	Init_background_ai_car_b
 loc_A8F0:
 	MOVE.l	#$000107B8, D1
 	MOVE.w	#$FE98, D0
 	MOVE.w	#$6000, $C(A0)
 loc_A900:
 	MOVE.w	#$FFFF, $12(A0)
-loc_A906:
+;loc_A906
+Init_background_ai_car_b:
+; Init tail for background AI car type-B objects.
+; Installs loc_A922 as the update handler, copies D1 to $8(A0) (sprite data),
+; sets $24(A0)=2, loads loc_6E894 speed table into $30(A0), D0 to $34(A0).
+; Multiple entry stubs above set D1/D0 per car and BRA here or to loc_A900
+; (which also sets $12(A0)=$FFFF for screen-right spawn before falling here).
 	MOVE.l	#loc_A922, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	#2, $24(A0)
@@ -13517,7 +14406,7 @@ loc_A906:
 loc_A922:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
 	MOVE.l	#$000108B4, D1
@@ -13539,7 +14428,7 @@ loc_A964:
 loc_A980:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_despawn_ai_car(PC)
 	BRA.w	Check_ai_lateral_bounds
@@ -13550,7 +14439,7 @@ loc_A99A:
 loc_A9B0:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_despawn_ai_car(PC)
 	MOVE.w	$E(A0), D0
@@ -13579,7 +14468,16 @@ loc_AA04:
 	CLR.l	$4(A0)
 loc_AA08:
 	RTS
-loc_AA0A:
+;loc_AA0A
+Ai_car_lateral_dispatch_table:
+; Indexed jump table for AI car lateral position / speed adjustment.
+; Called via: LEA Ai_car_lateral_dispatch_table, A1 / JSR (A1,D7.w)
+; D1 = speed/position parameter passed to the selected handler.
+; Index 0 (D7=0):   RTS (no lateral adjustment)
+; Index +2:         NOP word ($4E71) padding
+; Index +4:         BRA loc_AA82 (type-A lateral update)
+; Higher indices:   Additional lateral update variants
+; After the JSR returns, the caller continues with lateral bounds checking.
 	RTS
 	dc.b	$4E, $71
 	BRA.w	loc_AA82
@@ -13619,7 +14517,7 @@ loc_AA68:
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	Queue_object_for_alt_sprite_buffer
 loc_AA82:
-	LEA	$FFFF9700.w, A1
+	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D0.w), D1
 	SUBI.w	#$002F, D1
 	NEG.w	D1
@@ -13721,7 +14619,7 @@ loc_ABB4:
 	DBF	D0, loc_ABB4
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	TST.w	D7
 	BNE.b	loc_ABD2
@@ -13793,7 +14691,7 @@ loc_AC76:
 loc_AC9A:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	TST.w	D7
 	BNE.b	loc_ACB2
@@ -13908,7 +14806,7 @@ loc_ADE0:
 	MOVE.l	D0, $8(A0)
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
 	MOVE.l	#$0000AE34, D0
@@ -13929,7 +14827,7 @@ loc_AE34:
 loc_AE40:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
 
@@ -14046,7 +14944,7 @@ loc_AF9E:
 	DBF	D0, loc_AF9E
 	BRA.w	loc_B04C
 loc_AFAE:
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	$E(A0), D4
@@ -14084,7 +14982,7 @@ loc_AFFC:
 	BPL.b	loc_B032
 	JMP	Clear_object_slot
 loc_B032:
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	#$0432, D7
@@ -14101,7 +14999,7 @@ loc_B05E:
 	CLR.w	$FFFF923C.w
 	JMP	Clear_object_slot
 loc_B072:
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	CLR.l	$4(A0)
 	MOVE.w	$E(A0), D4
@@ -14151,7 +15049,7 @@ loc_B118:
 	BRA.w	loc_B04C
 loc_B128:
 	MOVE.w	#1, $FFFF927E.w
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	$E(A0), D4
@@ -14184,7 +15082,7 @@ loc_B15C:
 	BPL.b	loc_B1AC
 	JMP	Clear_object_slot
 loc_B1AC:
-	LEA	loc_AA0A, A1
+	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	#$0442, D7
@@ -14269,27 +15167,27 @@ Check_ai_lateral_bounds_wide:
 	MOVE.w	#$0118, D7
 loc_B258:
 	TST.w	Overtake_delta.w
-	BNE.b	loc_B2BA
+	BNE.b	Check_ai_lateral_bounds_wide_Done
 	MOVE.w	$E(A0), D0
 	BPL.b	loc_B270
 	TST.w	$36(A0)
-	BNE.b	loc_B2BA
+	BNE.b	Check_ai_lateral_bounds_wide_Done
 	ADDQ.w	#1, D0
 	BEQ.b	loc_B276
-	BRA.b	loc_B2BA
+	BRA.b	Check_ai_lateral_bounds_wide_Done
 loc_B270:
 	CMPI.w	#$009B, D0
-	BCS.b	loc_B2BA
+	BCS.b	Check_ai_lateral_bounds_wide_Done
 loc_B276:
 	TST.w	$12(A0)
 	BMI.b	loc_B284
 	SUB.w	Horizontal_position.w, D7
-	BGE.b	loc_B2BA
+	BGE.b	Check_ai_lateral_bounds_wide_Done
 	BRA.b	loc_B28C
 loc_B284:
 	NEG.w	D7
 	SUB.w	Horizontal_position.w, D7
-	BLE.b	loc_B2BA
+	BLE.b	Check_ai_lateral_bounds_wide_Done
 loc_B28C:
 	BPL.b	loc_B290
 	NEG.w	D7
@@ -14298,13 +15196,14 @@ loc_B290:
 	MOVE.w	#1, $36(A0)
 	MOVE.w	Horizontal_position.w, D0
 	CMP.w	$34(A0), D0
-	SGT	$FFFFFC9C.w
+	SGT	Ai_side_flag.w
 	CMPI.w	#247, Player_speed.w ; Crash if speed >= 247
-	BCS.b	loc_B2BA
+	BCS.b	Check_ai_lateral_bounds_wide_Done
 	CMPI.w	#$0038, D7
-	BLS.b	loc_B2BA
+	BLS.b	Check_ai_lateral_bounds_wide_Done
 	MOVE.w	#1, Retire_flag.w
-loc_B2BA:
+;loc_B2BA
+Check_ai_lateral_bounds_wide_Done:
 	RTS
 loc_B2BC:
 	dc.w	$0000, $0000, $0888, $0222, $0222, $0000, $0000, $0888, $0888, $0222
@@ -14315,6 +15214,12 @@ loc_B2DA:
 loc_B2F8:
 	dc.w	$0000, $A7D6, $A7CA, $A7D7, $A7DE, $A7CA, $A7D5, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD, $0000, $0000
 ;$0000B316
+; Race_result_overlay_frame — per-frame handler for the championship between-race
+; animated overlay screen.  Renders the scrolling road graphic and the live
+; race-timer / gear / speed HUD while a car-approaching animation plays.
+; Dispatches through the loc_B42C sub-state table to progress the sequence:
+;   states 0–N scroll the background road into view, animate the arriving car,
+;   and eventually transition to Championship_race_init (next track).
 Race_result_overlay_frame:
 	JSR	Wait_for_vblank
 	MOVE.l	#$462E0000, D7
@@ -14326,7 +15231,7 @@ loc_B328:
 	MOVEM.l	D7, -(A7)
 	MOVEQ	#6, D6
 	MOVEQ	#$0000000A, D5
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	MOVE.l	#$01000000, D3
 	MOVE.w	#$04C9, D1
 	JSR	Write_tilemap_rows_to_vdp
@@ -14377,11 +15282,11 @@ loc_B402:
 	MOVE.w	Anim_delay.w, D0
 	MOVEA.l	(A1,D0.w), A1
 	JSR	(A1)
-	MOVE.w	#$FFFF, $FFFFFCB6.w
-	SUBQ.w	#1, $FFFFFCB8.w
+	MOVE.w	#$FFFF, Race_timer_freeze.w
+	SUBQ.w	#1, Race_timer_phase.w
 	BPL.b	loc_B422
-	MOVE.w	#2, $FFFFFCB8.w
-	CLR.w	$FFFFFCB6.w
+	MOVE.w	#2, Race_timer_phase.w
+	CLR.w	Race_timer_freeze.w
 loc_B422:
 	JSR	Update_objects_and_build_sprite_buffer
 	BSR.b	loc_B480
@@ -14989,7 +15894,7 @@ loc_BC78:
 	MOVE.l	#$FFFFFFFF, Aux_object_counter.w
 	JSR	Update_gap_to_rival_display
 	MOVE.w	#$000B, D0
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	LEA	loc_14644, A2
 loc_BCA6:
 	MOVE.l	#loc_BC28, (A1)
@@ -15031,6 +15936,14 @@ loc_BD26:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 ;$0000BD56
+; Championship_next_race_init — "between races" screen shown after the results screen
+; in championship mode.  Two paths based on Track_index_arcade_mode:
+;   == 0 (first championship leg): runs Initialize_results_screen, decompresses the
+;        podium car tileset, populates three animated car objects, plays
+;        Music_championship_next ($0B), installs Race_result_frame_2 as callback.
+;   != 0 (mid-championship): also promotes the rival team Drivers_and_teams_map entry,
+;        plays Music_championship_next_special ($0D), installs Race_result_frame_3.
+; Both paths animate a car driving away before returning to Championship_race_init.
 Championship_next_race_init:
 	JSR	Clear_main_object_pool
 	TST.w	Track_index_arcade_mode.w
@@ -15041,7 +15954,7 @@ Championship_next_race_init:
 	LEA	loc_576D2, A0
 	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	LEA	loc_14704, A2
 loc_BD92:
 	MOVE.l	#loc_BC20, (A1)
@@ -15090,7 +16003,7 @@ loc_BE12:
 	LEA	loc_576D2, A0
 	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	LEA	loc_14704, A2
 loc_BE6C:
 	MOVE.l	#loc_BC20, (A1)
@@ -15286,7 +16199,7 @@ loc_C148:
 loc_C16E:
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
-	LEA	$FFFFFCB0.w, A1
+	LEA	Digit_scratch_buf.w, A1
 	MOVE.w	D1, (A1)
 	MOVEQ	#$0000000F, D2
 	MOVEQ	#0, D3
@@ -15358,7 +16271,7 @@ loc_C202: ; Track names
 	dc.l	loc_C6A2
 
 loc_C242:
-	MOVE.w	#$FFFF, $FFFFFCBC.w
+	MOVE.w	#$FFFF, Ai_active_flag.w
 	JSR	Clear_partial_main_object_pool
 	JSR	Clear_aux_object_pool
 	MOVE.w	Track_length.w, D1
@@ -15421,7 +16334,7 @@ Draw_gear_indicator:
 
 ;Draw_race_timer
 Draw_race_timer:
-	MOVE.l	$FFFF92F8.w, D0
+	MOVE.l	Race_timer_bcd.w, D0
 	MOVE.w	#$C000, D3
 	LEA	$FFFFE87C.w, A3
 	JSR	Format_bcd_time_to_tile_buffer
@@ -15438,8 +16351,8 @@ loc_C324:
 loc_C32E:
 	MOVE.l	D1, (A0)+
 	DBF	D0, loc_C32E
-	JSR	loc_C6D6(PC)
-	JSR	loc_C7E0(PC)
+	JSR	Build_minimap_player_row_buffer(PC)
+	JSR	Build_minimap_standings_row_buffer(PC)
 	MOVE.l	#$FFFFC080, $FFFFC48A.w
 	MOVE.w	#$0406, $FFFFC482.w
 	RTS
@@ -15665,7 +16578,15 @@ Load_car_spec_text_pointer:
 	MOVE.w	(A1)+, D1
 	RTS
 
-loc_C6D6:
+;loc_C6D6
+Build_minimap_player_row_buffer:
+; Build the minimap display row buffer for the player-position view
+; (used in the race standings/minimap panel).
+; Copies a 26-word header template from loc_C5A4 into $FFFFC080, then
+; for each of 6 standings rows copies a 4-word team-colour strip from
+; loc_C524 and writes the driver name + car spec text tiles for the
+; matching driver at that position into the buffer row.
+; Output buffer: $FFFFC080 (consumed by Draw_packed_tilemap_to_vdp later)
 	LEA	$FFFFC080.w, A6
 	LEA	loc_C5A4(PC), A5
 	MOVEQ	#$00000019, D7
@@ -15761,10 +16682,18 @@ loc_C7CC:
 loc_C7DE:
 	RTS
 
-loc_C7E0:
+;loc_C7E0
+Build_minimap_standings_row_buffer:
+; Build the minimap display row buffer for the championship standings view.
+; Sorts the standings via Sort_championship_standings, converts each of 16
+; scores from binary to 2-digit decimal via Binary_to_decimal, copies the
+; header template from loc_C5D8 into $FFFFC280, then for each of 6 rows
+; writes the team-colour strip, driver name, car spec, and score digit tiles
+; from the sorted standings and $FFFF8FA0 score buffer.
+; Output buffer: $FFFFC280
 	JSR	Sort_championship_standings(PC)
-	LEA	$FFFF8F90.w, A6
-	LEA	$FFFF8FA0.w, A5
+	LEA	Score_scratch_names.w, A6
+	LEA	Score_scratch_buf.w, A5
 	MOVEQ	#$0000000F, D7
 loc_C7EE:
 	MOVEQ	#0, D0
@@ -15778,8 +16707,8 @@ loc_C7EE:
 	JSR	Copy_words_A5_to_A6(PC)
 	MOVEQ	#5, D6
 	LEA	loc_C524(PC), A4
-	LEA	$FFFF8FA0.w, A3
-	LEA	$FFFF8F80.w, A0
+	LEA	Score_scratch_buf.w, A3
+	LEA	Depth_sort_buf.w, A0
 loc_C81A:
 	ADDQ.w	#2, A6
 	MOVEQ	#3, D7
@@ -15794,7 +16723,7 @@ loc_C81A:
 	MOVEQ	#0, D0
 	MOVE.b	(A3), D0
 	BPL.b	loc_C844
-	MOVE.w	#$FFFF, $FFFFFCAC.w
+	MOVE.w	#$FFFF, Player_eliminated.w
 	BRA.b	loc_C85E
 loc_C844:
 	LEA	Drivers_and_teams_map.w, A1
@@ -15849,14 +16778,14 @@ loc_C894:
 	MOVE.w	#$FFFF, (A6)
 	MOVEQ	#0, D1
 	MOVEQ	#$0000000E, D0
-	LEA	$FFFF8FA0.w, A0
+	LEA	Score_scratch_buf.w, A0
 loc_C8D2:
 	TST.b	(A0)+
 	BMI.b	loc_C8DC
 	ADDQ.w	#1, D1
 	DBF	D0, loc_C8D2
 loc_C8DC:
-	TST.w	$FFFFFCAC.w
+	TST.w	Player_eliminated.w
 	BNE.w	loc_C97A
 	MOVEQ	#$00000019, D0
 loc_C8E6:
@@ -15869,7 +16798,7 @@ loc_C8E6:
 	LEA	Driver_points_by_team.w, A0
 	TST.b	(A0,D0.w)
 	BEQ.b	loc_C918
-	LEA	$FFFF8FB0.w, A0
+	LEA	Score_scratch_pts.w, A0
 	MOVEQ	#0, D0
 	MOVE.b	(A0,D1.w), D0
 	LSL.w	#3, D0
@@ -15898,7 +16827,7 @@ loc_C946:
 	DBF	D5, loc_C946
 	MOVE.w	#$C7F5, (A6)
 	ADDQ.w	#4, A6
-	LEA	$FFFF8F80.w, A0
+	LEA	Depth_sort_buf.w, A0
 	ADD.w	D2, D2
 	ADDA.w	D2, A0
 	MOVEQ	#0, D3
@@ -15934,11 +16863,11 @@ loc_C990:
 
 ;Sort_championship_standings
 Sort_championship_standings:
-	LEA	$FFFF8F80.w, A6
+	LEA	Depth_sort_buf.w, A6
 	LEA	Driver_points_by_team.w, A5
 	MOVEQ	#7, D7
 	JSR	Copy_words_A5_to_A6(PC)
-	LEA	$FFFF8FA0.w, A0
+	LEA	Score_scratch_buf.w, A0
 	MOVEQ	#0, D0
 loc_C9A8:
 	MOVE.b	D0, (A0,D0.w)
@@ -15967,8 +16896,8 @@ loc_C9E4:
 	MOVEQ	#$0000000F, D0
 loc_C9EE:
 	MOVEQ	#$0000000E, D1
-	LEA	$FFFF8F80.w, A1
-	LEA	$FFFF8FA0.w, A2
+	LEA	Depth_sort_buf.w, A1
+	LEA	Score_scratch_buf.w, A2
 loc_C9F8:
 	MOVE.b	(A1), D2
 	CMP.b	$1(A1), D2
@@ -15983,9 +16912,9 @@ loc_CA12:
 	ADDQ.w	#1, A2
 	DBF	D1, loc_C9F8
 	DBF	D0, loc_C9EE
-	LEA	$FFFF8F80.w, A0
+	LEA	Depth_sort_buf.w, A0
 	MOVE.b	(A0)+, D0
-	LEA	$FFFF8FB0.w, A1
+	LEA	Score_scratch_pts.w, A1
 	MOVEQ	#0, D1
 	MOVE.b	D1, (A1)+
 	MOVEQ	#0, D2
@@ -16003,7 +16932,7 @@ loc_CA3C:
 loc_CA44:
 	CLR.b	Title_menu_flags.w
 	CLR.w	Title_menu_state.w
-	LEA	$FFFF9700.w, A0
+	LEA	Road_scale_table.w, A0
 	MOVEQ	#$0000003B, D0
 	MOVEQ	#$0000002F, D1
 loc_CA54:
@@ -16021,7 +16950,7 @@ loc_CA66:
 loc_CA76:
 	MOVE.w	#$FF80, (A0)+
 	DBF	D0, loc_CA76
-	MOVE.w	#$FFFF, $FFFFFCBC.w
+	MOVE.w	#$FFFF, Ai_active_flag.w
 	MOVE.l	#$00009E08, D1
 	JSR	Alloc_aux_object_slot
 	ADDQ.w	#4, Anim_delay.w
@@ -16089,6 +17018,14 @@ loc_CBD0:
 	BSR.w	loc_B480
 	RTS
 ;$0000CBEE
+; Driver_standings_frame — per-frame handler for the scrolling championship standings
+; screen (attract-mode cycle and post-championship display).
+; Three sub-states dispatched by Screen_scroll index:
+;   0 (scroll-in) — advances H-scroll by 2 rows every 2 frames, writing one new
+;                   standings row per step from the standings text buffer.
+;   1 (pause)     — counts down Temp_distance.
+;   2 (exit)      — jumps to Pre_race_screen_championship_init.
+; On START press at any sub-state → returns to Title_menu.
 Driver_standings_frame:
 	JSR	Wait_for_vblank
 	ADDQ.w	#1, Screen_subcounter.w
@@ -16161,6 +17098,12 @@ loc_CCDA:
 	ADDQ.w	#4, Temp_x_pos.w
 	RTS
 ;$0000CCE0
+; Driver_standings_init — initialise the scrolling championship standings screen.
+; Fades to black, inits H40 VDP, clears objects.
+; Decompresses two standings tilemaps (from loc_CDD4 asset list) into VRAM.
+; Sets up three sprite objects for the scrolling driver-name column.
+; Draws the standings text list and palette strip.
+; Arms a 26-row ($1A) H-scroll machine and installs Driver_standings_frame.
 Driver_standings_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -16181,7 +17124,7 @@ loc_CD06:
 	MOVEM.l	(A7)+, A1
 	MOVEM.w	(A7)+, D1
 	DBF	D1, loc_CD06
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	MOVE.w	#2, D0
 loc_CD32:
 	MOVE.l	#Queue_object_for_sprite_buffer, (A1)
@@ -16190,7 +17133,7 @@ loc_CD32:
 	MOVE.l	#loc_16F76, $4(A1)
 	LEA	$40(A1), A1
 	DBF	D0, loc_CD32
-	MOVE.l	#$00001032, $FFFFAD80.w
+	MOVE.l	#$00001032, Main_object_pool.w
 	LEA	loc_16D64, A1
 	JSR	Draw_packed_tilemap_list
 	LEA	loc_16E32, A6
@@ -16220,6 +17163,14 @@ loc_CDD4:
 	dc.b	$2C, $E0
 	dc.l	loc_1891A
 ;$0000CDE2
+; Team_select_frame — per-frame handler for the team (car) selection screen.
+; Updates sprites and dispatches through a 5-state sub-machine ($FFFFFC1E index):
+;   state 0 — animates driver portrait and car-stat tiles scrolling into view
+;   state 1 — displays the team message panel
+;   state 4 — reads player input:
+;              if re-selecting after a championship race (bit 7 of Player_team set)
+;                → restores Saved_frame_callback (back to championship sequence)
+;              else → jumps to Arcade_race_init ($3800)
 Team_select_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
@@ -16248,7 +17199,7 @@ loc_CE2E:
 loc_CE40:
 	CMPI.w	#3, $FFFFB912.w
 	BEQ.b	loc_CE52
-	BSR.w	loc_D164
+	BSR.w	Advance_road_marker_sequence_b
 	BSET.b	#3, $FFFFFC16.w
 loc_CE52:
 	MOVE.b	$FFFFFC16.w, D0
@@ -16484,7 +17435,14 @@ loc_D124:
 	ADDQ.w	#1, $FFFFB892.w
 	RTS
 
-loc_D164:
+;loc_D164
+Advance_road_marker_sequence_b:
+; Advance the second road-marker animation sequence (throttled to every 6 frames).
+; Decrements $FFFFB90E frame counter; when it reaches 0 resets it to 6 and
+; calls loc_D1CC to step the marker sprite at $FFFFB94E/$FFFFB952.
+; When the sequence index ($FFFFB956) equals the end index ($FFFFB916),
+; reloads the marker pointer from loc_193B6 and the step table from loc_193BE
+; using Race_frame_counter as the sequence selector.
 	SUBQ.b	#1, $FFFFB90E.w
 	BNE.b	loc_D18A
 	MOVE.b	#6, $FFFFB90E.w
@@ -16582,9 +17540,17 @@ loc_D2A2:
 	JMP	Queue_object_for_sprite_buffer
 	dc.b	$4E, $75
 loc_D2AA:
-	CLR.l	$FFFFB840.w
+	CLR.l	Aux_object_pool.w
 	RTS
 ;Team_select_screen_init
+; Team_select_screen_init — initialise the team / car selection screen.
+; Fades to black, inits H40 VDP ($8238/$9011/$9280), clears objects.
+; Conditionally branches on bit 7 of Player_team (re-select after championship race)
+; to skip full reinitialisation of the championship state.
+; Loads: shared title tileset, team-logo tiles, driver portrait tiles (from
+;   DriverPortraitTiles table, index from $FFFFFC19), car-stat tiles, team name/flag
+;   tiles, message panel, and scrolling palette strip.
+; Renders current championship points, arms Team_select_frame as callback.
 Team_select_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -16734,7 +17700,7 @@ loc_D50A:
 loc_D534:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, loc_D534
-	MOVE.l	#$0000D274, $FFFFB840.w
+	MOVE.l	#$0000D274, Aux_object_pool.w
 	MOVE.w	#$0170, $FFFFB858.w
 	MOVE.w	#$0128, $FFFFB856.w
 	MOVE.w	#1, $FFFFB84E.w
@@ -16768,7 +17734,7 @@ Team_select_vblank_handler:
 	CLR.l	Screen_scroll.w
 loc_D5EA:
 	MOVE.l	Screen_scroll.w, D0
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	ADDA.l	D0, A6
 	MOVE.l	#$43060003, D7
 	MOVEQ	#$00000016, D6
@@ -16813,6 +17779,13 @@ loc_D6D2:
 loc_D6E0:
 	RTS
 ;Championship_standings_init
+; Championship_standings_init — initialise the end-of-season championship standings
+; overlay screen (shown after the final race).
+; Fades to black, inits H40 VDP, clears objects.
+; Clears Player_state_flags bits 0 and 1 (crash/spin flags).
+; Decompresses the championship-final standings tilemaps.
+; Loads team, driver, and points data into the standings display buffer.
+; Installs Championship_team_select_frame as the per-frame callback.
 Championship_standings_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -17007,7 +17980,7 @@ loc_D940:
 	MULS.w	#$0038, D0
 	LEA	loc_20FAE, A2
 	ADDA.l	D0, A2
-	LEA	$FFFFE980.w, A1
+	LEA	Palette_buffer.w, A1
 	MOVE.w	(A2)+, $6(A1)
 	MOVE.l	(A2)+, $A(A1)
 	MOVE.l	(A2)+, $E(A1)
@@ -17159,7 +18132,7 @@ loc_DBF4:
 	LEA	loc_2595E, A0
 	JSR	Decompress_tilemap_to_buffer
 	MOVE.w	#3, D0
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	LEA	loc_257C8, A2
 loc_DC66:
 	MOVE.l	#Queue_object_for_sprite_buffer, (A1)
@@ -17211,7 +18184,7 @@ loc_DCF2:
 	BEQ.b	loc_DD4E
 	RTS
 loc_DD4E:
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	LEA	$FFFFB900.w, A2
 	ADDI.w	#$FFD8, $FFFFB856.w
 	ADDQ.w	#3, $FFFFB858.w
@@ -17219,12 +18192,12 @@ loc_DD4E:
 loc_DD64:
 	MOVE.b	(A1)+, (A2)+
 	DBF	D0, loc_DD64
-	CLR.l	$FFFFB840.w
+	CLR.l	Aux_object_pool.w
 	RTS
 
 ;Copy_ea00_block_to_a5
 Copy_ea00_block_to_a5:
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	MOVE.w	#$00A8, D1
 loc_DD78:
 	MOVE.w	(A6)+, (A5)+
@@ -17291,7 +18264,7 @@ loc_DE2E:
 	dc.l	$E5BAE6BA
 	dc.l	$E7BAE93A
 loc_DE36:
-	dc.l	$FFFFEA00
+	dc.l	Tilemap_work_buf
 	dc.l	$FFFFEB52
 	dc.l	$FFFFECA4
 	dc.l	$FFFFEB52
@@ -17390,7 +18363,7 @@ loc_DFDA:
 	CMPI.w	#4, Screen_timer.w
 	BEQ.b	loc_E05E
 	MOVE.w	#$000E, $00FF5AC2
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	LEA	loc_E068, A2
 	LEA	loc_27F90, A3
 	LEA	$FFFFE982.w, A4
@@ -17490,7 +18463,7 @@ loc_E10C:
 	MOVEQ	#7, D6
 	MOVEQ	#4, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	$FFFFB840.w, A0
+	LEA	Aux_object_pool.w, A0
 	LEA	loc_E334(PC), A1
 	MOVEQ	#3, D0
 loc_E16E:
@@ -17651,6 +18624,14 @@ loc_E3BE:
 loc_E3CE:
 	dc.w	$E890, $E990, $EA90, $EC10
 ;$0000E3D6
+; Championship_team_select_frame — per-frame handler for the championship team-pairing
+; (rival selection) screen.  Dispatches a 6-state machine via Screen_scroll index:
+;   states 0–1 — scroll team-logo and car-stat tiles into view from data table
+;   state 2    — pause
+;   state 3    — waits for player button press, cycles through rival-car choices
+;   states 4–5 — handle final confirmation of rival team
+; On confirm: sets Saved_frame_callback=$E94C (Championship_standings_2_init) and
+;   jumps to Team_select_screen_init.
 Championship_team_select_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
@@ -17685,7 +18666,7 @@ loc_E43C:
 loc_E43E:
 	SUBQ.w	#1, Screen_subcounter.w
 	BNE.w	loc_E4DA
-	LEA	$FFFFB840.w, A1
+	LEA	Aux_object_pool.w, A1
 	MOVE.l	#loc_E722, (A1)
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0120, $16(A1)
@@ -17862,6 +18843,14 @@ loc_E72A:
 	dc.b	$32, $3B, $FD, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FD, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $32, $32, $3B
 	dc.b	$FD, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF
 ;$0000E77A
+; Championship_podium_frame — per-frame handler for the end-of-season podium screen.
+; Updates sprites and checks whether the player's team number matches the champion slot
+; (stored in Screen_timer).
+; Handles directional input to scroll between driver portraits.
+; On confirm (face button): stores the selected rival into Rival_team,
+;   sets Saved_frame_callback=Championship_standings_2_init ($E94C),
+;   and jumps to Team_select_screen_init.
+; On "skip" button: jumps directly to Arcade_race_init (starts new season immediately).
 Championship_podium_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
@@ -17996,6 +18985,12 @@ loc_E932:
 loc_E94A:
 	RTS
 ;$0000E94C
+; Championship_standings_2_init — initialise the second championship standings screen
+; (shown after team selection at season-end, before starting the new season).
+; Fades to black, inits H40 VDP ($8238/$9011/$9280), clears objects.
+; Decompresses championship standings art at $40200000 in VRAM.
+; Loads updated team and driver standings data and installs the appropriate
+; per-frame callback to display the final season standings before looping.
 Championship_standings_2_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -18372,17 +19367,17 @@ loc_EEAC:
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
 	CMP.b	$FFFFFFBF.w, D0
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	LSR.b	#4, D1
 	CMP.b	$FFFFFFBE.w, D1
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	MOVE.b	D2, D0
 	ANDI.b	#$0F, D0
 	CMP.b	$FFFFFFBD.w, D0
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	LSR.b	#4, D2
 	CMP.b	$FFFFFFBC.w, D2
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	BTST.b	#0, $FFFFFC0D.w
 	BEQ.b	loc_EEFC
 	CLR.b	Title_menu_flags.w
@@ -18558,27 +19553,33 @@ loc_F13A:
 	RTS
 loc_F13C:
 	MOVE.b	$FFFFFFB9.w, D0
-	BEQ.b	loc_F184
+	BEQ.b	Demo_screen_transition
 	JSR	loc_13218
 	JSR	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
 	CMP.b	$FFFFFFBF.w, D0
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	LSR.b	#4, D1
 	CMP.b	$FFFFFFBE.w, D1
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	MOVE.b	D2, D0
 	ANDI.b	#$0F, D0
 	CMP.b	$FFFFFFBD.w, D0
-	BNE.w	loc_F184
+	BNE.w	Demo_screen_transition
 	LSR.b	#4, D2
 	CMP.b	$FFFFFFBC.w, D2
-	BNE.b	loc_F184
+	BNE.b	Demo_screen_transition
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
 loc_F182:
 	RTS
-loc_F184:
+;loc_F184
+Demo_screen_transition:
+; Screen-wipe palette fade for demo/attract/title transitions.
+; Plays Sfx_demo_transition sound, then runs a 5-step palette fade
+; using the table at loc_F1B6 (5 palette command pairs, 20 vblanks each).
+; Called when the attract demo detects a button mismatch or save-data
+; checksum failure, forcing a return to the title cycle.
 	MOVE.w	#Sfx_demo_transition, Audio_sfx_cmd ; screen-transition sound
 	LEA	loc_F1B6, A1
 	MOVE.w	#4, D0
@@ -18671,7 +19672,7 @@ Save_name_entry_init:
 ;Endgame_sequence_init
 Endgame_sequence_init:
 	BSR.w	loc_F336
-	MOVE.l	#$0000F264, $FFFFB840.w
+	MOVE.l	#$0000F264, Aux_object_pool.w
 	MOVE.w	#1, $FFFFB84E.w
 	MOVE.l	#$00039EEC, $FFFFB844.w
 	BSR.w	loc_F3DE
@@ -19022,10 +20023,24 @@ loc_F770:
 
 ;Render_text_to_tilemap
 Render_text_to_tilemap:
-; Decodes a null-terminated ($FF) text string from A6 into the HUD tilemap
-; work buffer. Selects the Japanese or English row buffer depending on
-; English_flag. Tile base offset read from $FFFF905A.
-; Inputs:  A6 = text string pointer; English_flag selects buffer row layout
+; Decode a custom-encoded text string from A6 into the HUD tilemap work buffer.
+; Used for team messages, lap standings, driver names, and menu text.
+;
+; Control bytes:
+;  $FF = end of string (RTS)
+;  $FD = advance to next line in the same text row
+;  $FC = advance two lines
+;  $DF-$FF range = two-byte kanji (tile index remapped via lookup)
+;  Other multi-byte ranges = accented/special characters remapped to tile indices
+;  Otherwise: tile = byte + $FFFF905A (tile base for font)
+;
+; Buffer layout:
+;  Japanese (English_flag == 0): starts at $FFFFF74A, 44 (0x2C) words per row
+;  English  (English_flag != 0): starts at $FFFFF71E, 44 words per row
+;
+; Inputs:
+;  A6 = pointer to encoded text string (consumed)
+;  $FFFF905A = tile base index (font tileset offset)
 	LEA	$FFFFF74A.w, A1
 	TST.w	English_flag.w
 	BEQ.b	loc_F78E
@@ -19136,6 +20151,34 @@ loc_F860:
 	ADDA.w	D0, A1 ; A1 = A1 + 72*track_idx + row_offset?
 	RTS
 
+; Track_data table
+; Each entry is $48 bytes (72 bytes), 19 entries total:
+;   16 championship tracks (indices 0-$0F), followed by 3 arcade Monaco variants.
+;
+; Field layout (offsets from entry base):
+;   +$00 .l  minimap tile graphics pointer
+;   +$04 .l  background tile graphics pointer
+;   +$08 .l  background tile mapping pointer
+;   +$0C .l  minimap tile mapping pointer
+;   +$10 .l  background palette pointer
+;   +$14 .l  sideline style pointer
+;   +$18 .l  road style data pointer
+;   +$1C .l  finish line style pointer
+;   +$20 .w  Track_horizon_override_flag: 0 = default sky; 1 = special horizon colour patch
+;            (only West Germany, Italy, Belgium have 1)
+;   +$22 .w  track length in game distance units
+;   +$24 .l  signs data pointer
+;   +$28 .l  signs tileset pointer
+;   +$2C .l  minimap position map pointer
+;   +$30 .l  curve data pointer (RLE-encoded; decoded to Curve_data / Background_horizontal_displacement)
+;   +$34 .l  visual slope data pointer (RLE-encoded; decoded to Visual_slope_data)
+;   +$38 .l  physical slope data pointer (RLE-encoded; decoded to Physical_slope_data; drives RPM hill model)
+;   +$3C .l  per-track BCD lap-time base pointer into Track_lap_time_records ($FFFFFD00 + 8 × track_index)
+;   +$40 .l  per-lap target time table pointer (15 × 3-byte BCD records; loaded into Track_lap_target_buf)
+;   +$44 .l  steering sensitivity divisors packed: high word = Steering_divisor_straight,
+;            low word = Steering_divisor_curve (both .w; fed into DIVS in Update_horizontal_position)
+;
+; Load_track_data_pointer returns A1 → entry; Load_track_data reads all fields.
 ;loc_F872:
 Track_data:
 ; San Marino
@@ -19147,17 +20190,17 @@ Track_data:
 	dc.l	loc_FF96 ; San Marino sideline style
 	dc.l	loc_FFA0 ; San Marino road style data
 	dc.l	loc_FFAA ; San Marino finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7040 ; track length
 	dc.l	loc_7173C ; San Marino signs data
 	dc.l	loc_717A6 ; San Marino tileset for signs
 	dc.l	loc_71660 ; San Marino map for minimap position
 	dc.l	loc_7152E ; San Marino curve data
-	dc.l	loc_715EA ; San Marino slope data
-	dc.l	loc_7163C ; unknown_track_data_1 - physical slope data? Affects acceleration in slopes
-	dc.l	$FFFFFD00
-	dc.l	loc_10176 ; ?
-	dc.l	$002B002B
+	dc.l	loc_715EA ; San Marino slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_7163C ; San Marino physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Track_lap_time_records ; San Marino BCD lap-time record pointer (base = $FFFFFD00, +$08 per track)
+	dc.l	loc_10176 ; San Marino per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B (both 43)
 
 ; Brazil
 	dc.l	loc_5683C ; Brazil tiles used for minimap
@@ -19168,17 +20211,17 @@ Track_data:
 	dc.l	loc_FFB4 ; Brazil sideline style
 	dc.l	loc_FFBE ; Brazil road style data
 	dc.l	loc_FFC8 ; Brazil finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6976 ; track length
 	dc.l	loc_739AA ; Brazil signs data
 	dc.l	loc_73A30 ; Brazil tileset for signs
 	dc.l	loc_738CF ; Brazil map for minimap position
 	dc.l	loc_73830 ; Brazil curve data
-	dc.l	loc_73894 ; Brazil slope data
-	dc.l	loc_738BA ; ?
-	dc.l	$FFFFFD08
-	dc.l	loc_101A4 ; ?
-	dc.l	$002B002B
+	dc.l	loc_73894 ; Brazil slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_738BA ; Brazil physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD08 ; Brazil BCD lap-time record pointer (Track_lap_time_records + $08)
+	dc.l	loc_101A4 ; Brazil per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; France
 	dc.l	loc_55516 ; France tiles used for minimap
@@ -19189,17 +20232,17 @@ Track_data:
 	dc.l	loc_FFD2 ; France sideline style
 	dc.l	loc_FFDC ; France road style data
 	dc.l	loc_FFE6 ; France finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6144 ; track length
 	dc.l	loc_71DBA ; France signs data
 	dc.l	loc_71E20 ; France tileset for signs
 	dc.l	loc_71CFA ; France map for minimap position
 	dc.l	loc_71C26 ; France curve data
-	dc.l	loc_71CAC ; France slope data
-	dc.l	loc_71CE2 ; ?
-	dc.l	$FFFFFD10
-	dc.l	loc_101D2 ; ?
-	dc.l	$002B002B
+	dc.l	loc_71CAC ; France slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_71CE2 ; France physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD10 ; France BCD lap-time record pointer (Track_lap_time_records + $10)
+	dc.l	loc_101D2 ; France per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Hungary
 	dc.l	loc_559D0 ; Hungary tiles used for minimap
@@ -19210,17 +20253,17 @@ Track_data:
 	dc.l	loc_FFF0 ; Hungary sideline style
 	dc.l	loc_FFFA ; Hungary road style data
 	dc.l	loc_10004 ; Hungary finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6464 ; track length
 	dc.l	loc_723F0 ; Hungary signs data
 	dc.l	loc_7245A ; Hungary tileset for signs
 	dc.l	loc_72326 ; Hungary map for minimap position
 	dc.l	loc_72242 ; Hungary curve data
-	dc.l	loc_722CA ; Hungary slope data
-	dc.l	loc_72308 ; ?
-	dc.l	$FFFFFD18
-	dc.l	loc_10200 ; ?
-	dc.l	$002c002e
+	dc.l	loc_722CA ; Hungary slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_72308 ; Hungary physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD18 ; Hungary BCD lap-time record pointer (Track_lap_time_records + $18)
+	dc.l	loc_10200 ; Hungary per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002c002e ; steering divisors: straight=$002C, curve=$002E (slightly less sensitive on curves)
 
 ; West Germany
 	dc.l	loc_5583E ; West Germany tiles used for minimap
@@ -19231,17 +20274,17 @@ Track_data:
 	dc.l	loc_1000E ; West Germany sideline style
 	dc.l	loc_10018 ; West Germany road style data
 	dc.l	loc_10022 ; West Germany finish line style
-	dc.w	$0001 ; ?
+	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7488 ; track length
 	dc.l	loc_721B6 ; West Germany signs data
 	dc.l	loc_7222C ; West Germany tileset for signs
 	dc.l	loc_720CB ; West Germany map for minimap position
 	dc.l	loc_71FFC ; West Germany curve data
-	dc.l	loc_72090 ; West Germany slope data
-	dc.l	loc_720B6 ; ?
-	dc.l	$FFFFFD20
-	dc.l	loc_1022E ; ?
-	dc.l	$002B002B
+	dc.l	loc_72090 ; West Germany slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_720B6 ; West Germany physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD20 ; West Germany BCD lap-time record pointer (Track_lap_time_records + $20)
+	dc.l	loc_1022E ; West Germany per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; USA
 	dc.l	loc_5627E ; USA tiles used for minimap
@@ -19252,17 +20295,17 @@ Track_data:
 	dc.l	loc_1002C ; USA sideline style
 	dc.l	loc_10036 ; USA road style data
 	dc.l	loc_10040 ; USA finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7168 ; track length
 	dc.l	loc_72F8C ; USA signs data
 	dc.l	loc_7300E ; USA tileset for signs
 	dc.l	loc_72EAB ; USA map for minimap position
 	dc.l	loc_72E0C ; USA curve data
-	dc.l	loc_72E88 ; USA slope data
-	dc.l	loc_72E9C ; ?
-	dc.l	$FFFFFD28
-	dc.l	loc_1025C ; ?
-	dc.l	$002B002B
+	dc.l	loc_72E88 ; USA slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_72E9C ; USA physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD28 ; USA BCD lap-time record pointer (Track_lap_time_records + $28)
+	dc.l	loc_1025C ; USA per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Canada
 	dc.l	loc_5655C ; Canada tiles used for minimap
@@ -19273,17 +20316,17 @@ Track_data:
 	dc.l	loc_1004A ; Canada sideline style
 	dc.l	loc_10054 ; Canada road style data
 	dc.l	loc_1005E ; Canada finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6720 ; track length
 	dc.l	loc_73546 ; Canada signs data
 	dc.l	loc_735BC ; Canada tileset for signs
 	dc.l	loc_73474 ; Canada map for minimap position
 	dc.l	loc_73314 ; Canada curve data
-	dc.l	loc_73404 ; Canada slope data
-	dc.l	loc_73450 ; ?
-	dc.l	$FFFFFD30
-	dc.l	loc_1028A; ?
-	dc.l	$002B002B
+	dc.l	loc_73404 ; Canada slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_73450 ; Canada physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD30 ; Canada BCD lap-time record pointer (Track_lap_time_records + $30)
+	dc.l	loc_1028A; Canada per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Great Britain
 	dc.l	loc_5568C  ; Great Britain tiles used for minimap
@@ -19294,17 +20337,17 @@ Track_data:
 	dc.l	loc_10068 ; Great Britain sideline style
 	dc.l	loc_10072  ; Great Britain road style data
 	dc.l	loc_1007C  ; Great Britain finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6912 ; track length
 	dc.l	loc_71F98 ; Great Britain signs data
 	dc.l	loc_71FEA  ; Great Britain tileset for signs
 	dc.l	loc_71EC0  ; Great Britain map for minimap position
 	dc.l	loc_71E36  ; Great Britain curve data
-	dc.l	loc_71E8C ; Great Britain slope data
-	dc.l	loc_71EAE; ?
-	dc.l	$FFFFFD38
-	dc.l	loc_102B8; ?
-	dc.l	$002B002B
+	dc.l	loc_71E8C ; Great Britain slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_71EAE; Great Britain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD38 ; Great Britain BCD lap-time record pointer (Track_lap_time_records + $38)
+	dc.l	loc_102B8; Great Britain per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Italy
 	dc.l	loc_566BC ; Italy tiles used for minimap
@@ -19315,17 +20358,17 @@ Track_data:
 	dc.l	loc_10086 ; Italy sideline style
 	dc.l	loc_10090 ; Italy road style data
 	dc.l	loc_1009A ; Italy finish line style
-	dc.w	$0001 ; ?
+	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7616 ; track length
 	dc.l	loc_737A0 ; Italy signs data
 	dc.l	loc_73816 ; Italy tileset for signs
 	dc.l	loc_736B2 ; Italy map for minimap position
 	dc.l	loc_735D6 ; Italy curve data
-	dc.l	loc_7365C ; Italy slope data
-	dc.l	loc_73694 ; ?
-	dc.l	$FFFFFD40
-	dc.l	loc_102E6 ; ?
-	dc.l	$002B002B
+	dc.l	loc_7365C ; Italy slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_73694 ; Italy physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD40 ; Italy BCD lap-time record pointer (Track_lap_time_records + $40)
+	dc.l	loc_102E6 ; Italy per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Portugal
 	dc.l	loc_55D3A ; Portugal tiles used for minimap
@@ -19336,17 +20379,17 @@ Track_data:
 	dc.l	loc_100A4 ; Portugal sideline style
 	dc.l	loc_100AE ; Portugal road style data
 	dc.l	loc_100B8 ; Portugal finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6592 ; track length
 	dc.l	loc_72922 ; Portugal signs data
 	dc.l	loc_72980 ; Portugal tileset for signs
 	dc.l	loc_72854 ; Portugal map for minimap position
 	dc.l	loc_72784 ; Portugal curve data
-	dc.l	loc_72806 ; Portugal slope data
-	dc.l	loc_7283C ; ?
-	dc.l	$FFFFFD48
-	dc.l	loc_10314 ; ?
-	dc.l	$002B002B
+	dc.l	loc_72806 ; Portugal slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_7283C ; Portugal physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD48 ; Portugal BCD lap-time record pointer (Track_lap_time_records + $48)
+	dc.l	loc_10314 ; Portugal per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Spain
 	dc.l	loc_55EF2 ; Spain tiles used for minimap
@@ -19357,17 +20400,17 @@ Track_data:
 	dc.l	loc_100C2 ; Spain sideline style
 	dc.l	loc_100CC ; Spain road style data
 	dc.l	loc_100D6 ; Spain finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6784 ; track length
 	dc.l	loc_72B7A ; Spain signs data
 	dc.l	loc_72BEC ; Spain tileset for signs
 	dc.l	loc_72AA5 ; Spain map for minimap position
 	dc.l	loc_7299A ; Spain curve data
-	dc.l	loc_72A3C ; Spain slope data
-	dc.l	loc_72A84 ; ?
-	dc.l	$FFFFFD50
-	dc.l	loc_10342 ; ?
-	dc.l	$002B002B
+	dc.l	loc_72A3C ; Spain slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_72A84 ; Spain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD50 ; Spain BCD lap-time record pointer (Track_lap_time_records + $50)
+	dc.l	loc_10342 ; Spain per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Mexico
 	dc.l	loc_553B6 ; Mexico tiles used for minimap
@@ -19378,17 +20421,17 @@ Track_data:
 	dc.l	loc_100E0 ; Mexico sideline style
 	dc.l	loc_100EA ; Mexico road style data
 	dc.l	loc_100F4 ; Mexico finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6848 ; track length
 	dc.l	loc_71BBA ; Mexico signs data
 	dc.l	loc_71C14 ; Mexico tileset for signs
 	dc.l	loc_71AE3 ; Mexico map for minimap position
 	dc.l	loc_71A38 ; Mexico curve data
-	dc.l	loc_71AC0 ; Mexico slope data
-	dc.l	loc_71AD4 ; ?
-	dc.l	$FFFFFD58
-	dc.l	loc_10370 ; ?
-	dc.l	$002B002B
+	dc.l	loc_71AC0 ; Mexico slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_71AD4 ; Mexico physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD58 ; Mexico BCD lap-time record pointer (Track_lap_time_records + $58)
+	dc.l	loc_10370 ; Mexico per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Japan
 	dc.l	loc_563B6 ; Japan tiles used for minimap
@@ -19399,17 +20442,17 @@ Track_data:
 	dc.l	loc_100FE ; Japan sideline style
 	dc.l	loc_10108 ; Japan road style data
 	dc.l	loc_10112 ; Japan finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7552 ; track length
 	dc.l	loc_73264 ; Japan signs data
 	dc.l	loc_732F6 ; Japan tileset for signs
 	dc.l	loc_73178 ; Japan map for minimap position
 	dc.l	loc_7301C ; Japan curve data
-	dc.l	loc_730E6 ; Japan slope data
-	dc.l	loc_7314E ; ?
-	dc.l	$FFFFFD60
-	dc.l	loc_1039E ; ?
-	dc.l	$002B002B
+	dc.l	loc_730E6 ; Japan slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_7314E ; Japan physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD60 ; Japan BCD lap-time record pointer (Track_lap_time_records + $60)
+	dc.l	loc_1039E ; Japan per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Belgium
 	dc.l	loc_55B8A ; Belgium tiles used for minimap
@@ -19420,17 +20463,17 @@ Track_data:
 	dc.l	loc_1011C ; Belgium sideline style
 	dc.l	loc_10126 ; Belgium road style data
 	dc.l	loc_10130 ; Belgium finish line style
-	dc.w	$0001 ; ?
+	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7744 ; track length
 	dc.l	loc_726D0 ; Belgium signs data
 	dc.l	loc_72766 ; Belgium tileset for signs
 	dc.l	loc_725DD ; Belgium map for minimap position
 	dc.l	loc_72480 ; Belgium curve data
-	dc.l	loc_72578 ; Belgium slope data
-	dc.l	loc_725BC ; ?
-	dc.l	$FFFFFD68
-	dc.l	loc_103CC ; ?
-	dc.l	$002B002B
+	dc.l	loc_72578 ; Belgium slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_725BC ; Belgium physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD68 ; Belgium BCD lap-time record pointer (Track_lap_time_records + $68)
+	dc.l	loc_103CC ; Belgium per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Australia
 	dc.l	loc_560D4 ; Australia tiles used for minimap
@@ -19441,17 +20484,17 @@ Track_data:
 	dc.l	loc_1013A ; Australia sideline style
 	dc.l	loc_10144 ; Australia road style data
 	dc.l	loc_1014E ; Australia finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6080 ; track length
 	dc.l	loc_72D78 ; Australia signs data
 	dc.l	loc_72DEA ; Australia tileset for signs
 	dc.l	loc_72CBA ; Australia map for minimap position
 	dc.l	loc_72C02 ; Australia curve data
-	dc.l	loc_72C86 ; Australia slope data
-	dc.l	loc_72CA8 ; ?
-	dc.l	$FFFFFD70
-	dc.l	loc_103FA ; ?
-	dc.l	$002B002B
+	dc.l	loc_72C86 ; Australia slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_72CA8 ; Australia physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD70 ; Australia BCD lap-time record pointer (Track_lap_time_records + $70)
+	dc.l	loc_103FA ; Australia per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Monaco
 	dc.l	loc_551B4 ; Monaco tiles used for minimap
@@ -19462,17 +20505,17 @@ Track_data:
 	dc.l	loc_10158 ; Monaco sideline style
 	dc.l	loc_10162 ; Monaco road style data
 	dc.l	loc_1016C ; Monaco finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6144 ; track length
 	dc.l	loc_719AC ; Monaco signs data
 	dc.l	loc_71A1E ; Monaco tileset for signs
 	dc.l	loc_718EB ; Monaco map for minimap position
 	dc.l	loc_717C8 ; Monaco curve data
-	dc.l	loc_718AE ; Monaco slope data
-	dc.l	loc_718D6 ; ?
-	dc.l	$FFFFFD78
-	dc.l	loc_10428 ; ?
-	dc.l	$002B002B
+	dc.l	loc_718AE ; Monaco slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_718D6 ; Monaco physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	$FFFFFD78 ; Monaco BCD lap-time record pointer (Track_lap_time_records + $78)
+	dc.l	loc_10428 ; Monaco per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Monaco (Arcade preliminary)
 	dc.l	loc_54CB2 ; Monaco (Arcade preliminary) tiles used for minimap
@@ -19483,17 +20526,17 @@ Track_data:
 	dc.l	loc_FF5C-2 ; Monaco (Arcade preliminary) sideline style
 	dc.l	loc_FF64 ; Monaco (Arcade preliminary) road style data
 	dc.l	loc_FF6E ; Monaco (Arcade preliminary) finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	3392 ; track length
 	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
 	dc.l	loc_73B54 ; Monaco (Arcade preliminary) tileset for signs
 	dc.l	loc_73ABC ; Monaco (Arcade preliminary) map for minimap position
 	dc.l	loc_73A4A ; Monaco (Arcade preliminary) curve data
-	dc.l	loc_73A8A ; Monaco (Arcade preliminary) slope data
-	dc.l	loc_73AAC ; ?
-	dc.l	$FFFFFD80
-	dc.l	loc_10456 ; ?
-	dc.l	$002B002B
+	dc.l	loc_73A8A ; Monaco (Arcade preliminary) slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_73AAC ; Monaco (Arcade preliminary) physical slope data (decoded to Physical_slope_data)
+	dc.l	$FFFFFD80 ; Monaco (Arcade preliminary) BCD lap-time record pointer (Track_lap_time_records + $80)
+	dc.l	loc_10456 ; Monaco (Arcade preliminary) per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Monaco (Arcade main)
 	dc.l	loc_54E88 ; Monaco (Arcade main) tiles used for minimap
@@ -19504,17 +20547,17 @@ Track_data:
 	dc.l	loc_FF5C-2 ; Monaco (Arcade main) sideline style
 	dc.l	loc_FF64 ; Monaco (Arcade main) road style data
 	dc.l	loc_FF6E ; Monaco (Arcade main) finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7616 ; track length
 	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
 	dc.l	loc_73DEA ; Monaco (Arcade main) tileset for signs
 	dc.l	loc_73C8D  ; Monaco (Arcade main) map for minimap position
 	dc.l	loc_73B5E ; Monaco (Arcade main) curve data
-	dc.l	loc_73C16 ; Monaco (Arcade main) slope data
-	dc.l	loc_73C66 ; ?
-	dc.l	$FFFFFD88
-	dc.l	loc_10456 ; ?
-	dc.l	$002B002B
+	dc.l	loc_73C16 ; Monaco (Arcade main) slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_73C66 ; Monaco (Arcade main) physical slope data (decoded to Physical_slope_data)
+	dc.l	$FFFFFD88 ; Monaco (Arcade main) BCD lap-time record pointer (Track_lap_time_records + $88)
+	dc.l	loc_10456 ; Monaco (Arcade main) per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 
 ; Monaco (Arcade Wet Condition)
 	dc.l	loc_54E88 ; Monaco (Arcade Wet Condition) tiles used for minimap
@@ -19525,17 +20568,17 @@ Track_data:
 	dc.l	loc_FF78 ; Monaco (Arcade Wet Condition) sideline style
 	dc.l	loc_FF82 ; Monaco (Arcade Wet Condition) road style data
 	dc.l	loc_FF8C ; Monaco (Arcade Wet Condition) finish line style
-	dc.w	$0000 ; ?
+	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7616 ; track length
 	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
 	dc.l	loc_73DEA  ; Monaco (Arcade Wet Condition) tileset for signs
 	dc.l	loc_73C8D ; Monaco (Arcade Wet Condition) map for minimap position
 	dc.l	loc_73B5E ; Monaco (Arcade Wet Condition) curve data
-	dc.l	loc_73C16 ; Monaco (Arcade Wet Condition) slope data
-	dc.l	loc_73C66 ; ?
-	dc.l	$FFFFFD88
-	dc.l	loc_10456 ; ?
-	dc.l	$002f0038
+	dc.l	loc_73C16 ; Monaco (Arcade Wet Condition) slope data (visual; decoded to Visual_slope_data)
+	dc.l	loc_73C66 ; Monaco (Arcade Wet Condition) physical slope data (decoded to Physical_slope_data)
+	dc.l	$FFFFFD88 ; Monaco (Arcade Wet Condition) BCD lap-time record pointer (shares Monaco Arcade main)
+	dc.l	loc_10456 ; Monaco (Arcade Wet Condition) per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	$002f0038 ; steering divisors: straight=$002F (47), curve=$0038 (56) — wet tyres, reduced sensitivity
 
 loc_FDCA:
 	dc.l	$0A1014F0
@@ -22372,14 +23415,14 @@ loc_13858:
 loc_1387E:
 	ADD.w	D1, D0
 	JSR	Decompress_tilemap_to_buffer
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 	CMPI.w	#$00F0, $FFFFBB56.w
 	BCC.b	loc_138A0
 	MOVE.w	#$0040, D0
 loc_13896:
 	CLR.w	(A6)+
 	DBF	D0, loc_13896
-	LEA	$FFFFEA00.w, A6
+	LEA	Tilemap_work_buf.w, A6
 loc_138A0:
 	ORI	#$0700, SR
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
@@ -41022,7 +42065,7 @@ loc_715EA: ; slope data
 	dc.b	$00, $0F, $2F, $70
 	dc.b	$00, $4F, $00
 	dc.b	$FF
-loc_7163C: ; unknown_track_data_1
+loc_7163C: ; San Marino physical slope data (RLE; decoded to Physical_slope_data by Load_track_data)
 	dc.b	$02, $39, $00
 	dc.b	$00, $93, $FF
 	dc.b	$00, $35, $00
@@ -42804,7 +43847,7 @@ loc_75EE2:
 	MOVE.b	D1, (A5)
 	MOVEQ	#$0000000B, D7
 	LEA	$00A01FA6, A3
-	BSR.w	loc_761DA
+	BSR.w	Copy_scratch_to_z80_ram
 	MOVEA.l	A4, A5
 	SUBQ.b	#8, D5
 	MOVE.b	D5, (A5)+
@@ -42812,7 +43855,7 @@ loc_75EE2:
 	MOVE.b	D1, (A5)+
 	MOVEQ	#2, D7
 	LEA	$00A01FC6, A3
-	BRA.w	loc_761DA
+	BRA.w	Copy_scratch_to_z80_ram
 
 loc_75F06:
 	MOVEA.l	A4, A5
@@ -42840,7 +43883,7 @@ loc_75F40:
 loc_75F4C:
 	LEA	$00A01FA0, A3
 	MOVEQ	#5, D7
-	BRA.w	loc_761DA
+	BRA.w	Copy_scratch_to_z80_ram
 
 loc_75F58:
 	MOVEA.l	A4, A5
@@ -42868,7 +43911,7 @@ loc_75F92:
 loc_75F9E:
 	LEA	$00A01FC0, A3
 	MOVEQ	#5, D7
-	BRA.w	loc_761DA
+	BRA.w	Copy_scratch_to_z80_ram
 
 loc_75FAA:
 	MOVE.w	$1C(A6), D0
@@ -42969,7 +44012,7 @@ loc_761C4:
 Write_byte_to_z80_ram:
 ; Write one byte from the Audio_engine_scratch buffer (A4) to Z80 RAM (A3).
 ; This is the single-byte entry point: D7 is set to 0 so the DBF loop copies
-; exactly 1 byte.  Falls through to loc_761DA.
+; exactly 1 byte.  Falls through to Copy_scratch_to_z80_ram.
 ;
 ; Inputs:  A3 = destination address in Z80 RAM window ($A00000-$A0FFFF)
 ;          A4 = source pointer (byte to write; Audio_engine_scratch buffer)
@@ -42977,10 +44020,10 @@ Write_byte_to_z80_ram:
 ; Three entry points share the bus-arbitration block at loc_761DC:
 ;
 ;   Write_byte_to_z80_ram (here, $761D4):
-;     D7 ← 0; falls to loc_761DA (copies A4 into A5)
+;     D7 ← 0; falls to Copy_scratch_to_z80_ram (copies A4 into A5)
 ;     → Copies 1 byte from Audio_engine_scratch[0] to Z80 RAM[A3].
 ;
-;   loc_761DA ($761DA):
+;   Copy_scratch_to_z80_ram ($761DA):
 ;     A5 ← A4 (source = scratch buffer start); then arbitrates and copies D7+1 bytes.
 ;     → Copies D7+1 bytes from A4 to Z80 RAM[A3].
 ;     Used when the caller wants to send a variable-length block from the scratch
@@ -42999,7 +44042,10 @@ Write_byte_to_z80_ram:
 ;   4. Write $0000 to Z80_bus_request to release the bus back to the Z80.
 	MOVEQ	#0, D7
 
-loc_761DA:
+;loc_761DA
+Copy_scratch_to_z80_ram:
+; Mid-entry: set A5 = A4 (Audio_engine_scratch start), then fall through
+; to the bus-arbitration block to copy D7+1 bytes from A4 to Z80 RAM at A3.
 	MOVEA.l	A4, A5
 
 loc_761DC:
@@ -43110,7 +44156,7 @@ loc_76308:
 	MOVE.b	#3, (A5)
 	LEA	$00A01C0D, A3
 	MOVEQ	#2, D7
-	BRA.w	loc_761DA
+	BRA.w	Copy_scratch_to_z80_ram
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
