@@ -258,10 +258,13 @@ loc_3C4:
 	ADDQ.w	#1, $FFFFFC22.w
 	MOVEM.l	(A7)+, D0-D7/A0-A6
 	RTE
+;$000003D8
+Default_vblank_handler:
 	JSR	Upload_h40_tilemap_buffer_to_vram
-	BRA.b	loc_3E6
+	BRA.b	Default_vblank_handler_h32
 	JSR	Upload_h32_tilemap_buffer_to_vram
-loc_3E6:
+;loc_3E6
+Default_vblank_handler_h32:
 	JSR	Update_input_bitset
 	JMP	Upload_palette_buffer_to_cram
 
@@ -2941,7 +2944,7 @@ loc_22F2:
 	MOVE.w	#2, $FFFFFF30.w
 	MOVE.w	#$003C, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
-	MOVE.l	#loc_3D98, $FFFFFF10.w
+	MOVE.l	#Practice_mode_init, $FFFFFF10.w
 	RTS
 loc_2340:
 	MOVE.w	#9, $FFFFFF4C.w
@@ -3113,7 +3116,8 @@ loc_2570:
 loc_2586:
 	RTS
 	dc.b	$D0, $C0, $32, $D8, $51, $C9, $FF, $FC, $4E, $75
-loc_2592:
+;Startup_screen_init
+Startup_screen_init:
 	JSR	Halt_audio_sequence
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -3923,7 +3927,7 @@ loc_30AC:
 	CLR.b	Player_team.w
 	JSR	Initialize_drivers_and_teams
 	MOVE.l	#Title_menu, $FFFFFF2A.w
-	MOVE.l	#loc_F2DE, $FFFFFF10.w
+	MOVE.l	#Endgame_sequence_init, $FFFFFF10.w
 	RTS
 loc_30E8:
 	MOVE.w	#3, $FFFF9000.w
@@ -3937,7 +3941,7 @@ loc_30F0:
 loc_3106:
 	BSET.b	#7, Player_team.w
 	MOVE.l	#Title_menu, $FFFFFF2A.w
-	MOVE.l	#loc_D2B0, $FFFFFF10.w
+	MOVE.l	#Team_select_screen_init, $FFFFFF10.w
 	RTS
 loc_311E:
 	MOVE.l	#Title_menu, $FFFFFF2A.w
@@ -4056,7 +4060,8 @@ loc_32E0:
 	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFFFC1C.w
 	BRA.b	loc_3306
-loc_32FA:
+;Options_screen_init
+Options_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 loc_3306:
@@ -4285,7 +4290,8 @@ loc_36A8:
 	dc.l	$028E06EE
 	dc.l	$04CE02AE
 
-loc_36B6: ; Suspected in-game loop
+;Race_loop
+Race_loop: ; Suspected in-game loop
 	JSR	Wait_for_practice_vblank_cycle(PC)
 	CLR.w	$FFFFFC60.w
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
@@ -4781,13 +4787,14 @@ Reset_race_state:
 	MOVE.w	#1100, Visual_rpm.w
 	MOVE.w	#1, $FFFFFCA6.w
 	RTS
-	JSR	loc_36B6(PC)
+	JSR	Race_loop(PC)
 	SUBQ.w	#1, $FFFFFC2C.w
 	BNE.b	loc_3D96
 	MOVE.l	#$0000CCE0, $FFFFFF10.w
 loc_3D96:
 	RTS
-loc_3D98:
+;Practice_mode_init
+Practice_mode_init:
 	JSR	Fade_palette_to_black(PC)
 	JSR	Initialize_h32_vdp_state(PC)
 	JSR	Init_race_player_state(PC)
@@ -5559,7 +5566,8 @@ Set_vdp_command_from_tile_index:
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	RTS
-loc_4976:
+;Pre_race_screen_init
+Pre_race_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -6111,7 +6119,8 @@ loc_4FCE:
 	MOVE.l	#loc_4F5C, (A0)
 	MOVE.w	#$0078, $36(A0)
 	RTS
-loc_4FDC:
+;Championship_mode_init
+Championship_mode_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -6427,7 +6436,7 @@ loc_562A:
 	ANDI.b	#6, D1
 	BNE.b	loc_5678
 	MOVE.l	#loc_3800, $FFFFFF2A.w
-	MOVE.l	#loc_32FA, $FFFFFF10.w
+	MOVE.l	#Options_screen_init, $FFFFFF10.w
 	CLR.w	$FFFFFF4C.w
 loc_5660:
 	RTS
@@ -12494,10 +12503,10 @@ loc_9E06:
 	LEA	loc_A2AA(PC), A2
 	MOVEQ	#6, D3
 	BSR.b	Spawn_trackside_objects
-	MOVE.l	#loc_4976, $1E(A0)
+	MOVE.l	#Pre_race_screen_init, $1E(A0)
 	TST.w	$FFFFFCBC.w
 	BEQ.b	loc_9E26
-	MOVE.l	#loc_2592, $1E(A0)
+	MOVE.l	#Startup_screen_init, $1E(A0)
 loc_9E26:
 	MOVE.l	#loc_9E52, (A0)
 	MOVE.w	#$FFE2, $2C(A0)
@@ -16293,7 +16302,8 @@ loc_D2A2:
 loc_D2AA:
 	CLR.l	$FFFFB840.w
 	RTS
-loc_D2B0:
+;Team_select_screen_init
+Team_select_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -16516,7 +16526,8 @@ loc_D6D2:
 	MOVE.l	#Title_menu, $FFFFFF10.w
 loc_D6E0:
 	RTS
-loc_D6E2:
+;Championship_standings_init
+Championship_standings_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -18343,7 +18354,8 @@ loc_F262:
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-loc_F2DE:
+;Endgame_sequence_init
+Endgame_sequence_init:
 	BSR.w	loc_F336
 	MOVE.l	#$0000F264, $FFFFB840.w
 	MOVE.w	#1, $FFFFB84E.w
@@ -21571,7 +21583,7 @@ loc_1319E:
 	BEQ.b	loc_131E8
 	CMPI.l	#Title_menu, D0
 	BEQ.b	loc_131E2
-	CMPI.l	#loc_4FDC, D0
+	CMPI.l	#Championship_mode_init, D0
 	BEQ.b	loc_131DC
 	MOVE.b	#4, (A1)+
 	BRA.b	loc_131EC
@@ -21636,13 +21648,13 @@ loc_1324A:
 	MOVE.l	#0, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_13284:
-	MOVE.l	#loc_4FDC, $FFFFFF2A.w
+	MOVE.l	#Championship_mode_init, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_1328E:
 	MOVE.l	#Title_menu, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_13298:
-	MOVE.l	#loc_D6E2, $FFFFFF2A.w
+	MOVE.l	#Championship_standings_init, $FFFFFF2A.w
 loc_132A0:
 	RTS
 

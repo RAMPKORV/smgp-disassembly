@@ -41,6 +41,11 @@ Shift_type = $FFFFFF2E ; 0 = automatic, 1 = 4-shift, 2 = 7-shift
 Easy_flag = $FFFFFF1C ; 0 = normal, 1 = easy
 Control_type = $FFFFFF1E;
 
+; Frame dispatch pointers (RAM function pointers, changed to transition game state)
+Frame_callback       = $FFFFFF10 ; main-loop per-frame callback (main game state machine)
+Vblank_callback      = $FFFFFF0C ; VBI per-frame callback (tilemap upload, input, palette)
+Saved_frame_callback = $FFFFFF2A ; saved Frame_callback, restored when returning from sub-screens
+
 Input_state_bitset = $FFFFFF04
 Input_click_bitset = $FFFFFF05
 KEY_START = 7
