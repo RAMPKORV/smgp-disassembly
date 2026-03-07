@@ -255,12 +255,19 @@ Overtake_delta    = $FFFFFC5C ; signed delta for overtake position animation
 ; ============================================================
 ; Fast-page game-mode flags  ($FFFFFFxx area)
 ; ============================================================
-Control_handler_ptr = $FFFFFF20 ; pointer to current control input handler (set by Load_control_type_handler)
-Easy_flag           = $FFFFFF1C ; 0 = normal difficulty, 1 = easy difficulty
-Control_type        = $FFFFFF1E ; 0=type A (brake/accel buttons), 1=type B, etc.
-English_flag        = $FFFFFF26 ; 0 = Japanese text, 1 = English text
-Shift_type          = $FFFFFF2E ; 0 = automatic, 1 = 4-shift, 2 = 7-shift
-Practice_flag       = $FFFFFF18 ; 1 = warm-up or practice mode active, 0 = real race
+; Control key mapping ($FFFFFF20-$FFFFFF23):
+;   Loaded as a longword from Control_types table.
+;   Each byte is a KEY_* bit index used with BTST against Input_state_bitset.
+Control_key_shift_down  = $FFFFFF20 ; byte: bit index of the shift-down key for current control type
+Control_key_shift_up    = $FFFFFF21 ; byte: bit index of the shift-up key for current control type
+Control_key_accel       = $FFFFFF22 ; byte: bit index of the accelerate key for current control type
+Control_key_brake       = $FFFFFF23 ; byte: bit index of the brake key for current control type
+Control_handler_ptr     = $FFFFFF20 ; longword: all 4 key bit indices packed (loaded from Control_types)
+Easy_flag               = $FFFFFF1C ; 0 = normal difficulty, 1 = easy difficulty
+Control_type            = $FFFFFF1E ; 0=type A (brake/accel buttons), 1=type B, etc.
+English_flag            = $FFFFFF26 ; 0 = Japanese text, 1 = English text
+Shift_type              = $FFFFFF2E ; 0 = automatic, 1 = 4-shift, 2 = 7-shift
+Practice_flag           = $FFFFFF18 ; 1 = warm-up or practice mode active, 0 = real race
 
 ; ============================================================
 ; Race / standings state  ($FFFFFF30-$FFFFFF5F area)
@@ -290,3 +297,43 @@ Tilemap_draw_queue = $FFFFE700 ; buffer for pending tilemap draw commands; each 
                                 ;   dc.l  source tilemap pointer
                                 ;   dc.b  tile columns - 1
                                 ;   dc.b  tile rows - 1
+
+; ============================================================
+; Crash / spin / retire / overtake animation state  ($FFFFCAxxx area)
+; ============================================================
+Crash_animation_flag  = $FFFFFCA4 ; non-zero while crash/spin animation is playing (also used by Update_breaking)
+Crash_spin_flag       = $FFFFFCA6 ; non-zero while player is in a spin/off-track slide state
+                                   ; suppresses normal driving model (Update_rpm, Update_breaking)
+Retire_animation_flag = $FFFFFCA8 ; non-zero while retire/DNF cut-scene is playing
+
+; ============================================================
+; Driving model spin/crash state  ($FFFFFC76)
+; ============================================================
+Spin_off_track_flag = $FFFFFC76 ; non-zero when player has spun and is fully off-track
+                                  ; → Update_rpm decelerates by 30/frame; Update_speed clamped
+
+; ============================================================
+; Overtake / position animation state  ($FFFFCBxx area)
+; ============================================================
+Overtake_position_delta = $FFFFFCBE ; signed word: incremental position offset during overtake animation;
+                                     ; inhibits horizontal position update while non-zero
+
+; ============================================================
+; Track-specific steering and braking modifier indices  ($FFFF916x area)
+; ============================================================
+Track_steering_index  = $FFFF9160 ; index into steering parameter delta table (set per track)
+Track_steering_index_b = $FFFF9162 ; secondary index for steering divisor adjustment
+Track_braking_index   = $FFFF9164 ; index into braking strength modifier table (set per track)
+
+; ============================================================
+; Replay / AI steering override state  ($FFFFAE38)
+; ============================================================
+Replay_steer_override = $FFFFAE38 ; 0=player, 1=force right, other=force left
+                                   ; used by warm-up replay and AI control injection
+
+; ============================================================
+; Sound control register
+; ============================================================
+Engine_sound_pitch = $FFFFE996 ; word written to control engine sound pitch:
+                                ;   $022E (558)  = normal engine tone
+                                ;   $0E86 (3718) = high-pitch shift-warning pulse

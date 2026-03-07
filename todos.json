@@ -263,7 +263,8 @@
           "file": "smgp.asm",
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Added function header comments to all 8 driving model routines: Update_shift (gear ratio math, auto-shift thresholds), Update_rpm (Acceleration_data indexing, sub-routine call chain, pre-race rev animation, crash decel), Update_visual_rpm (±80/150 per-frame interpolation), Update_engine_sound_pitch ($022E/$0E86 shift-warning pulse), Update_speed (RPM→km/h via Engine_data table, ±2/5 rate limit), Update_breaking (braking strength table, track-quality modifier), Update_steering (Road_x_offset zones, boundary wobble, auto-centre, dead zone), Update_horizontal_position (curve displacement, steering integration, collision flag). Added 14 new symbolic constants to constants.asm: Control_key_shift_down/up/accel/brake, Crash_animation_flag, Crash_spin_flag, Retire_animation_flag, Spin_off_track_flag, Overtake_position_delta, Track_steering_index/b, Track_braking_index, Replay_steer_override, Engine_sound_pitch. Replaced 34 additional raw literals in smgp.asm. Build verified bit-perfect."
         },
         {
           "id": "DOC-004",

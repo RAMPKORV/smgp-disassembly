@@ -2090,9 +2090,9 @@ loc_172C:
 	JSR	Send_D567_to_VDP
 	CLR.w	$24(A0)
 loc_174E:
-	MOVE.w	$FFFFFCA4.w, D0
+	MOVE.w	Crash_animation_flag.w, D0
 	BEQ.b	loc_1776
-	CLR.w	$FFFFFCA4.w
+	CLR.w	Crash_animation_flag.w
 	LEA	$00FF5980, A6
 	SUBQ.w	#1, D0
 	BEQ.b	loc_1766
@@ -4841,7 +4841,7 @@ Reset_race_state:
 	MOVE.b	#$80, Road_x_offset.w
 	MOVE.w	#1100, Player_rpm.w
 	MOVE.w	#1100, Visual_rpm.w
-	MOVE.w	#1, $FFFFFCA6.w
+	MOVE.w	#1, Crash_spin_flag.w
 	RTS
 ;$00003D84
 Championship_warmup_race_frame:
@@ -5029,7 +5029,7 @@ loc_3FE0:
 	BEQ.b	loc_4056
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_4056
-	MOVE.b	$FFFFFF23.w, D0
+	MOVE.b	Control_key_brake.w, D0
 	BTST.b	D0, Input_click_bitset.w ; if break key clicked
 	BEQ.b	loc_4026
 	CMPI.w	#$0080, Player_speed.w
@@ -5043,9 +5043,9 @@ loc_400E:
 	BCC.b	loc_4026
 	ADDI.w	#$0014, $FFFF916E.w
 	MOVEQ	#1, D7
-	SUBQ.w	#2, $FFFF9164.w
+	SUBQ.w	#2, Track_braking_index.w
 	BCC.b	loc_4026
-	CLR.w	$FFFF9164.w
+	CLR.w	Track_braking_index.w
 loc_4026:
 	TST.w	Collision_flag.w
 	BEQ.b	loc_403A
@@ -5087,9 +5087,9 @@ loc_407C:
 	BCC.b	loc_4094
 	ADDI.w	#$0014, $FFFF916C.w
 	MOVEQ	#1, D7
-	SUBQ.w	#2, $FFFF9162.w
+	SUBQ.w	#2, Track_steering_index_b.w
 	BCC.b	loc_4094
-	CLR.w	$FFFF9162.w
+	CLR.w	Track_steering_index_b.w
 loc_4094:
 	RTS
 
@@ -5104,9 +5104,9 @@ loc_40A6:
 	BCC.b	loc_40BE
 	ADDI.w	#$0014, $FFFF916A.w
 	MOVEQ	#1, D7
-	SUBQ.w	#2, $FFFF9160.w
+	SUBQ.w	#2, Track_steering_index.w
 	BCC.b	loc_40BE
-	CLR.w	$FFFF9160.w
+	CLR.w	Track_steering_index.w
 loc_40BE:
 	RTS
 loc_40C0:
@@ -6707,9 +6707,27 @@ Draw_bcd_time_to_vdp:
 	RTS
 
 ;loc_59BC
+; Update_shift - process gear shift input and update Player_shift / Player_rpm
+;
+; Called from Race_loop step 6 (drive model update, skipped when retired).
+; Dispatches on Shift_type: Automatic (0), 4-shift (1), or 7-shift (2).
+;
+; Automatic mode:
+;   - Manual shift-down key overrides automatic logic (shift down unconditionally).
+;   - Auto-upshift when Player_rpm > 1300.
+;   - Auto-downshift per gear: shift 1 at rpm < 649, shift 2 at rpm < 865, shift 3 at rpm < 974.
+; Manual modes (4-shift / 7-shift):
+;   - Respond to button *clicks* (not holds) for both up and down shifts.
+;   - Top gear is clamped (shift 3 for 4-shift, shift 6 for 7-shift).
+;
+; On any gear change, Player_rpm is adjusted to preserve the RPM ratio:
+;   upshift:   new_rpm = old_rpm * new_gear / (new_gear + 1)
+;   downshift: new_rpm = old_rpm * (old_gear + 1) / old_gear
+;
+; After a manual shift, queues a tilemap draw to update the on-screen gear indicator.
 Update_shift:
-	MOVE.b	Control_handler_ptr.w, D5
-	MOVE.b	$FFFFFF21.w, D6
+	MOVE.b	Control_key_shift_down.w, D5
+	MOVE.b	Control_key_shift_up.w, D6
 	MOVE.w	Shift_type.w, D0
 	ASL.w	#2, D0
 	JMP	loc_59CE(PC,D0.w) ; Jump based on shift type
@@ -6798,7 +6816,7 @@ loc_5A98:
 loc_5AAE:
 	RTS ; end of Update_shift
 
-loc_5AB0:
+loc_5AB0: ; crash/spin deceleration: rpm -= 30/frame, sync visual, auto-downshift when rpm < 700
 	SUBI.w	#30, Player_rpm.w
 	BCC.b	loc_5ABE
 	CLR.w	Player_rpm.w
@@ -6813,14 +6831,14 @@ loc_5ACE:
 	MOVE.w	Player_rpm.w, Visual_rpm.w
 	RTS
 
-loc_5AD6:
+loc_5AD6: ; pre-race rev animation: visual_rpm ticks down 60/frame (floor 801); if accel held, rises 120/frame (ceiling 1251)
 	LEA	Visual_rpm.w, A1
 	ADDI.w	#-60, (A1)
 	CMPI.w	#801, (A1)
 	BCC.b	loc_5AE8   ; if visual rpm < 801
 	MOVE.w	#801, (A1) ; then visual rpm = 801
 loc_5AE8:
-	MOVE.b	$FFFFFF22.w, D5
+	MOVE.b	Control_key_accel.w, D5
 	BTST.b	D5, Input_state_bitset.w ; if accelerate key pressed
 	BEQ.b	loc_5B00
 	ADDI.w	#120, (A1)
@@ -6831,20 +6849,42 @@ loc_5B00:
 	RTS
 
 ;loc_5B02:
+; Update_rpm - simulate engine RPM for this frame
+;
+; Called from Race_loop step 6 (drive model update, skipped when retired).
+; Computes the RPM delta for the current frame and writes it to Player_rpm.
+; Falls through to Update_visual_rpm.
+;
+; Execution path:
+;   if Race_started == 0  → loc_5AD6: pre-race rev animation only
+;   if Spin_off_track_flag → loc_5AB0: crash deceleration (-30/frame), sync visual, then return
+;   else:
+;     1. loc_5C1E: collision RPM penalty (Rpm_derivative spike)
+;     2. loc_5C46: slipstream / drafting boost from nearby AI cars
+;     3. loc_5CAA: track-based RPM modifier (unknown_track_data_1)
+;     4. loc_5CC4: obstacle collision deceleration
+;     5. If brake key held → skip to Update_visual_rpm (Update_breaking handles RPM)
+;     6. Read Acceleration_data[shift_type][shift][rpm/50]:
+;          bit 7 set → at/over rev limit; skip acceleration
+;          else      → apply Acceleration_modifier scaling (−50%/0/+25%/+50%)
+;     7. If Road_marker_state active → subtract road-marker drag from acc
+;     8. If accelerate key held → ADD acc to Player_rpm (clamp 0..Engine_rpm_max)
+;        else → ADD idle decel (shift − 8, negative for gears 0–7)
+;   Falls through to Update_visual_rpm.
 Update_rpm:
 	TST.w	Race_started.w
 	BEQ.b	loc_5AD6
-	TST.w	$FFFFFC76.w
+	TST.w	Spin_off_track_flag.w
 	BNE.b	loc_5AB0
 	BSR.w	loc_5C1E
 	BSR.w	loc_5C46
 	BSR.w	loc_5CAA
 	BSR.w	loc_5CC4
-	MOVE.b	$FFFFFF22.w, D5
-	MOVE.b	$FFFFFF23.w, D6
-	TST.w	$FFFFFCA6.w
+	MOVE.b	Control_key_accel.w, D5
+	MOVE.b	Control_key_brake.w, D6
+	TST.w	Crash_spin_flag.w
 	BNE.b	loc_5B34
-	BTST.b	D6, Input_state_bitset.w ; if break key pressed
+	BTST.b	D6, Input_state_bitset.w ; if brake key pressed
 	BNE.w	Update_visual_rpm        ; then only update visual rpm, Update_breaking will do RPM update instead
 loc_5B34:
 	LEA	Acceleration_data, A1
@@ -6889,7 +6929,7 @@ loc_5B7E:
 loc_5B9E:
 	MOVE.w	Player_shift.w, D2
 	SUBQ.w	#8, D2
-	TST.w	$FFFFFCA6.w
+	TST.w	Crash_spin_flag.w
 	BNE.b	loc_5BD2
 	BTST.b	D5, Input_state_bitset.w ; if accelerate key pressed
 	BNE.b	loc_5BD2
@@ -6913,6 +6953,11 @@ loc_5BE8:
 loc_5BF0:
 	ADDI.w	#-50, Player_rpm.w
 ;loc_5BF6:
+; Update_visual_rpm - interpolate gauge needle (Visual_rpm) toward Player_rpm
+;
+; Called as fall-through from Update_rpm (and from Update_breaking via fall-through path).
+; Visual_rpm approaches Player_rpm at up to +80 RPM/frame (rising) or -150 RPM/frame (falling).
+; The +1 bias ensures the needle always "hunts" above zero when RPM is near zero.
 Update_visual_rpm:
 	MOVE.w	Player_rpm.w, D0
 	ADDQ.w	#1, D0
@@ -7064,6 +7109,14 @@ Acceleration_data: ; Derivative of RPM during acceleration
 	dc.b	$01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02, $02, $02, $02, $02, $02, $03, $03, $03, $03, $02, $01, $01, $FF, $FD, $FB, $00, $00 ; shift 5
 	dc.b	$01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $FF, $FD, $FB, $F9           ; shift 6
 ;loc_5F10
+; Update_engine_sound_pitch - write engine tone or shift-warning pulse to sound register
+;
+; Called from Race_loop step 5 (Update_engine_sound_pitch).
+; In automatic mode: always writes normal pitch $022E.
+; In manual modes: flickers to $0E86 (high pitch, every 4th frame) when:
+;   - RPM < 700 and not in gear 0  → downshift warning
+;   - RPM > 1300 and not at top gear → upshift warning
+; The $0E86 pulse produces an audible warning to prompt the player to shift.
 Update_engine_sound_pitch:
 	MOVE.w	#$022E, D0
 	MOVE.w	Shift_type.w, D1
@@ -7087,10 +7140,21 @@ loc_5F4C:
 	BEQ.b	loc_5F58
 	MOVE.w	#$0E86, D0
 loc_5F58:
-	MOVE.w	D0, $FFFFE996.w ; Either $022E (558) or $0E86 (3718), only side effect of function. $FFFFE996 never read?
+	MOVE.w	D0, Engine_sound_pitch.w ; $022E (normal) or $0E86 (shift-warning pulse)
 	RTS
 
 ;loc_5F5E
+; Update_speed - derive Player_speed from Player_rpm using Engine_data table
+;
+; Called from Race_loop step 6 (drive model update, skipped when retired).
+; Computes target speed = Player_rpm * 100 / Engine_data[team][shift_type][shift],
+; where Engine_data entries give the RPM value that corresponds to 100 km/h for that gear.
+; The delta to the current Player_speed is clamped to +2 / -5 km/h per frame to smooth
+; the speedometer display and prevent instant speed jumps.
+;
+; Outputs:
+;   Player_speed_raw - un-smoothed speed (km/h) for this RPM
+;   Player_speed     - rate-limited smoothed speed (km/h)
 Update_speed:
 	CLR.l	D0
 	LEA	Engine_data, A1
@@ -7147,10 +7211,25 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different
 	dc.w	1846, 899, 603, 459, 387, 346, 299
 
 ;loc_6062:
+; Update_breaking - apply brake deceleration to Player_rpm
+;
+; Called from Race_loop step 6 (drive model update, skipped when retired).
+; Note: the "breaking" spelling is original to the ROM (not corrected).
+;
+; If brake key is held:
+;   1. If rpm > Engine_rpm_max (1500): shed 40 RPM first.
+;   2. Look up braking strength from loc_60C0 table [shift_type * 4 + shift]:
+;        automatic (type 0): 50 / 40 / 30 / 20 RPM/frame for shifts 0-3
+;        4-shift   (type 1): 50 / 40 / 30 / 20 RPM/frame for shifts 0-3
+;        7-shift   (type 2): 48 / 42 / 36 / 30 / 24 / 18 / 12 / 6 for shifts 0-6
+;   3. In world-championship mode (not practice): apply track-quality modifier from loc_60D0
+;      (signed byte adjustment ±6, indexed by Track_braking_index).
+;   4. Player_rpm -= braking_strength; clamped to 0.
+; Skipped entirely if Crash_spin_flag is set.
 Update_breaking:
-	TST.w	$FFFFFCA6.w
+	TST.w	Crash_spin_flag.w
 	BNE.b	loc_60BE
-	MOVE.b	$FFFFFF23.w, D6
+	MOVE.b	Control_key_brake.w, D6
 	BTST.b	D6, Input_state_bitset.w ; if break key pressed, then continue
 	BEQ.b	loc_60BE                 ; else exit early
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
@@ -7167,7 +7246,7 @@ loc_6080:
 	BEQ.b	loc_60B2
 	TST.w	Practice_mode.w
 	BNE.b	loc_60B2
-	MOVE.w	$FFFF9164.w, D0
+	MOVE.w	Track_braking_index.w, D0
 	LEA	loc_60D0(PC), A0
 	ADD.w	(A0,D0.w), D1
 	BPL.b	loc_60B2
@@ -7190,6 +7269,23 @@ loc_60D0:
 	dc.w	$0000
 	dc.b	$00, $02, $00, $04, $00, $06
 ;loc_60DC:
+; Update_steering - process left/right input and update Road_x_offset / Steering_output
+;
+; Called from Race_loop step 10.
+; Road_x_offset is an unsigned byte: $80 = lane centre, $08 = hard left, $F8 = hard right.
+; Three track-edge zones determine the displacement step per frame:
+;   D4 (default $0F): normal zone — standard lateral step
+;   D5 (default $13): approach zone — larger step (entering track boundary)
+;   D6 (default $18): hard boundary — maximum step (at the very edge)
+; In world-championship mode, all four parameters are adjusted per track via Track_steering_index.
+;
+; If no key is pressed (or Retire_animation_flag active): auto-centre at rate D3 (default 9).
+; Dead zone [$79..$87] around centre snaps to $80.
+; Replay/AI override: Replay_steer_override 1 = force RIGHT, other nonzero = force LEFT.
+;
+; Outputs:
+;   Road_x_offset  — new unsigned byte road centre position ($80 = centre)
+;   Steering_output — signed offset with dead zone stripped, fed to Update_horizontal_position
 Update_steering:
 	MOVEQ	#9, D3
 	MOVEQ	#$0000000F, D4
@@ -7199,7 +7295,7 @@ Update_steering:
 	BEQ.b	loc_6106
 	TST.w	Practice_mode.w
 	BNE.b	loc_6106
-	MOVE.w	$FFFF9160.w, D0
+	MOVE.w	Track_steering_index.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	LEA	loc_61FC(PC), A0
@@ -7211,11 +7307,11 @@ Update_steering:
 loc_6106:
 	MOVE.b	Road_x_offset.w, D7
 	MOVE.b	Input_state_bitset.w, D0
-	TST.w	$FFFFFCA8.w
+	TST.w	Retire_animation_flag.w
 	BNE.w	loc_61A8
-	TST.w	$FFFFAE38.w
+	TST.w	Replay_steer_override.w
 	BEQ.b	loc_6136
-	CMPI.w	#1, $FFFFAE38.w
+	CMPI.w	#1, Replay_steer_override.w
 	BNE.b	loc_612E
 	BSET.l	#KEY_RIGHT, D0
 	BCLR.l	#KEY_LEFT, D0
@@ -9421,7 +9517,7 @@ loc_785A:
 
 ;loc_785C:
 Update_gap_to_rival_display:
-	TST.w	$FFFFFCA8.w
+	TST.w	Retire_animation_flag.w
 	BNE.b	loc_7874
 	CMPI.w	#$00C8, Aux_object_counter.w
 	BCC.b	loc_7876
@@ -9541,7 +9637,7 @@ loc_7A16:
 	MOVE.w	#$0178, $16(A0)
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$FFFF, $28(A0)
-	MOVE.w	#1, $FFFFFCA4.w
+	MOVE.w	#1, Crash_animation_flag.w
 	MOVE.w	#2, $38(A0)
 loc_7A70:
 	SUBQ.w	#2, $18(A0)
@@ -9549,9 +9645,9 @@ loc_7A70:
 	CMPI.w	#$0160, $16(A0)
 	BNE.b	loc_7A94
 	MOVE.l	#loc_7AF0, (A0)
-	MOVE.w	#2, $FFFFFCA4.w
+	MOVE.w	#2, Crash_animation_flag.w
 	CLR.w	$38(A0)
-	CLR.w	$FFFFFCA6.w
+	CLR.w	Crash_spin_flag.w
 loc_7A94:
 	CMPI.w	#$0175, $16(A0)
 	BNE.b	loc_7AA4
@@ -9587,17 +9683,17 @@ loc_7AF0:
 	TST.w	$38(A0)
 	BNE.b	loc_7B30
 	ADDQ.w	#1, $38(A0)
-	MOVE.w	#1, $FFFFFCA4.w
+	MOVE.w	#1, Crash_animation_flag.w
 loc_7B30:
 	CMPI.w	#$00FF, Player_speed.w
 	BCS.b	loc_7B42
-	CLR.w	$FFFFFCA6.w
-	MOVE.w	#1, $FFFFFC76.w
+	CLR.w	Crash_spin_flag.w
+	MOVE.w	#1, Spin_off_track_flag.w
 loc_7B42:
 	CMPI.w	#$0080, Player_speed.w
 	BCC.b	loc_7B54
-	MOVE.w	#1, $FFFFFCA6.w
-	CLR.w	$FFFFFC76.w
+	MOVE.w	#1, Crash_spin_flag.w
+	CLR.w	Spin_off_track_flag.w
 loc_7B54:
 	ADDQ.w	#2, $18(A0)
 	ADDQ.w	#1, $16(A0)
@@ -9677,7 +9773,7 @@ loc_7C3A:
 	JSR	Update_tire_wear_counter(PC)
 loc_7C42:
 	CLR.w	$FFFFFC9A.w
-	MOVE.w	$FFFFFCBE.w, D0
+	MOVE.w	Overtake_position_delta.w, D0
 	BEQ.b	loc_7C6E
 	BMI.b	loc_7C58
 	ADDI.w	#$0014, $12(A0)
@@ -9687,7 +9783,7 @@ loc_7C58:
 	SUBI.w	#$0014, $12(A0)
 	ADDQ.w	#1, D0
 loc_7C60:
-	MOVE.w	D0, $FFFFFCBE.w
+	MOVE.w	D0, Overtake_position_delta.w
 	CLR.w	$FFFFFCBA.w
 	CLR.w	$FFFFFC98.w
 	BRA.b	loc_7C90
@@ -9697,7 +9793,7 @@ loc_7C6E:
 	MOVE.w	$FFFFFCB4.w, $FFFFFC9A.w
 	JSR	Decrement_lap_time_bcd(PC)
 	JSR	Update_tire_wear_counter(PC)
-	MOVE.w	$FFFFFCBA.w, $FFFFFCBE.w
+	MOVE.w	$FFFFFCBA.w, Overtake_position_delta.w
 	CLR.w	$FFFFFCBA.w
 	CLR.w	$FFFFFC98.w
 loc_7C90:
@@ -10015,7 +10111,7 @@ loc_8082:
 	ANDI.w	#1, D0
 	ADDQ.w	#1, D0
 	MOVE.w	D0, Overtake_event_flag.w
-	MOVE.w	$FFFFFCA8.w, D0
+	MOVE.w	Retire_animation_flag.w, D0
 	OR.w	Retire_flag.w, D0
 	BNE.b	loc_80C2
 	SUBQ.w	#1, $1C(A0)
@@ -10093,12 +10189,29 @@ loc_8140:
 	RTS
 
 ;loc_8142:
+; Update_horizontal_position - integrate curve displacement and steering into Horizontal_position
+;
+; Called from Race_loop step 11.
+; Horizontal_position is a signed 32-bit fixed-point value: integer part (word) is the lane
+; offset in screen pixels, with 0 = track centre.
+;
+; Each frame:
+;   1. If Overtake_delta or Overtake_position_delta are non-zero: skip (overtake animation controls position).
+;   2. If speed == 0: skip.
+;   3. Read curve data at current track step:
+;        curve displacement = curve_sharpness × speed  (positive = pushed to outside of turn)
+;   4. Steering contribution = (Steering_output << 6) / divisor  (scaled by speed at low speeds)
+;        divisor from $FFFFFF52 table; in championship mode adjusted per track via Track_steering_index_b.
+;   5. Integrate both into Horizontal_position, clamped to ±$01900000 (±$01500000 on some tracks).
+;   6. Collision detection: if on a curve, steering hard into the curve (|Steering_output| ≥ $64),
+;      car is far off-centre, and speed ≥ $20 → set Collision_flag = $FFFF.
+; Player_x_negated = −Horizontal_position.w is written for the road renderer.
 Update_horizontal_position:
 	CLR.w	Collision_flag.w
 	LEA	$FFFFFF52.w, A0
 	LEA	loc_8998(PC), A2
 	MOVE.w	Overtake_delta.w, D3
-	OR.w	$FFFFFCBE.w, D3
+	OR.w	Overtake_position_delta.w, D3
 	BNE.w	loc_8244
 	MOVE.w	Player_speed.w, D3
 	BEQ.w	loc_8244
@@ -10141,7 +10254,7 @@ loc_81BC:
 	BEQ.b	loc_81D8
 	TST.w	Practice_mode.w
 	BNE.b	loc_81D8
-	MOVE.w	$FFFF9162.w, D0 ; Why is D0 overwritten here before previous calculation is used?
+	MOVE.w	Track_steering_index_b.w, D0 ; Why is D0 overwritten here before previous calculation is used?
 	ADD.w	D0, D0
 	ADD.w	(A2,D0.w), D2
 loc_81D8:
@@ -10211,7 +10324,7 @@ loc_825C:
 	TST.w	Use_world_championship_tracks.w
 	BNE.w	loc_8466
 	MOVE.w	Player_grid_position.w, D1
-	TST.w	$FFFFFCA8.w
+	TST.w	Retire_animation_flag.w
 	BNE.w	loc_8386
 	TST.w	Placement_change_flag.w
 	BEQ.b	loc_8290
@@ -10327,7 +10440,7 @@ loc_83AE:
 loc_83BE:
 	MOVE.w	#3, Placement_anim_state.w
 	MOVE.w	#3, Placement_anim_state_b.w
-	MOVE.w	$FFFFFCA8.w, D0
+	MOVE.w	Retire_animation_flag.w, D0
 	OR.w	$FFFFFCAC.w, D0
 	BNE.w	loc_8456
 	MOVE.w	#1, $FFFFFCAC.w
@@ -10374,7 +10487,7 @@ loc_8464:
 	RTS
 
 loc_8466:
-	TST.w	$FFFFFCA8.w
+	TST.w	Retire_animation_flag.w
 	BNE.b	loc_8464
 	TST.w	Has_rival_flag.w
 	BNE.w	loc_84E4
@@ -10719,9 +10832,9 @@ loc_87F2:
 	BCC.b	loc_880A
 	ADDI.w	#$0014, $FFFF916A.w
 	MOVEQ	#1, D7
-	SUBQ.w	#2, $FFFF9160.w
+	SUBQ.w	#2, Track_steering_index.w
 	BCC.b	loc_880A
-	CLR.w	$FFFF9160.w
+	CLR.w	Track_steering_index.w
 loc_880A:
 	MOVE.w	$FFFF9154.w, D0
 	SUB.w	D0, $FFFF9022.w
@@ -11860,7 +11973,7 @@ loc_95CE:
 Check_ai_collision_with_player:
 	TST.b	$10(A0)
 	BNE.b	loc_965C
-	TST.w	$FFFFAE38.w
+	TST.w	Replay_steer_override.w
 	BNE.b	loc_965C
 	MOVE.w	Horizontal_position.w, D0
 	SUBI.w	#$0040, D0
@@ -13031,8 +13144,8 @@ loc_A502:
 	dc.l	$0000D500
 	MOVE.l	#loc_A526, (A0)
 	MOVE.w	#$0028, $36(A0)
-	MOVE.w	#1, $FFFFFCA8.w
-	MOVE.w	#1, $FFFFFC76.w
+	MOVE.w	#1, Retire_animation_flag.w
+	MOVE.w	#1, Spin_off_track_flag.w
 loc_A526:
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_A564
@@ -21651,7 +21764,7 @@ loc_130F6:
 loc_1310E:
 	MOVEQ	#0, D1
 	MOVE.b	(A0)+, D1
-	MOVE.w	D1, (A1)+ ; Writes Team_car_acceleration(Team_car_acceleration), Team_car_engine_data(Team_car_engine_data), $FFFF9160, $FFFF9162, $FFFF9164
+	MOVE.w	D1, (A1)+ ; stores: Team_car_acceleration, Team_car_engine_data, Track_steering_index, Track_steering_index_b, Track_braking_index
 	DBF	D0, loc_1310E
 	MOVE.w	#$0014, $FFFF9166.w
 	MOVE.w	#$0014, $FFFF9168.w

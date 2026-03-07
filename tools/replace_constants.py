@@ -140,6 +140,24 @@ REPLACEMENTS = [
     ('A11100', 'Z80_bus_request'),
     # Tilemap draw queue buffer
     ('FFFFE700', 'Tilemap_draw_queue'),
+    # Driving model / crash state flags
+    ('FFFFFCA4', 'Crash_animation_flag'),
+    ('FFFFFCA6', 'Crash_spin_flag'),
+    ('FFFFFCA8', 'Retire_animation_flag'),
+    ('FFFFFC76', 'Spin_off_track_flag'),
+    ('FFFFFCBE', 'Overtake_position_delta'),
+    # Track-specific modifier indices
+    ('FFFF9160', 'Track_steering_index'),
+    ('FFFF9162', 'Track_steering_index_b'),
+    ('FFFF9164', 'Track_braking_index'),
+    # Replay/AI steering override
+    ('FFFFAE38', 'Replay_steer_override'),
+    # Sound
+    ('FFFFE996', 'Engine_sound_pitch'),
+    # Control key mappings (byte fields within Control_handler_ptr longword)
+    ('FFFFFF21', 'Control_key_shift_up'),
+    ('FFFFFF22', 'Control_key_accel'),
+    ('FFFFFF23', 'Control_key_brake'),
 ]
 
 def main():
