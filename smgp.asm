@@ -31,29 +31,29 @@ loc_8:
 	dc.l	ErrorTrap3 ; Unused (reserved)
 	dc.l	ErrorTrap3 ; Unused (reserved) (24)
 	dc.l	ErrorTrap3 ; Spurious exception
-	dc.l	loc_20C    ; IRQ level 1
-	dc.l	loc_20C    ; IRQ level 2
-	dc.l	loc_20C    ; IRQ level 3 (28)
+	dc.l	Return_from_exception ; IRQ level 1
+	dc.l	Return_from_exception ; IRQ level 2
+	dc.l	Return_from_exception ; IRQ level 3 (28)
 	dc.l	$FFFFFFD2  ; IRQ level 4 (horizontal retrace interrupt)
-	dc.l	loc_20C    ; IRQ level 5
-	dc.l	loc_3B4    ; IRQ level 6 (vertical retrace interrupt)
-	dc.l	loc_20C    ; IRQ level 7 (32)
-	dc.l	loc_20C    ; TRAP #00 exception
-	dc.l	loc_20C    ; TRAP #01 exception
-	dc.l	loc_20C    ; TRAP #02 exception
-	dc.l	loc_20C    ; TRAP #03 exception (36)
-	dc.l	loc_20C    ; TRAP #04 exception
-	dc.l	loc_20C    ; TRAP #05 exception
-	dc.l	loc_20C    ; TRAP #06 exception
-	dc.l	loc_20C    ; TRAP #07 exception (40)
-	dc.l	loc_20C    ; TRAP #08 exception
-	dc.l	loc_20C    ; TRAP #09 exception
-	dc.l	loc_20C    ; TRAP #10 exception
-	dc.l	loc_20C    ; TRAP #11 exception (44)
-	dc.l	loc_20C    ; TRAP #12 exception
-	dc.l	loc_20C    ; TRAP #13 exception
-	dc.l	loc_20C    ; TRAP #14 exception
-	dc.l	loc_20C    ; TRAP #15 exception (48)
+	dc.l	Return_from_exception ; IRQ level 5
+	dc.l	Vertical_blank_interrupt ; IRQ level 6 (vertical retrace interrupt)
+	dc.l	Return_from_exception ; IRQ level 7 (32)
+	dc.l	Return_from_exception ; TRAP #00 exception
+	dc.l	Return_from_exception ; TRAP #01 exception
+	dc.l	Return_from_exception ; TRAP #02 exception
+	dc.l	Return_from_exception ; TRAP #03 exception (36)
+	dc.l	Return_from_exception ; TRAP #04 exception
+	dc.l	Return_from_exception ; TRAP #05 exception
+	dc.l	Return_from_exception ; TRAP #06 exception
+	dc.l	Return_from_exception ; TRAP #07 exception (40)
+	dc.l	Return_from_exception ; TRAP #08 exception
+	dc.l	Return_from_exception ; TRAP #09 exception
+	dc.l	Return_from_exception ; TRAP #10 exception
+	dc.l	Return_from_exception ; TRAP #11 exception (44)
+	dc.l	Return_from_exception ; TRAP #12 exception
+	dc.l	Return_from_exception ; TRAP #13 exception
+	dc.l	Return_from_exception ; TRAP #14 exception
+	dc.l	Return_from_exception ; TRAP #15 exception (48)
 	dc.l	ErrorTrap3 ; Unused (reserved)
 	dc.l	ErrorTrap3 ; Unused (reserved)
 	dc.l	ErrorTrap3 ; Unused (reserved)
@@ -104,7 +104,8 @@ ErrorTrap2:
 ErrorTrap3:
 	NOP
 	BRA.b	ErrorTrap3
-loc_20C:
+;loc_20C:
+Return_from_exception:
 	RTE
 EntryPoint:
 	TST.l	$00A10008
@@ -204,12 +205,12 @@ loc_302:
 	SNE	$FFFFFF1A.w
 	BTST.l	#6, D0
 	SNE	$FFFFFF1B.w
-	JSR	loc_604
+	JSR	Initialize_vdp
 	CLR.w	$00FF5AC6
-	JSR	loc_46A(PC)
-	JSR	loc_3F2(PC)
+	JSR	Load_z80_driver(PC)
+	JSR	Install_hblank_handler(PC)
 	JSR	loc_6428
-	JSR	loc_430(PC)
+	JSR	Load_startup_graphics(PC)
 	MOVE.l	#$00002592, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	MOVE.w	#1, $FFFFFC2A.w
@@ -220,7 +221,7 @@ loc_36A:
 	JSR	(A0)
 	BRA.b	loc_36A
 loc_376:
-	JSR	loc_604
+	JSR	Initialize_vdp
 	MOVE.l	#$C0000000, VDP_control_port
 	MOVEQ	#$0000003F, D7
 loc_388:
@@ -229,39 +230,43 @@ loc_388:
 loc_394:
 	BRA.b	loc_394
 
-loc_396: ; Set $FFFFFC22 and loop until it changes, some kind of synchronization?
+;loc_396:
+Wait_for_vblank: ; Set $FFFFFC22 and loop until it changes, some kind of synchronization?
 	CLR.w	$FFFFFC22.w
 loc_39A:
 	TST.w	$FFFFFC22.w
 	BEQ.b	loc_39A
 	RTS
 
-loc_3A2:
-	JSR	loc_396(PC)
+;loc_3A2:
+Wait_for_practice_vblank_cycle:
+	JSR	Wait_for_vblank(PC)
 	CMPI.w	#$000C, $FFFFFC24.w
-	BLT.b	loc_3A2
+	BLT.b	Wait_for_practice_vblank_cycle
 	CLR.w	$FFFFFC24.w
 	RTS
-loc_3B4:
+;loc_3B4:
+Vertical_blank_interrupt:
 	MOVEM.l	D0-D7/A0-A6, -(A7)
 	TST.w	$FFFFFC2A.w
 	BEQ.b	loc_3C4
 	MOVEA.l	$FFFFFF0C.w, A0
-	JSR	(A0) ; =loc_3E2A in practice mode
+	JSR	(A0) ; =Practice_mode_vblank_handler in practice mode
 loc_3C4:
 	ANDI	#$F8FF, SR
 	JSR	loc_75C6E
 	ADDQ.w	#1, $FFFFFC22.w
 	MOVEM.l	(A7)+, D0-D7/A0-A6
 	RTE
-	JSR	loc_744
+	JSR	Upload_h40_tilemap_buffer_to_vram
 	BRA.b	loc_3E6
-	JSR	loc_754
+	JSR	Upload_h32_tilemap_buffer_to_vram
 loc_3E6:
 	JSR	Update_input_bitset
-	JMP	loc_6F0
+	JMP	Upload_palette_buffer_to_cram
 
-loc_3F2:
+;loc_3F2:
+Install_hblank_handler:
 	LEA	loc_406(PC), A0
 	LEA	$FFFFFFD2.w, A1
 	MOVE.w	#$0014, D0
@@ -272,31 +277,34 @@ loc_3FE:
 loc_406:
 	dc.w	$0C39, $00DE, $00C0, $0008, $6608, $33FC, $8AFF, $00C0, $0004, $23FC, $4002, $0010, $00C0, $0004, $33F8, $9D40, $00C0, $0000, $5478, $FFF0, $4E73
 
-loc_430:
+;loc_430:
+Load_startup_graphics:
 	LEA	loc_570CA, A0
 	MOVE.l	#$78000003, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_58062, A0
 	LEA	$00FF4940, A4
-	JSR	loc_982
+	JSR	Decompress_to_ram
 	LEA	loc_3CEB0, A0
 	LEA	$00FF0100, A4
-	JMP	loc_982
+	JMP	Decompress_to_ram
 
-loc_46A:
+;loc_46A:
+Load_z80_driver:
 	MOVE.w	#$0100, Z80_bus_request
-	BSR.b	loc_49A
+	BSR.b	Reset_z80
 	LEA	Z80_data, A5
 	LEA	$00A00000, A6
 	MOVE.w	#$1C0F, D0
 loc_484:
 	MOVE.b	(A5)+, (A6)+
 	DBF	D0, loc_484
-	BSR.b	loc_49A
+	BSR.b	Reset_z80
 	MOVE.w	#0, Z80_bus_request
-	JMP	loc_75C4A
+	JMP	Halt_audio_sequence
 
-loc_49A:
+;loc_49A:
+Reset_z80:
 	MOVE.w	#0, $00A11200
 	MOVEQ	#$0000000D, D0
 loc_4A4:
@@ -335,28 +343,31 @@ Divide_fractional:
 	MOVE.w	D0, D7 ; D7.l = remainder / D6 (from $0000 to $FFFF)
 	RTS
 
-loc_52E:
+;loc_52E:
+Decompress_asset_list_to_vdp:
 	MOVE.w	(A1)+, D0
 loc_530:
 	MOVE.w	(A1)+, D7
-	JSR	loc_8AE(PC)
+	JSR	Tile_index_to_vdp_command(PC)
 	MOVE.l	D7, VDP_control_port
 	MOVEA.l	(A1)+, A0
-	JSR	loc_972(PC)
+	JSR	Decompress_to_vdp(PC)
 	DBF	D0, loc_530
 	RTS
 	dc.b	$30, $19, $49, $F9, $00, $00, $07, $70, $60, $12
-loc_552:
+;loc_552:
+Draw_tilemap_list_to_vdp_64_cell_rows:
 	MOVE.w	(A1)+, D0
-	LEA	loc_778, A4
+	LEA	Draw_tilemap_buffer_to_vdp_64_cell_rows, A4
 	BRA.b	loc_564
 
-loc_55C:
+;loc_55C:
+Draw_tilemap_list_to_vdp_32_cell_rows:
 	MOVE.w	(A1)+, D0
-	LEA	loc_780, A4
+	LEA	Draw_tilemap_buffer_to_vdp_32_cell_rows, A4
 loc_564:
 	MOVE.w	(A1)+, D7
-	JSR	loc_8AE(PC)
+	JSR	Tile_index_to_vdp_command(PC)
 	MOVEQ	#0, D6
 	MOVE.b	(A1)+, D6
 	MOVEQ	#0, D5
@@ -393,13 +404,14 @@ Update_input_bitset:
 	BNE.b	Update_input_bitset
 	LEA	Input_state_bitset.w, A0
 	LEA	$00A10003, A1 ; Controller 1 data
-	JSR	loc_5D6(PC)
+	JSR	Read_controller_input(PC)
 	ADDQ.w	#2, A1 ; Controller 2 data
-	JSR	loc_5D6(PC)
+	JSR	Read_controller_input(PC)
 	MOVE.w	#0, Z80_bus_request
 	RTS
 
-loc_5D6:
+;loc_5D6:
+Read_controller_input:
 	MOVE.b	#$40, (A1)
 	NOP
 	NOP
@@ -420,7 +432,8 @@ loc_5D6:
 	MOVE.b	D0, (A0)+
 	RTS
 
-loc_604:
+;loc_604:
+Initialize_vdp:
 	LEA	loc_D36(PC), A0
 	MOVEQ	#$00000012, D0
 loc_60A:
@@ -433,31 +446,34 @@ loc_620:
 	DBF	D7, loc_620
 	RTS
 
-loc_62E:
+;loc_62E:
+Initialize_h40_vdp_state:
 	LEA	VDP_control_port, A0
 	MOVE.w	#$857A, (A0)
 	MOVE.w	#$8C81, (A0)
 	MOVE.w	#$8D3C, (A0)
-	BSR.b	loc_686
+	BSR.b	Reset_vdp_update_state
 	MOVE.w	#$0050, $FFFFFF16.w
 	MOVE.w	#$01C0, $FFFFFF24.w
 	MOVE.l	#$943793FF, D6
 	BRA.b	loc_67C
 
-loc_656:
+;loc_656:
+Initialize_h32_vdp_state:
 	LEA	VDP_control_port, A0
 	MOVE.w	#$8576, (A0)
 	MOVE.w	#$8C00, (A0)
 	MOVE.w	#$8D3A, (A0)
-	BSR.b	loc_686
+	BSR.b	Reset_vdp_update_state
 	MOVE.w	#$0040, $FFFFFF16.w
 	MOVE.w	#$0180, $FFFFFF24.w
 	MOVE.l	#$942D93FF, D6
 loc_67C:
 	MOVE.l	#$40000083, D7
-	JMP	loc_944(PC)
+	JMP	Start_vdp_dma_fill(PC)
 
-loc_686:
+;loc_686:
+Reset_vdp_update_state:
 	ORI	#$0700, SR
 	MOVE.w	#$8134, VDP_control_port
 	MOVE.w	#$8004, VDP_control_port
@@ -477,13 +493,15 @@ loc_6CC:
 	CLR.w	$00FF5AC6
 	RTS
 
-loc_6DA:
+;loc_6DA:
+Copy_word_run_from_stream:
 	MOVEQ	#0, D0
 	MOVEQ	#0, D1
 	MOVE.b	(A6)+, D0
 	MOVE.b	(A6)+, D1
 
-loc_6E2:
+;loc_6E2:
+Copy_word_run_to_buffer:
 	LEA	$FFFFE980.w, A5
 	ADDA.w	D0, A5
 loc_6E8:
@@ -491,7 +509,8 @@ loc_6E8:
 	DBF	D1, loc_6E8
 	RTS
 
-loc_6F0:
+;loc_6F0:
+Upload_palette_buffer_to_cram:
 	MOVE.w	#$0400, D0
 	TST.b	$FFFFFF1B.w
 	BEQ.b	loc_6FE
@@ -504,7 +523,8 @@ loc_6FE:
 	MOVE.l	#$C0000080, $FFFFFF08.w
 	JMP	Send_D567_to_VDP(PC)
 
-loc_71A:
+;loc_71A:
+Upload_palette_buffer_to_cram_delayed:
 	MOVE.w	#$0320, D0
 	TST.b	$FFFFFF1B.w
 	BEQ.b	loc_728
@@ -517,12 +537,14 @@ loc_728:
 	MOVE.l	#$C0000080, $FFFFFF08.w
 	JMP	Send_D567_to_VDP(PC)
 
-loc_744:
+;loc_744:
+Upload_h40_tilemap_buffer_to_vram:
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$74000083, $FFFFFF08.w
 	BRA.b	loc_762
 
-loc_754:
+;loc_754:
+Upload_h32_tilemap_buffer_to_vram:
 	MOVE.l	#$94019300, D5
 	MOVE.l	#$6C000083, $FFFFFF08.w
 loc_762:
@@ -530,15 +552,18 @@ loc_762:
 	MOVE.l	#$96CD9560, D6
 	JMP	Send_D567_to_VDP(PC)
 
-loc_770:
+;loc_770:
+Draw_tilemap_buffer_to_vdp_128_cell_rows:
 	MOVE.l	#$01000000, D3
 	BRA.b	loc_786
 
-loc_778:
+;loc_778:
+Draw_tilemap_buffer_to_vdp_64_cell_rows:
 	MOVE.l	#$00800000, D3
 	BRA.b	loc_786
 
-loc_780:
+;loc_780:
+Draw_tilemap_buffer_to_vdp_32_cell_rows:
 	MOVE.l	#$00400000, D3
 loc_786:
 	LEA	VDP_data_port, A5
@@ -552,27 +577,39 @@ loc_792:
 	DBF	D5, loc_78C
 	RTS
 
-loc_7A0:
-	JSR	loc_AB0(PC)
+;loc_7A0:
+Decompress_tilemap_to_vdp_128_cell_rows:
+	JSR	Decompress_tilemap_to_buffer(PC)
 	LEA	$FFFFEA00.w, A6
-	BRA.b	loc_770
+	BRA.b	Draw_tilemap_buffer_to_vdp_128_cell_rows
 
-loc_7AA:
-	JSR	loc_AB0(PC)
+;loc_7AA:
+Decompress_tilemap_to_vdp_64_cell_rows:
+	JSR	Decompress_tilemap_to_buffer(PC)
 	LEA	$FFFFEA00.w, A6
-	BRA.b	loc_778
+	BRA.b	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	dc.b	$4E, $BA, $02, $FA, $4D, $F8, $EA, $00, $60, $C2
 loc_7BE:
 	MOVE.l	#$01000000, D3
 	BRA.b	loc_7D4
 	dc.b	$26, $3C, $00, $80, $00, $00, $60, $06
-loc_7CE:
+;loc_7CE:
+Decompress_tilemap_to_vdp_32_cell_rows_with_base:
 	MOVE.l	#$00400000, D3
 loc_7D4:
-	JSR	loc_AB0(PC)
+	JSR	Decompress_tilemap_to_buffer(PC)
 	LEA	$FFFFEA00.w, A6
 
-loc_7DC:
+;Write_tilemap_rows_to_vdp
+Write_tilemap_rows_to_vdp:
+; Writes rows of tilemap data to VDP, offsetting tile indices by D1.
+; Inputs:
+;  D7 = VDP address command longword (first destination row)
+;  D6 = words per row minus 1
+;  D5 = row count minus 1
+;  D3 = VDP address row increment (added to D7 each row)
+;  D1 = tile base offset (added to non-zero tile indices)
+;  A6 = source tilemap buffer (consumed)
 	LEA	VDP_data_port, A5
 loc_7E2:
 	MOVE.l	D7, $4(A5)
@@ -602,7 +639,8 @@ loc_7F6:
 	dc.b	$4E, $BA, $FF, $86	; JSR *+$7A0
 	dc.b	$51, $C9, $FF, $E8	; DBF D1, *+$FFE8
 	dc.b	$4E, $75		; RTS [ This is an unreached (possibly unused?) routine. ]
-loc_822:
+;loc_822:
+Copy_tilemap_block_with_base:
 	MOVE.w	#$0180, D3
 loc_826:
 	LEA	(A5), A4
@@ -621,13 +659,17 @@ loc_838:
 	DBF	D5, loc_826
 	RTS
 
-loc_846:
+;loc_846:
+Draw_packed_tilemap_to_vdp:
 	LEA	VDP_data_port, A5
 	MOVE.w	(A6)+, D6
 
-loc_84E:
+;Draw_packed_tilemap_to_vdp_preset_base
+Draw_packed_tilemap_to_vdp_preset_base:
+; Entry point for Draw_packed_tilemap_to_vdp that uses a caller-supplied D6
+; tile base instead of reading the first word from the stream.
 	MOVE.w	D6, D7
-	JSR	loc_8AE(PC)
+	JSR	Tile_index_to_vdp_command(PC)
 	MOVE.l	D7, $4(A5)
 loc_858:
 	MOVEQ	#0, D1
@@ -661,18 +703,20 @@ loc_896:
 	ADDI.w	#$0040, D6
 loc_89A:
 	ADDI.w	#$0040, D6
-	BRA.b	loc_84E
+	BRA.b	Draw_packed_tilemap_to_vdp_preset_base
 
-loc_8A0:
+;loc_8A0:
+Draw_packed_tilemap_list:
 	MOVE.w	(A1)+, D2
 
 loc_8A2:
 	MOVEA.l	(A1)+, A6
-	JSR	loc_846(PC)
+	JSR	Draw_packed_tilemap_to_vdp(PC)
 	DBF	D2, loc_8A2
 	RTS
 
-loc_8AE:
+;loc_8AE:
+Tile_index_to_vdp_command:
 	ANDI.l	#$0000FFFF, D7
 	LSL.l	#2, D7
 	LSR.w	#2, D7
@@ -680,9 +724,10 @@ loc_8AE:
 	SWAP	D7
 	RTS
 
-loc_8C0:
+;loc_8C0:
+Fade_palette_to_black:
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVEQ	#6, D0
 loc_8CC:
 	LEA	$FFFFE980.w, A0
@@ -691,21 +736,22 @@ loc_8D2:
 	MOVEQ	#0, D5
 	MOVE.w	(A0), D2
 	ROL.w	#4, D2
-	BSR.b	loc_900
-	BSR.b	loc_900
-	BSR.b	loc_900
+	BSR.b	Darken_palette_component
+	BSR.b	Darken_palette_component
+	BSR.b	Darken_palette_component
 	MOVE.w	D5, (A0)+
 	DBF	D1, loc_8D2
 	CLR.w	$FFFFFC24.w
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	TST.b	$FFFFFF1B.w
 	BNE.b	loc_8FA
-	JSR	loc_396
+	JSR	Wait_for_vblank
 loc_8FA:
 	DBF	D0, loc_8CC
 	RTS
 
-loc_900:
+;loc_900:
+Darken_palette_component:
 	LSL.w	#4, D5
 	ROL.w	#4, D2
 	MOVE.w	D2, D3
@@ -731,7 +777,8 @@ Send_D567_to_VDP:
 	MOVE.w	#0, Z80_bus_request
 	RTS
 
-loc_944:
+;loc_944:
+Start_vdp_dma_fill:
 	MOVEQ	#0, D5
 	MOVE.w	#$8F01, VDP_control_port
 	LEA	VDP_control_port, A5
@@ -746,13 +793,15 @@ loc_960:
 	MOVE.w	#$8F02, VDP_control_port
 	RTS
 
-loc_972:
+;loc_972:
+Decompress_to_vdp:
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A32(PC), A3
 	LEA	VDP_data_port, A4
 	BRA.b	loc_98A
 
-loc_982:
+;loc_982:
+Decompress_to_ram:
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	LEA	loc_A48(PC), A3
 loc_98A:
@@ -767,7 +816,7 @@ loc_998:
 	MOVEQ	#8, D3
 	MOVEQ	#0, D2
 	MOVEQ	#0, D4
-	JSR	loc_A5E(PC)
+	JSR	Build_decompression_code_table(PC)
 	MOVE.b	(A0)+, D5
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
@@ -858,7 +907,8 @@ loc_A48:
 	BNE.b	loc_9FC
 	RTS
 
-loc_A5E:
+;loc_A5E:
+Build_decompression_code_table:
 	MOVE.b	(A0)+, D0
 loc_A60:
 	CMPI.b	#$FF, D0
@@ -898,7 +948,8 @@ loc_AA4:
 	DBF	D5, loc_AA4
 	BRA.b	loc_A6A
 
-loc_AB0:
+;loc_AB0:
+Decompress_tilemap_to_buffer:
 	MOVEM.l	A5/A4/A3/A2/A1/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
 	MOVEA.w	D0, A3
 	LEA	$FFFFEA00.w, A1
@@ -932,7 +983,7 @@ loc_ADC:
 	MOVEQ	#6, D0
 	LSR.w	#1, D2
 loc_AF6:
-	JSR	loc_BFE(PC)
+	JSR	Refill_tilemap_bit_buffer(PC)
 	ANDI.w	#$000F, D2
 	LSR.w	#4, D1
 	ADD.w	D1, D1
@@ -947,20 +998,20 @@ loc_B10:
 	DBF	D2, loc_B10
 	BRA.b	loc_ADC
 loc_B18:
-	JSR	loc_B7A(PC)
+	JSR	Decode_packed_tilemap_entry(PC)
 loc_B1C:
 	MOVE.w	D1, (A1)+
 	DBF	D2, loc_B1C
 	BRA.b	loc_ADC
 loc_B24:
-	JSR	loc_B7A(PC)
+	JSR	Decode_packed_tilemap_entry(PC)
 loc_B28:
 	MOVE.w	D1, (A1)+
 	ADDQ.w	#1, D1
 	DBF	D2, loc_B28
 	BRA.b	loc_ADC
 loc_B32:
-	JSR	loc_B7A(PC)
+	JSR	Decode_packed_tilemap_entry(PC)
 loc_B36:
 	MOVE.w	D1, (A1)+
 	SUBQ.w	#1, D1
@@ -970,7 +1021,7 @@ loc_B40:
 	CMPI.w	#$000F, D2
 	BEQ.b	loc_B62
 loc_B46:
-	JSR	loc_B7A(PC)
+	JSR	Decode_packed_tilemap_entry(PC)
 	MOVE.w	D1, (A1)+
 	DBF	D2, loc_B46
 	BRA.b	loc_ADC
@@ -997,7 +1048,8 @@ loc_B74:
 	MOVEM.l	(A7)+, D0-D7/A1-A5
 	RTS
 
-loc_B7A:
+;loc_B7A:
+Decode_packed_tilemap_entry:
 	MOVE.w	A3, D3
 	SWAP	D4
 	BPL.b	loc_B8A
@@ -1043,14 +1095,15 @@ loc_BC8:
 	AND.w	loc_BDC(PC,D0.w), D1
 	ADD.w	D3, D1
 	MOVE.w	A5, D0
-	BRA.b	loc_BFE
+	BRA.b	Refill_tilemap_bit_buffer
 loc_BDA:
 	MOVEQ	#$00000010, D6
 loc_BDC:
 	BRA.b	loc_BB6
 	dc.w	$0001, $0003, $0007, $000F, $001F, $003F, $007F, $00FF, $01FF, $03FF
 	dc.b	$07, $FF, $0F, $FF, $1F, $FF, $3F, $FF, $7F, $FF, $FF, $FF
-loc_BFE:
+;loc_BFE:
+Refill_tilemap_bit_buffer:
 	SUB.w	D0, D6
 	CMPI.w	#9, D6
 	BCC.b	loc_C0C
@@ -1060,7 +1113,8 @@ loc_BFE:
 loc_C0C:
 	RTS
 
-loc_C0E:
+;loc_C0E:
+Load_streamed_decompression_descriptor:
 	MOVEM.l	A2/A1, -(A7)
 	LEA	loc_D2C, A1
 	ADD.w	D0, D0
@@ -1082,7 +1136,8 @@ loc_C3E:
 	MOVEM.l	(A7)+, A1/A2
 	RTS
 
-loc_C44:
+;loc_C44:
+Start_streamed_decompression:
 	TST.l	$FFFFC080.w
 	BEQ.b	loc_C98
 	TST.w	$FFFFC0D8.w
@@ -1096,7 +1151,7 @@ loc_C44:
 loc_C66:
 	ANDI.w	#$7FFF, D2
 	MOVE.w	D2, $FFFFC0D8.w
-	BSR.w	loc_A5E
+	BSR.w	Build_decompression_code_table
 	MOVE.b	(A0)+, D5
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
@@ -1111,7 +1166,8 @@ loc_C66:
 	MOVE.l	D6, $FFFFC0D4.w
 loc_C98:
 	RTS
-loc_C9A:
+;loc_C9A:
+Continue_streamed_decompression:
 	TST.w	$FFFFC0D8.w
 	BEQ.b	loc_D1A
 	LEA	VDP_control_port, A4
@@ -1163,7 +1219,8 @@ loc_D36:
 	dc.w	$8004, $8134, $8238, $8338, $8406
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
 
-loc_D5C:
+;loc_D5C:
+Update_objects_and_build_sprite_buffer:
 	MOVEQ	#-1, D0
 	MOVE.l	D0, $FFFF9288.w
 	LEA	$FFFF8F80.w, A0
@@ -1326,11 +1383,13 @@ loc_EDC:
 loc_EE6:
 	CLR.b	(A0)
 	RTS
-loc_EEA:
+;loc_EEA:
+Queue_object_for_alt_sprite_buffer:
 	LEA	$FFFFA7B0.w, A1
 	BRA.b	loc_EF4
 
-loc_EF0:
+;loc_EF0:
+Queue_object_for_sprite_buffer:
 	LEA	$FFFFA280.w, A1
 loc_EF4:
 	MOVE.w	$E(A0), D0
@@ -1347,38 +1406,42 @@ loc_F10:
 	ADDI.w	#$FFFF, D1
 	RTS
 
-loc_F16:
+;loc_F16:
+Clear_main_object_pool:
 	LEA	$FFFFAD80.w, A0
 	MOVEQ	#$0000004B, D1
 	BRA.b	loc_F2C
 
-loc_F1E:
+;loc_F1E:
+Clear_partial_main_object_pool:
 	LEA	$FFFFAD80.w, A0
 	MOVEQ	#$0000000B, D1
 	BRA.b	loc_F2C
 
-loc_F26:
+;loc_F26:
+Clear_aux_object_pool:
 	LEA	$FFFFB840.w, A0
 	MOVEQ	#$00000020, D1
 loc_F2C:
-	BSR.b	loc_F38
+	BSR.b	Clear_object_slot
 	LEA	$40(A0), A0
 	DBF	D1, loc_F2C
 	RTS
 
-loc_F38:
+;loc_F38:
+Clear_object_slot:
 	LEA	(A0), A1
 	MOVEQ	#$0000000F, D0
 loc_F3C:
 	CLR.l	(A1)+
 	DBF	D0, loc_F3C
 	RTS
-	MOVE.l	#loc_EEA, (A0)
+	MOVE.l	#Queue_object_for_alt_sprite_buffer, (A0)
 	MOVE.l	#loc_FA4, $4(A0)
 	MOVE.w	#$0091, $E(A0)
 	MOVE.w	#$00C8, $16(A0)
 	MOVE.w	#$0100, $18(A0)
-	BRA.b	loc_EEA
+	BRA.b	Queue_object_for_alt_sprite_buffer
 	MOVE.l	#loc_F7A, (A0)
 	MOVE.l	#loc_FBE, $4(A0)
 	MOVE.w	#$0100, $18(A0)
@@ -1395,7 +1458,7 @@ loc_F82:
 	ADDI.w	#$0150, D1
 	MOVE.w	D1, $16(A0)
 	MOVE.w	loc_FCC(PC,D0.w), $E(A0)
-	JMP	loc_EF0(PC)
+	JMP	Queue_object_for_sprite_buffer(PC)
 loc_FA4:
 	dc.b	$00, $03, $B2, $03, $FF, $FE, $00, $00, $B2, $03, $FF, $FF, $00, $00
 	dc.b	$FA, $03, $FF, $FE, $00, $00, $FA, $03, $FF, $FF, $00, $00
@@ -1425,14 +1488,14 @@ loc_1022:
 	MOVE.l	#$644E0003, D7
 	MOVEQ	#$00000011, D6
 	MOVEQ	#0, D5
-	JMP	loc_146C
+	JMP	Queue_tilemap_draw
 	MOVE.w	#$0120, $18(A0)
 	MOVE.l	#loc_12820, $4(A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0108, $16(A0)
 	BTST.b	#5, $FFFFFC20.w
 	BEQ.b	loc_1058
-	JSR	loc_EF0(PC)
+	JSR	Queue_object_for_sprite_buffer(PC)
 loc_1058:
 	RTS
 loc_105A:
@@ -1440,19 +1503,20 @@ loc_105A:
 loc_107E:
 	dc.w	$87B1, $87B2, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
 
-loc_10A2:
+;loc_10A2:
+Load_race_hud_graphics:
 	LEA	loc_1E50(PC), A1
-	JSR	loc_52E
-	JSR	loc_F848
+	JSR	Decompress_asset_list_to_vdp
+	JSR	Load_track_data_pointer
 	MOVEA.l	(A1)+, A0
 	MOVE.l	#$59400002, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVEA.l	(A1)+, A0
 	MOVE.l	#$70000002, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVEA.l	(A1), A0
 	MOVE.w	#$6000, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	JSR	loc_19CA(PC)
 	CMPI.w	#$000C, Track_index.w
 	BNE.b	loc_110A
@@ -1478,23 +1542,24 @@ loc_1126:
 	LEA	loc_56A1C, A0
 loc_1132:
 	MOVE.l	#$52400002, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 loc_1142:
 	RTS
 
-loc_1144:
+;loc_1144:
+Initialize_race_hud:
 	LEA	loc_21FA(PC), A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	JSR	loc_13F6(PC)
 	LEA	loc_1E9A(PC), A1
-	JSR	loc_55C
+	JSR	Draw_tilemap_list_to_vdp_32_cell_rows
 	LEA	loc_5860A, A0
 	MOVE.w	#$8000, D0
 	MOVE.w	#$076F, D1
 	MOVE.l	#$62C40003, D7
 	MOVEQ	#8, D6
 	MOVEQ	#9, D5
-	JSR	loc_7CE
+	JSR	Decompress_tilemap_to_vdp_32_cell_rows_with_base
 	MOVE.l	#$40000003, VDP_control_port
 	MOVEQ	#$0000003F, D0
 loc_1186:
@@ -1510,7 +1575,7 @@ loc_119E:
 loc_11B6:
 	MOVE.w	#$873C, VDP_data_port
 	DBF	D0, loc_11B6
-	JSR	loc_F848
+	JSR	Load_track_data_pointer
 	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1)+, A0
 	MOVE.w	#$8000, D0
@@ -1522,23 +1587,23 @@ loc_11B6:
 loc_11E8:
 	MOVEQ	#6, D6
 	MOVEQ	#$0000000A, D5
-	JSR	loc_7CE
+	JSR	Decompress_tilemap_to_vdp_32_cell_rows_with_base
 	MOVEA.l	(A1)+, A6
 	MOVEQ	#$00000060, D0
 	MOVEQ	#$0000000A, D1
-	JSR	loc_6E2
+	JSR	Copy_word_run_to_buffer
 	MOVEA.l	(A1)+, A6
 	MOVEQ	#$00000036, D0
 	MOVEQ	#4, D1
-	JSR	loc_6E2
+	JSR	Copy_word_run_to_buffer
 	MOVEA.l	(A1)+, A6
 	MOVEQ	#$00000056, D0
 	MOVEQ	#4, D1
-	JSR	loc_6E2
+	JSR	Copy_word_run_to_buffer
 	MOVEA.l	(A1)+, A6
 	MOVEQ	#$00000076, D0
 	MOVEQ	#4, D1
-	JSR	loc_6E2
+	JSR	Copy_word_run_to_buffer
 	JSR	loc_1E32(PC)
 	JSR	loc_658C
 	JSR	loc_1A7C(PC)
@@ -1556,7 +1621,7 @@ loc_11E8:
 	BEQ.b	loc_1262
 	MOVEQ	#2, D5
 loc_1262:
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_12D2
 	TST.w	Track_index_arcade_mode.w
@@ -1565,30 +1630,30 @@ loc_1274:
 	MOVE.l	#$61460003, VDP_control_port
 	MOVEA.l	$FFFF92FC.w, A2
 	MOVE.w	#$8000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_1EB4(PC), A1
-	JMP	loc_8A0
+	JMP	Draw_packed_tilemap_list
 loc_1296:
 	MOVE.l	#$61040003, VDP_control_port
 	MOVEA.l	$FFFF92FC.w, A2
 	MOVE.w	#$8000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	MOVE.l	#$61840003, VDP_control_port
 	ADDQ.w	#4, A2
 	MOVE.w	#$8000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	JSR	loc_14AC(PC)
 	LEA	loc_1EE2(PC), A1
-	JMP	loc_8A0
+	JMP	Draw_packed_tilemap_list
 loc_12D2:
 	TST.w	Warm_up.w
 	BEQ.b	loc_131A
 	MOVE.l	#$61460003, VDP_control_port
 	MOVEA.l	$FFFF92FC.w, A2
 	MOVE.w	#$8000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_2002(PC), A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	MOVE.w	$FFFF900A.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
@@ -1597,7 +1662,7 @@ loc_12D2:
 	MOVE.l	#$627C0003, D7
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
-	JMP	loc_780
+	JMP	Draw_tilemap_buffer_to_vdp_32_cell_rows
 loc_131A:
 	TST.w	Practice_mode.w
 	BNE.w	loc_1274
@@ -1606,30 +1671,31 @@ loc_131A:
 	MOVE.l	#$61040003, VDP_control_port
 	MOVEA.l	$FFFF92FC.w, A2
 	MOVE.w	#$8000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	MOVE.l	#$61840003, VDP_control_port
 	ADDQ.w	#4, A2
 	MOVE.w	#$8000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_2024(PC), A6
 	TST.w	$FFFFFF4E.w
 	BNE.b	loc_1366
 	LEA	loc_2044(PC), A6
 loc_1366:
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	TST.w	$FFFFFF4E.w
 	BEQ.b	loc_1382
 	MOVE.w	$FFFFFF3A.w, D1
 	MOVE.l	#$62660003, D7
-	JSR	loc_84D0
+	JSR	Draw_placement_ordinal_to_vdp
 loc_1382:
 	MOVE.w	$FFFFFF34.w, D1
 	MOVE.l	#$625C0003, D7
-	JSR	loc_84D0
+	JSR	Draw_placement_ordinal_to_vdp
 	LEA	loc_1F08(PC), A1
-	JMP	loc_8A0
+	JMP	Draw_packed_tilemap_list
 
-loc_139C:
+;loc_139C
+Draw_lap_number_and_times:
 	MOVE.w	$FFFF9232.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
@@ -1638,16 +1704,16 @@ loc_139C:
 	MOVE.l	#$62780003, D7
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	MOVE.w	#$E0AC, $FFFFFC04.w
 	LEA	$FFFF92E4.w, A2
 	MOVE.w	$FFFF9232.w, $FFFFFC00.w
 loc_13CC:
 	MOVE.w	$FFFFFC04.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	#$C000, D3
-	JSR	loc_5996
+	JSR	Draw_bcd_time_to_vdp
 	ADDQ.w	#4, A2
 	ADDI.w	#$0040, $FFFFFC04.w
 	SUBQ.w	#1, $FFFFFC00.w
@@ -1662,14 +1728,14 @@ loc_13F6:
 	MOVEQ	#$0000000F, D7
 	MOVE.b	Player_team.w, D0
 	LEA	$FFFFE98C.w, A1
-	BSR.b	loc_145C
+	BSR.b	Load_team_palette_entry
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_1418
 	CLR.w	$FFFFFF4E.w
 loc_1418:
 	MOVE.b	Rival_team.w, D0
 	LEA	$FFFFE9CC.w, A1
-	BSR.b	loc_145C
+	BSR.b	Load_team_palette_entry
 	MOVEQ	#$0000007F, D6
 	TST.w	$FFFFFF4E.w
 	BEQ.b	loc_1430
@@ -1685,7 +1751,7 @@ loc_1430:
 	ADDQ.w	#2, D0
 loc_1440:
 	LEA	$FFFFE9AC.w, A1
-	BSR.b	loc_145C
+	BSR.b	Load_team_palette_entry
 loc_1446:
 	LEA	$FFFF8FD2.w, A0
 	MOVE.l	$FFFFE9AC.w, (A0)+
@@ -1694,7 +1760,8 @@ loc_1446:
 	MOVE.l	$FFFFE9D0.w, (A0)+
 	RTS
 
-loc_145C:
+;Load_team_palette_entry
+Load_team_palette_entry:
 	AND.w	D7, D0
 	LSL.w	#3, D0
 	LEA	loc_2250(PC), A0
@@ -1703,7 +1770,14 @@ loc_145C:
 	MOVE.l	(A0), (A1)
 	RTS
 
-loc_146C:
+;Queue_tilemap_draw
+Queue_tilemap_draw:
+; Appends a tilemap draw command to the deferred draw queue.
+; Inputs:
+;  D7 = VDP address command longword (destination tile cell)
+;  A6 = source tilemap buffer pointer
+;  D6 = tile count per row minus 1
+;  D5 = row count minus 1
 	MOVEA.l	$FFFFFC62.w, A5
 	MOVE.l	D7, (A5)+
 	MOVE.l	A6, (A5)+
@@ -1713,7 +1787,8 @@ loc_146C:
 	ADDQ.w	#1, $FFFFFC60.w
 	RTS
 
-loc_1482:
+;Flush_tilemap_draw_queue
+Flush_tilemap_draw_queue:
 	MOVE.w	$FFFFFC60.w, D0
 	BEQ.b	loc_14A4
 	SUBQ.w	#1, D0
@@ -1725,12 +1800,13 @@ loc_148E:
 	MOVEQ	#0, D5
 	MOVE.b	(A0)+, D6
 	MOVE.b	(A0)+, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	DBF	D0, loc_148E
 loc_14A4:
 	RTS
 
-loc_14A6:
+;loc_14A6
+Render_placement_display:
 	TST.w	$FFFFFC8A.w
 	BEQ.b	loc_14F0
 
@@ -1741,17 +1817,18 @@ loc_14AC:
 	MOVEQ	#$0000000F, D2
 	MOVEQ	#0, D3
 	MOVE.w	#$87C0, D4
-	BSR.b	loc_14DA
-	BSR.b	loc_14DA
-	BSR.b	loc_14DA
+	BSR.b	Unpack_placement_nibble_to_tile
+	BSR.b	Unpack_placement_nibble_to_tile
+	BSR.b	Unpack_placement_nibble_to_tile
 	BSR.b	loc_14F2
 	MOVE.l	#$63360003, D7
 	MOVEQ	#3, D6
 	MOVEQ	#0, D5
 	LEA	$FFFFE8AC.w, A6
-	JMP	loc_146C(PC)
+	JMP	Queue_tilemap_draw(PC)
 
-loc_14DA:
+;Unpack_placement_nibble_to_tile
+Unpack_placement_nibble_to_tile:
 	ROL.w	#4, D0
 	MOVE.w	D0, D1
 	AND.w	D2, D1
@@ -1783,16 +1860,17 @@ Render_speed:
 	LEA	$FFFFE800.w, A1
 	MOVEQ	#2, D0
 	MOVEQ	#0, D7
-	JSR	loc_152A(PC)
+	JSR	Unpack_bcd_digits_to_buffer(PC)
 	MOVEQ	#2, D0
-	JSR	loc_1544(PC)
+	JSR	Copy_digits_to_tilemap(PC)
 	MOVE.l	#$66720003, D7
 	MOVEQ	#2, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
-	JMP	loc_146C(PC)
+	JMP	Queue_tilemap_draw(PC)
 
-loc_152A:
+;Unpack_bcd_digits_to_buffer
+Unpack_bcd_digits_to_buffer:
 	MOVEQ	#$0000000F, D4
 	MOVE.w	D0, D3
 	ADD.w	D3, D3
@@ -1806,11 +1884,13 @@ loc_1530:
 	DBF	D0, loc_1530
 	RTS
 
-loc_1544:
+;Copy_digits_to_tilemap
+Copy_digits_to_tilemap:
 	MOVEQ	#0, D2
 	BRA.b	loc_154A
 
-loc_1548:
+;Copy_digits_to_tilemap_with_suppress
+Copy_digits_to_tilemap_with_suppress:
 	MOVEQ	#-1, D2
 loc_154A:
 	MOVE.w	D0, D1
@@ -1839,7 +1919,7 @@ loc_1568:
 ;loc_157C:
 Binary_to_decimal: ; For instance: input D0 = $007B yields output D1 = $0123
 	CLR.l	$FFFFFCFC.w ; clears bytes referenced from A2 below
-	LEA	loc_15D6(PC), A1
+	LEA	Format_bcd_time_to_tile_buffer(PC), A1
 	MOVEQ	#$0000000F, D2
 loc_1586: ; iterate through each bit in D0
 	ROR.w	#1, D0
@@ -1873,7 +1953,8 @@ loc_159C:
 	dc.b	$00, $00, $04
 	dc.b	$00, $00, $02
 	dc.b	$00, $00, $01
-loc_15D6:
+;loc_15D6:
+Format_bcd_time_to_tile_buffer:
 	MOVEQ	#$0000000F, D2
 	ADDI.w	#$07C0, D3
 	MOVE.w	D0, D1
@@ -1915,7 +1996,8 @@ loc_1622:
 	MOVE.w	D1, -(A3)
 	RTS
 
-loc_1626: ; Suspected number to hex digit conversion
+;Pack_hex_digits_to_tilemap
+Pack_hex_digits_to_tilemap: ; Suspected number to hex digit conversion
 	MOVEQ	#$0000000F, D2
 	MOVE.w	D0, D1
 	AND.w	D2, D1
@@ -2013,7 +2095,7 @@ loc_1766:
 	MOVE.l	#$664E0003, D7
 	MOVEQ	#$00000011, D6
 	MOVEQ	#2, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 loc_1776:
 	RTS
 
@@ -2041,14 +2123,14 @@ loc_17B6:
 	TST.w	$FFFFFC74.w
 	BEQ.w	loc_184A
 	MOVE.w	$FFFFFF30.w, D0
-	JSR	loc_199A(PC)
+	JSR	Wrap_index_mod10(PC)
 	LEA	loc_212A(PC), A0
-	JSR	loc_19AC(PC)
+	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$94009340, D5
 	MOVE.l	#$7F000083, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
-	JSR	loc_19AC(PC)
+	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$7F800083, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	LEA	$00FF5980, A6
@@ -2059,7 +2141,7 @@ loc_1810:
 	MOVE.l	#$625A0003, D7
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	MOVE.w	$FFFFFF30.w, D0
 	CMPI.w	#3, D0
 	BLS.b	loc_182C
@@ -2077,14 +2159,14 @@ loc_184C:
 	TST.w	$FFFFFC7C.w
 	BEQ.w	loc_18FE
 	MOVE.w	$FFFFFC78.w, D0
-	JSR	loc_199A(PC)
+	JSR	Wrap_index_mod10(PC)
 	LEA	loc_212A(PC), A0
-	JSR	loc_19AC(PC)
+	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$94009340, D5
 	MOVE.l	#$52400082, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
-	JSR	loc_19AC(PC)
+	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$52C00082, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	$FFFFFC78.w, D0
@@ -2109,30 +2191,30 @@ loc_18C6:
 	MOVE.l	#$62A20003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#0, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	MOVE.l	#$625A0003, D7
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
 	LEA	(A4), A6
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	MOVE.l	#$62460003, D7
 	MOVEQ	#9, D6
 	MOVEQ	#1, D5
 	LEA	(A3), A6
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	CLR.w	$FFFFFC7C.w
 loc_18FE:
 	TST.w	$FFFFFC7E.w
 	BEQ.w	loc_1998
 	MOVE.w	$FFFFFF34.w, D0
-	JSR	loc_199A(PC)
+	JSR	Wrap_index_mod10(PC)
 	LEA	loc_2156(PC), A0
-	JSR	loc_19AC(PC)
+	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$94009390, D5
 	MOVE.l	#$53400082, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
-	JSR	loc_19AC(PC)
+	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$54600082, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	$FFFFFF34.w, D0
@@ -2155,17 +2237,18 @@ loc_1972:
 	MOVE.l	#$63A20003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#0, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	MOVE.l	#$63160003, D7
 	MOVEQ	#5, D6
 	MOVEQ	#2, D5
 	LEA	(A4), A6
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	CLR.w	$FFFFFC7E.w
 loc_1998:
 	RTS
 
-loc_199A:
+;Wrap_index_mod10
+Wrap_index_mod10:
 	ADDQ.w	#1, D0
 	MOVE.w	#$000A, D1
 	MOVEQ	#1, D4
@@ -2176,7 +2259,12 @@ loc_199A:
 loc_19AA:
 	RTS
 
-loc_19AC:
+;Load_palette_vdp_commands_from_table
+Load_palette_vdp_commands_from_table:
+; Reads 3 palette bytes from table A0 at index D4 and packs them into VDP
+; register-write command words in D7 (CRAM $97) and D6 (CRAM $96/$95).
+; Inputs:  A0 = palette table base; D4 = entry index (0-based, multiplied by 4)
+; Outputs: D7 = VDP command for register $97 with colour byte; D6 = $96/$95 pair
 	ADD.w	D4, D4
 	ADD.w	D4, D4
 	MOVE.w	#$9700, D7
@@ -2193,42 +2281,43 @@ loc_19CA:
 	MOVEQ	#8, D5
 	LEA	$FFFFEA00.w, A6
 	LEA	$FFFFC080.w, A5
-	JSR	loc_822
+	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
 	LEA	$FFFFC0C0.w, A5
-	JSR	loc_822
+	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
 	LEA	$FFFFC100.w, A5
-	JSR	loc_822
+	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
 	LEA	$FFFFC140.w, A5
-	JSR	loc_822
+	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
 	LEA	$FFFFEA00.w, A6
 	LEA	$FFFFC180.w, A5
-	JSR	loc_822
+	JSR	Copy_tilemap_block_with_base
 	MOVEQ	#8, D5
 	LEA	$FFFFC1C0.w, A5
-	JSR	loc_822
+	JSR	Copy_tilemap_block_with_base
 	LEA	$FFFFCE00.w, A1
 	LEA	$FFFFC8C0.w, A0
-	BSR.b	loc_1A5A
+	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCE40.w, A1
 	LEA	$FFFFC880.w, A0
-	BSR.b	loc_1A5A
+	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCE80.w, A1
 	LEA	$FFFFC840.w, A0
-	BSR.b	loc_1A5A
+	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCEC0.w, A1
 	LEA	$FFFFC900.w, A0
-	BSR.b	loc_1A5A
+	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCF00.w, A1
 	LEA	$FFFFC8C0.w, A0
-	BSR.b	loc_1A5A
+	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCF40.w, A1
 	LEA	$FFFFC880.w, A0
 
-loc_1A5A:
+;Copy_tiles_with_priority_flip
+Copy_tiles_with_priority_flip:
 	MOVEQ	#3, D0
 loc_1A5C:
 	LEA	(A0), A2
@@ -2332,7 +2421,8 @@ loc_1B62:
 	MOVE.l	#$46000083, $FFFFFF08.w
 	JMP	Send_D567_to_VDP
 
-loc_1B80:
+;loc_1B80
+Update_background_scroll_delta:
 	MOVE.w	$FFFF9220.w, D0
 	MOVE.w	$FFFF9266.w, D1
 	MOVE.w	D0, $FFFF9266.w
@@ -2500,7 +2590,7 @@ loc_1D2E:
 loc_1D3C:
 	MOVE.w	D0, D7
 	ADD.w	D4, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, $4(A6)
 	MOVE.w	(A0), (A6)
 	MOVE.w	$180(A0), (A6)
@@ -2522,7 +2612,7 @@ loc_1D76:
 loc_1D82:
 	MOVE.w	D0, D7
 	ADD.w	D4, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, $4(A6)
 	MOVE.w	(A0), (A6)
 	MOVE.w	$180(A0), (A6)
@@ -2823,9 +2913,9 @@ loc_2250: ; Teams in-game palette
 	dc.b	$0C, $EE, $06, $88, $0C, $EE, $06, $88 ; Comet
 	dc.b	$06, $66, $02, $22, $00, $EE, $00, $8A ; Orchis
 	dc.b	$0E, $EE, $06, $66, $02, $6E, $00, $28 ; ZeroForce
-	JSR	loc_396
-	JSR	loc_C44
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Start_streamed_decompression
+	JSR	Update_objects_and_build_sprite_buffer
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BNE.b	loc_2340
 	MOVE.w	$FFFFFC04.w, D0
@@ -2850,7 +2940,7 @@ loc_22F2:
 	RTS
 loc_2340:
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_2350:
 	SUBQ.w	#1, $FFFFFC00.w
@@ -2863,7 +2953,7 @@ loc_235C:
 	MOVEQ	#$00000026, D6
 	MOVEQ	#$00000015, D5
 	LEA	$FFFFEA00.w, A6
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	ADDQ.w	#4, $FFFFFC04.w
 	MOVE.w	#$0017, $FFFFFC00.w
 	RTS
@@ -2873,47 +2963,47 @@ loc_237C:
 	MOVE.l	#$6C200003, D7
 	MOVEQ	#8, D6
 	MOVEQ	#2, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	ADDQ.w	#4, $FFFFFC04.w
 	MOVE.w	#$017A, $FFFFFC00.w
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.l	#$40000000, VDP_control_port
 	LEA	loc_59034, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_58EBC, A0
 	MOVE.w	#$4000, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_58F86, A0
 	MOVE.w	#$2384, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	loc_58E5A, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$0095, $FFFFFC00.w
 	MOVEQ	#0, D0
-	JSR	loc_C0E
+	JSR	Load_streamed_decompression_descriptor
 	MOVE.l	#$00001032, $FFFFAD80.w
 	MOVE.l	#$000022D0, $FFFFFF10.w
 	MOVE.l	#$00002440, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-	JSR	loc_744
+	JSR	Upload_h40_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
-	JSR	loc_6F0
-	JMP	loc_C9A
-	JSR	loc_396
+	JSR	Upload_palette_buffer_to_cram
+	JMP	Continue_streamed_decompression
+	JSR	Wait_for_vblank
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_2476
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_2476:
 	TST.w	$FFFFFB08.w
@@ -3019,16 +3109,16 @@ loc_2586:
 	RTS
 	dc.b	$D0, $C0, $32, $D8, $51, $C9, $FF, $FC, $4E, $75
 loc_2592:
-	JSR	loc_75C4A
-	JSR	loc_8C0
-	JSR	loc_62E
+	JSR	Halt_audio_sequence
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$8B03, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	LEA	loc_542B8, A0
 	LEA	$FFFFEA00.w, A4
-	JSR	loc_982
+	JSR	Decompress_to_ram
 	MOVE.w	#$0187, D2
 	LEA	$FFFFF200.w, A0
 loc_25DC:
@@ -3081,8 +3171,8 @@ loc_264E:
 	MOVE.l	#$00002458, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -3247,8 +3337,8 @@ loc_27E0:
 loc_27E8: ; Suspected main menu loop
 	dc.b	$0E, $60, $0C, $40, $06, $20, $0E, $80, $0A, $40, $08, $00, $0E, $A0, $0C, $60, $08, $40, $0E, $C8, $0C, $80, $0A, $40, $0E, $EE, $0E, $A4, $0C, $62, $0E, $C8
 	dc.b	$0C, $80, $0A, $40, $0E, $A0, $0C, $60, $08, $00, $0E, $80, $0A, $40, $08, $20
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	BTST.b	#0, $FFFF900F.w
 	BNE.b	loc_2840
 	BTST.b	#KEY_START, Input_click_bitset.w
@@ -3300,7 +3390,7 @@ loc_28B0:
 	BTST.b	#0, $FFFF900F.w
 	BEQ.b	loc_28CE
 	MOVE.w	#$001E, $FFFFFC00.w
-	JSR	loc_F16
+	JSR	Clear_main_object_pool
 	CLR.l	$FFFFFC04.w
 	CLR.l	$FFFFFC0C.w
 	RTS
@@ -3324,7 +3414,7 @@ loc_28E2:
 loc_2900:
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, $18(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_290E:
 	MOVE.l	#$000023A2, $FFFFFF10.w
 	RTS
@@ -3336,67 +3426,68 @@ loc_2920:
 	CLR.b	$FFFFFC10.w
 	BSET.b	#0, $FFFF900F.w
 	MOVE.b	#$FF, D0
-	BSR.w	loc_2FB0
+	BSR.w	Update_title_menu_state
 	RTS
-loc_293C:
+;loc_293C:
+Title_menu:
 	BSET.b	#3, $FFFF900F.w
 	BRA.b	loc_2952
 	MOVE.w	#6, $FFFFFF4C.w
 	CLR.b	$FFFF900F.w
 	CLR.w	$FFFF9000.w
 loc_2952:
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.w	#$001E, $FFFFFC00.w
 	MOVE.l	#$63A00001, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$40000000, VDP_control_port
 	LEA	loc_5EA52, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$41A00001, VDP_control_port
 	LEA	loc_60826, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_5E862, A0
 	MOVE.w	#$6000, D0
 	MOVE.l	#$40000003, D7
 	MOVE.w	#$0027, D6
 	MOVE.w	#$001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_5E97E, A0
 	MOVE.w	#$E000, D0
 	MOVE.l	#$428E0003, D7
 	MOVE.w	#$000F, D6
 	MOVE.w	#$0014, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_5E790, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	CMPI.w	#2, $FFFF9000.w
 	BNE.w	loc_2ACE
 	MOVE.l	#$59800001, VDP_control_port
 	LEA	loc_3216A, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_32120, A0
 	MOVE.w	#$E2CC, D0
 	MOVE.l	#$43100003, D7
 	MOVE.w	#9, D6
 	MOVE.w	#4, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	$FFFFEA64.w, A6
 	MOVE.l	#$4A920003, D7
 	MOVE.w	#$000A, D6
 	MOVE.w	#3, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	LEA	loc_308BE, A1
 	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.l	#$4E600001, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_3087E, A1
 	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
@@ -3405,14 +3496,14 @@ loc_2952:
 	MOVE.l	#$43240003, D7
 	MOVE.w	#3, D6
 	MOVE.w	#4, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	$FFFFEA28.w, A6
 	MOVE.l	#$46100003, D7
 	MOVE.w	#$000D, D6
 	MOVE.w	#8, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	LEA	loc_5E810, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 loc_2ACE:
 	BTST.b	#0, $FFFF900F.w
 	BNE.b	loc_2AE6
@@ -3424,19 +3515,19 @@ loc_2AE6:
 	MOVE.l	#$60AE0003, D7
 	MOVE.w	#$000C, D6
 	MOVE.w	#$0019, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.l	#$00002818, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	TST.w	$FFFFFF4C.w
 	BEQ.b	loc_2B20
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 loc_2B20:
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
-	JSR	loc_75C62
+	JSR	Trigger_music_playback
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -3529,7 +3620,7 @@ loc_2C60:
 	MOVE.w	#$0148, $16(A0)
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$00A1, $E(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 
 loc_2CB2:
 	BTST.b	#0, $FFFF900F.w
@@ -3601,7 +3692,8 @@ loc_2DBA:
 	CMPI.w	#3, $FFFF9000.w
 	BEQ.b	loc_2E12
 
-loc_2DC4:
+;Render_title_car_indicator_tile
+Render_title_car_indicator_tile:
 	MOVE.l	$FFFF9006.w, D7
 	CLR.w	D0
 	MOVE.b	$FFFFFC10.w, D0
@@ -3675,31 +3767,31 @@ loc_2EB0:
 	RTS
 loc_2EB8:
 	CLR.b	$FFFFFC08.w
-	BSR.w	loc_2DC4
+	BSR.w	Render_title_car_indicator_tile
 	CMPI.w	#2, $FFFF9000.w
 	BCC.b	loc_2ED4
 	CLR.w	$FFFF9000.w
 	MOVE.b	#$FF, D0
-	BRA.w	loc_2FB0
+	BRA.w	Update_title_menu_state
 loc_2ED4:
 	MOVE.w	#2, $FFFF9000.w
 	MOVE.b	#$FF, D0
-	BRA.w	loc_2FB0
+	BRA.w	Update_title_menu_state
 loc_2EE2:
 	MOVE.w	#$000E, $00FF5AE0
 	CLR.b	$FFFFFC08.w
-	BSR.w	loc_2DC4
+	BSR.w	Render_title_car_indicator_tile
 	CMPI.w	#3, $FFFF9000.w
 	BEQ.b	loc_2F5C
 	CLR.b	D0
-	BRA.w	loc_2FB0
+	BRA.w	Update_title_menu_state
 loc_2F00:
 	CMPI.w	#3, $FFFF9000.w
 	BEQ.b	loc_2F10
 	MOVE.w	#$000E, $00FF5AE0
 loc_2F10:
 	CLR.b	$FFFFFC08.w
-	BSR.w	loc_2DC4
+	BSR.w	Render_title_car_indicator_tile
 	MOVE.b	$FFFFFC10.w, D0
 	BEQ.b	loc_2F24
 	SUBQ.b	#1, $FFFFFC10.w
@@ -3714,7 +3806,7 @@ loc_2F2E:
 	MOVE.w	#$000E, $00FF5AE0
 loc_2F3E:
 	CLR.b	$FFFFFC08.w
-	BSR.w	loc_2DC4
+	BSR.w	Render_title_car_indicator_tile
 	MOVE.b	$FFFFFC14.w, D0
 	CMP.b	$FFFFFC10.w, D0
 	BEQ.b	loc_2F56
@@ -3747,11 +3839,12 @@ loc_2F92:
 	DBF	D1, loc_2F8A
 	RTS
 
-loc_2FB0:
+;loc_2FB0:
+Update_title_menu_state:
 	TST.b	D0
 	BNE.b	loc_2FD0
 	CLR.l	D1
-	LEA	loc_3130, A1
+	LEA	Title_menu_state_handlers, A1
 	MOVE.w	$FFFF9000.w, D0
 	LSL.l	#3, D0
 	MOVE.b	$FFFFFC10.w, D1
@@ -3762,7 +3855,7 @@ loc_2FB0:
 loc_2FD0:
 	CLR.w	D1
 	CLR.w	D2
-	LEA	loc_3148, A1
+	LEA	Title_menu_selection_layouts, A1
 	MOVE.w	$FFFF9000.w, D0
 	MULS.w	#$000A, D0
 	MOVE.b	(A1,D0.w), D1
@@ -3809,7 +3902,7 @@ loc_307C:
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	Player_team.w
-	JSR	loc_13016
+	JSR	Initialize_drivers_and_teams
 	MOVE.l	#$0000D6E2, $FFFFFF10.w
 	RTS
 loc_30AC:
@@ -3820,8 +3913,8 @@ loc_30AC:
 	MOVE.w	#1, $FFFFFF18.w
 	MOVE.w	#2, $FFFF9000.w
 	CLR.b	Player_team.w
-	JSR	loc_13016
-	MOVE.l	#loc_293C, $FFFFFF2A.w
+	JSR	Initialize_drivers_and_teams
+	MOVE.l	#Title_menu, $FFFFFF2A.w
 	MOVE.l	#loc_F2DE, $FFFFFF10.w
 	RTS
 loc_30E8:
@@ -3835,27 +3928,29 @@ loc_30F0:
 	RTS
 loc_3106:
 	BSET.b	#7, Player_team.w
-	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#Title_menu, $FFFFFF2A.w
 	MOVE.l	#loc_D2B0, $FFFFFF10.w
 	RTS
 loc_311E:
-	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#Title_menu, $FFFFFF2A.w
 	MOVE.l	#loc_32E0, $FFFFFF10.w
 	RTS
-loc_3130:
+;loc_3130:
+Title_menu_state_handlers:
 	dc.w	loc_300E
 	dc.w	loc_3054
 	dc.w	loc_3062
 	dc.w	loc_3072
 	dc.w	loc_307C
 	dc.w	loc_30AC
-	dc.w	loc_3130
-	dc.w	loc_3130
+	dc.w	Title_menu_state_handlers
+	dc.w	Title_menu_state_handlers
 	dc.w	loc_30E8
 	dc.w	loc_30F0
 	dc.w	loc_3106
 	dc.w	loc_311E
-loc_3148:
+;loc_3148:
+Title_menu_selection_layouts:
 	dc.b	$14, $06
 	dc.l	loc_3170
 	dc.l	$681E0003
@@ -3883,8 +3978,8 @@ loc_31C8:
 	txt "TRANSMISSION"
 loc_31F8:
 	txt "LAPS  "
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.w	$FFFFFC82.w, D0
 	BEQ.b	loc_321A
 	MOVE.w	D0, $00FF5AE0
@@ -3913,14 +4008,14 @@ loc_3256:
 	MOVE.b	$FFFFFC01.w, D1
 	MOVEQ	#1, D0
 	MOVEQ	#0, D7
-	JSR	loc_152A
+	JSR	Unpack_bcd_digits_to_buffer
 	MOVEQ	#1, D0
-	JSR	loc_1544
+	JSR	Copy_digits_to_tilemap
 	MOVE.l	#$61460003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 loc_3284:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
@@ -3935,7 +4030,7 @@ loc_3284:
 	MOVE.w	#$E7BA, D6
 loc_32AE:
 	LEA	loc_358A(PC), A6
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVEQ	#2, D0
 	MOVE.w	D0, $FFFFFC82.w
 	MOVE.w	D0, $00FF5AE0
@@ -3948,72 +4043,72 @@ loc_32CC:
 	MOVE.l	$FFFFFF2A.w, $FFFFFF10.w
 	RTS
 loc_32E0:
-	JSR	loc_8C0
-	JSR	loc_62E
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
 	MOVE.w	$FFFFFF36.w, Shift_type.w
 	MOVE.w	#1, $FFFFFC1C.w
 	BRA.b	loc_3306
 loc_32FA:
-	JSR	loc_8C0
-	JSR	loc_62E
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
 loc_3306:
-	JSR	loc_F16
+	JSR	Clear_main_object_pool
 	MOVE.w	#$9011, VDP_control_port
 	LEA	loc_34AC(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_621CC, A0
 	MOVE.w	#$6580, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.w	#$2000, D0
 	LEA	loc_60E8E, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	loc_34C6(PC), A1
-	JSR	loc_552
+	JSR	Draw_tilemap_list_to_vdp_64_cell_rows
 	LEA	loc_34F8(PC), A1
 	TST.w	$FFFFFC1C.w
 	BEQ.b	loc_3360
 	LEA	loc_3512(PC), A1
 loc_3360:
-	JSR	loc_552
+	JSR	Draw_tilemap_list_to_vdp_64_cell_rows
 	MOVE.w	#$2000, D0
 	LEA	loc_60DC6, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	MOVE.w	Control_type.w, D0
 	LSL.w	#2, D0
 	LEA	loc_3524(PC), A1
 	MOVEA.l	(A1,D0.w), A1
-	JSR	loc_552
+	JSR	Draw_tilemap_list_to_vdp_64_cell_rows
 	MOVE.l	#$66860003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	loc_584AA, A6
 	MOVE.w	#$FD89, D1
 	MOVE.l	#$00800000, D3
-	JSR	loc_7DC
+	JSR	Write_tilemap_rows_to_vdp
 	MOVE.l	#$66A20003, D7
 	MOVEQ	#5, D6
 	MOVEQ	#1, D5
 	MOVE.l	A6, -(A7)
-	JSR	loc_7DC
+	JSR	Write_tilemap_rows_to_vdp
 	MOVE.l	#$663C0003, D7
 	MOVEQ	#2, D5
 	MOVEA.l	(A7)+, A6
-	JSR	loc_7DC
+	JSR	Write_tilemap_rows_to_vdp
 	MOVEQ	#0, D0
 	LEA	loc_60E4E, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	loc_3432, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.l	#$0030003C, $FFFFFC00.w
 	MOVE.l	#$000035A8, $FFFFAD80.w
-	JSR	loc_D5C
+	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.l	#$000031FE, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
 	MOVE.w	#1, $FFFFFC2A.w
@@ -4163,18 +4258,18 @@ loc_3638:
 	LEA	$FFFFEA00.w, A6
 	MOVE.w	(A1)+, D1
 	MOVE.l	#$00800000, D3
-	JSR	loc_7DC
+	JSR	Write_tilemap_rows_to_vdp
 	MOVE.l	#$479E0003, D7
 	MOVEQ	#8, D5
 	LEA	$FFFFEA00.w, A6
 	MOVE.w	(A1)+, D1
-	JSR	loc_7DC
+	JSR	Write_tilemap_rows_to_vdp
 	MOVE.l	#$47B80003, D7
 	MOVEQ	#8, D5
 	LEA	$FFFFEA00.w, A6
 	MOVE.w	(A1)+, D1
-	JSR	loc_7DC
-	JMP	loc_EF0
+	JSR	Write_tilemap_rows_to_vdp
+	JMP	Queue_object_for_sprite_buffer
 loc_369E:
 	dc.w	$0000, $0000, $4000, $0000, $0000
 loc_36A8:
@@ -4183,18 +4278,18 @@ loc_36A8:
 	dc.l	$04CE02AE
 
 loc_36B6: ; Suspected in-game loop
-	JSR	loc_3A2(PC)
+	JSR	Wait_for_practice_vblank_cycle(PC)
 	CLR.w	$FFFFFC60.w
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
 	TST.w	$FFFFFC80.w
 	BNE.b	loc_3748
-	JSR	loc_3F0E(PC)
+	JSR	Handle_pause(PC)
 	TST.w	Pause_flag.w
 	BEQ.b	loc_36D8
 	RTS
 loc_36D8:
-	JSR	loc_704C(PC)
-	JSR	loc_1B80(PC)
+	JSR	Update_road_tile_scroll(PC)
+	JSR	Update_background_scroll_delta(PC)
 	TST.w	Retire_flag.w
 	BEQ.b	loc_36F4
 	CLR.w	Player_shift.w
@@ -4205,101 +4300,101 @@ loc_36F4:
 	JSR	Update_shift(PC)
 	JSR	Update_rpm(PC)
 	JSR	Update_breaking(PC)
-	JSR	loc_5F10(PC)
+	JSR	Update_engine_sound_pitch(PC)
 	JSR	Update_speed(PC)
 loc_3708:
 	JSR	Render_speed(PC)
-	JSR	loc_867C(PC)
-	JSR	loc_14A6(PC)
-	JSR	loc_60DC(PC) ; Commenting out disables left/right movement
-	JSR	loc_8142(PC) ; Commenting out disables left/right movement (but visually wheels still turn)
-	JSR	loc_6B68(PC) ; Commenting out disables visual forward movement (also map) but physically still moves as collisions eventually occur
-	JSR	loc_6D66(PC)
-	JSR	loc_73EE(PC)
-	JSR	loc_8250(PC)
-	JSR	loc_785C(PC)
-	JSR	loc_A152(PC)
+	JSR	Advance_lap_checkpoint(PC)
+	JSR	Render_placement_display(PC)
+	JSR	Update_steering(PC) ; Commenting out disables left/right movement
+	JSR	Update_horizontal_position(PC) ; Commenting out disables left/right movement (but visually wheels still turn)
+	JSR	Advance_player_distance(PC) ; Commenting out disables visual forward movement (also map) but physically still moves as collisions eventually occur
+	JSR	Update_slope_data(PC)
+	JSR	Update_race_timer(PC)
+	JSR	Update_race_position(PC)
+	JSR	Update_gap_to_rival_display(PC)
+	JSR	Update_rival_sprite_tiles(PC)
 	JSR	Parse_tileset_for_signs(PC) ; Commenting out makes signs have the wrong textures
 	JSR	Parse_sign_data(PC) ; Commenting out makes signs and obstacles disappear (physical and visual)
-	JSR	loc_873A(PC)
+	JSR	Update_pit_prompt(PC)
 	JSR	loc_3FE0(PC)
-	JSR	loc_A278(PC)
+	JSR	Apply_sorted_positions_to_cars(PC)
 loc_3748:
 	CMPI.w	#4, $FFFFFC24.w
 	BLT.b	loc_3748
-	JSR	loc_D5C(PC) ; Commenting out makes graphics freeze
-	JSR	loc_9AC4(PC) ; Commenting out removes sound
-	JSR	loc_674E(PC) ; Commenting out makes road graphics not updates (but signs still move)
+	JSR	Update_objects_and_build_sprite_buffer(PC) ; Commenting out makes graphics freeze
+	JSR	Update_engine_and_tire_sounds(PC) ; Commenting out removes sound
+	JSR	Update_road_graphics(PC) ; Commenting out makes road graphics not updates (but signs still move)
 	RTS
-	JSR	loc_8C0(PC)
-	JSR	loc_656(PC)
+	JSR	Fade_palette_to_black(PC)
+	JSR	Initialize_h32_vdp_state(PC)
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$8B03, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
-	JSR	loc_3D32(PC)
-	JSR	loc_6224(PC)
-	JSR	loc_3B96(PC)
-	JSR	loc_63E8(PC)
-	JSR	loc_6B68(PC)
-	JSR	loc_6D66(PC)
-	JSR	loc_674E(PC)
-	JSR	loc_D5C(PC)
+	JSR	Reset_race_state(PC)
+	JSR	Load_track_data(PC)
+	JSR	Initialize_race_objects(PC)
+	JSR	Initialize_road_graphics_state(PC)
+	JSR	Advance_player_distance(PC)
+	JSR	Update_slope_data(PC)
+	JSR	Update_road_graphics(PC)
+	JSR	Update_objects_and_build_sprite_buffer(PC)
 	LEA	loc_4106(PC), A1
-	JSR	loc_52E(PC)
-	JSR	loc_1144(PC)
-	JSR	loc_139C(PC)
+	JSR	Decompress_asset_list_to_vdp(PC)
+	JSR	Initialize_race_hud(PC)
+	JSR	Draw_lap_number_and_times(PC)
 	MOVE.l	#$000036B6, $FFFFFF10.w
-	MOVE.l	#$00003E2A, $FFFFFF0C.w
-	JSR	loc_75C4A
+	MOVE.l	#Practice_mode_vblank_handler, $FFFFFF0C.w
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396(PC)
-	JSR	loc_396(PC)
+	JSR	Wait_for_vblank(PC)
+	JSR	Wait_for_vblank(PC)
 	CLR.w	$FFFFFC24.w
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8014, VDP_control_port
 	MOVE.w	#$8A00, VDP_control_port
-	JSR	loc_3A2(PC)
+	JSR	Wait_for_practice_vblank_cycle(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 loc_3800:
-	JSR	loc_8C0(PC)
-	JSR	loc_656(PC)
+	JSR	Fade_palette_to_black(PC)
+	JSR	Initialize_h32_vdp_state(PC)
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$8B03, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	JSR	loc_3C16(PC)
-	JSR	loc_6224(PC)
+	JSR	Load_track_data(PC)
 	JSR	loc_38AE(PC)
-	JSR	loc_63E8(PC)
-	JSR	loc_6B68(PC)
-	JSR	loc_6D66(PC)
-	JSR	loc_674E(PC)
-	JSR	loc_D5C(PC)
-	JSR	loc_10A2(PC)
-	JSR	loc_1144(PC)
+	JSR	Initialize_road_graphics_state(PC)
+	JSR	Advance_player_distance(PC)
+	JSR	Update_slope_data(PC)
+	JSR	Update_road_graphics(PC)
+	JSR	Update_objects_and_build_sprite_buffer(PC)
+	JSR	Load_race_hud_graphics(PC)
+	JSR	Initialize_race_hud(PC)
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_385C
 	MOVE.w	#$0010, $FFFFFC82.w
 loc_385C:
 	MOVE.l	#$000036B6, $FFFFFF10.w
-	MOVE.l	#$00003E2A, $FFFFFF0C.w
-	JSR	loc_75C4A
+	MOVE.l	#Practice_mode_vblank_handler, $FFFFFF0C.w
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396(PC)
-	JSR	loc_396(PC)
+	JSR	Wait_for_vblank(PC)
+	JSR	Wait_for_vblank(PC)
 	MOVE.w	$FFFFFC82.w, $00FF5AC0
 	CLR.w	$FFFFFC24.w
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8014, VDP_control_port
 	MOVE.w	#$8A00, VDP_control_port
-	JSR	loc_3A2(PC)
+	JSR	Wait_for_practice_vblank_cycle(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
 loc_38AE:
-	JSR	loc_F16(PC)
+	JSR	Clear_main_object_pool(PC)
 	MOVE.l	#$00000F44, $FFFFAF00.w
 	MOVE.l	#$00000F66, $FFFFAEC0.w
 	MOVE.l	#$00007D7A, $FFFFAE40.w
@@ -4529,9 +4624,10 @@ loc_3B56:
 	MOVE.w	$FFFFFC14.w, $FFFF9204.w
 	RTS
 
-loc_3B96:
-	JSR	loc_F1E(PC)
-	JSR	loc_F26(PC)
+;loc_3B96:
+Initialize_race_objects:
+	JSR	Clear_partial_main_object_pool(PC)
+	JSR	Clear_aux_object_pool(PC)
 	LEA	$FFFFB440.w, A0
 	MOVEQ	#$0000000F, D0
 loc_3BA4:
@@ -4573,10 +4669,10 @@ loc_3C16:
 loc_3C26:
 	LEA	Player_shift.w, A0
 	MOVEQ	#$0000001F, D0
-	JSR	loc_3D28(PC)
+	JSR	Clear_word_range(PC)
 	LEA	$FFFF9200.w, A0
 	MOVEQ	#$0000007F, D0
-	JSR	loc_3D28(PC)
+	JSR	Clear_word_range(PC)
 	CLR.w	$FFFFFF56.w
 	CLR.w	$FFFFFF5E.w
 	MOVE.l	#$FFFFE700, $FFFFFC62.w
@@ -4648,21 +4744,23 @@ loc_3D22:
 loc_3D26:
 	RTS
 
-loc_3D28: ; Copy D0 zeros to A0 upwards
+;Clear_word_range
+Clear_word_range: ; Copy D0 zeros to A0 upwards
 	MOVEQ	#0, D1
 loc_3D2A:
 	MOVE.w	D1, (A0)+
 	DBF	D0, loc_3D2A
 	RTS
 
-loc_3D32:
+;loc_3D32:
+Reset_race_state:
 	LEA	Player_shift.w, A0
 	MOVEQ	#$0000001F, D0
-	JSR	loc_3D28(PC)
+	JSR	Clear_word_range(PC)
 	MOVE.l	$FFFF9232.w, D7
 	LEA	$FFFF9200.w, A0
 	MOVEQ	#$00000067, D0
-	JSR	loc_3D28(PC)
+	JSR	Clear_word_range(PC)
 	MOVE.l	D7, $FFFF9232.w
 	MOVE.w	#1, $FFFF9210.w
 	MOVE.l	#$FFFFFFFF, $FFFFFC94.w
@@ -4680,37 +4778,38 @@ loc_3D32:
 loc_3D96:
 	RTS
 loc_3D98:
-	JSR	loc_8C0(PC)
-	JSR	loc_656(PC)
+	JSR	Fade_palette_to_black(PC)
+	JSR	Initialize_h32_vdp_state(PC)
 	JSR	loc_3C16(PC)
 	MOVEQ	#0, D0
 	JSR	loc_3C06(PC)
 	MOVE.w	#$0012, $FFFFFF38.w
-	JSR	loc_6224(PC)
+	JSR	Load_track_data(PC)
 	JSR	loc_38AE(PC)
-	JSR	loc_63E8(PC)
-	JSR	loc_6B68(PC)
-	JSR	loc_6D66(PC)
-	JSR	loc_674E(PC)
-	JSR	loc_D5C(PC)
-	JSR	loc_10A2(PC)
-	JSR	loc_1144(PC)
+	JSR	Initialize_road_graphics_state(PC)
+	JSR	Advance_player_distance(PC)
+	JSR	Update_slope_data(PC)
+	JSR	Update_road_graphics(PC)
+	JSR	Update_objects_and_build_sprite_buffer(PC)
+	JSR	Load_race_hud_graphics(PC)
+	JSR	Initialize_race_hud(PC)
 	MOVE.l	#$00001006, $FFFFB840.w
 	MOVE.w	#$01F4, $FFFFFC2C.w
 	MOVE.l	#$00073E08, $FFFFFF58.w
 	MOVE.l	#$00003D84, $FFFFFF10.w
-	MOVE.l	#$00003E2A, $FFFFFF0C.w
+	MOVE.l	#Practice_mode_vblank_handler, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396(PC)
+	JSR	Wait_for_vblank(PC)
 	CLR.w	$FFFFFC24.w
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8014, VDP_control_port
 	MOVE.w	#$8A00, VDP_control_port
-	JSR	loc_3A2(PC)
+	JSR	Wait_for_practice_vblank_cycle(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
-loc_3E2A:
+;loc_3E2A:
+Practice_mode_vblank_handler:
 	MOVE.l	#$40020010, VDP_control_port
 	MOVE.w	#0, VDP_data_port
 	MOVE.w	$FFFFFC24.w, D0 ; Values are 0, 4, 8 cycling. After running with 0, HUD updates. After 4, car moves. After 8, no visual update
@@ -4739,8 +4838,8 @@ loc_3E72:
 	MOVE.w	#$8F04, VDP_control_port
 	JSR	Send_D567_to_VDP(PC)
 	MOVE.w	#$8F02, VDP_control_port
-	JSR	loc_754(PC)
-	JSR	loc_71A(PC)
+	JSR	Upload_h32_tilemap_buffer_to_vram(PC)
+	JSR	Upload_palette_buffer_to_cram_delayed(PC)
 	JSR	loc_1666(PC)
 	JSR	loc_7298(PC)
 	BRA.b	loc_3ECE
@@ -4753,7 +4852,7 @@ loc_3EBE:
 	JSR	Update_input_bitset(PC) ; Update_input_bitset called from multiple locations, from here during practice mode
 	JSR	loc_3EE4(PC)
 	JSR	loc_1778(PC)
-	JSR	loc_1482(PC)
+	JSR	Flush_tilemap_draw_queue(PC)
 loc_3ECE:
 	MOVE.w	#$9D42, D0
 	ADD.w	$FFFF9202.w, D0
@@ -4779,14 +4878,15 @@ loc_3EE4:
 loc_3F0C:
 	RTS
 
-loc_3F0E:
+;loc_3F0E:
+Handle_pause:
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_3F30
 	NOT.w	Pause_flag.w
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_3F30
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_3F30:
 	MOVE.w	$FFFFFC68.w, D1
@@ -4797,7 +4897,7 @@ loc_3F30:
 	BNE.b	loc_3F44
 	RTS
 loc_3F44:
-	JSR	loc_75C62
+	JSR	Trigger_music_playback
 	CLR.l	$FFFFFC6A.w
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
@@ -4808,7 +4908,7 @@ loc_3F44:
 loc_3F62:
 	TST.w	D1
 	BNE.b	loc_3F6C
-	JSR	loc_75C56
+	JSR	Trigger_music_mode_1
 loc_3F6C:
 	SUBQ.w	#1, $FFFFFC6A.w
 	BPL.b	loc_3F7C
@@ -4829,7 +4929,7 @@ loc_3F8E:
 	MOVE.l	#$00005690, D0
 	TST.w	Practice_mode.w
 	BNE.b	loc_3FB0
-	MOVE.l	#loc_293C, D0
+	MOVE.l	#Title_menu, D0
 loc_3FB0:
 	MOVE.b	Input_state_bitset.w, D1
 	ANDI.w	#$0070, D1 ; Keys A+B+C pressed
@@ -4840,13 +4940,13 @@ loc_3FC2:
 	MOVE.l	#$66060003, D7
 	MOVEQ	#$00000019, D6
 	MOVEQ	#0, D5
-	JSR	loc_146C(PC)
+	JSR	Queue_tilemap_draw(PC)
 	LEA	(A4), A6
 loc_3FD2:
 	MOVE.l	#$64980003, D7
 	MOVEQ	#8, D6
 	MOVEQ	#0, D5
-	JMP	loc_146C(PC)
+	JMP	Queue_tilemap_draw(PC)
 
 loc_3FE0:
 	MOVEQ	#0, D7
@@ -4973,7 +5073,7 @@ loc_41DE:
 loc_425E:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6, $FF, $FB, $FF, $F6
 	dc.b	$FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC, $FF, $F6, $FF, $EC
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	LEA	$FFFFE800.w, A0
 	BTST.b	#1, $FFFFFC20.w
 	BEQ.b	loc_42B4
@@ -5000,19 +5100,19 @@ loc_42F2:
 loc_42F6:
 	RTS
 loc_42F8:
-	JSR	loc_8C0
-	JSR	loc_75C4A
-	JSR	loc_62E
+	JSR	Fade_palette_to_black
+	JSR	Halt_audio_sequence
+	JSR	Initialize_h40_vdp_state
 	MOVE.w	$FFFFFF30.w, $FFFFFF3C.w
 	MOVE.l	#$70000002, VDP_control_port
 	LEA	loc_622A0, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_62310, A0
 	MOVE.w	#$E580, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVEQ	#2, D2
 	CMPI.w	#$000E, $FFFFFF30.w
 	BNE.b	loc_434C
@@ -5023,8 +5123,8 @@ loc_434C:
 	JSR	loc_43E2(PC)
 	JSR	loc_440E(PC)
 	LEA	loc_4622, A6
-	JSR	loc_6DA
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
+	JSR	Copy_word_run_from_stream
 	MOVE.w	$FFFFFF30.w, D0
 	TST.b	$FFFF92E0.w
 	BPL.b	loc_437C
@@ -5035,7 +5135,7 @@ loc_437C:
 	MOVE.w	(A0,D0.w), D2
 	MOVE.w	$FFFFFF38.w, D0
 	MOVEQ	#0, D1
-	JSR	loc_DDB6
+	JSR	Bcd_add_loop
 	MOVE.w	D0, $FFFFFF38.w
 	TST.w	$FFFFFF50.w
 	BEQ.b	loc_43A4
@@ -5046,8 +5146,8 @@ loc_43A4:
 	MOVE.l	#$0000429E, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#5, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
@@ -5082,10 +5182,10 @@ loc_440E:
 loc_442C:
 	MOVE.l	(A0)+, D0
 	MOVE.w	#$E000, D3
-	JSR	loc_15D6
+	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.w	(A2)+, D7
 	ADDI.w	#$000A, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, $4(A1)
 	MOVE.l	(A3)+, (A1)
 	MOVE.l	(A3)+, (A1)
@@ -5095,13 +5195,13 @@ loc_442C:
 	TST.b	$FFFF92E0.w
 	BPL.b	loc_4464
 	LEA	loc_4710(PC), A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 loc_4464:
 	MOVE.w	$FFFFFF30.w, D0
 	ADD.w	D0, D0
 	LEA	loc_471E(PC), A0
 	MOVE.w	(A0,D0.w), D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, $FFFFFC00.w
 	LEA	$FFFFE800.w, A0
 	BCLR.l	#$1E, D7
@@ -5120,7 +5220,7 @@ loc_4498:
 	MOVE.w	D1, (A0)+
 	DBF	D0, loc_4498
 	RTS
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.b	$FFFFFC20.w, D0
 	MOVE.w	D0, D1
 	ANDI.w	#2, D0
@@ -5134,7 +5234,7 @@ loc_4498:
 	MOVE.l	#$658A0003, D7
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_451A
@@ -5153,30 +5253,30 @@ loc_451A:
 	MOVE.l	#$00003800, $FFFFFF10.w
 loc_4528:
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
 	MOVE.w	#$8B00, VDP_control_port
 	MOVE.w	#$9209, VDP_control_port
 	LEA	loc_467A(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_62310, A0
 	MOVE.w	#$E580, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_58058, A0
 	MOVE.w	#$E001, D0
 	MOVE.l	#$63140003, D7
 	MOVEQ	#$00000014, D6
 	MOVEQ	#1, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_6250E, A0
 	MOVE.w	#$8080, D0
 	MOVE.l	#$658A0003, D7
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	$FFFF9AC0.w, A0
 	MOVE.w	#$010C, D0
 	MOVEQ	#1, D1
@@ -5197,15 +5297,15 @@ loc_45B0:
 	DBF	D2, loc_45AA
 	CLR.b	-$5(A0)
 	LEA	loc_463C, A6
-	JSR	loc_6DA
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00A5, $FFFFFC2C.w
 	MOVE.l	#$000044A8, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -5265,14 +5365,14 @@ loc_473C:
 	dc.w	$0063
 	dc.b	$00, $58, $00, $52, $00, $47, $00, $42, $00, $37, $00, $32, $00, $27, $00, $22, $00, $17
 	dc.w	$0000
-	JSR	loc_396
-	JSR	loc_4C8A(PC)
+	JSR	Wait_for_vblank
+	JSR	Update_car_selection_screen(PC)
 	JSR	loc_4AB8(PC)
 	LEA	loc_54FC(PC), A6
-	JSR	loc_846
-	JSR	loc_492E(PC)
-	JSR	loc_4886(PC)
-	JSR	loc_D5C
+	JSR	Draw_packed_tilemap_to_vdp
+	JSR	Draw_initials_entry_selection(PC)
+	JSR	Draw_initials_entry_buffer(PC)
+	JSR	Update_objects_and_build_sprite_buffer
 	TST.w	$FFFFFC18.w
 	BEQ.b	loc_4798
 	SUBQ.w	#1, $FFFFFC18.w
@@ -5281,8 +5381,8 @@ loc_473C:
 loc_4796:
 	RTS
 loc_4798:
-	JSR	loc_48D6(PC)
-	JSR	loc_481E(PC)
+	JSR	Update_initials_entry_selection(PC)
+	JSR	Handle_initials_entry_button_input(PC)
 	MOVEQ	#1, D1
 	SUB.b	D1, $FFFFFC2D.w
 	BNE.b	loc_47CA
@@ -5290,7 +5390,7 @@ loc_4798:
 	MOVE.b	$FFFFFC2C.w, D2
 	BNE.b	loc_47C0
 loc_47B4:
-	JSR	loc_48C0(PC)
+	JSR	Clear_initials_entry_placeholders(PC)
 	MOVE.w	#$005A, $FFFFFC18.w
 	RTS
 loc_47C0:
@@ -5302,25 +5402,26 @@ loc_47CA:
 	MOVE.b	$FFFFFC2C.w, D1
 	MOVEQ	#1, D0
 	MOVEQ	#0, D7
-	JSR	loc_152A
+	JSR	Unpack_bcd_digits_to_buffer
 	MOVEQ	#1, D0
-	JSR	loc_1544
+	JSR	Copy_digits_to_tilemap
 	MOVE.l	#$6AC40003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_481C
 	MOVE.w	#$FFFF, $FFFFFC18.w
-	JSR	loc_48C0(PC)
-	JSR	loc_4886(PC)
+	JSR	Clear_initials_entry_placeholders(PC)
+	JSR	Draw_initials_entry_buffer(PC)
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 loc_481C:
 	RTS
 
-loc_481E:
+;loc_481E
+Handle_initials_entry_button_input:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$0070, D0
 	BEQ.b	loc_486A
@@ -5354,7 +5455,8 @@ loc_486C:
 loc_4884:
 	RTS
 
-loc_4886:
+;loc_4886
+Draw_initials_entry_buffer:
 	MOVEA.l	$FFFFFC0C.w, A0
 	TST.w	$FFFFFC18.w
 	BNE.b	loc_48A6
@@ -5373,7 +5475,8 @@ loc_48A6:
 	MOVE.l	D0, $4(A5)
 	JMP	loc_4DFA
 
-loc_48C0:
+;loc_48C0
+Clear_initials_entry_placeholders:
 	MOVEA.l	$FFFFFC0C.w, A0
 	MOVEQ	#2, D0
 loc_48C6:
@@ -5385,7 +5488,8 @@ loc_48CE:
 	DBF	D0, loc_48C6
 	RTS
 
-loc_48D6:
+;loc_48D6
+Update_initials_entry_selection:
 	MOVE.b	Input_state_bitset.w, D0
 	ANDI.w	#$000C, D0 ; Keys left+right? (assuming D0 high was 0)
 	BNE.b	loc_48E6
@@ -5422,13 +5526,14 @@ loc_4928:
 	MOVE.b	D1, $FFFFFC10.w
 	RTS
 
-loc_492E:
+;loc_492E
+Draw_initials_entry_selection:
 	MOVEQ	#0, D0
 	MOVE.b	$FFFFFC10.w, D0
 	MOVE.w	D0, D7
 	ADD.w	D7, D7
 	ADDI.w	#$E80C, D7
-	JSR	loc_4968(PC)
+	JSR	Set_vdp_command_from_tile_index(PC)
 	LEA	loc_54DE(PC), A0
 	MOVE.b	(A0,D0.w), D0
 	ADDI.w	#$C05F, D0
@@ -5439,20 +5544,21 @@ loc_492E:
 	MOVE.w	D0, VDP_data_port
 	RTS
 
-loc_4968:
-	JSR	loc_8AE
+;loc_4968
+Set_vdp_command_from_tile_index:
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	RTS
 loc_4976:
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	LEA	loc_57DCC, A0
 	MOVE.w	#$A030, D0
 	MOVE.l	#$608E0003, D7
 	MOVEQ	#$00000019, D6
 	MOVEQ	#1, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	JSR	loc_4AE2(PC)
 	BCC.b	loc_49BA
 	JSR	loc_4CFE(PC)
@@ -5470,16 +5576,16 @@ loc_49CA:
 	ADDI.w	#$E30E, D0
 	MOVE.w	D0, $FFFFFC04.w
 	JSR	loc_4A7E(PC)
-	JSR	loc_4C2A(PC)
+	JSR	Initialize_race_track_scroll_tables(PC)
 	JSR	loc_4A2C(PC)
 	MOVE.l	#$00004F5C, $FFFFB080.w
 	MOVE.w	#$603C, $FFFFFC2C.w
 	MOVE.l	#$0000475C, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#3, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
@@ -5488,7 +5594,7 @@ loc_49CA:
 loc_4A2C:
 	LEA	loc_570CA, A0
 	LEA	Curve_data, A4
-	JSR	loc_982
+	JSR	Decompress_to_ram
 	MOVEQ	#0, D1
 	MOVEQ	#$00000029, D0
 	LEA	$00FF5C40, A0
@@ -5516,7 +5622,7 @@ loc_4A58:
 
 loc_4A7E:
 	MOVE.w	$FFFFFC04.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, $FFFFFC04.w
 	BCLR.l	#$1E, D7
 	MOVE.l	D7, VDP_control_port
@@ -5602,14 +5708,14 @@ loc_4B5A:
 	MOVE.b	#$36, (A0)+
 	MOVE.b	#$36, (A0)
 	RTS
-	JSR	loc_396
-	JSR	loc_4C8A(PC)
+	JSR	Wait_for_vblank
+	JSR	Update_car_selection_screen(PC)
 	JSR	loc_4AB8(PC)
-	JSR	loc_D5C
+	JSR	Update_objects_and_build_sprite_buffer
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_4BA2
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_4BA2:
 	SUBQ.w	#1, $FFFFFC2C.w
@@ -5617,31 +5723,32 @@ loc_4BA2:
 	MOVE.l	#$00002592, $FFFFFF10.w
 loc_4BB0:
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	LEA	loc_57DCC, A0
 	MOVE.w	#$A030, D0
 	MOVE.l	#$610E0003, D7
 	MOVEQ	#$00000019, D6
 	MOVEQ	#1, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	JSR	loc_4D54(PC)
 loc_4BE2:
-	JSR	loc_4C2A(PC)
+	JSR	Initialize_race_track_scroll_tables(PC)
 	MOVE.l	#$00004F56, $FFFFB080.w
 	MOVE.w	#$01E0, $FFFFFC2C.w
 	MOVE.l	#$00004B76, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
-loc_4C2A:
+;Initialize_race_track_scroll_tables
+Initialize_race_track_scroll_tables:
 	LEA	$FFFF9700.w, A0
 	LEA	$FFFF9600.w, A1
 	MOVEQ	#$00000077, D0
@@ -5657,17 +5764,18 @@ loc_4C44:
 	MOVE.w	D3, (A1)+
 	DBF	D0, loc_4C44
 	LEA	loc_5282(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_52A8(PC), A6
-	JSR	loc_6DA
-	JSR	loc_6DA
-	JSR	loc_6DA
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
+	JSR	Copy_word_run_from_stream
+	JSR	Copy_word_run_from_stream
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$6194, D0
 	LEA	loc_2EF7A, A0
-	JMP	loc_AB0
+	JMP	Decompress_tilemap_to_buffer
 
-loc_4C8A:
+;Update_car_selection_screen
+Update_car_selection_screen:
 	MOVE.w	$FFFFFC02.w, D0
 	MULU.w	#$02B4, D0
 	LEA	$FFFFEA00.w, A6
@@ -5675,11 +5783,11 @@ loc_4C8A:
 	MOVE.l	#$4C000003, D7
 	MOVEQ	#8, D6
 	MOVEQ	#3, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	MOVE.l	#$49120003, D7
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	SUBQ.w	#1, $FFFFFC00.w
 	BPL.b	loc_4CD4
 	MOVE.w	#4, $FFFFFC00.w
@@ -5744,7 +5852,7 @@ loc_4D54:
 loc_4D66:
 	LEA	VDP_data_port, A5
 	LEA	loc_5349(PC), A6
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 loc_4D76:
 	LEA	loc_5463(PC), A6
 	TST.b	$4(A0)
@@ -5754,9 +5862,9 @@ loc_4D76:
 	BMI.b	loc_4D8E
 	LEA	loc_54B5(PC), A6
 loc_4D8E:
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	LEA	loc_543A(PC), A6
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	JSR	loc_4DCC(PC)
 	MOVE.w	(A0)+, D0
 	MOVEQ	#4, D1
@@ -5769,12 +5877,12 @@ loc_4D8E:
 	SUBQ.w	#1, $FFFFFC0A.w
 	BNE.b	loc_4D76
 	LEA	loc_5412(PC), A6
-	JMP	loc_84E
+	JMP	Draw_packed_tilemap_to_vdp_preset_base
 
 loc_4DCC:
 	MOVE.w	D6, D7
 	ADDI.w	#$FF82, D7
-	JSR	loc_4968(PC)
+	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVEQ	#2, D0
 	MOVE.w	#$C7C0, D1
 loc_4DDC:
@@ -5790,7 +5898,7 @@ loc_4DE4:
 loc_4DEC:
 	MOVE.w	D6, D7
 	ADDI.w	#$FFBA, D7
-	JSR	loc_4968(PC)
+	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVEQ	#1, D7
 	BRA.b	loc_4DFC
 loc_4DFA:
@@ -5844,7 +5952,7 @@ loc_4E58:
 	MOVEQ	#6, D1
 	JSR	loc_4F08(PC)
 	MOVEM.w	(A7)+, D0/D7
-	JSR	loc_4968(PC)
+	JSR	Set_vdp_command_from_tile_index(PC)
 	CMPI.w	#9, D0
 	BCS.b	loc_4E7C
 	MOVE.w	#$87EC, D0
@@ -5860,9 +5968,9 @@ loc_4E88:
 	MOVE.w	D6, D5
 	ADDI.w	#$FF9A, D6
 	LEA	loc_531D(PC), A6
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	ADDI.w	#$0018, D6
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVE.w	D5, D6
 	RTS
 loc_4EA8:
@@ -5875,7 +5983,7 @@ loc_4EA8:
 	LEA	loc_5328(PC), A6
 	ADDQ.w	#8, D6
 loc_4EBE:
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVE.w	D5, D6
 	RTS
 
@@ -5905,7 +6013,7 @@ loc_4EEC:
 	MOVE.w	D6, D7
 	ADDI.w	#$FFC2, D7
 loc_4F00:
-	JSR	loc_4968(PC)
+	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVE.l	(A1), (A5)
 	RTS
 
@@ -5916,7 +6024,7 @@ loc_4F08:
 	MOVE.w	#$C7C0, D4
 
 loc_4F14:
-	JSR	loc_4968(PC)
+	JSR	Set_vdp_command_from_tile_index(PC)
 	LEA	$FFFFFCB0.w, A1
 	MOVE.l	D0, (A1)
 	MOVEQ	#8, D2
@@ -5983,23 +6091,23 @@ loc_4F90:
 	MOVE.b	(A1,D0.w), D0
 	LEA	loc_2F068, A1
 	MOVE.l	(A1,D0.w), $4(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_4FCE:
 	MOVE.l	#loc_4F5C, (A0)
 	MOVE.w	#$0078, $36(A0)
 	RTS
 loc_4FDC:
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
-	JSR	loc_4C2A(PC)
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
+	JSR	Initialize_race_track_scroll_tables(PC)
 	MOVE.w	#$8200, VDP_control_port
 	MOVE.w	#$8300, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9206, VDP_control_port
 	MOVE.l	#$941F93FF, D6
 	MOVE.l	#$40000080, D7
-	JSR	loc_944
+	JSR	Start_vdp_dma_fill
 	BTST.b	#2, $FFFF902F.w
 	BNE.b	loc_5030
 	JSR	loc_51E4(PC)
@@ -6020,17 +6128,17 @@ loc_503A:
 	MOVE.l	#$0000509C, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#3, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.l	#$40000010, VDP_control_port
 	MOVE.w	$FFFFFC1C.w, VDP_data_port
-	JSR	loc_4C8A(PC)
-	JSR	loc_D5C
+	JSR	Update_car_selection_screen(PC)
+	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.w	$FFFFFC1C.w, D0
 	TST.w	$FFFFFC18.w
 	BEQ.b	loc_50F8
@@ -6076,14 +6184,16 @@ loc_5122:
 	DBF	D0, loc_5122
 	RTS
 
-loc_512A:
-	JSR	loc_8AE
+;Write_tile_vdp_command_to_slot
+Write_tile_vdp_command_to_slot:
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, $4(A5)
 	ADDQ.w	#1, A2
 	SUBQ.w	#1, D1
 	RTS
 
-loc_513A:
+;Copy_tile_bytes_to_slot
+Copy_tile_bytes_to_slot:
 	MOVEQ	#0, D0
 	MOVE.b	(A2)+, D0
 	CMPI.w	#$00FF, D0
@@ -6096,13 +6206,13 @@ loc_514C:
 	ADD.w	D4, D0
 loc_514E:
 	MOVE.w	D0, (A5)
-	DBF	D1, loc_513A
+	DBF	D1, Copy_tile_bytes_to_slot
 loc_5154:
 	RTS
 
 loc_5156:
 	LEA	loc_5232(PC), A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	LEA	VDP_data_port, A5
 	MOVE.w	#$0306, D6
 	MOVEQ	#0, D5
@@ -6123,24 +6233,24 @@ loc_5184:
 	BEQ.b	loc_519A
 	SUBQ.w	#1, D0
 loc_519A:
-	JSR	loc_C6B2
+	JSR	Load_driver_name_text_pointer
 	MOVE.w	D6, D7
 	ADDI.w	#$0016, D7
-	JSR	loc_512A(PC)
-	JSR	loc_513A(PC)
+	JSR	Write_tile_vdp_command_to_slot(PC)
+	JSR	Copy_tile_bytes_to_slot(PC)
 	MOVEA.l	(A1)+, A2
 	MOVE.w	(A1)+, D1
 	MOVE.w	D6, D7
 	ADDI.w	#$002C, D7
-	JSR	loc_512A(PC)
+	JSR	Write_tile_vdp_command_to_slot(PC)
 	MOVEQ	#0, D2
-	JSR	loc_513A(PC)
+	JSR	Copy_tile_bytes_to_slot(PC)
 	MOVE.w	D5, D0
-	JSR	loc_C6C4
+	JSR	Load_car_spec_text_pointer
 	MOVE.w	D6, D7
-	JSR	loc_512A(PC)
+	JSR	Write_tile_vdp_command_to_slot(PC)
 	MOVEQ	#-1, D2
-	JSR	loc_513A(PC)
+	JSR	Copy_tile_bytes_to_slot(PC)
 	ADDI.w	#$0100, D6
 	ADDQ.w	#1, D5
 	CMPI.w	#$0010, D5
@@ -6283,8 +6393,8 @@ loc_553E:
 	dc.b	$12, $22, $0E, $02, $00, $03, $28, $40, $04, $03, $28, $40, $20, $0A, $14, $00, $12, $20, $07, $00, $02, $03, $12, $47, $04, $03, $28, $00, $11, $0A, $16, $00
 	dc.b	$12, $19, $01, $00, $02, $03, $12, $47, $04, $03, $28, $00, $11, $12, $1B, $00, $10, $30, $09, $00, $FF, $00, $00, $00, $80, $00, $00, $00, $1D, $0A, $17, $00
 	dc.b	$10, $00, $00, $02, $FF, $00, $00, $00, $80, $00, $00, $00, $10, $0E, $1B, $00
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	SUBQ.w	#1, $FFFFFC08.w
 	BSR.b	loc_562A
 	RTS
@@ -6308,7 +6418,7 @@ loc_5660:
 	RTS
 loc_5662:
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_5672:
 	ADDQ.w	#1, $FFFFFF28.w
@@ -6321,9 +6431,9 @@ loc_567C:
 	MOVE.w	#$000F, $FFFFFC04.w
 	RTS
 	MOVE.b	#0, Player_team.w
-	JSR	loc_8C0
-	JSR	loc_656
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h32_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$000E, $FFFFFF4C.w
 	MOVE.w	#$9003, VDP_control_port
 	MOVE.w	#1, Use_world_championship_tracks.w
@@ -6337,23 +6447,23 @@ loc_56C6:
 	MOVE.l	#$40000003, D7
 	MOVE.w	#$001F, D6
 	MOVE.w	#$0011, D5
-	JSR	loc_7A0
+	JSR	Decompress_tilemap_to_vdp_128_cell_rows
 	LEA	$FFFFEE80.w, A6
 	MOVE.l	#$64800003, D7
 	MOVE.w	#$001F, D6
 	MOVE.w	#9, D5
-	JSR	loc_780
+	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	LEA	loc_3260C, A0
 	LEA	Curve_data, A4
-	JSR	loc_982
+	JSR	Decompress_to_ram
 	MOVE.l	#$46400000, VDP_control_port
 	LEA	loc_56E36, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$50400000, VDP_control_port
 	LEA	loc_3275A, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_325D8, A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	BSR.w	loc_58C4
 	MOVE.w	#$E486, D7
 	MOVE.w	#$0019, D0
@@ -6371,7 +6481,7 @@ loc_578E:
 	MOVE.l	#$FFFFFFFF, VDP_data_port
 	DBF	D0, loc_578E
 	LEA	loc_325E6, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$0014, $FFFFFC00.w
 	MOVE.w	#7, $FFFFFC04.w
 	MOVE.w	$FFFFFF36.w, Shift_type.w
@@ -6384,13 +6494,13 @@ loc_578E:
 	CLR.w	Acceleration_modifier.w
 	MOVE.l	#$00005616, $FFFFFF10.w
 	MOVE.l	#$0000584E, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
-	JSR	loc_75C62
+	JSR	Trigger_music_playback
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -6399,7 +6509,7 @@ loc_5826:
 	MOVEM.w	D7/D2/D1/D0, -(A7)
 	LSL.w	#6, D1
 	ADD.w	D1, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 loc_583A:
 	MOVE.w	D2, VDP_data_port
@@ -6407,9 +6517,9 @@ loc_583A:
 	MOVEM.w	(A7)+, D0-D2/D7
 	DBF	D1, loc_5826
 	RTS
-	JSR	loc_754
+	JSR	Upload_h32_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
-	JSR	loc_6F0
+	JSR	Upload_palette_buffer_to_cram
 	MOVE.l	#$6A400003, VDP_control_port
 	MOVE.w	$FFFFFC08.w, D0
 	LSR.w	#1, D0
@@ -6438,11 +6548,11 @@ loc_58C2:
 	RTS
 
 loc_58C4:
-	JSR	loc_F848
+	JSR	Load_track_data_pointer
 	MOVEA.l	(A1)+, A0 ; tiles used for minimap
 	MOVE.l	#$40400000, VDP_control_port
-	JSR	loc_972
-	JSR	loc_F848
+	JSR	Decompress_to_vdp
+	JSR	Load_track_data_pointer
 	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1)+, A0
 	MOVE.l	#$46060003, D7
@@ -6451,19 +6561,19 @@ loc_58C4:
 	MOVEQ	#6, D6
 	MOVEQ	#$0000000A, D5
 	JSR	loc_7BE
-	JSR	loc_F848
+	JSR	Load_track_data_pointer
 	MOVEA.l	$4(A1), A0 ; tiles used for background
 	MOVE.l	#$70000002, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVEA.l	$8(A1), A0
 	MOVE.w	#$6000, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	JSR	loc_19CA
 	LEA	$FFFFC080.w, A6
 	MOVE.l	#$52000003, D7
 	MOVE.w	#$00BF, D6
 	MOVE.w	#8, D5
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	CLR.l	D0
 	LEA	loc_32228, A6
 	MOVE.w	$FFFFFF28.w, D0
@@ -6472,21 +6582,22 @@ loc_58C4:
 	LEA	VDP_data_port, A5
 	MOVE.w	#$E198, D6
 	MOVE.w	#$2032, D0
-	JSR	loc_84E
-	JSR	loc_F848
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
+	JSR	Load_track_data_pointer
 	MOVEA.l	$10(A1), A6 ; background palette
 	MOVEQ	#$00000060, D0
 	MOVEQ	#$0000000A, D1
-	JSR	loc_6E2
+	JSR	Copy_word_run_to_buffer
 	CLR.w	$FFFFFC08.w
 	MOVE.l	#$636A0003, VDP_control_port
 	MOVEA.l	$3C(A1), A2
 	MOVE.w	#$2000, D3
 
-loc_5996:
+;loc_5996:
+Draw_bcd_time_to_vdp:
 	MOVE.l	(A2), D0
 	LEA	$FFFFE85C.w, A3
-	JSR	loc_15D6
+	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.l	(A3)+, VDP_data_port
 	MOVE.l	(A3)+, VDP_data_port
 	MOVE.l	(A3)+, VDP_data_port
@@ -6581,7 +6692,7 @@ loc_5A98:
 	LSL.w	#2, D0
 	LEA	loc_5848E, A1
 	MOVEA.l	(A1,D0.w), A6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_5AAE:
 	RTS ; end of Update_shift
 
@@ -6850,7 +6961,8 @@ Acceleration_data: ; Derivative of RPM during acceleration
 	dc.b	$02, $02, $02, $02, $02, $02, $02, $02, $02, $02, $03, $03, $03, $03, $03, $03, $04, $04, $04, $04, $04, $04, $05, $05, $03, $02, $01, $FF, $FD, $FB, $00, $00 ; shift 4
 	dc.b	$01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02, $02, $02, $02, $02, $02, $03, $03, $03, $03, $02, $01, $01, $FF, $FD, $FB, $00, $00 ; shift 5
 	dc.b	$01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $FF, $FD, $FB, $F9           ; shift 6
-loc_5F10:
+;loc_5F10
+Update_engine_sound_pitch:
 	MOVE.w	#$022E, D0
 	MOVE.w	Shift_type.w, D1
 	BEQ.b	loc_5F58
@@ -6975,7 +7087,8 @@ loc_60D0:
 	dc.b	$FF, $FA, $FF, $FE
 	dc.w	$0000
 	dc.b	$00, $02, $00, $04, $00, $06
-loc_60DC:
+;loc_60DC:
+Update_steering:
 	MOVEQ	#9, D3
 	MOVEQ	#$0000000F, D4
 	MOVEQ	#$00000013, D5
@@ -7095,8 +7208,9 @@ loc_61F6:
 loc_61FC: ; Suspected backwindow tile mappings
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008
 
-loc_6224: ; Suspected: Level initialization
-	JSR	loc_F848
+;loc_6224:
+Load_track_data: ; Suspected: Level initialization
+	JSR	Load_track_data_pointer
 	LEA	$20(A1), A1
 	MOVE.w	(A1)+, $FFFF920C.w ; ?
 	MOVE.w	(A1)+, D2 ; track length
@@ -7270,7 +7384,8 @@ loc_63DA:
 	MOVE.l	A6, $FFFF9284.w
 	RTS
 
-loc_63E8:
+;loc_63E8:
+Initialize_road_graphics_state:
 	LEA	$FFFF9700.w, A0
 	MOVEQ	#$0000003B, D0
 	MOVEQ	#$0000002F, D1
@@ -7303,28 +7418,28 @@ loc_6434:
 	MOVE.w	D0, (A0)+
 	DBF	D1, loc_6434
 	LEA	loc_54724, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	MOVEQ	#7, D6
 	MOVEQ	#4, D5
 	MOVE.w	#$0024, D4
 	MOVE.w	#$0080, D3
 	LEA	$FFFFEA14.w, A6
 	LEA	$FFFFD400.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#4, D5
 	LEA	$FFFFF030.w, A6
 	LEA	$FFFFD470.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000017, D6
 	MOVEQ	#4, D5
 	MOVE.w	#$0030, D4
 	LEA	$FFFFEBB0.w, A6
 	LEA	$FFFFD410.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#4, D5
 	LEA	$FFFFEDF0.w, A6
 	LEA	$FFFFD440.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD680.w, A1
 	MOVE.w	#$009F, D0
@@ -7334,34 +7449,34 @@ loc_649A:
 	MOVEQ	#4, D5
 	LEA	$FFFFF1E0.w, A6
 	LEA	$FFFFD6C0.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#7, D6
 	MOVEQ	#4, D5
 	MOVE.w	#$0024, D4
 	LEA	$FFFFF420.w, A6
 	LEA	$FFFFD6F0.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000011, D6
 	MOVEQ	#6, D5
 	MOVE.w	#$0024, D4
 	MOVE.w	#$0100, D3
 	LEA	$FFFFEAB4.w, A6
 	LEA	$FFFFD92C.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#6, D5
 	LEA	$FFFFF0E4.w, A6
 	LEA	$FFFFD9B0.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000017, D6
 	MOVEQ	#6, D5
 	MOVE.w	#$0030, D4
 	LEA	$FFFFECA0.w, A6
 	LEA	$FFFFD950.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#6, D5
 	LEA	$FFFFEEE0.w, A6
 	LEA	$FFFFD980.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	LEA	$FFFFD900.w, A0
 	LEA	$FFFFE000.w, A1
 	MOVE.w	#$01BF, D0
@@ -7371,13 +7486,13 @@ loc_6516:
 	MOVEQ	#6, D5
 	LEA	$FFFFF2D0.w, A6
 	LEA	$FFFFE080.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000011, D6
 	MOVEQ	#6, D5
 	MOVE.w	#$0024, D4
 	LEA	$FFFFF4D4.w, A6
 	LEA	$FFFFE0B0.w, A5
-	JSR	loc_6576(PC)
+	JSR	Copy_2d_rect_words(PC)
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD680.w, A1
 	MOVE.l	#$60006000, D1
@@ -7398,7 +7513,12 @@ loc_6564:
 	DBF	D0, loc_6564
 	RTS
 
-loc_6576:
+;Copy_2d_rect_words
+Copy_2d_rect_words:
+; Copies a 2-D rectangle of words: (D6+1) words per row, (D5+1) rows.
+; Source stride: D4 bytes added to A6 after each row.
+; Destination stride: D3 bytes added to A5 after each row.
+; Inputs:  A5=dest, A6=src, D6=words/row-1, D5=rows-1, D3=dest stride, D4=src stride
 	LEA	(A5), A3
 	LEA	(A6), A4
 	MOVE.w	D6, D2
@@ -7407,7 +7527,7 @@ loc_657C:
 	DBF	D2, loc_657C
 	ADDA.w	D3, A5
 	ADDA.w	D4, A6
-	DBF	D5, loc_6576
+	DBF	D5, Copy_2d_rect_words
 	RTS
 
 loc_658C:
@@ -7421,38 +7541,39 @@ loc_6596:
 	DBF	D0, loc_6596
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD900.w, A1
-	JSR	loc_665C(PC)
+	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$2000, D0
 	MOVE.l	#$59000003, VDP_control_port
-	JSR	loc_663C(PC)
+	JSR	Write_road_scroll_with_sky_to_vdp(PC)
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD900.w, A1
-	JSR	loc_665C(PC)
+	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$4000, D0
 	MOVE.l	#$53000003, VDP_control_port
-	JSR	loc_663C(PC)
+	JSR	Write_road_scroll_with_sky_to_vdp(PC)
 	LEA	$FFFFD680.w, A0
 	LEA	$FFFFE000.w, A1
-	JSR	loc_665C(PC)
+	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$4000, D0
 	MOVE.l	#$47000003, VDP_control_port
-	JSR	loc_663C(PC)
+	JSR	Write_road_scroll_with_sky_to_vdp(PC)
 	TST.w	$FFFF920E.w
 	BNE.b	loc_6622
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD900.w, A1
-	JSR	loc_665C(PC)
+	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$6000, D0
 	MOVE.l	#$4D000003, VDP_control_port
-	BRA.w	loc_663C
+	BRA.w	Write_road_scroll_with_sky_to_vdp
 loc_6622:
 	LEA	$FFFFD680.w, A0
 	LEA	$FFFFE000.w, A1
-	JSR	loc_665C(PC)
+	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$2000, D0
 	MOVE.l	#$4D000003, VDP_control_port
 
-loc_663C:
+;Write_road_scroll_with_sky_to_vdp
+Write_road_scroll_with_sky_to_vdp:
 	MOVE.w	#$02FF, D1
 	MOVE.w	#$9FFF, D2
 	LEA	$FFFFF600.w, A0
@@ -7465,7 +7586,10 @@ loc_664E:
 	DBF	D1, loc_664E
 	RTS
 
-loc_665C:
+;Copy_displacement_rows_to_work_buffer
+Copy_displacement_rows_to_work_buffer:
+; Bulk-copies road scroll displacement rows from A0 into the work buffer
+; at $FFFFF600 using MOVEM for speed.
 	LEA	$FFFFF600.w, A2
 	MOVEM.l	(A0)+, D0-D7/A3-A6
 	MOVEM.l	D0-D7/A3-A6, (A2)
@@ -7536,7 +7660,8 @@ loc_672A:
 loc_674C:
 	RTS
 
-loc_674E:
+;loc_674E:
+Update_road_graphics:
 	TST.w	$FFFFFC80.w
 	BNE.b	loc_674C
 	MOVE.w	Player_distance.w, D0
@@ -7932,7 +8057,8 @@ loc_6B60:
 	MOVE.w	#$FFFF, $FFFF9200.w
 	RTS
 
-loc_6B68:
+;loc_6B68:
+Advance_player_distance:
 	LEA	$FFFFAE00.w, A0
 	JSR	loc_80E0
 	MULU.w	Player_speed.w, D0
@@ -8018,7 +8144,7 @@ loc_6C3C:
 	LEA	$FFFF9800.w, A5
 	MOVEQ	#$00000027, D0
 loc_6C46:
-	JSR	loc_7014(PC)
+	JSR	Scale_curveslope_entry(PC)
 	DBF	D0, loc_6C46
 	MOVEQ	#$00000027, D1
 	MOVEQ	#0, D2
@@ -8027,7 +8153,7 @@ loc_6C46:
 	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
 	LEA	loc_6F0E(PC), A4
 loc_6C60:
-	JSR	loc_6FBA(PC)
+	JSR	Interpolate_curveslope_segment(PC)
 	BCS.b	loc_6C6E
 	SUBQ.w	#2, A5
 	DBF	D1, loc_6C60
@@ -8105,7 +8231,7 @@ loc_6D16:
 	LEA	$FFFF9800.w, A5
 	MOVEQ	#$00000021, D0
 loc_6D20:
-	JSR	loc_7014(PC)
+	JSR	Scale_curveslope_entry(PC)
 	DBF	D0, loc_6D20
 	MOVEQ	#$00000021, D1
 	MOVEQ	#0, D2
@@ -8114,7 +8240,7 @@ loc_6D20:
 	LEA	$FFFF9842.w, A5 ; array output of Integrate_curveslope
 	LEA	loc_6F1A(PC), A4
 loc_6D3A:
-	JSR	loc_6FBA(PC)
+	JSR	Interpolate_curveslope_segment(PC)
 	BCS.b	loc_6D48
 	SUBQ.w	#2, A5
 	DBF	D1, loc_6D3A
@@ -8133,7 +8259,8 @@ loc_6D5A:
 	DBF	D0, loc_6D5A
 	RTS
 
-loc_6D66:
+;loc_6D66:
+Update_slope_data:
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
 	LEA	$00FF8300, A5
@@ -8165,7 +8292,7 @@ loc_6DAE:
 	LEA	$FFFF9800.w, A5
 	MOVEQ	#$00000027, D0
 loc_6DB8:
-	JSR	loc_7014(PC)
+	JSR	Scale_curveslope_entry(PC)
 	DBF	D0, loc_6DB8
 	MOVEQ	#$00000027, D1
 	MOVEQ	#0, D2
@@ -8174,7 +8301,7 @@ loc_6DB8:
 	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
 	LEA	loc_6F0E(PC), A4
 loc_6DD2:
-	JSR	loc_6FBA(PC)
+	JSR	Interpolate_curveslope_segment(PC)
 	BCS.b	loc_6DE0
 	SUBQ.w	#2, A5
 	DBF	D1, loc_6DD2
@@ -8418,7 +8545,8 @@ loc_6FB4:
 	ORI	#1, CCR ; set carry flag
 	RTS
 
-loc_6FBA:
+;Interpolate_curveslope_segment
+Interpolate_curveslope_segment:
 	MOVE.w	(A4)+, D6
 	BEQ.b	loc_700A
 	CMPI.w	#1, D6
@@ -8464,7 +8592,8 @@ loc_700E:
 	ORI	#1, CCR
 	RTS
 
-loc_7014:
+;Scale_curveslope_entry
+Scale_curveslope_entry:
 	MOVE.w	(A5), D1
 	BEQ.b	loc_7046
 	CMPI.w	#$8000, D1
@@ -8495,7 +8624,8 @@ loc_7048:
 	ADDQ.w	#2, A5
 	RTS
 
-loc_704C:
+;loc_704C
+Update_road_tile_scroll:
 	TST.w	$FFFF9280.w
 	BEQ.w	loc_7114
 	TST.w	$FFFF920E.w
@@ -8507,7 +8637,7 @@ loc_7064:
 	LEA	$FFFFD680.w, A0
 	LEA	$FFFFE000.w, A1
 loc_706C:
-	JSR	loc_665C(PC)
+	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	CMPI.w	#2, $FFFF9280.w
 	BEQ.w	loc_710A
 	MOVE.l	#$04420442, D3
@@ -8812,7 +8942,8 @@ loc_73CA:
 loc_73DC:
 	dc.w	$000B
 	dc.b	$00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05, $00, $03, $00, $02
-loc_73EE:
+;loc_73EE:
+Update_race_timer:
 	TST.w	$FFFFFCB6.w
 	BNE.b	loc_73FE
 	CLR.w	$FFFFFC70.w
@@ -8901,7 +9032,7 @@ loc_74EA:
 	JSR	loc_7656(PC)
 loc_74FC:
 	MOVE.l	#$0000A50E, D1
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	MOVE.w	#1, $FFFFFC6E.w
 loc_750E:
 	TST.w	Track_index_arcade_mode.w
@@ -8912,14 +9043,14 @@ loc_750E:
 	MOVE.l	$FFFF92E0.w, D0
 loc_7520:
 	LEA	$FFFFE81C.w, A1
-	JSR	loc_1626
+	JSR	Pack_hex_digits_to_tilemap
 	MOVEQ	#7, D0
-	JSR	loc_1548
+	JSR	Copy_digits_to_tilemap_with_suppress
 	MOVE.l	#$63180003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE80C.w, A6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
 	BNE.w	loc_7612
@@ -8935,7 +9066,7 @@ loc_7520:
 	CMPI.w	#$000E, $FFFFFF30.w
 	BNE.w	loc_7612
 	MOVE.l	#$00008076, D1
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	BRA.w	loc_7612
 loc_758E:
 	TST.w	$FFFFFCBC.w
@@ -8952,12 +9083,12 @@ loc_75AA:
 loc_75B0:
 	MOVE.w	#$C000, D3
 	LEA	$FFFFE87C.w, A3
-	JSR	loc_15D6
-	JSR	loc_8AE
+	JSR	Format_bcd_time_to_tile_buffer
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#7, D6
 	MOVEQ	#0, D5
 	LEA	(A3), A6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_7612
 	MOVE.l	$FFFF92DC.w, $FFFF92D8.w
@@ -8966,14 +9097,14 @@ loc_75B0:
 	JSR	loc_7688(PC)
 	MOVE.l	$FFFF92D8.w, D0
 	LEA	$FFFFE81C.w, A1
-	JSR	loc_1626
+	JSR	Pack_hex_digits_to_tilemap
 	MOVEQ	#7, D0
-	JSR	loc_1548
+	JSR	Copy_digits_to_tilemap_with_suppress
 	MOVE.l	#$606C0003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE80C.w, A6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_7612:
 	RTS
 
@@ -8987,7 +9118,7 @@ loc_7614:
 	BNE.b	loc_7654
 	MOVE.w	#$8000, D3
 	LEA	$FFFFE85C.w, A3
-	JSR	loc_15D6
+	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.l	#$61460003, D7
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_7648
@@ -8996,7 +9127,7 @@ loc_7648:
 	MOVEQ	#7, D6
 	MOVEQ	#0, D5
 	LEA	(A3), A6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_7654:
 	RTS
 
@@ -9009,12 +9140,12 @@ loc_7656:
 	MOVE.l	D0, (A1)
 	MOVE.w	#$8000, D3
 	LEA	$FFFFE86C.w, A3
-	JSR	loc_15D6
+	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.l	#$61840003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#0, D5
 	LEA	(A3), A6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_7686:
 	RTS
 
@@ -9059,7 +9190,7 @@ loc_76C0:
 	ADDA.w	D1, A6
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	BRA.b	loc_776C
 loc_76F8:
 	TST.w	Practice_mode.w
@@ -9067,7 +9198,7 @@ loc_76F8:
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	loc_770A
 loc_7704:
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_770A:
 	JSR	loc_7822(PC)
 	JSR	loc_8656
@@ -9089,7 +9220,7 @@ loc_772A:
 	ADDA.w	D1, A6
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	MOVEQ	#3, D7
 	TST.w	$36(A0)
 	BNE.b	loc_7768
@@ -9116,7 +9247,7 @@ loc_7782:
 	MOVE.l	$FFFF92E0.w, D0
 	MOVE.w	#$8000, D3
 	LEA	$10(A3), A3
-	JSR	loc_15D6
+	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.l	#loc_77A6, (A0)
 	MOVE.w	#$000E, $1C(A0)
 loc_77A6:
@@ -9133,7 +9264,7 @@ loc_77B4:
 	SUBQ.w	#1, $1C(A0)
 	BPL.b	loc_77D0
 loc_77CA:
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_77D0:
 	CMPI.w	#$000A, $1C(A0)
 	BNE.b	loc_77E4
@@ -9152,13 +9283,13 @@ loc_77FA:
 	MOVE.l	#$64D00003, D7
 	MOVEQ	#$0000000F, D6
 	MOVEQ	#0, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	TST.w	$36(A0)
 	BEQ.b	loc_7820
 	LEA	(A4), A6
 	MOVE.l	#$64580003, D7
 	MOVEQ	#8, D6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_7820:
 	RTS
 
@@ -9184,7 +9315,8 @@ loc_7844:
 loc_785A:
 	RTS
 
-loc_785C:
+;loc_785C:
+Update_gap_to_rival_display:
 	TST.w	$FFFFFCA8.w
 	BNE.b	loc_7874
 	CMPI.w	#$00C8, $FFFFFC94.w
@@ -9226,7 +9358,7 @@ loc_78B4:
 	SWAP	D0
 	MOVE.w	D1, D0
 	LEA	$FFFFE83C.w, A1
-	JSR	loc_1626
+	JSR	Pack_hex_digits_to_tilemap
 	CMPI.w	#$000D, (A1)
 	BNE.b	loc_78E4
 	TST.w	$2(A1)
@@ -9235,18 +9367,18 @@ loc_78B4:
 	MOVE.w	#$000D, $4(A1)
 loc_78E4:
 	MOVEQ	#7, D0
-	JSR	loc_1548
+	JSR	Copy_digits_to_tilemap_with_suppress
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE82C.w, A6
 	TST.w	$FFFFFCBC.w
 	BEQ.b	loc_7908
 	MOVE.l	#$41000000, D7
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	BRA.b	loc_7914
 loc_7908:
 	MOVE.l	#$60400003, D7
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_7914:
 	LEA	loc_799E(PC), A6
 	TST.w	$FFFFFF4E.w
@@ -9272,10 +9404,10 @@ loc_793A:
 	TST.w	$FFFFFCBC.w
 	BEQ.b	loc_795A
 	MOVE.l	#$41100000, D7
-	JMP	loc_770
+	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
 loc_795A:
 	MOVE.l	#$60500003, D7
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_7966:
 	RTS
 loc_7968:
@@ -9321,7 +9453,7 @@ loc_7A94:
 	BNE.b	loc_7AA4
 	MOVE.w	#4, $00FF5AC2
 loc_7AA4:
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	BRA.w	loc_7CDE
 	MOVE.l	#loc_7AF0, (A0)
 	MOVE.l	#loc_129AE, $4(A0)
@@ -9369,7 +9501,7 @@ loc_7B54:
 	BNE.b	loc_7B6C
 	MOVE.l	#$0000BC46, $FFFFFF10.w
 loc_7B6C:
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	BRA.w	loc_7CDE
 loc_7B76:
 	TST.w	Retire_flag.w
@@ -9392,13 +9524,13 @@ loc_7B84:
 	MOVE.l	#$00007EF8, D3
 loc_7BB4:
 	LEA	loc_12A3D, A1
-	JSR	loc_7E14(PC)
-	JSR	loc_8AE8
+	JSR	Write_3_palette_vdp_bytes(PC)
+	JSR	Alloc_aux_object_slot
 	BCS.b	loc_7BCE
 	MOVE.w	D3, D1
-	JSR	loc_8AEE
+	JSR	Find_free_aux_object_slot
 loc_7BCE:
-	JSR	loc_862E(PC)
+	JSR	Decrement_lap_time_bcd(PC)
 	MOVE.w	#1, $36(A0)
 	MOVE.w	#$000F, $00FF5AC2
 	RTS
@@ -9437,7 +9569,7 @@ loc_7C30:
 	BNE.b	loc_7C3A
 	MOVE.w	D0, $FFFFFC58.w
 loc_7C3A:
-	JSR	loc_862E(PC)
+	JSR	Decrement_lap_time_bcd(PC)
 	JSR	loc_87D2(PC)
 loc_7C42:
 	CLR.w	$FFFFFC9A.w
@@ -9459,7 +9591,7 @@ loc_7C6E:
 	MOVE.w	$FFFFFC98.w, D0
 	BEQ.b	loc_7C90
 	MOVE.w	$FFFFFCB4.w, $FFFFFC9A.w
-	JSR	loc_862E(PC)
+	JSR	Decrement_lap_time_bcd(PC)
 	JSR	loc_87D2(PC)
 	MOVE.w	$FFFFFCBA.w, $FFFFFCBE.w
 	CLR.w	$FFFFFCBA.w
@@ -9498,7 +9630,7 @@ loc_7CDA:
 	MOVE.w	D1, $FFFF9208.w
 loc_7CDE:
 	MOVE.w	$1A(A0), D0
-	JSR	loc_80C4(PC)
+	JSR	Compute_minimap_index(PC)
 	MOVEQ	#0, D7
 	MOVE.w	Player_speed.w, D0
 	BEQ.b	loc_7D16
@@ -9560,9 +9692,9 @@ loc_7D4C:
 	LEA	loc_3CE09, A1
 	ADDA.w	D0, A1
 	LEA	$FFFFFCDE.w, A2
-	JSR	loc_7E14(PC)
+	JSR	Write_3_palette_vdp_bytes(PC)
 	ADDQ.w	#2, A1
-	JSR	loc_7E14(PC)
+	JSR	Write_3_palette_vdp_bytes(PC)
 loc_7D78:
 	RTS
 	MOVE.l	#loc_7D8C, (A0)
@@ -9605,11 +9737,14 @@ loc_7DF4:
 	LSL.w	#3, D0
 	ADDA.w	D0, A1
 	MOVE.l	$3(A1), $4(A0)
-	JSR	loc_7E14(PC)
+	JSR	Write_3_palette_vdp_bytes(PC)
 loc_7E0E:
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 
-loc_7E14:
+;Write_3_palette_vdp_bytes
+Write_3_palette_vdp_bytes:
+; Appends 3 pairs of (VDP register command byte, colour value byte) to (A2)+,
+; covering CRAM registers $97, $96, $95. Source bytes read from (A1)+.
 	MOVE.b	#$97, (A2)+
 	MOVE.b	(A1)+, (A2)+
 	MOVE.b	#$96, (A2)+
@@ -9663,9 +9798,9 @@ loc_7EB0:
 	LEA	loc_12A41, A1
 	ADDA.w	D0, A1
 	LEA	$FFFFFCEA.w, A2
-	JSR	loc_7E14(PC)
+	JSR	Write_3_palette_vdp_bytes(PC)
 loc_7EDC:
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 	MOVE.l	#loc_10640, $8(A0)
 	MOVE.w	#$00F0, $18(A0)
 	MOVE.w	#$FFF9, $2E(A0)
@@ -9683,7 +9818,7 @@ loc_7F26:
 	MOVE.l	#loc_7F3A, (A0)
 	LEA	loc_12A61, A1
 	LEA	$FFFFFCF0.w, A2
-	JSR	loc_7E14(PC)
+	JSR	Write_3_palette_vdp_bytes(PC)
 loc_7F3A:
 	MOVE.w	$2C(A0), D0
 	SUB.w	D0, $16(A0)
@@ -9713,9 +9848,9 @@ loc_7F8E:
 	MOVE.w	$22(A0), D0
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D0.w), $4(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_7FA2:
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_7FA8:
 	MOVE.w	#1, $FFFFFC6E.w
 	MOVE.w	#1, $FFFFFC80.w
@@ -9729,21 +9864,21 @@ loc_7FA8:
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	loc_7FEC
 	MOVE.l	#$00009E08, D1
-	JSR	loc_8AE8
-	MOVE.l	#loc_EF0, (A0)
-	JMP	loc_EF0
+	JSR	Alloc_aux_object_slot
+	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
+	JMP	Queue_object_for_sprite_buffer
 loc_7FEC:
 	MOVE.l	#$00009DB8, D1
-	JSR	loc_8AE8
-	MOVE.l	#loc_EF0, (A0)
-	JMP	loc_EF0
+	JSR	Alloc_aux_object_slot
+	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
+	JMP	Queue_object_for_sprite_buffer
 loc_8004:
 	MOVE.l	#loc_8010, (A0)
 	MOVE.w	#$001E, $36(A0)
 loc_8010:
 	SUBQ.w	#1, $36(A0)
 	BEQ.b	loc_801C
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_801C:
 	MOVE.w	#$000E, $FFFFFF30.w
 	MOVE.b	#$FF, $FFFF92E0.w
@@ -9755,9 +9890,9 @@ loc_8032:
 loc_803E:
 	SUBQ.w	#1, $36(A0)
 	BEQ.b	loc_804A
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_804A:
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_8054:
 	MOVE.l	#loc_8060, (A0)
@@ -9765,7 +9900,7 @@ loc_8054:
 loc_8060:
 	SUBQ.w	#1, $36(A0)
 	BEQ.b	loc_806C
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_806C:
 	MOVE.l	#$00005690, $FFFFFF10.w
 	RTS
@@ -9791,13 +9926,18 @@ loc_80AE:
 loc_80C2:
 	RTS
 
-loc_80C4:
+;Compute_minimap_index
+Compute_minimap_index:
 	MOVEQ	#0, D1
 	MOVEQ	#0, D2
 	LSR.w	#5, D0
 	ANDI.w	#$FFFE, D0
 
-loc_80CE: ; Suspected map for minimap position lookup
+;Load_minimap_position
+Load_minimap_position:
+; Reads two position bytes from the track minimap data (via ptr at $FFFF9226)
+; at index D0 and stores them into $2C(A0) and $2E(A0) of the object slot.
+; Inputs:  D0 = track position index, A0 = object slot
 	MOVEA.l	$FFFF9226.w, A1
 	MOVE.b	(A1,D0.w), $2C(A0)
 	MOVE.b	$1(A1,D0.w), $2E(A0)
@@ -9848,7 +9988,8 @@ loc_8130:
 loc_8140:
 	RTS
 
-loc_8142:
+;loc_8142:
+Update_horizontal_position:
 	CLR.w	$FFFF910E.w
 	LEA	$FFFFFF52.w, A0
 	LEA	loc_8998(PC), A2
@@ -9953,7 +10094,8 @@ loc_8244:
 	MOVE.w	D0, $FFFF9204.w
 	RTS
 
-loc_8250:
+;loc_8250
+Update_race_position:
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
 	BEQ.b	loc_825C
@@ -10086,14 +10228,14 @@ loc_83BE:
 	BNE.w	loc_8456
 	MOVE.w	#1, $FFFFFCAC.w
 	MOVE.l	#$0000853E, D1
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	TST.w	Retire_flag.w
 	BNE.b	loc_8456
 	MOVE.w	#1, $FFFFFC6E.w
 	MOVE.w	#1, $FFFFFC80.w
 	CLR.w	$00FF5AC6
 	MOVE.l	#$00009E08, D1
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	BRA.b	loc_8456
 loc_840E:
 	TST.w	Race_started.w
@@ -10164,13 +10306,14 @@ loc_84AC:
 	BNE.b	loc_84E2
 	MOVE.l	#$625C0003, D7
 
-loc_84D0:
+;loc_84D0:
+Draw_placement_ordinal_to_vdp:
 	LSL.w	#4, D1
 	LEA	loc_8898(PC), A6
 	ADDA.w	D1, A6
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_84E2:
 	RTS
 loc_84E4:
@@ -10207,10 +10350,10 @@ loc_8518:
 	BNE.b	loc_84E2
 	MOVE.w	D2, D1
 	MOVE.l	#$625C0003, D7
-	JSR	loc_84D0(PC)
+	JSR	Draw_placement_ordinal_to_vdp(PC)
 	MOVE.w	D3, D1
 	MOVE.l	#$62660003, D7
-	JMP	loc_84D0(PC)
+	JMP	Draw_placement_ordinal_to_vdp(PC)
 	SUBQ.w	#1, $22(A0)
 	BPL.b	loc_8584
 	MOVE.w	#4, $22(A0)
@@ -10225,11 +10368,11 @@ loc_8564:
 	MOVE.l	#$63640003, D7
 	MOVEQ	#6, D6
 	MOVEQ	#0, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	LEA	(A4), A6
 	MOVE.l	#$63A80003, D7
 	MOVEQ	#3, D6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_8584:
 	RTS
 	MOVEQ	#2, D7
@@ -10261,7 +10404,7 @@ loc_85C6:
 	SUBQ.w	#1, $1C(A0)
 	BPL.b	loc_85E2
 loc_85DC:
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_85E2:
 	CMPI.w	#7, $1C(A0)
 	BNE.b	loc_85F6
@@ -10280,17 +10423,18 @@ loc_860C:
 	MOVE.l	#$62640003, D7
 	MOVEQ	#4, D6
 	MOVEQ	#0, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 	LEA	(A4), A6
 	MOVE.l	#$62A80003, D7
 	MOVEQ	#4, D6
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_862C:
 	RTS
 
-loc_862E:
+;Decrement_lap_time_bcd
+Decrement_lap_time_bcd:
 	LEA	$FFFFFF3A.w, A1
-	LEA	loc_873A(PC), A2
+	LEA	Update_pit_prompt(PC), A2
 	ADDI.w	#0, D0
 	SBCD	-(A2), -(A1)
 	SBCD	-(A2), -(A1)
@@ -10315,11 +10459,12 @@ loc_8656:
 loc_866A:
 	MOVE.w	$FFFFFF38.w, D0
 	MOVEQ	#0, D1
-	JSR	loc_DDB6
+	JSR	Bcd_add_loop
 	MOVE.w	D0, $FFFFFF38.w
 	BRA.b	loc_8642
 
-loc_867C:
+;loc_867C
+Advance_lap_checkpoint:
 	MOVE.w	$FFFFFC8E.w, D0
 	CMP.w	$FFFFAE1E.w, D0
 	BLS.b	loc_8688
@@ -10402,7 +10547,8 @@ loc_8730:
 	dc.w	$A7D8, $A7DF, $A7CE, $A7DB
 	dc.w	$0010
 
-loc_873A:
+;loc_873A:
+Update_pit_prompt:
 	TST.w	Use_world_championship_tracks.w
 	BEQ.w	loc_87D0
 	TST.w	Track_index_arcade_mode.w
@@ -10447,7 +10593,7 @@ loc_87BC:
 	MOVE.l	#$63960003, D7
 	MOVEQ	#9, D6
 	MOVEQ	#1, D5
-	JSR	loc_146C
+	JSR	Queue_tilemap_draw
 loc_87D0:
 	RTS
 
@@ -10639,15 +10785,21 @@ loc_8ACE:
 	MOVE.l	loc_8B1C-2(PC,D1.w), D1
 	ADD.w	$FFFFFF56.w, D0 ; some multiple of track length?
 
-loc_8AE8:
+;Alloc_aux_object_slot
+Alloc_aux_object_slot:
+; Finds a free slot (handler == 0) in the aux object pool at $FFFFB840,
+; writes handler pointer D1 and initial data D0 into it.
+; Carry clear = slot allocated; Carry set (via fallthrough branch) = pool full.
 	LEA	$FFFFB840.w, A1
 	MOVEQ	#$00000020, D2
 
-loc_8AEE:
+;Find_free_aux_object_slot
+Find_free_aux_object_slot:
+; Inner search loop; also callable directly to search from A1 with D2 limit.
 	TST.l	(A1)
 	BEQ.b	loc_8AFE
 	LEA	$40(A1), A1
-	DBF	D2, loc_8AEE
+	DBF	D2, Find_free_aux_object_slot
 	ADDQ.w	#2, D2
 	BRA.b	loc_8B04
 loc_8AFE:
@@ -10699,12 +10851,12 @@ loc_8BA2:
 	TST.b	$25(A0)
 	BEQ.b	loc_8BCC
 	MOVE.w	#$2000, $C(A0)
-	JSR	loc_9914(PC)
+	JSR	Compute_ai_position_and_depth_sort(PC)
 	LEA	loc_971C, A1
 	JSR	(A1,D7.w)
 	CMPA.w	#0, A6
 	BEQ.b	loc_8BC6
-	JSR	loc_95DE(PC)
+	JSR	Check_ai_collision_with_player(PC)
 loc_8BC6:
 	CLR.l	$38(A0)
 	RTS
@@ -10751,7 +10903,7 @@ loc_8C38:
 	BRA.b	loc_8C70
 loc_8C5E:
 	MOVE.l	#$00009CE8, D1
-	JSR	loc_A134
+	JSR	Alloc_and_init_aux_object_slot
 	BCS.b	loc_8C70
 	MOVE.l	A0, $30(A1)
 loc_8C70:
@@ -10887,7 +11039,7 @@ loc_8DE2:
 	NEG.w	D3
 loc_8DE6:
 	MOVE.w	D3, D0
-	JSR	loc_9118(PC)
+	JSR	Apply_lateral_offset_clamped(PC)
 	CLR.b	$3D(A0)
 	TST.b	D6
 	BEQ.w	loc_8EFA
@@ -10929,14 +11081,14 @@ loc_8E24:
 	TST.b	$3D(A0)
 	BNE.w	loc_8EFA
 	MOVEQ	#4, D0
-	JSR	loc_9110(PC)
+	JSR	Apply_lateral_offset_clamped_with_flip(PC)
 	BRA.w	loc_8EFA
 loc_8E6E:
 	SUBQ.w	#3, $26(A0)
 	TST.b	$3D(A0)
 	BNE.w	loc_8F32
 	MOVEQ	#-7, D0
-	JSR	loc_9110(PC)
+	JSR	Apply_lateral_offset_clamped_with_flip(PC)
 	BRA.w	loc_8F76
 loc_8E84:
 	TST.w	D3
@@ -10956,7 +11108,7 @@ loc_8EA6:
 	BNE.b	loc_8EB4
 	MOVEQ	#5, D0
 	MOVE.w	D5, D4
-	JSR	loc_9110(PC)
+	JSR	Apply_lateral_offset_clamped_with_flip(PC)
 loc_8EB4:
 	MOVE.w	D3, D2
 	ADD.w	D3, D3
@@ -10986,7 +11138,7 @@ loc_8EE8:
 	BNE.b	loc_8EF6
 	NEG.w	D0
 loc_8EF6:
-	JSR	loc_9118(PC)
+	JSR	Apply_lateral_offset_clamped(PC)
 loc_8EFA:
 	MOVE.b	$2B(A0), D2
 	EXT.w	D2
@@ -11033,7 +11185,7 @@ loc_8F5A:
 	BNE.b	loc_8F72
 	NEG.w	D0
 loc_8F72:
-	JSR	loc_9118(PC)
+	JSR	Apply_lateral_offset_clamped(PC)
 loc_8F76:
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
@@ -11067,11 +11219,11 @@ loc_8FD6:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
 	SWAP	D0
-	JSR	loc_80C4
+	JSR	Compute_minimap_index
 loc_8FE4:
 	MOVE.w	#$2000, $C(A0)
 	CLR.b	$3D(A0)
-	JSR	loc_9914(PC)
+	JSR	Compute_ai_position_and_depth_sort(PC)
 	LEA	loc_971C, A1
 	JSR	(A1,D7.w)
 	TST.b	$3C(A0)
@@ -11091,7 +11243,7 @@ loc_901A:
 loc_9026:
 	ADD.w	D0, $26(A0)
 	MOVEQ	#0, D0
-	JSR	loc_80CE
+	JSR	Load_minimap_position
 	CMPI.w	#$00B0, $1A(A0)
 	BCS.b	loc_907A
 	ADDI.w	#$000C, $12(A0)
@@ -11100,7 +11252,7 @@ loc_9026:
 	MOVE.w	#$01E0, $12(A0)
 	CLR.l	$4(A0)
 	MOVEQ	#-2, D0
-	JSR	loc_80CE
+	JSR	Load_minimap_position
 	TST.b	$3F(A0)
 	BNE.b	loc_907A
 	ADDQ.w	#1, $FFFFFF5E.w
@@ -11113,7 +11265,7 @@ loc_907A:
 loc_907C:
 	CMPA.w	#0, A6
 	BEQ.b	loc_9086
-	JSR	loc_95DE(PC)
+	JSR	Check_ai_collision_with_player(PC)
 loc_9086:
 	CLR.l	$38(A0)
 	MOVE.b	$FFFFFC20.w, D0
@@ -11153,7 +11305,7 @@ loc_90D8:
 	BEQ.b	loc_910E
 	MOVE.w	$1A(A0), D0
 	MOVE.l	#$0000A0CC, D1
-	JSR	loc_A134
+	JSR	Alloc_and_init_aux_object_slot
 	BCS.b	loc_910E
 	MOVE.w	$12(A0), $12(A1)
 	MOVE.w	$26(A0), D0
@@ -11162,12 +11314,19 @@ loc_90D8:
 loc_910E:
 	RTS
 
-loc_9110:
+;Apply_lateral_offset_clamped_with_flip
+Apply_lateral_offset_clamped_with_flip:
+; Variant of Apply_lateral_offset_clamped that negates D0 if bit 6 of D4 is 0.
+; Inputs:  D0 = lateral delta, D4 = direction flags, A0 = object slot
 	ANDI.w	#$0040, D4
-	BNE.b	loc_9118
+	BNE.b	Apply_lateral_offset_clamped
 	NEG.w	D0
 
-loc_9118:
+;Apply_lateral_offset_clamped
+Apply_lateral_offset_clamped:
+; Adds D0 to the object's lateral offset ($12(A0)), clamps to ±$B8.
+; Inputs:  D0 = signed lateral delta, A0 = object slot
+; Output:  $12(A0) updated
 	ADD.w	$12(A0), D0
 	SMI	D1
 	BPL.b	loc_9122
@@ -11360,7 +11519,7 @@ loc_9330:
 	NEG.w	D3
 loc_9334:
 	MOVE.w	D3, D0
-	JSR	loc_9118(PC)
+	JSR	Apply_lateral_offset_clamped(PC)
 	CLR.b	$3D(A0)
 	TST.b	D6
 	BEQ.w	loc_9448
@@ -11402,14 +11561,14 @@ loc_9372:
 	TST.b	$3D(A0)
 	BNE.w	loc_9448
 	MOVEQ	#4, D0
-	JSR	loc_9110(PC)
+	JSR	Apply_lateral_offset_clamped_with_flip(PC)
 	BRA.w	loc_9448
 loc_93BC:
 	SUBQ.w	#3, $26(A0)
 	TST.b	$3D(A0)
 	BNE.w	loc_9480
 	MOVEQ	#-7, D0
-	JSR	loc_9110(PC)
+	JSR	Apply_lateral_offset_clamped_with_flip(PC)
 	BRA.w	loc_94C4
 loc_93D2:
 	TST.w	D3
@@ -11429,7 +11588,7 @@ loc_93F4:
 	BNE.b	loc_9402
 	MOVEQ	#5, D0
 	MOVE.w	D5, D4
-	JSR	loc_9110(PC)
+	JSR	Apply_lateral_offset_clamped_with_flip(PC)
 loc_9402:
 	MOVE.w	D3, D2
 	ADD.w	D3, D3
@@ -11459,7 +11618,7 @@ loc_9436:
 	BNE.b	loc_9444
 	NEG.w	D0
 loc_9444:
-	JSR	loc_9118(PC)
+	JSR	Apply_lateral_offset_clamped(PC)
 loc_9448:
 	MOVE.b	$2B(A0), D2
 	EXT.w	D2
@@ -11506,7 +11665,7 @@ loc_94A8:
 	BNE.b	loc_94C0
 	NEG.w	D0
 loc_94C0:
-	JSR	loc_9118(PC)
+	JSR	Apply_lateral_offset_clamped(PC)
 loc_94C4:
 	TST.b	$3C(A0)
 	BPL.b	loc_94EA
@@ -11546,10 +11705,10 @@ loc_9534:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
 	SWAP	D0
-	JSR	loc_80C4
+	JSR	Compute_minimap_index
 loc_9542:
 	CLR.b	$3D(A0)
-	JSR	loc_9914(PC)
+	JSR	Compute_ai_position_and_depth_sort(PC)
 	LEA	loc_971C, A1
 	JSR	(A1,D7.w)
 	MOVE.w	#$4000, $C(A0)
@@ -11566,7 +11725,7 @@ loc_956C:
 loc_9578:
 	ADD.w	D0, $26(A0)
 	MOVEQ	#0, D0
-	JSR	loc_80CE
+	JSR	Load_minimap_position
 	CMPI.w	#$00B0, $1A(A0)
 	BCS.b	loc_95CC
 	ADDI.w	#$000C, $12(A0)
@@ -11575,7 +11734,7 @@ loc_9578:
 	MOVE.w	#$01E0, $12(A0)
 	CLR.l	$4(A0)
 	MOVEQ	#-2, D0
-	JSR	loc_80CE
+	JSR	Load_minimap_position
 	TST.b	$3F(A0)
 	BNE.b	loc_95CC
 	ADDQ.w	#1, $FFFFFF5E.w
@@ -11588,10 +11747,11 @@ loc_95CC:
 loc_95CE:
 	CMPA.w	#0, A6
 	BEQ.w	loc_9086
-	JSR	loc_95DE(PC)
+	JSR	Check_ai_collision_with_player(PC)
 	BRA.w	loc_9086
 
-loc_95DE:
+;Check_ai_collision_with_player
+Check_ai_collision_with_player:
 	TST.b	$10(A0)
 	BNE.b	loc_965C
 	TST.w	$FFFFAE38.w
@@ -11641,7 +11801,7 @@ loc_965E:
 	MOVE.b	#8, $11(A0)
 	MOVE.b	#$FC, $14(A0)
 	MOVE.l	#$00009CE8, D1
-	JSR	loc_A134
+	JSR	Alloc_and_init_aux_object_slot
 	BCS.b	loc_967C
 	MOVE.l	A0, $30(A1)
 loc_967C:
@@ -11800,7 +11960,7 @@ loc_97EA:
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
-	JMP	loc_EEA
+	JMP	Queue_object_for_alt_sprite_buffer
 
 loc_980C:
 	LEA	$FFFF9600.w, A1
@@ -11899,9 +12059,10 @@ loc_98E6:
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 
-loc_9914:
+;Compute_ai_position_and_depth_sort
+Compute_ai_position_and_depth_sort:
 	MOVEA.w	#0, A6
 	MOVE.w	Track_length.w, D5
 	MOVE.w	$1A(A0), D1
@@ -12023,7 +12184,8 @@ loc_9A42:
 	MOVE.w	D3, $E(A0)
 	RTS
 
-loc_9A58:
+;Compute_ai_screen_x_offset
+Compute_ai_screen_x_offset:
 	MOVE.w	Track_length.w, D5
 	MOVE.w	$1A(A0), D1
 	MOVE.w	D1, D0
@@ -12065,7 +12227,8 @@ loc_9AB2:
 	MOVE.w	#$8000, D3
 	BRA.b	loc_9A9C
 
-loc_9AC4:
+;loc_9AC4
+Update_engine_and_tire_sounds:
 	TST.w	$FFFFFF18.w
 	BNE.b	loc_9ADC
 loc_9ACA:
@@ -12208,7 +12371,7 @@ loc_9C28:
 	dc.b	$10, $10, $10, $10, $10, $10, $10, $10, $10, $10, $14, $14, $14, $14, $14, $14, $14, $14, $14, $18, $18, $18, $18, $18, $18, $18, $1C, $1C, $1C, $1C, $1C, $20
 	dc.b	$20, $20
 loc_9CCA:
-	JMP	loc_F38
+	JMP	Clear_object_slot
 	MOVE.l	#$0001061C, D0
 	MOVEQ	#1, D1
 	MOVEQ	#6, D2
@@ -12218,7 +12381,7 @@ loc_9CCA:
 	MOVEQ	#4, D2
 	BRA.b	loc_9D1A
 	MOVE.l	#$00009CDC, D1
-	JSR	loc_A134
+	JSR	Alloc_and_init_aux_object_slot
 	BCS.b	loc_9D10
 	MOVE.l	$30(A0), $30(A1)
 	MOVE.l	#$00009CD0, D1
@@ -12262,7 +12425,7 @@ loc_9D6C:
 	ADD.w	Track_length.w, D0
 loc_9D7E:
 	MOVE.w	D0, $1A(A0)
-	JSR	loc_9A58(PC)
+	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
 	BEQ.b	loc_9DB6
 	LEA	loc_971C, A1
@@ -12295,7 +12458,7 @@ loc_9DD0:
 	LEA	$FFFFFF38.w, A1
 	MOVE.w	#$FFFF, (A1,D0.w)
 	MOVE.l	(A2)+, D1
-	JSR	loc_A134
+	JSR	Alloc_and_init_aux_object_slot
 	BCS.b	loc_9E06
 	MOVE.l	A0, $26(A1)
 loc_9DF4:
@@ -12342,7 +12505,7 @@ loc_9E80:
 loc_9E86:
 	LEA	loc_9EA4-1(PC), A1
 	LEA	$FFFFFCF6.w, A2
-	JSR	loc_7E14
+	JSR	Write_3_palette_vdp_bytes
 	TST.w	$22(A0)
 	BNE.b	loc_9EA0
 	MOVE.l	$1E(A0), $FFFFFF10.w
@@ -12419,7 +12582,7 @@ loc_9F12:
 loc_9F40:
 	TST.w	$FFFFFCB6.w
 	BEQ.b	loc_9F4C
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_9F4C:
 	MOVEA.l	$26(A0), A1
 	TST.w	$36(A1)
@@ -12433,7 +12596,7 @@ loc_9F60:
 	MOVE.w	$2A(A0), D0
 	ADDI.w	#$00A3, D0
 	MOVE.w	D0, $E(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_9F7E:
 	MOVE.w	$2C(A0), D0
 	ADD.w	$2E(A0), D0
@@ -12447,7 +12610,7 @@ loc_9F7E:
 	MOVEQ	#0, D0
 	MOVE.w	$1A(A0), D1
 	JSR	loc_9EA6(PC)
-	JSR	loc_9A58(PC)
+	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
 	BEQ.w	loc_A066
 	LEA	loc_971C, A1
@@ -12467,7 +12630,7 @@ loc_9FC2:
 	JSR	loc_A068(PC)
 	MOVE.w	$2A(A0), D0
 	ADD.w	D0, $E(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_9FF8:
 	SUBQ.w	#5, $10(A0)
 	JSR	loc_A0B8(PC)
@@ -12481,7 +12644,7 @@ loc_9FF8:
 	ASR.w	#5, D0
 	MOVE.w	$1A(A1), D1
 	JSR	loc_9EA6(PC)
-	JSR	loc_9A58(PC)
+	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
 	BEQ.b	loc_A066
 	LEA	loc_971C, A1
@@ -12556,17 +12719,18 @@ loc_A0E6:
 loc_A112:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
-	JSR	loc_9A58(PC)
+	JSR	Compute_ai_screen_x_offset(PC)
 	LEA	loc_971C, A1
 	JSR	(A1,D7.w)
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_A132
 loc_A12C:
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_A132:
 	RTS
 
-loc_A134:
+;Alloc_and_init_aux_object_slot
+Alloc_and_init_aux_object_slot:
 	LEA	$FFFFB840.w, A1
 	MOVEQ	#$00000020, D2
 
@@ -12583,7 +12747,8 @@ loc_A14A:
 loc_A150:
 	RTS
 
-loc_A152:
+;loc_A152
+Update_rival_sprite_tiles:
 	TST.w	Race_started.w
 	BEQ.b	loc_A172
 	MOVE.w	#$0444, D0
@@ -12624,7 +12789,7 @@ loc_A1C2:
 	NEG.w	D0
 loc_A1C8:
 	MOVE.w	D0, $12(A0)
-	JSR	loc_9A58(PC)
+	JSR	Compute_ai_screen_x_offset(PC)
 	LEA	loc_971C, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
@@ -12652,7 +12817,7 @@ loc_A226:
 loc_A228:
 	SUBQ.w	#2, $E(A0)
 	BPL.b	loc_A234
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_A234:
 	MOVE.w	$2E(A0), D0
 	ADD.w	D0, $12(A0)
@@ -12676,7 +12841,8 @@ loc_A234:
 	SUB.w	D0, $16(A0)
 	RTS
 
-loc_A278:
+;loc_A278
+Apply_sorted_positions_to_cars:
 	LEA	$FFFF8FA0.w, A0
 	MOVEQ	#$0000000D, D7
 loc_A27E:
@@ -12759,7 +12925,7 @@ loc_A502:
 loc_A526:
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_A564
-	MOVE.l	#loc_293C, D1
+	MOVE.l	#Title_menu, D1
 	TST.w	Warm_up.w
 	BNE.b	loc_A560
 	MOVE.l	#loc_42F8, D1
@@ -12797,7 +12963,7 @@ loc_A592:
 loc_A5AA:
 	TST.l	(A0,D1.w)
 	BNE.b	loc_A5B6
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_A5B6:
 	MOVE.l	D0, $4(A0)
 	MOVE.w	D1, $2A(A0)
@@ -12822,7 +12988,7 @@ loc_A5DC:
 	ADDI.w	#$0140, D1
 	ADD.w	$2E(A0), D1
 	MOVE.w	D1, $18(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 	MOVE.l	#$000128F8, D0
 	TST.w	Warm_up.w
 	BNE.b	loc_A634
@@ -12832,7 +12998,7 @@ loc_A5DC:
 	MOVE.l	#$0001287C, D0
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	loc_A634
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_A634:
 	MOVE.l	D0, $4(A0)
 	MOVE.l	#loc_A65C, (A0)
@@ -12870,9 +13036,9 @@ loc_A696:
 	BCC.b	loc_A6B4
 	RTS
 loc_A6AE:
-	MOVE.l	#loc_EF0, (A0)
+	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
 loc_A6B4:
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 
 loc_A6BA:
 	MOVE.l	#$65520003, D7
@@ -12886,7 +13052,7 @@ loc_A6BA:
 	BEQ.b	loc_A6DC
 	LEA	loc_B2F8(PC), A6
 loc_A6DC:
-	JMP	loc_146C
+	JMP	Queue_tilemap_draw
 	MOVE.l	#loc_A716, (A0)
 	MOVE.l	#loc_126EC, $4(A0)
 	MOVE.w	#$009F, $E(A0)
@@ -12918,7 +13084,7 @@ loc_A74C:
 	MOVE.w	#$0064, $2E(A0)
 	MOVE.l	#loc_A788, (A0)
 loc_A764:
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_A76A:
 	MOVE.l	#loc_12730, $4(A0)
 	MOVE.w	$2C(A0), D0
@@ -12951,7 +13117,7 @@ loc_A7BA:
 	CMPI.w	#$0080, D0
 	BCS.b	loc_A7D2
 	CLR.w	$FFFFFC34.w
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_A7D2:
 	MOVE.l	#loc_126EC, $4(A0)
 	SUBQ.w	#1, $2C(A0)
@@ -12970,7 +13136,7 @@ loc_A800:
 loc_A80A:
 	MOVE.l	#$0000A870, D1
 	MOVE.w	$1E(A0), D0
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 loc_A81A:
 	MOVE.l	#$00010650, D1
 	MOVE.w	#$FE90, D0
@@ -12978,7 +13144,7 @@ loc_A81A:
 loc_A828:
 	MOVE.l	#$0000A862, D1
 	MOVE.w	$1E(A0), D0
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 loc_A838:
 	MOVE.l	#$00010674, D1
 	MOVE.w	#$0170, D0
@@ -13049,7 +13215,7 @@ loc_A906:
 	MOVE.l	#loc_6E894, $30(A0)
 	MOVE.w	D0, $34(A0)
 loc_A922:
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13060,7 +13226,7 @@ loc_A922:
 loc_A944:
 	MOVE.l	#$0000A938, D1
 	MOVE.w	$1E(A0), D0
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	MOVE.l	#$00010890, D1
 	MOVE.w	#$FED8, D0
 	MOVE.w	#$FFFF, $12(A0)
@@ -13071,7 +13237,7 @@ loc_A964:
 	MOVE.l	#loc_6E9D8, $30(A0)
 	MOVE.w	D0, $34(A0)
 loc_A980:
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13082,7 +13248,7 @@ loc_A99A:
 	MOVE.l	#loc_108D8, $8(A0)
 	MOVE.l	#$00FF5980, $30(A0)
 loc_A9B0:
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13098,7 +13264,7 @@ loc_A9DE:
 	MOVE.w	$FFFF9238.w, D1
 	BNE.b	loc_A9EC
 	MOVE.l	(A7)+, D1
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_A9EC:
 	SUBQ.w	#1, D1
 	BNE.b	loc_AA08
@@ -13119,7 +13285,7 @@ loc_AA0A:
 	CMP.w	$E(A0), D1
 	BCS.b	loc_AA20
 	MOVE.l	(A7)+, D0
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_AA20:
 	LEA	$FFFF9480.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
@@ -13150,7 +13316,7 @@ loc_AA68:
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
-	JMP	loc_EEA
+	JMP	Queue_object_for_alt_sprite_buffer
 loc_AA82:
 	LEA	$FFFF9700.w, A1
 	MOVE.w	(A1,D0.w), D1
@@ -13183,9 +13349,14 @@ loc_AAD0:
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 
-loc_AAEA:
+;Update_ai_car_screen_x
+Update_ai_car_screen_x:
+; Computes the AI car's screen X displacement relative to the player and writes
+; it to $E(A0). Uses a road displacement look-up table at loc_6E750.
+; Inputs:  A0 = AI car object slot; $1E(A0) = AI car track position (horiz.)
+; Outputs: $E(A0) = screen X offset; D7 = direction flag (0=ahead, 4=behind)
 	MOVE.w	$1E(A0), D0
 	SUB.w	$FFFFAE1E.w, D0
 	BMI.b	loc_AB24
@@ -13223,16 +13394,16 @@ loc_AB3E:
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
 	MOVE.l	#$0000ADA2, D1
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	BCS.b	loc_AB86
 	ADDQ.w	#8, D0
 	MOVE.l	#$0000AE06, D1
-	JSR	loc_8AEE
+	JSR	Find_free_aux_object_slot
 	MOVE.l	#$0000AE1E, D1
-	JSR	loc_8AEE
+	JSR	Find_free_aux_object_slot
 	ADDQ.w	#8, D0
 	MOVE.l	#$0000ADBC, D1
-	JSR	loc_8AEE
+	JSR	Find_free_aux_object_slot
 loc_AB86:
 	MOVE.l	#$0000AC78, $FFFFB000.w
 	MOVE.w	D0, $FFFFB01E.w
@@ -13240,14 +13411,14 @@ loc_AB86:
 	MOVE.l	#$00010944, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
-	JSR	loc_AE60(PC)
+	JSR	Setup_ai_object_state(PC)
 	LEA	loc_B2D0, A1
 	LEA	$FFFFE9F6.w, A2
 	MOVEQ	#4, D0
 loc_ABB4:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, loc_ABB4
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13290,14 +13461,14 @@ loc_AC2E:
 	MOVE.w	#2, $FFFF923A.w
 	MOVE.l	#loc_10920, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
-	JSR	loc_AE7E(PC)
+	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.b	loc_AC5E
 loc_AC48:
 	TST.w	D1
 	BMI.b	loc_AC5E
 	MOVE.l	#loc_10944, $8(A0)
 	CLR.w	$2A(A0)
-	JSR	loc_AE7E(PC)
+	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.b	loc_ABFC
 loc_AC5E:
 	ADDQ.w	#1, D1
@@ -13314,12 +13485,12 @@ loc_AC76:
 	MOVE.l	#$00010920, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
-	JSR	loc_AE60(PC)
+	JSR	Setup_ai_object_state(PC)
 	TST.l	$FFFFAFC0.w
 	BNE.b	loc_AC9A
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_AC9A:
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13381,14 +13552,14 @@ loc_AD3A:
 	CLR.w	$FFFF923A.w
 	MOVE.l	#loc_10944, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
-	JSR	loc_AE7E(PC)
+	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.b	loc_AD6A
 loc_AD52:
 	TST.w	D1
 	BMI.b	loc_AD6A
 	MOVE.l	#loc_10920, $8(A0)
 	CLR.w	$2A(A0)
-	JSR	loc_AE7E(PC)
+	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.w	loc_ACDC
 loc_AD6A:
 	ADDQ.w	#1, D1
@@ -13417,24 +13588,24 @@ loc_ADA0:
 	MOVE.l	#$0000ADD4, D0
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
-	JSR	loc_AE60(PC)
+	JSR	Setup_ai_object_state(PC)
 	MOVE.l	#$FFFFAFC0, $2C(A0)
 	BRA.b	loc_ADD4
 	MOVE.l	#$0000ADD4, D0
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
-	JSR	loc_AE60(PC)
+	JSR	Setup_ai_object_state(PC)
 	MOVE.l	#$FFFFB000, $2C(A0)
 loc_ADD4:
 	TST.l	$FFFFAFC0.w
 	BNE.b	loc_ADE0
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_ADE0:
 	MOVEA.l	$2C(A0), A1
 	MOVE.l	$8(A1), D0
 	ADDI.w	#$0048, D0
 	MOVE.l	D0, $8(A0)
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13443,31 +13614,39 @@ loc_ADE0:
 	MOVE.l	#$00010920, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
-	JSR	loc_AE60(PC)
+	JSR	Setup_ai_object_state(PC)
 	BRA.b	loc_AE34
 	MOVE.l	#$0000AE34, D0
 	MOVE.l	#$00010968, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
-	JSR	loc_AE60(PC)
+	JSR	Setup_ai_object_state(PC)
 loc_AE34:
 	TST.l	$FFFFAFC0.w
 	BNE.b	loc_AE40
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_AE40:
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
 	BRA.w	loc_B254
 
-loc_AE56:
+;Setup_ai_object_state_alt
+Setup_ai_object_state_alt:
+; Like Setup_ai_object_state but uses the alternate sprite-angle table loc_6E9D8.
 	MOVE.l	#loc_6E9D8, $30(A0)
-	BRA.b	loc_AE68
+	BRA.b	Setup_ai_object_state_common
 
-loc_AE60:
+;Setup_ai_object_state
+Setup_ai_object_state:
+; Initialises an AI car object slot with handler D0, sprite table ptr D1,
+; lateral offset D2, spawn param D3, and the standard angle table loc_6E894.
+; Inputs:  A0=object slot, D0=handler addr, D1=sprite table ptr,
+;          D2=initial lateral offset, D3=spawn parameter
 	MOVE.l	#loc_6E894, $30(A0)
-loc_AE68:
+;Setup_ai_object_state_common
+Setup_ai_object_state_common:
 	MOVE.l	D0, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	D2, $12(A0)
@@ -13475,7 +13654,10 @@ loc_AE68:
 	MOVE.w	#2, $24(A0)
 	RTS
 
-loc_AE7E:
+;Update_ai_car_sprite_frame
+Update_ai_car_sprite_frame:
+; Looks up the AI car's screen-X value in the angle table to choose the
+; correct sprite frame index and stores it in $4(A0).
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	LEA	loc_9C28, A1
@@ -13491,7 +13673,7 @@ loc_AEB0:
 	LEA	$FFFFAFC0.w, A1
 	TST.l	(A1)
 	BNE.b	loc_AEBE
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_AEBE:
 	TST.w	$E(A1)
 	BPL.b	loc_AEC8
@@ -13516,14 +13698,14 @@ loc_AED4:
 	CMPI.w	#$00A1, D1
 	BHI.b	loc_AF1A
 	MOVE.w	D1, $E(A0)
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 loc_AF04:
 	ANDI.w	#$7FFF, D1
 	ADDQ.w	#2, D1
 	CMPI.w	#$0091, D1
 	BHI.b	loc_AF1A
 	MOVE.w	D1, $E(A0)
-	JMP	loc_EEA
+	JMP	Queue_object_for_alt_sprite_buffer
 loc_AF1A:
 	RTS
 loc_AF1C:
@@ -13538,7 +13720,7 @@ loc_AF2A:
 	MOVE.l	#$000109D4, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE00, D3
-	JSR	loc_AE56(PC)
+	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
 	MOVE.w	#1, $FFFF9238.w
 	LEA	loc_B2BC, A1
@@ -13547,7 +13729,7 @@ loc_AF2A:
 loc_AF74:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, loc_AF74
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	loc_AFAE
 	MOVEQ	#2, D0
@@ -13594,12 +13776,12 @@ loc_AFFC:
 	MOVE.l	#$00010A1C, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0200, D3
-	JSR	loc_AE56(PC)
+	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	TST.w	$E(A0)
 	BPL.b	loc_B032
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_B032:
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13612,11 +13794,11 @@ loc_B04C:
 	ADDI.w	#$00A2, $1E(A0)
 	MOVE.w	#$FFFF, $FFFF923C.w
 loc_B05E:
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	loc_B072
 	CLR.w	$FFFF923C.w
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_B072:
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13640,7 +13822,7 @@ loc_B09E:
 	MOVE.l	#$000109B0, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE00, D3
-	JSR	loc_AE56(PC)
+	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
 	MOVE.w	#2, $22(A0)
 	MOVE.w	#3, $FFFF9238.w
@@ -13651,7 +13833,7 @@ loc_B0E4:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, loc_B0E4
 	MOVE.w	-$A(A1), -$8(A2)
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	loc_B128
 	CLR.w	$FFFF9238.w
@@ -13694,12 +13876,12 @@ loc_B15C:
 	MOVE.l	#$000109F8, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0200, D3
-	JSR	loc_AE56(PC)
+	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
-	JSR	loc_AAEA(PC)
+	JSR	Update_ai_car_screen_x(PC)
 	TST.w	$E(A0)
 	BPL.b	loc_B1AC
-	JMP	loc_F38
+	JMP	Clear_object_slot
 loc_B1AC:
 	LEA	loc_AA0A, A1
 	JSR	(A1,D7.w)
@@ -13829,7 +14011,7 @@ loc_B2DA:
 	dc.w	$A7CA, $A7DE, $A7DD, $A7D8, $A7D6, $A7CA, $A7DD, $A7D2, $A7CC, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD
 loc_B2F8:
 	dc.w	$0000, $A7D6, $A7CA, $A7D7, $A7DE, $A7CA, $A7D5, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD, $0000, $0000
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.l	#$462E0000, D7
 	MOVE.w	$FFFFFC14.w, D0
 	LSR.w	#3, D0
@@ -13842,7 +14024,7 @@ loc_B328:
 	LEA	$FFFFEA00.w, A6
 	MOVE.l	#$01000000, D3
 	MOVE.w	#$04C9, D1
-	JSR	loc_7DC
+	JSR	Write_tilemap_rows_to_vdp
 	MOVEM.l	(A7)+, D7
 	BTST.b	#4, $FFFF902F.w
 	BEQ.b	loc_B37E
@@ -13857,21 +14039,21 @@ loc_B37E:
 	ADDI.l	#$000E0000, D7
 	MOVEQ	#0, D6
 	MOVEQ	#$0000000A, D5
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	JSR	loc_C2B2(PC)
 	JSR	loc_C2E2(PC)
 	JSR	loc_C300(PC)
-	JSR	loc_785C
+	JSR	Update_gap_to_rival_display
 	JSR	loc_8466
-	JSR	loc_73EE
+	JSR	Update_race_timer
 	BSR.w	loc_C12E
 	LEA	loc_B42C, A1
 	BRA.w	loc_B402
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	SUBI.l	#$00120000, $FFFFFC0C.w
 	LEA	loc_B43C, A1
 	BRA.w	loc_B402
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	SUBI.l	#$00090000, $FFFFFC0C.w
 	TST.l	$FFFFFF2A.w
 	BNE.b	loc_B3F4
@@ -13892,7 +14074,7 @@ loc_B402:
 	MOVE.w	#2, $FFFFFCB8.w
 	CLR.w	$FFFFFCB6.w
 loc_B422:
-	JSR	loc_D5C
+	JSR	Update_objects_and_build_sprite_buffer
 	BSR.b	loc_B480
 	RTS
 loc_B42C:
@@ -14044,13 +14226,13 @@ loc_B5F4:
 	SUBQ.w	#1, $FFFFFC1A.w
 	BNE.b	loc_B636
 	MOVE.w	#$431D, $FFFF905A.w
-	JSR	loc_F756
+	JSR	Load_font_tiles_to_work_buffer
 	JSR	loc_F54A
-	JSR	loc_F780
+	JSR	Render_text_to_tilemap
 	BTST.b	#5, Player_team.w
 	BEQ.b	loc_B626
 	JSR	loc_F576
-	JSR	loc_F780
+	JSR	Render_text_to_tilemap
 loc_B626:
 	MOVE.l	#$440A0000, D7
 	JSR	loc_F826
@@ -14069,7 +14251,7 @@ loc_B648:
 	BNE.b	loc_B66E
 	LEA	loc_1453C, A6
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	ADDQ.w	#4, $FFFFFC1C.w
 	CLR.b	$FFFFFC1A.w
@@ -14131,9 +14313,9 @@ loc_B734:
 loc_B762:
 	MOVE.w	#$0EEE, $FFFFE9C4.w
 	MOVE.w	#$431D, $FFFF905A.w
-	JSR	loc_F756
+	JSR	Load_font_tiles_to_work_buffer
 	JSR	loc_F59A
-	JSR	loc_F780
+	JSR	Render_text_to_tilemap
 	MOVE.l	#$440A0000, D7
 	JSR	loc_F826
 	ADDQ.w	#4, $FFFFFC1C.w
@@ -14214,7 +14396,7 @@ loc_B884:
 	MOVE.w	D3, (A4)+
 	DBF	D1, loc_B884
 	ORI	#$0700, SR
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
 	ADDQ.w	#8, $FFFFFC1C.w
 	RTS
@@ -14227,11 +14409,11 @@ loc_B8AE:
 	CLR.l	$FFFFB8C0.w
 	RTS
 loc_B8BA:
-	JSR	loc_75C4A
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Halt_audio_sequence
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#$001B, $00FF5AE0
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#$001B, $00FF5AE0
 	MOVEQ	#6, D0
 loc_B8E4:
@@ -14247,13 +14429,13 @@ loc_B8EA:
 	MOVE.w	D5, (A0)+
 	DBF	D1, loc_B8EA
 	MOVE.l	#$0EEE0800, $FFFFE9C4.w
-	JSR	loc_396
-	JSR	loc_396
-	JSR	loc_396
-	JSR	loc_396
-	JSR	loc_396
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	DBF	D0, loc_B8E4
 	MOVE.l	#$00100000, D0
 loc_B93E:
@@ -14314,7 +14496,7 @@ loc_B9DC:
 	MOVE.w	D3, (A4)+
 	DBF	D1, loc_B9DC
 	ORI	#$0700, SR
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
 	ADDQ.w	#8, $FFFFFC1C.w
 	RTS
@@ -14350,7 +14532,7 @@ loc_BA3C:
 loc_BA56:
 	BCLR.b	#5, Rival_team.w
 	MOVE.w	#$000A, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#Title_menu, $FFFFFF2A.w
 	RTS
 loc_BA6C:
 	BTST.b	#3, $FFFFFC1A.w
@@ -14441,7 +14623,7 @@ loc_BBB6:
 	BNE.b	loc_BBD4
 loc_BBC4:
 	MOVE.w	#$000A, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#Title_menu, $FFFFFF2A.w
 	RTS
 loc_BBD4:
 	MOVE.b	Player_team.w, D0
@@ -14474,25 +14656,25 @@ loc_BC28:
 	MOVE.l	(A1)+, $4(A0)
 	ADDQ.l	#6, $1A(A0)
 loc_BC3E:
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	RTS
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	BSR.w	loc_BF66
 	JSR	loc_C242(PC)
 	MOVE.l	#$67000003, VDP_control_port
 	LEA	loc_56DEA, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_C494(PC), A6
 	TST.w	$FFFFFF4E.w
 	BNE.b	loc_BC78
 	LEA	loc_C4B4(PC), A6
 loc_BC78:
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	JSR	loc_C2B2(PC)
 	JSR	loc_C2E2(PC)
 	JSR	loc_C300(PC)
 	MOVE.l	#$FFFFFFFF, $FFFFFC94.w
-	JSR	loc_785C
+	JSR	Update_gap_to_rival_display
 	MOVE.w	#$000B, D0
 	LEA	$FFFFB840.w, A1
 	LEA	loc_14644, A2
@@ -14511,15 +14693,15 @@ loc_BCA6:
 	MOVE.w	#$40E0, D0
 	MOVE.w	#$0013, D6
 	MOVE.w	#$000B, D5
-	JSR	loc_7A0
+	JSR	Decompress_tilemap_to_vdp_128_cell_rows
 	BSR.w	loc_C11A
 	LEA	loc_C4CA(PC), A1
-	JSR	loc_8A0
-	JSR	loc_F848
+	JSR	Draw_packed_tilemap_list
+	JSR	Load_track_data_pointer
 	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1), A0
 	MOVE.w	#$8000, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	MOVE.w	$FFFF9012.w, D0
 	SUB.w	$FFFF901C.w, D0
 	CMPI.w	#5, D0
@@ -14529,21 +14711,21 @@ loc_BCA6:
 loc_BD26:
 	MOVE.l	#$0000B316, $FFFFFF10.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#$000C, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 loc_BD56:
-	JSR	loc_F16
+	JSR	Clear_main_object_pool
 	TST.w	Track_index_arcade_mode.w
 	BNE.w	loc_BE12
 	BSR.w	loc_BF66
 	JSR	loc_12BF8
 	MOVE.l	#$6B800001, VDP_control_port
 	LEA	loc_576D2, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
 	LEA	$FFFFB840.w, A1
 	LEA	loc_14704, A2
@@ -14565,17 +14747,17 @@ loc_BD92:
 	BEQ.b	loc_BDE0
 	MOVE.w	#$000B, $FFFFFF4C.w
 loc_BDE0:
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 loc_BE12:
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	BSR.w	loc_BF66
 	JSR	loc_12D6C
 	CLR.l	D0
@@ -14592,7 +14774,7 @@ loc_BE12:
 	MOVE.b	D2, (A1,D0.w)
 	MOVE.l	#$6B800001, VDP_control_port
 	LEA	loc_576D2, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
 	LEA	$FFFFB840.w, A1
 	LEA	loc_14704, A2
@@ -14640,15 +14822,15 @@ loc_BF02:
 	MOVE.w	#$000D, $FFFFFF4C.w
 loc_BF08:
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-	JSR	loc_754
+	JSR	Upload_h32_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
-	JSR	loc_6F0
+	JSR	Upload_palette_buffer_to_cram
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CE95A0, D6
 	MOVE.l	#$940193C0, D5
@@ -14657,14 +14839,14 @@ loc_BF08:
 	JMP	loc_1666
 
 loc_BF66:
-	JSR	loc_8C0
-	JSR	loc_656
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h32_vdp_state
 	MOVE.w	#$8200, VDP_control_port
 	MOVE.w	#$9003, VDP_control_port
 	MOVE.w	#$9200, VDP_control_port
 	MOVE.l	#$941F93FF, D6
 	MOVE.l	#$40000080, D7
-	JSR	loc_944
+	JSR	Start_vdp_dma_fill
 	LEA	$FFFF9D40.w, A1
 	MOVE.w	#$00E0, D0
 loc_BFA4:
@@ -14672,13 +14854,13 @@ loc_BFA4:
 	DBF	D0, loc_BFA4
 	MOVE.l	#$5C000000, VDP_control_port
 	LEA	loc_14F9A, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$45800001, VDP_control_port
 	LEA	loc_16166, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$63A00001, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.w	#5, D0
 	LEA	loc_145B0, A1
 loc_BFF6:
@@ -14689,7 +14871,7 @@ loc_BFF6:
 	MOVE.w	(A1)+, D6
 	MOVE.w	(A1)+, D5
 	MOVEM.l	A1, -(A7)
-	JSR	loc_7A0
+	JSR	Decompress_tilemap_to_vdp_128_cell_rows
 	MOVEM.l	(A7)+, A1
 	MOVEM.w	(A7)+, D0
 	DBF	D0, loc_BFF6
@@ -14702,7 +14884,7 @@ loc_C024:
 	MOVE.w	#1, D6
 	MOVE.w	#5, D5
 	MOVEM.l	A1, -(A7)
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	MOVEM.l	(A7)+, A1
 	MOVEM.w	(A7)+, D0
 	DBF	D0, loc_C024
@@ -14726,7 +14908,7 @@ loc_C074:
 	MOVE.w	#$004B, $FFFFFC1A.w
 	MOVE.l	#$00050000, $FFFFFC00.w
 	LEA	loc_149C8, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	CLR.l	D0
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
@@ -14785,7 +14967,7 @@ loc_C148:
 	RTS
 
 loc_C16E:
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	LEA	$FFFFFCB0.w, A1
 	MOVE.w	D1, (A1)
@@ -14818,7 +15000,7 @@ loc_C1A4:
 	dc.b	$3A, $9E, $51, $C8, $FF, $FC, $4E, $75
 loc_C1B4:
 	LEA	loc_C618(PC), A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.w	Track_index.w, D0
 	ADDQ.w	#1, D0
 	MOVE.w	#$C7C1, D1
@@ -14835,7 +15017,7 @@ loc_C1D4:
 	MOVEA.l	loc_C202(PC,D0.w), A6
 	MOVE.w	#$021A, D6
 	MOVE.w	#$87C0, D0
-	JSR	loc_84E
+	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVE.w	#0, (A5)
 	MOVE.w	#$87D0, (A5)
 	MOVE.w	#$87D9, (A5)
@@ -14860,15 +15042,15 @@ loc_C202: ; Track names
 
 loc_C242:
 	MOVE.w	#$FFFF, $FFFFFCBC.w
-	JSR	loc_F1E
-	JSR	loc_F26
+	JSR	Clear_partial_main_object_pool
+	JSR	Clear_aux_object_pool
 	MOVE.w	Track_length.w, D1
 	ADD.w	D1, $FFFFFF56.w
 	MOVE.w	$FFFFFF56.w, $FFFFAE1E.w
 	ADDI.w	#$0040, $FFFFFF32.w
 	LEA	$FFFFAE00.w, A0
 	MOVEQ	#-2, D0
-	JSR	loc_80CE
+	JSR	Load_minimap_position
 	LEA	$FFFFB440.w, A0
 	MOVEQ	#$0000000F, D0
 loc_C27A:
@@ -14906,7 +15088,7 @@ loc_C2CE:
 	ADDA.w	D1, A6
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
-	JMP	loc_770
+	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
 
 loc_C2E2:
 	MOVE.w	$FFFF9232.w, D0
@@ -14916,18 +15098,18 @@ loc_C2E2:
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
 	MOVE.l	#$44360000, D7
-	JMP	loc_770
+	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
 
 loc_C300:
 	MOVE.l	$FFFF92F8.w, D0
 	MOVE.w	#$C000, D3
 	LEA	$FFFFE87C.w, A3
-	JSR	loc_15D6
+	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.l	#$422C0000, D7
 	MOVEQ	#7, D6
 	MOVEQ	#0, D5
 	LEA	(A3), A6
-	JMP	loc_770
+	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
 
 loc_C324:
 	LEA	$FFFFC080.w, A0
@@ -14966,25 +15148,25 @@ loc_C382:
 	MOVE.w	#$0406, $FFFFC482.w
 	MOVE.w	#$0206, D0
 	MOVE.w	#$0600, D1
-	LEA	loc_770, A1
+	LEA	Draw_tilemap_buffer_to_vdp_128_cell_rows, A1
 	MOVE.l	#$FFFFC280, $FFFFC48A.w
 	CLR.w	$FFFFC486.w
 	CLR.w	$FFFFC488.w
 	MOVE.w	D0, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#$00000019, D6
 	MOVEQ	#4, D5
 	LEA	$00FF5980, A6
 	JSR	(A1)
 	ADD.w	D1, D0
 	MOVE.w	D0, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#4, D5
 	LEA	$00FF5980, A6
 	JSR	(A1)
 	ADD.w	D1, D0
 	MOVE.w	D0, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#4, D5
 	LEA	$00FF5980, A6
 	JSR	(A1)
@@ -14994,7 +15176,7 @@ loc_C3E4:
 	MOVE.w	#$0200, D2
 	MOVE.w	$FFFFC482.w, D7
 	ADD.w	$FFFFC486.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	$FFFFC488.w, D0
 	BEQ.b	loc_C40C
@@ -15138,12 +15320,15 @@ loc_C698:
 loc_C6A2:
 	txt "MONACO", $FF
 	dc.b	$00
-loc_C6AA:
+;Copy_words_A5_to_A6
+Copy_words_A5_to_A6:
+; Copies D7+1 words from (A5)+ to (A6)+.
 	MOVE.w	(A5)+, (A6)+
-	DBF	D7, loc_C6AA
+	DBF	D7, Copy_words_A5_to_A6
 	RTS
 
-loc_C6B2:
+;Load_driver_name_text_pointer
+Load_driver_name_text_pointer:
 	LEA	loc_193BE, A1
 	MULS.w	#$000C, D0
 	ADDA.l	D0, A1
@@ -15151,7 +15336,8 @@ loc_C6B2:
 	MOVE.w	(A1)+, D1
 	RTS
 
-loc_C6C4:
+;Load_car_spec_text_pointer
+Load_car_spec_text_pointer:
 	LEA	loc_19114, A1
 	MULS.w	#$0012, D0
 	ADDA.l	D0, A1
@@ -15163,7 +15349,7 @@ loc_C6D6:
 	LEA	$FFFFC080.w, A6
 	LEA	loc_C5A4(PC), A5
 	MOVEQ	#$00000019, D7
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	MOVEQ	#5, D6
 	LEA	loc_C524(PC), A4
 	LEA	$FFFF906E.w, A3
@@ -15171,7 +15357,7 @@ loc_C6EE:
 	ADDQ.w	#2, A6
 	MOVEQ	#3, D7
 	LEA	(A4), A5
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	LEA	(A5), A4
 	ADDQ.w	#2, A6
 	LEA	loc_C60C-1(PC), A2
@@ -15189,7 +15375,7 @@ loc_C6EE:
 	BEQ.b	loc_C72A
 	SUBQ.w	#1, D0
 loc_C72A:
-	JSR	loc_C6B2(PC)
+	JSR	Load_driver_name_text_pointer(PC)
 loc_C72E:
 	SUBQ.w	#1, D1
 	ADDQ.w	#1, A2
@@ -15205,7 +15391,7 @@ loc_C734:
 	MOVE.w	#$C7F4, (A6)+
 	MOVE.b	(A3)+, D0
 	ANDI.w	#$000F, D0
-	JSR	loc_C6C4(PC)
+	JSR	Load_car_spec_text_pointer(PC)
 	ADDQ.w	#1, A2
 	MOVEQ	#2, D5
 loc_C75C:
@@ -15233,7 +15419,7 @@ loc_C784:
 	ADDA.w	D0, A5
 loc_C7A0:
 	MOVEQ	#3, D7
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	ADDQ.w	#2, A6
 	MOVE.w	#$87E2, (A6)+
 	MOVE.w	#$87D8, (A6)+
@@ -15242,7 +15428,7 @@ loc_C7A0:
 	MOVE.w	#$C7F4, (A6)+
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
-	JSR	loc_C6C4(PC)
+	JSR	Load_car_spec_text_pointer(PC)
 	ADDQ.w	#1, A2
 	MOVEQ	#2, D5
 loc_C7CC:
@@ -15269,7 +15455,7 @@ loc_C7EE:
 	LEA	$FFFFC280.w, A6
 	LEA	loc_C5D8(PC), A5
 	MOVEQ	#$00000019, D7
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	MOVEQ	#5, D6
 	LEA	loc_C524(PC), A4
 	LEA	$FFFF8FA0.w, A3
@@ -15281,7 +15467,7 @@ loc_C81A:
 	MOVE.b	$10(A3), D0
 	LSL.w	#3, D0
 	LEA	(A4,D0.w), A5
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	ADDQ.w	#2, A6
 	LEA	loc_C60C-1(PC), A2
 	MOVEQ	#3, D1
@@ -15298,7 +15484,7 @@ loc_C844:
 	BEQ.b	loc_C85A
 	SUBQ.w	#1, D0
 loc_C85A:
-	JSR	loc_C6B2(PC)
+	JSR	Load_driver_name_text_pointer(PC)
 loc_C85E:
 	SUBQ.w	#1, D1
 	ADDQ.w	#1, A2
@@ -15318,7 +15504,7 @@ loc_C864:
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 loc_C88C:
-	JSR	loc_C6C4(PC)
+	JSR	Load_car_spec_text_pointer(PC)
 	ADDQ.w	#1, A2
 	MOVEQ	#2, D5
 loc_C894:
@@ -15331,13 +15517,13 @@ loc_C894:
 	ADDQ.w	#4, A6
 	MOVEQ	#0, D3
 	MOVE.b	(A0)+, D0
-	JSR	loc_C97C(PC)
+	JSR	Write_digit_or_blank_tile(PC)
 	MOVE.b	(A0), D0
 	LSR.w	#4, D0
-	JSR	loc_C97C(PC)
+	JSR	Write_digit_or_blank_tile(PC)
 	MOVEQ	#-1, D3
 	MOVE.b	(A0)+, D0
-	JSR	loc_C97C(PC)
+	JSR	Write_digit_or_blank_tile(PC)
 	ADDQ.w	#2, A6
 	DBF	D6, loc_C81A
 	MOVE.w	#$FFFF, (A6)
@@ -15371,7 +15557,7 @@ loc_C8E6:
 	ADDA.w	D0, A5
 loc_C918:
 	MOVEQ	#3, D7
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	ADDQ.w	#2, A6
 	MOVE.w	#$87E2, (A6)+
 	MOVE.w	#$87D8, (A6)+
@@ -15381,7 +15567,7 @@ loc_C918:
 	MOVE.w	D1, D2
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
-	JSR	loc_C6C4(PC)
+	JSR	Load_car_spec_text_pointer(PC)
 	ADDQ.w	#1, A2
 	MOVEQ	#2, D5
 loc_C946:
@@ -15397,17 +15583,23 @@ loc_C946:
 	ADDA.w	D2, A0
 	MOVEQ	#0, D3
 	MOVE.b	(A0)+, D0
-	JSR	loc_C97C(PC)
+	JSR	Write_digit_or_blank_tile(PC)
 	MOVE.b	(A0), D0
 	LSR.w	#4, D0
-	JSR	loc_C97C(PC)
+	JSR	Write_digit_or_blank_tile(PC)
 	MOVEQ	#-1, D3
 	MOVE.b	(A0)+, D0
-	JSR	loc_C97C(PC)
+	JSR	Write_digit_or_blank_tile(PC)
 loc_C97A:
 	RTS
 
-loc_C97C:
+;Write_digit_or_blank_tile
+Write_digit_or_blank_tile:
+; Writes a digit tile or a blank tile to the scoreboard tilemap buffer (A6)+.
+; If D0 low nibble == 0 and D3 == 0 (leading zero), writes 0 (blank).
+; Otherwise writes $87C0 + D0 (digit tile) and sets D3 = $FFFF (seen non-zero).
+; Inputs:  D0 = digit value (0-9), D3 = leading-zero flag (0 = suppress)
+; Output:  (A6)+ = tile word; D3 updated
 	ANDI.w	#$000F, D0
 	BNE.b	loc_C988
 	TST.w	D3
@@ -15424,7 +15616,7 @@ loc_C994:
 	LEA	$FFFF8F80.w, A6
 	LEA	Driver_points_by_team.w, A5
 	MOVEQ	#7, D7
-	JSR	loc_C6AA(PC)
+	JSR	Copy_words_A5_to_A6(PC)
 	LEA	$FFFF8FA0.w, A0
 	MOVEQ	#0, D0
 loc_C9A8:
@@ -15510,7 +15702,7 @@ loc_CA76:
 	DBF	D0, loc_CA76
 	MOVE.w	#$FFFF, $FFFFFCBC.w
 	MOVE.l	#$00009E08, D1
-	JSR	loc_8AE8
+	JSR	Alloc_aux_object_slot
 	ADDQ.w	#4, $FFFFFC1C.w
 loc_CA94:
 	RTS
@@ -15529,7 +15721,7 @@ loc_CB3C:
 	LEA	loc_CAEC, A6
 loc_CB50:
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
 
@@ -15574,7 +15766,7 @@ loc_CBD0:
 	ADDQ.b	#1, $FFFFFC19.w
 	BSR.w	loc_B480
 	RTS
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	ADDQ.w	#1, $FFFFFC08.w
 	MOVE.w	$FFFFFC08.w, D0
 	LSR.w	#1, D0
@@ -15587,7 +15779,7 @@ loc_CBD0:
 	MOVE.w	$FFFFFC14.w, D0
 	MOVEA.l	(A1,D0.w), A2
 	JSR	(A2)
-	JMP	loc_D5C
+	JMP	Update_objects_and_build_sprite_buffer
 loc_CC2C:
 	dc.l	loc_CC52
 	dc.l	loc_CCC8
@@ -15597,7 +15789,7 @@ loc_CC3A:
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	loc_CC50
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 loc_CC50:
 	RTS
 loc_CC52:
@@ -15644,11 +15836,11 @@ loc_CCD0:
 loc_CCDA:
 	ADDQ.w	#4, $FFFFFC14.w
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	LEA	loc_CDD4(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_16DAC, A1
 	MOVE.w	#3, D1
 loc_CD06:
@@ -15659,14 +15851,14 @@ loc_CD06:
 	MOVE.w	(A1)+, D6
 	MOVE.w	(A1)+, D5
 	MOVEM.l	A1, -(A7)
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVEM.l	(A7)+, A1
 	MOVEM.w	(A7)+, D1
 	DBF	D1, loc_CD06
 	LEA	$FFFFB840.w, A1
 	MOVE.w	#2, D0
 loc_CD32:
-	MOVE.l	#loc_EF0, (A1)
+	MOVE.l	#Queue_object_for_sprite_buffer, (A1)
 	MOVE.w	#$0158, $18(A1)
 	MOVE.w	#$0110, $16(A1)
 	MOVE.l	#loc_16F76, $4(A1)
@@ -15674,9 +15866,9 @@ loc_CD32:
 	DBF	D0, loc_CD32
 	MOVE.l	#$00001032, $FFFFAD80.w
 	LEA	loc_16D64, A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	LEA	loc_16E32, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	LEA	$FFFFE9A0.w, A1
 	MOVE.w	#$000E, D0
 loc_CD7C:
@@ -15688,10 +15880,10 @@ loc_CD7C:
 	MOVE.w	#$0034, $FFFFFC00.w
 	MOVE.l	#$0000CBEE, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -15701,8 +15893,8 @@ loc_CDD4:
 	dc.l	loc_1707C
 	dc.b	$2C, $E0
 	dc.l	loc_1891A
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	LEA	loc_CE00, A1
 	MOVE.w	$FFFFFC1E.w, D0
 	MOVEA.l	(A1,D0.w), A1
@@ -15820,12 +16012,12 @@ loc_CF5A:
 	CLR.w	$FFFFFC10.w
 	LEA	$FFFFF6F0.w, A6
 	MOVE.w	$FFFFFC1C.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	CLR.w	D6
 	MOVE.b	$FFFFFC1A.w, D6
 	MOVE.w	$FFFFFC12.w, D5
 	ORI	#$0700, SR
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, $FFFFFC12.w
 	CLR.w	D0
@@ -15862,9 +16054,9 @@ loc_CFFE:
 	RTS
 loc_D000:
 	MOVE.w	#$431D, $FFFF905A.w
-	JSR	loc_F756
+	JSR	Load_font_tiles_to_work_buffer
 	JSR	loc_F46A
-	JSR	loc_F780
+	JSR	Render_text_to_tilemap
 	MOVE.l	#$6A980003, D7
 	JSR	loc_F81C
 	ADDQ.w	#4, $FFFFFC1E.w
@@ -16033,7 +16225,7 @@ loc_D224:
 	ADDA.l	#4, A1
 loc_D242:
 	MOVE.w	(A1), D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.w	#$434D, D0
 	BTST.b	#2, $FFFFFC0E.w
 	BNE.b	loc_D25A
@@ -16058,15 +16250,15 @@ loc_D25A:
 	MOVE.l	(A1,D0.w), D1
 	MOVE.l	D1, $FFFFB844.w
 loc_D2A2:
-	JMP	loc_EF0
+	JMP	Queue_object_for_sprite_buffer
 	dc.b	$4E, $75
 loc_D2AA:
 	CLR.l	$FFFFB840.w
 	RTS
 loc_D2B0:
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
@@ -16092,20 +16284,20 @@ loc_D2F6:
 loc_D320:
 	MOVE.l	#$63A00001, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$6B800001, VDP_control_port
 	LEA	loc_576D2, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_1E3DC, A0
 	MOVE.l	#$50000000, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	CLR.l	D0
 	LEA	DriverPortraitTiles, A1
 	MOVE.b	$FFFFFC19.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.l	#$40200000, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	CLR.l	D0
 	LEA	loc_204DA, A1
 	LEA	TeamMachineScreenStats, A2
@@ -16117,10 +16309,10 @@ loc_D320:
 	LSL.l	#2, D1
 	MOVEA.l	(A1,D1.w), A0
 	MOVE.l	#$48200000, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$7A000001, VDP_control_port
 	LEA	loc_56E36, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	CLR.l	D0
 	LEA	DriverPortraitTileMappings, A1
 	MOVE.b	$FFFFFC19.w, D0
@@ -16130,7 +16322,7 @@ loc_D320:
 	MOVE.l	#$49040003, D7
 	MOVE.w	#7, D6
 	MOVE.w	#7, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_203B8, A1
 	LEA	TeamMachineScreenStats, A2
 	CLR.w	D0
@@ -16144,18 +16336,18 @@ loc_D320:
 	MOVE.l	#$47360003, D7
 	MOVE.w	#$000A, D6
 	MOVE.w	#$000C, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_1E3D4, A0
 	MOVE.w	#$4080, D0
 	MOVE.l	#$4D160003, D7
 	MOVE.w	#$000F, D6
 	MOVE.w	#0, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_190AC, A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	LEA	loc_1E268, A0
 	MOVE.w	#$6080, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	CLR.l	D0
 	CLR.l	D1
 	LEA	Drivers_and_teams_map.w, A1
@@ -16179,13 +16371,13 @@ loc_D484:
 	MOVE.b	$FFFFFC18.w, D0
 	LSL.b	#2, D0
 	MOVEA.l	(A1,D0.w), A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	CLR.l	D0
 	MOVE.b	$FFFFFC19.w, D0
 	LSL.l	#5, D0
 	LEA	loc_19664, A6
 	ADDA.l	D0, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	BTST.b	#7, Player_team.w
 	BEQ.b	loc_D50A
 	CLR.l	D0
@@ -16200,7 +16392,7 @@ loc_D484:
 	MOVE.w	(A1)+, $FFFFE99C.w
 loc_D50A:
 	LEA	loc_19624, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	CLR.l	D0
 	MOVE.b	$FFFFFC18.w, D0
 	MULS.w	#$0038, D0
@@ -16228,13 +16420,13 @@ loc_D534:
 	MOVE.l	#$0000CDE2, $FFFFFF10.w
 	MOVE.l	#$0000D5B6, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-	JSR	loc_744
+	JSR	Upload_h40_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
-	JSR	loc_6F0
+	JSR	Upload_palette_buffer_to_cram
 	SUBQ.b	#1, $FFFFFC00.w
 	BNE.b	loc_D604
 	MOVE.b	#7, $FFFFFC00.w
@@ -16249,7 +16441,7 @@ loc_D5EA:
 	MOVE.l	#$43060003, D7
 	MOVEQ	#$00000016, D6
 	MOVEQ	#5, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 loc_D604:
 	CMPI.b	#$10, $FFFFFC19.w
 	BNE.b	loc_D630
@@ -16270,8 +16462,8 @@ loc_D632:
 	dc.b	$00, $2C, $0A, $AA, $02, $8E, $00, $06, $0A, $22, $00, $A2, $0E, $66, $08, $02
 	dc.w	$00AC, $0AAA, $04CE, $0068
 	dc.b	$02, $A0, $02, $AC, $08, $E6, $02, $60, $06, $88, $0A, $AA, $08, $AA, $04, $66, $04, $44, $02, $AC, $08, $88, $02, $22, $00, $4E, $0C, $CC, $04, $8E, $00, $28
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	BSR.b	loc_D6C8
 	SUBQ.w	#1, $FFFFFC00.w
 	BEQ.b	loc_D6D2
@@ -16283,13 +16475,13 @@ loc_D6C8:
 	BEQ.b	loc_D6E0
 loc_D6D2:
 	MOVE.w	#2, $FFFF9000.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 loc_D6E0:
 	RTS
 loc_D6E2:
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	BCLR.b	#0, $FFFF902F.w
 	BCLR.b	#1, $FFFF902F.w
 	MOVE.w	#$8238, VDP_control_port
@@ -16415,16 +16607,16 @@ loc_D896:
 loc_D8A2:
 	MOVE.l	#$40200000, VDP_control_port
 	LEA	loc_21F7E, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$63A00001, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$6B800001, VDP_control_port
 	LEA	loc_576D2, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$7A000001, VDP_control_port
 	LEA	loc_56E36, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_21D08, A1
 	MOVE.w	#2, D1
 loc_D904:
@@ -16435,7 +16627,7 @@ loc_D904:
 	MOVE.w	(A1)+, D6
 	MOVE.w	(A1)+, D5
 	MOVEM.l	A1, -(A7)
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVEM.l	(A7)+, A1
 	MOVEM.w	(A7)+, D1
 	DBF	D1, loc_D904
@@ -16455,7 +16647,7 @@ loc_D940:
 	MOVE.w	(A2)+, D6
 	MOVE.w	(A2)+, D5
 	MOVEM.l	A2, -(A7)
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVEM.l	(A7)+, A2
 	MOVEM.w	(A7)+, D1
 	DBF	D1, loc_D940
@@ -16465,15 +16657,15 @@ loc_D940:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	LSL.b	#2, D0
 	MOVEA.l	(A1,D0.w), A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.w	#$431D, $FFFF905A.w
-	JSR	loc_F756
+	JSR	Load_font_tiles_to_work_buffer
 	JSR	loc_F518
-	JSR	loc_F780
+	JSR	Render_text_to_tilemap
 	MOVE.l	#$62920003, D7
 	JSR	loc_F81C
 	LEA	loc_20F2E, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	CLR.l	D0
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
@@ -16501,11 +16693,11 @@ loc_D940:
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_DA52
@@ -16515,28 +16707,28 @@ loc_DA52:
 	MOVE.l	#$0000DF2A, $FFFFFF10.w
 loc_DA5A:
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
 	MOVE.l	#$40200000, VDP_control_port
 	LEA	loc_23E88, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_23DE0, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$41280003, D7
 	MOVEQ	#$00000010, D6
 	MOVEQ	#$00000017, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_DAF2(PC), A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	LEA	loc_23DBE, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$021C, $FFFFFC00.w
 	MOVE.l	#$0000DA3C, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#8, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
@@ -16549,9 +16741,9 @@ loc_DAFC:
 	dc.b	$E5, $06, $FB, $67, $C0, $22, $18, $1E, $26, $1F, $0E, $FA, $0D, $18, $17, $0E, $FA, $12, $1D, $2D, $FF, $00
 loc_DB12:
 	dc.b	$E8, $8A, $22, $18, $1E, $1B, $FA, $15, $12, $0C, $0E, $17, $1C, $0E, $FC, $17, $18, $29, $FA, $04, $06, $00, $00, $2C, $1D, $11, $06, $09, $FF, $00
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	BSR.b	loc_DB56
-	JSR	loc_D5C
+	JSR	Update_objects_and_build_sprite_buffer
 	BSR.b	loc_DB42
 	RTS
 
@@ -16572,7 +16764,7 @@ loc_DB56:
 	MOVE.l	#$668A0003, D7
 	MOVEQ	#$0000000C, D6
 	MOVEQ	#$0000000C, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	SUBQ.w	#1, $FFFFFC00.w
 	BEQ.b	loc_DB4E
 	SUBQ.w	#1, $FFFFFC04.w
@@ -16594,10 +16786,10 @@ loc_DBB4:
 loc_DBB6:
 	dc.w	6, -6, -2, 2
 loc_DBBE:
-	JSR	loc_8C0
-	JSR	loc_75C4A
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Halt_audio_sequence
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	$FFFFFF34.w, $FFFFFF44.w
 	MOVE.l	$FFFF92DC.w, $FFFFFF46.w
 	JSR	loc_DD80(PC)
@@ -16607,38 +16799,38 @@ loc_DBBE:
 	CLR.w	$FFFFFF50.w
 loc_DBF4:
 	LEA	loc_DDCC(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_258AC, A0
 	MOVE.w	#$2001, D0
 	MOVE.l	#$41060003, D7
 	MOVEQ	#$00000010, D6
 	MOVEQ	#$00000017, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.w	#$C001, D0
 	LEA	loc_259D6, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFECA4.w, A5
 	JSR	loc_DD70(PC)
 	LEA	loc_2597E, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFEB52.w, A5
 	JSR	loc_DD70(PC)
 	LEA	$FFFFEDF6.w, A5
 	JSR	loc_DD70(PC)
 	LEA	loc_2595E, A0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	MOVE.w	#3, D0
 	LEA	$FFFFB840.w, A1
 	LEA	loc_257C8, A2
 loc_DC66:
-	MOVE.l	#loc_EF0, (A1)
+	MOVE.l	#Queue_object_for_sprite_buffer, (A1)
 	MOVE.w	(A2)+, $18(A1)
 	MOVE.w	(A2)+, $16(A1)
 	MOVE.l	(A2)+, $4(A1)
 	LEA	$40(A1), A1
 	DBF	D0, loc_DC66
 	LEA	loc_DDDA(PC), A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	MOVE.w	#$E232, $FFFFFC00.w
 	MOVE.w	#$E33E, $FFFFFC04.w
 	JSR	loc_E236
@@ -16665,14 +16857,14 @@ loc_DCDE:
 loc_DCF2:
 	MOVE.l	D0, $FFFFFF2A.w
 	LEA	loc_257E8, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#1, $FFFFFC04.w
 	MOVE.w	#$0168, $FFFFFC00.w
 	MOVE.l	#$0000DB30, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#2, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
@@ -16706,7 +16898,7 @@ loc_DD80:
 	MOVEQ	#$00000060, D2
 	MOVE.b	$FFFF92DD.w, D1
 	SUBQ.w	#1, D1
-	BSR.b	loc_DDB6
+	BSR.b	Bcd_add_loop
 	MOVE.w	#$0190, D2
 	ADDI.w	#0, D0
 	SBCD	D0, D2
@@ -16718,11 +16910,12 @@ loc_DD80:
 	BCS.b	loc_DDCA
 	MOVE.w	$FFFFFF38.w, D0
 	MOVEQ	#9, D1
-	BSR.b	loc_DDB6
+	BSR.b	Bcd_add_loop
 	MOVE.w	D0, $FFFFFF38.w
 	RTS
 
-loc_DDB6:
+;Bcd_add_loop
+Bcd_add_loop:
 	ADDI.w	#0, D0
 	ABCD	D2, D0
 	ROR.w	#8, D0
@@ -16730,7 +16923,7 @@ loc_DDB6:
 	ABCD	D2, D0
 	ROR.w	#8, D0
 	ROR.w	#8, D2
-	DBF	D1, loc_DDB6
+	DBF	D1, Bcd_add_loop
 loc_DDCA:
 	RTS
 loc_DDCC:
@@ -16761,8 +16954,8 @@ loc_DE36:
 	dc.l	$FFFFEB52
 	dc.l	$FFFFECA4
 	dc.l	$FFFFEB52
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.w	loc_E05E
@@ -16810,40 +17003,40 @@ loc_DF16:
 	ADD.l	D0, $58(A0)
 	MOVE.w	$58(A0), D0
 	MOVE.w	D0, $16(A0)
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	RTS
-	JSR	loc_8C0
-	JSR	loc_75C4A
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Halt_audio_sequence
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	LEA	loc_E074(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_28000, A0
 	MOVE.w	#$421B, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000D, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_2808C, A0
 	MOVE.w	#$421B, D0
 	MOVE.l	#$4C000003, D7
 	MOVEQ	#$00000015, D6
 	MOVEQ	#3, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_280AA, A0
 	MOVE.w	#$E001, D0
 	MOVE.l	#$66000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000F, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	BSR.w	loc_DFDA
 	LEA	loc_27F30, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.l	#$0000DE46, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -16894,7 +17087,7 @@ loc_E074:
 	dc.l	loc_2A1F2
 	dc.b	$63, $20
 	dc.l	loc_2AB1C
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	TST.w	$FFFFFC08.w
 	BEQ.b	loc_E0B6
 	LEA	loc_E39A-2(PC), A6
@@ -16905,9 +17098,9 @@ loc_E0A6:
 	MOVE.l	#$69A40003, D7
 	MOVEQ	#$00000012, D6
 	MOVEQ	#0, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 loc_E0B6:
-	JSR	loc_D5C
+	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
 	BNE.b	loc_E0CC
@@ -16918,10 +17111,10 @@ loc_E0CC:
 loc_E0D2:
 	RTS
 loc_E0D4:
-	JSR	loc_8C0
-	JSR	loc_75C4A
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Halt_audio_sequence
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	$FFFFFF34.w, $FFFFFF3E.w
 	MOVE.l	$FFFF92DC.w, $FFFFFF40.w
 	JSR	loc_DD80
@@ -16931,37 +17124,37 @@ loc_E0D4:
 	CLR.w	$FFFFFF50.w
 loc_E10C:
 	LEA	loc_E326(PC), A1
-	JSR	loc_52E
+	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_2F220, A0
 	MOVE.w	#$2001, D0
 	MOVE.l	#$41000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000A, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_2F1EC, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$62080003, D7
 	MOVEQ	#$00000014, D6
 	MOVEQ	#8, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_2F20A, A0
 	MOVE.w	#$4001, D0
 	MOVE.l	#$64380003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#4, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	$FFFFB840.w, A0
 	LEA	loc_E334(PC), A1
 	MOVEQ	#3, D0
 loc_E16E:
-	MOVE.l	#loc_EF0, (A0)
+	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
 	MOVE.w	(A1)+, $18(A0)
 	MOVE.w	(A1)+, $16(A0)
 	MOVE.l	(A1)+, $4(A0)
 	LEA	$40(A0), A0
 	DBF	D0, loc_E16E
 	LEA	loc_E354(PC), A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	MOVE.w	#$E7AA, $FFFFFC00.w
 	MOVE.w	#$E8B6, $FFFFFC04.w
 	JSR	loc_E236(PC)
@@ -16972,7 +17165,7 @@ loc_E16E:
 	MOVE.w	#$EC30, $FFFFFC00.w
 	JSR	loc_E2F4(PC)
 	LEA	loc_2F134, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$010E, D0
 	MOVEQ	#4, D1
 	MOVE.l	#$0000452A, D2
@@ -16991,8 +17184,8 @@ loc_E1EE:
 	MOVE.l	#$0000E088, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	$FFFFFC82.w, $00FF5AC0
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
@@ -17001,19 +17194,19 @@ loc_E1EE:
 loc_E236:
 	LEA	loc_21B2, A6
 	MOVE.w	$FFFFFC00.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#5, D6
 	MOVEQ	#2, D5
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	MOVE.w	$FFFFFF34.w, D0
-	JSR	loc_199A
+	JSR	Wrap_index_mod10
 	LEA	loc_2156, A0
-	JSR	loc_19AC
+	JSR	Load_palette_vdp_commands_from_table
 	MOVE.l	#$94009390, D5
 	MOVE.l	#$53400082, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	D0, D4
-	JSR	loc_19AC
+	JSR	Load_palette_vdp_commands_from_table
 	MOVE.l	#$54600082, $FFFFFF08.w
 	JSR	Send_D567_to_VDP
 	MOVE.w	$FFFFFF34.w, D0
@@ -17024,7 +17217,7 @@ loc_E29C:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	MOVE.w	$FFFFFC04.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	LEA	loc_20F2, A0
 	MOVE.l	(A0,D0.w), VDP_data_port
@@ -17034,15 +17227,15 @@ loc_E2C0:
 	MOVEA.l	(A3)+, A6
 	MOVE.l	(A6), D0
 	LEA	$FFFFE810.w, A1
-	JSR	loc_1626
+	JSR	Pack_hex_digits_to_tilemap
 	MOVEQ	#7, D0
-	JSR	loc_1548
+	JSR	Copy_digits_to_tilemap_with_suppress
 	MOVE.w	(A4)+, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	SUBQ.w	#1, $FFFFFC00.w
 	BNE.b	loc_E2C0
 	RTS
@@ -17052,15 +17245,15 @@ loc_E2F4:
 	MOVE.w	$FFFFFF38.w, D1
 	MOVEQ	#3, D0
 	MOVEQ	#0, D7
-	JSR	loc_152A
+	JSR	Unpack_bcd_digits_to_buffer
 	MOVEQ	#3, D0
-	JSR	loc_1544
+	JSR	Copy_digits_to_tilemap
 	MOVE.w	$FFFFFC00.w, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
-	JMP	loc_778
+	JMP	Draw_tilemap_buffer_to_vdp_64_cell_rows
 loc_E326:
 	dc.b	$00, $01
 	dc.b	$00, $20
@@ -17107,8 +17300,8 @@ loc_E3BE:
 	dc.l	$FFFF92DC
 loc_E3CE:
 	dc.w	$E890, $E990, $EA90, $EC10
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	LEA	loc_E3F4, A1
 	MOVE.w	$FFFFFC04.w, D0
 	MOVEA.l	(A1,D0.w), A2
@@ -17187,7 +17380,7 @@ loc_E50A:
 	ADDQ.w	#5, D0
 	MOVE.b	#$FF, (A6,D0.w)
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, $FFFFFC16.w
 loc_E532:
@@ -17201,7 +17394,7 @@ loc_E53E:
 	BNE.b	loc_E55C
 	LEA	loc_E72A, A6
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	BSR.w	loc_E5F4
 loc_E55C:
@@ -17253,27 +17446,27 @@ loc_E5F4:
 	MOVE.w	#$0050, $FFFFFC08.w
 	ADDQ.w	#4, $FFFFFC04.w
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.l	#$40200000, VDP_control_port
 	LEA	loc_37ACC, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$68C00000, VDP_control_port
 	LEA	loc_33AFE, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$7D000001, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_33AAA, A0
 	MOVE.w	#$6146, D0
 	MOVE.l	#$60000003, D7
 	MOVE.w	#$0027, D6
 	MOVE.w	#$001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.l	#$00033756, $FFFFFC18.w
 	BTST.b	#6, Player_team.w
 	BEQ.b	loc_E6C8
@@ -17294,28 +17487,28 @@ loc_E6C8:
 	BSET.b	#6, Player_team.w
 loc_E6CE:
 	JSR	loc_2B52
-	JSR	loc_13016
+	JSR	Initialize_drivers_and_teams
 	LEA	loc_337EE, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$0014, $FFFFFC08.w
 	MOVE.w	#$000A, $FFFFFC14.w
 	MOVE.w	#$00A0, $FFFFFC0C.w
 	MOVE.l	#$0000E3D6, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 loc_E722:
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	RTS
 loc_E72A:
 	dc.b	$EA, $AE, $FB, $C3, $E8, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FD, $3A, $32, $32, $17, $0E, $21, $1D, $32, $22, $0E, $0A, $1B
 	dc.b	$32, $3B, $FD, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FD, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $32, $32, $3B
 	dc.b	$FD, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	BSR.w	loc_E8B4
 	BSR.w	loc_E790
 	RTS
@@ -17424,7 +17617,7 @@ loc_E8F2:
 	MULS.w	#$0100, D0
 	ADD.w	D0, D7
 loc_E8FC:
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, D6
 	BCLR.l	#$1E, D7
 	LEA	$FFFFFC0C.w, A1
@@ -17446,25 +17639,25 @@ loc_E932:
 	ADDQ.b	#1, $FFFFFC02.w
 loc_E94A:
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.l	#$40200000, VDP_control_port
 	LEA	loc_39396, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_391F0, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$40000003, D7
 	MOVE.w	#$0027, D6
 	MOVE.w	#$001B, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_39160, A1
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	LEA	loc_39376, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00CE, $FFFFE984.w
 	MOVE.w	#$000C, $FFFFE9A4.w
 	MOVE.w	#$0EEE, $FFFFE9C4.w
@@ -17489,7 +17682,7 @@ loc_EA1C:
 	ANDI.b	#7, D0
 	MULS.w	#$0100, D0
 	ADD.w	D0, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, D6
 	BCLR.l	#$1E, D7
 	LEA	$FFFFFC0C.w, A1
@@ -17509,11 +17702,11 @@ loc_EA58:
 	ANDI	#$F8FF, SR
 	MOVE.w	$FFFFFF4C.w, $00FF5AC0
 	CLR.w	$FFFFFF4C.w
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	BSR.b	loc_EAA0
 	BSR.w	loc_ED56
 	ADDQ.b	#1, $FFFFFC04.w
@@ -17522,7 +17715,7 @@ loc_EA58:
 loc_EAA0:
 	MOVE.b	Input_click_bitset.w, D0
 	BEQ.b	loc_EAE2
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	MOVE.b	Input_click_bitset.w, D0
 	BTST.b	#KEY_B, Input_click_bitset.w
 	BNE.w	loc_ED1E
@@ -17581,7 +17774,7 @@ loc_EB56:
 	LEA	loc_32D08, A4
 	MOVEA.l	(A4,D0.w), A1
 	ORI	#$0700, SR
-	JSR	loc_8A0
+	JSR	Draw_packed_tilemap_list
 	ANDI	#$F8FF, SR
 	RTS
 loc_EB76:
@@ -17596,7 +17789,7 @@ loc_EB82:
 	LEA	loc_32F24, A1
 	MOVEA.l	(A1,D0.w), A6
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
 loc_EBA8:
@@ -17614,7 +17807,7 @@ loc_EBB4:
 loc_EBCC:
 	MOVEA.l	(A2,D0.w), A6
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
 loc_EBE0:
@@ -17638,7 +17831,7 @@ loc_EC0C:
 	LEA	loc_32F68, A1
 	MOVEA.l	(A1,D0.w), A6
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
 loc_EC2C:
@@ -17703,11 +17896,11 @@ loc_ECE0:
 	LEA	loc_3310A, A1
 	MOVEA.l	(A1,D0.w), A6
 	ORI	#$0700, SR
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
 loc_ED00:
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	LEA	loc_331BE, A1
 	MOVE.w	$FFFFFC1C.w, D0
 	CLR.w	D1
@@ -17719,7 +17912,7 @@ loc_ED1E:
 	ANDI.b	#$F0, D0
 	BEQ.w	loc_EAE2
 	MOVE.w	#9, $FFFFFF4C.w
-	MOVE.l	#loc_293C, $FFFFFF10.w
+	MOVE.l	#Title_menu, $FFFFFF10.w
 	RTS
 loc_ED3A:
 	dc.l	loc_EB2C
@@ -17748,22 +17941,22 @@ loc_ED70:
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
-	JSR	loc_8C0
-	JSR	loc_62E
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h40_vdp_state
 	MOVE.l	#$40200000, VDP_control_port
 	LEA	loc_332A4, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$7E800000, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_33254, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$47840003, D7
 	MOVE.w	#$0022, D6
 	MOVE.w	#$000A, D5
-	JSR	loc_7AA
+	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	loc_331C4, A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	BSR.w	loc_EB56
 	BSR.w	loc_EB82
 	BSR.w	loc_EBB4
@@ -17771,16 +17964,16 @@ loc_ED70:
 	BSR.w	loc_EC6A
 	BSR.w	loc_ECE0
 	LEA	loc_33232, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00EE, $FFFFE984.w
 	MOVE.w	#$0EEE, $FFFFE9A4.w
 	MOVE.l	#$000E0000, $FFFFE9C4.w
 	MOVE.l	#$0000EA8E, $FFFFFF10.w
 	MOVE.l	#$000003D8, $FFFFFF0C.w
-	JSR	loc_75C4A
+	JSR	Halt_audio_sequence
 	ANDI	#$F8FF, SR
-	JSR	loc_396
-	JSR	loc_396
+	JSR	Wait_for_vblank
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -17793,7 +17986,7 @@ Control_types: ; keys for Shift down, Shift up, Accelerate, Break
 	dc.b	KEY_DOWN, KEY_UP, KEY_A, KEY_B ; =$01000604, Type D
 	dc.b	KEY_A, KEY_B, KEY_DOWN, KEY_UP ; =$06040100, Type E
 	dc.b	KEY_A, KEY_B, KEY_UP, KEY_DOWN ; =$06040001, Type F
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	BSR.w	loc_EE88
 	BSR.w	loc_EF04
 	RTS
@@ -17853,10 +18046,10 @@ loc_EF28:
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC0C.w
 	RTS
-	JSR	loc_396
-	JSR	loc_D5C
+	JSR	Wait_for_vblank
+	JSR	Update_objects_and_build_sprite_buffer
 	BSR.w	loc_EF5C
-	BSR.w	loc_F1CA
+	BSR.w	Draw_cursor_tile
 	BSR.w	loc_F21C
 	RTS
 
@@ -17953,7 +18146,7 @@ loc_F03E:
 loc_F0A0:
 	MOVE.w	#$000E, $00FF5AE0
 	CLR.w	$FFFFFC0A.w
-	BSR.w	loc_F1CA
+	BSR.w	Draw_cursor_tile
 	CMPI.w	#$000F, $FFFFFC04.w
 	BEQ.b	loc_F0BE
 	ADDQ.w	#1, $FFFFFC04.w
@@ -17967,7 +18160,7 @@ loc_F0BE:
 loc_F0D2:
 	MOVE.w	#$000E, $00FF5AE0
 	CLR.w	$FFFFFC0A.w
-	BSR.w	loc_F1CA
+	BSR.w	Draw_cursor_tile
 	MOVE.w	$FFFFFC04.w, D0
 	BEQ.b	loc_F0EE
 	SUBQ.w	#1, $FFFFFC04.w
@@ -17981,7 +18174,7 @@ loc_F0EE:
 loc_F102:
 	MOVE.w	#$000E, $00FF5AE0
 	CLR.w	$FFFFFC0A.w
-	BSR.w	loc_F1CA
+	BSR.w	Draw_cursor_tile
 	MOVE.w	$FFFFFC06.w, D0
 	BEQ.b	loc_F11C
 	SUBQ.w	#1, $FFFFFC06.w
@@ -17990,7 +18183,7 @@ loc_F11C:
 loc_F11E:
 	MOVE.w	#$000E, $00FF5AE0
 	CLR.w	$FFFFFC0A.w
-	BSR.w	loc_F1CA
+	BSR.w	Draw_cursor_tile
 	CMPI.w	#3, $FFFFFC06.w
 	BEQ.b	loc_F13A
 	ADDQ.w	#1, $FFFFFC06.w
@@ -18027,14 +18220,15 @@ loc_F196:
 	MOVE.w	#$0014, D1
 loc_F19E:
 	MOVEM.l	A1/D1/D0, -(A7)
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVEM.l	(A7)+, D0/D1/A1
 	DBF	D1, loc_F19E
 	DBF	D0, loc_F196
 	RTS
 loc_F1B6:
 	dc.b	$04, $44, $04, $46, $04, $44, $04, $48, $02, $22, $04, $4A, $02, $22, $04, $4C, $00, $00, $04, $4E
-loc_F1CA:
+;loc_F1CA
+Draw_cursor_tile:
 	MOVE.w	#0, D6
 	BTST.b	#2, $FFFFFC0B.w
 	BEQ.b	loc_F1DA
@@ -18052,7 +18246,7 @@ loc_F1DA:
 	DIVS.w	#4, D0
 	LSL.w	#2, D0
 	ADD.w	D0, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D6, VDP_data_port
@@ -18089,19 +18283,19 @@ loc_F262:
 	LSL.w	#4, D0
 	ADDI.w	#$00C0, D0
 	MOVE.w	D0, $16(A0)
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	RTS
 	JSR	loc_13170
 	BSR.w	loc_F336
 	MOVE.l	#$40020010, VDP_control_port
 	MOVE.w	#$0048, VDP_data_port
 	LEA	loc_39E80, A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	LEA	loc_39EB4, A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.l	#$0000EE78, $FFFFFF10.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -18112,32 +18306,32 @@ loc_F2DE:
 	MOVE.l	#$00039EEC, $FFFFB844.w
 	BSR.w	loc_F3DE
 	LEA	loc_39E68, A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	LEA	loc_39E4E, A6
-	JSR	loc_846
+	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.l	#$0000EF42, $FFFFFF10.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
 loc_F336:
-	JSR	loc_8C0
-	JSR	loc_656
-	JSR	loc_F16
+	JSR	Fade_palette_to_black
+	JSR	Initialize_h32_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$8238, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.l	#$40200000, VDP_control_port
 	LEA	loc_39EF4, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$41400000, VDP_control_port
 	LEA	loc_39F68, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$4C800000, VDP_control_port
 	LEA	loc_573A8, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	MOVE.l	#$04440444, $FFFFE982.w
 	MOVE.l	#$0EEE0800, $FFFFE9A4.w
 	MOVE.l	#$04440EEE, $FFFFE9E0.w
@@ -18154,7 +18348,7 @@ loc_F3DE:
 	MOVE.w	#4, D1
 loc_F3EC:
 	MOVE.w	D6, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	#$000D, D2
 loc_F3FE:
@@ -18172,7 +18366,7 @@ loc_F414:
 	MOVE.w	#3, D1
 loc_F424:
 	MOVE.w	D6, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.w	#3, D2
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
@@ -18440,7 +18634,8 @@ loc_F736:
 	dc.b	$08
 	dc.b	$0C
 	dc.b	$08, $0D
-loc_F756:
+;Load_font_tiles_to_work_buffer
+Load_font_tiles_to_work_buffer:
 	LEA	$FFFFF6F0.w, A1
 	MOVE.w	#$0083, D0
 	LEA	loc_18C10, A2
@@ -18455,7 +18650,12 @@ loc_F770:
 	DBF	D0, loc_F770
 	RTS
 
-loc_F780:
+;Render_text_to_tilemap
+Render_text_to_tilemap:
+; Decodes a null-terminated ($FF) text string from A6 into the HUD tilemap
+; work buffer. Selects the Japanese or English row buffer depending on
+; English_flag. Tile base offset read from $FFFF905A.
+; Inputs:  A6 = text string pointer; English_flag selects buffer row layout
 	LEA	$FFFFF74A.w, A1
 	TST.w	English_flag.w
 	BEQ.b	loc_F78E
@@ -18527,12 +18727,12 @@ loc_F810:
 
 loc_F81C:
 	BSR.b	loc_F830
-	JSR	loc_778
+	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	RTS
 
 loc_F826:
 	BSR.b	loc_F830
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	RTS
 
 loc_F830:
@@ -18545,7 +18745,10 @@ loc_F842:
 	MOVE.w	#$0015, D6
 	RTS
 
-loc_F848:
+;Load_track_data_pointer
+Load_track_data_pointer:
+; Loads A1 with a pointer to the current track's entry in Track_data.
+; Uses Track_index for championship mode or Track_index_arcade_mode for arcade.
 	MOVE.w	Use_world_championship_tracks.w, D0
 	EORI.w	#1, D0
 	BEQ.b	loc_F860 ; jump if Use_world_championship_tracks == 1
@@ -21187,7 +21390,8 @@ loc_12FFE:
 	DBF	D0, loc_12FFE
 	RTS
 
-loc_13016:
+;Initialize_drivers_and_teams
+Initialize_drivers_and_teams:
 	LEA	Driver_points_by_team.w, A1
 	MOVE.w	#$000F, D0
 loc_1301E:
@@ -21317,7 +21521,7 @@ loc_1319E:
 	MOVE.l	$FFFFFF2A.w, D0
 	CMPI.l	#$0000D6E2, D0
 	BEQ.b	loc_131E8
-	CMPI.l	#loc_293C, D0
+	CMPI.l	#Title_menu, D0
 	BEQ.b	loc_131E2
 	CMPI.l	#loc_4FDC, D0
 	BEQ.b	loc_131DC
@@ -21387,7 +21591,7 @@ loc_13284:
 	MOVE.l	#loc_4FDC, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_1328E:
-	MOVE.l	#loc_293C, $FFFFFF2A.w
+	MOVE.l	#Title_menu, $FFFFFF2A.w
 	BRA.b	loc_132A0
 loc_13298:
 	MOVE.l	#loc_D6E2, $FFFFFF2A.w
@@ -21488,7 +21692,7 @@ Engine_data_offset_table:
 	dc.w	$005A
 	dc.w	$0078
 	dc.w	$0096
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	SUBQ.w	#1, $FFFFFC16.w
 	BCC.b	loc_13484
 	ADDQ.w	#1, $FFFFFC16.w
@@ -21617,22 +21821,22 @@ loc_1359A:
 	BNE.b	loc_135BE
 	CLR.l	(A0)
 loc_135BE:
-	JSR	loc_EF0
+	JSR	Queue_object_for_sprite_buffer
 	RTS
-	JSR	loc_75C4A
-	JSR	loc_8C0
+	JSR	Halt_audio_sequence
+	JSR	Fade_palette_to_black
 	MOVE.w	#$000F, $00FF5AC0
 	MOVE.w	#$0400, $FFFFE9E0.w
-	JSR	loc_396
-	JSR	loc_62E
-	JSR	loc_F16
+	JSR	Wait_for_vblank
+	JSR	Initialize_h40_vdp_state
+	JSR	Clear_main_object_pool
 	MOVE.w	#$8200, VDP_control_port
 	MOVE.w	#$8C81, VDP_control_port
 	MOVE.w	#$9003, VDP_control_port
 	MOVE.w	#$9200, VDP_control_port
 	MOVE.l	#$941F93FF, D6
 	MOVE.l	#$40000080, D7
-	JSR	loc_944
+	JSR	Start_vdp_dma_fill
 	LEA	$FFFF9D40.w, A1
 	MOVE.w	#$00E0, D0
 loc_1362C:
@@ -21641,10 +21845,10 @@ loc_1362C:
 	BSR.w	loc_13760
 	MOVE.l	#$5C200002, VDP_control_port
 	LEA	loc_6263A, A0
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	LEA	loc_6250E, A0
 	MOVE.w	#$64E1, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFEED8.w, A1
 	LEA	$FFFFEF5C.w, A2
 	MOVE.w	#$026C, D0
@@ -21678,7 +21882,7 @@ loc_13694:
 	MOVE.w	D1, $1A(A2)
 	DBF	D0, loc_13694
 	LEA	loc_19624, A6
-	JSR	loc_6DA
+	JSR	Copy_word_run_from_stream
 	LEA	loc_1379A, A1
 	LEA	$FFFFE9E2.w, A2
 	MOVE.w	#$000E, D0
@@ -21701,7 +21905,7 @@ loc_1372C:
 	MOVE.w	#$049C, $FFFFFC14.w
 	MOVE.w	#$020D, $FFFFFC16.w
 	ANDI	#$F8FF, SR
-	JSR	loc_396
+	JSR	Wait_for_vblank
 	MOVE.w	#1, $FFFFFC2A.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -21719,9 +21923,9 @@ loc_13764:
 	MOVE.w	D0, D1
 	MULS.w	#$0800, D1
 	ADD.w	D1, D7
-	JSR	loc_8AE
+	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
-	JSR	loc_972
+	JSR	Decompress_to_vdp
 	DBF	D0, loc_13764
 	RTS
 loc_1379A:
@@ -21737,7 +21941,7 @@ loc_137CE:
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
 	ORI	#$0700, SR
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC03.w
 	RTS
@@ -21788,7 +21992,7 @@ loc_13858:
 
 loc_1387E:
 	ADD.w	D1, D0
-	JSR	loc_AB0
+	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFEA00.w, A6
 	CMPI.w	#$00F0, $FFFFBB56.w
 	BCC.b	loc_138A0
@@ -21799,7 +22003,7 @@ loc_13896:
 	LEA	$FFFFEA00.w, A6
 loc_138A0:
 	ORI	#$0700, SR
-	JSR	loc_770
+	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
 	RTS
 
@@ -21815,9 +22019,9 @@ loc_138C6:
 	MOVE.w	(A6)+, (A1)+
 	DBF	D0, loc_138C6
 	RTS
-	JSR	loc_744
+	JSR	Upload_h40_tilemap_buffer_to_vram
 	JSR	Update_input_bitset
-	JSR	loc_6F0
+	JSR	Upload_palette_buffer_to_cram
 	SUBQ.b	#1, $FFFFFC02.w
 	BNE.b	loc_138F2
 	BSET.b	#0, $FFFFFC06.w
@@ -21838,7 +22042,7 @@ loc_138F2:
 	BEQ.w	loc_13930
 	RTS
 loc_13930:
-	JSR	loc_D5C
+	JSR	Update_objects_and_build_sprite_buffer
 	RTS
 loc_13938:
 	dc.l	loc_13968
@@ -41941,17 +42145,25 @@ loc_73DEA:
 	dc.b	$F6, $FA, $DB, $2C, $72, $72, $32, $32, $1F, $16, $1F, $1F, $00, $0F, $00, $0F, $00, $09, $00, $09, $06, $36, $06, $36, $15, $80, $14, $80, $2C, $26, $26, $23
 	dc.b	$23, $1F, $15, $1F, $14, $10, $10, $12, $09, $03, $03, $03, $03, $4F, $4F, $4F, $4F, $15, $90, $14, $80, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $33, $C0, $00, $FF, $5A, $E0, $80, $40, $4E, $75
-loc_75C4A:
+;Halt_audio_sequence
+Halt_audio_sequence:
+; Stops the current audio sequence by writing the halt flag ($8000) to the
+; sequence timer field of the audio engine state struct at $FF5AC0+$22.
+; Also sets Z based on D0 so callers can branch if needed.
 	MOVE.w	#$8000, $00FF5AE2
 	OR.w	D0, D0
 	RTS
 
-loc_75C56:
+;Trigger_music_mode_1
+Trigger_music_mode_1:
+; Triggers audio playback with mode byte 1 to the audio engine control field.
 	MOVE.b	#1, $00FF5AE4
 	OR.w	D0, D0
 	RTS
 
-loc_75C62:
+;Trigger_music_playback
+Trigger_music_playback:
+; Triggers audio playback with mode byte $80 to the audio engine control field.
 	MOVE.b	#$80, $00FF5AE4
 	OR.w	D0, D0
 	RTS
@@ -41996,7 +42208,7 @@ loc_75CE6:
 	MOVE.w	#0, $2(A6)
 	MOVE.b	D0, (A4)
 	LEA	$00A01FB7, A3
-	JSR	loc_761D8(PC)
+	JSR	Write_byte_to_z80_ram(PC)
 loc_75CF8:
 	JSR	loc_7620E(PC)
 	MOVE.w	$20(A6), D0
@@ -42012,13 +42224,13 @@ loc_75CF8:
 	ADDI.w	#$0080, D0
 	MOVE.b	D0, (A4)
 	LEA	$00A01C09, A3
-	JSR	loc_761D8(PC)
+	JSR	Write_byte_to_z80_ram(PC)
 loc_75D30:
 	MOVE.w	$6(A6), D0
 	ANDI.w	#1, D0
 	MOVE.b	D0, (A4)
 	LEA	$00A01FB3, A3
-	JSR	loc_761D8(PC)
+	JSR	Write_byte_to_z80_ram(PC)
 	LSR.w	#1, D0
 	BCS.b	loc_75D4A
 loc_75D48:
@@ -42053,7 +42265,7 @@ loc_75D74:
 	BSET.b	#0, $1E(A6)
 	MOVE.b	#7, (A4)
 	LEA	$00A01FB7, A3
-	JSR	loc_761D8(PC)
+	JSR	Write_byte_to_z80_ram(PC)
 	BRA.b	loc_75DCA
 loc_75DB2:
 	MOVE.w	#$0100, $16(A6)
@@ -42107,14 +42319,14 @@ loc_75E2A:
 	MOVEA.l	A4, A5
 	MOVE.w	$1A(A6), D0
 	MOVE.w	D0, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.w	D0, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.w	D0, D1
 	ADDI.w	#$0600, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.w	D0, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.w	$18(A6), D1
 	BTST.b	#0, $1E(A6)
 	BEQ.b	loc_75E6E
@@ -42148,7 +42360,7 @@ loc_75EA0:
 	ADDI.w	#$0040, D0
 	ADD.w	D0, D1
 loc_75EA8:
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.b	D1, D4
 	MOVE.b	D2, D5
 	MOVE.w	$18(A6), D1
@@ -42196,10 +42408,10 @@ loc_75F06:
 	MOVE.w	$A(A6), D1
 	BSR.w	loc_75FC6
 	MOVE.w	D4, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.b	D6, (A5)+
 	MOVE.w	D5, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.b	D7, (A5)+
 	BRA.b	loc_75F4C
 loc_75F40:
@@ -42224,10 +42436,10 @@ loc_75F58:
 	MOVE.w	$E(A6), D1
 	BSR.w	loc_75FC6
 	MOVE.w	D4, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.b	D6, (A5)+
 	MOVE.w	D5, D1
-	BSR.w	loc_7601C
+	BSR.w	Encode_z80_note
 	MOVE.b	D7, (A5)+
 	BRA.b	loc_75F9E
 loc_75F92:
@@ -42273,7 +42485,8 @@ loc_75FEA:
 	RTS
 loc_75FFC:
 	dc.b	$00, $00, $00, $04, $00, $08, $00, $0C, $00, $10, $00, $14, $00, $18, $00, $1C, $00, $00, $04, $00, $08, $00, $0C, $00, $10, $00, $14, $00, $18, $00, $1C, $00
-loc_7601C:
+;loc_7601C
+Encode_z80_note:
 	MOVE.w	D1, D3
 	LSR.w	#8, D1
 	LEA	loc_76056(PC), A1
@@ -42321,18 +42534,19 @@ loc_76176:
 	MOVE.l	D0, $28(A6)
 	MOVE.b	#$80, (A4)
 	LEA	$00A01FB7, A3
-	JSR	loc_761D8(PC)
+	JSR	Write_byte_to_z80_ram(PC)
 	MOVE.b	#$C0, (A4)
 	LEA	$00A01C09, A3
-	BRA.b	loc_761D8
+	BRA.b	Write_byte_to_z80_ram
 loc_761C4:
 	MOVE.b	D0, (A4)
 	MOVEQ	#0, D0
 	MOVE.b	D0, $24(A6)
 	LEA	$00A01C10, A3
-	BRA.b	loc_761D8
+	BRA.b	Write_byte_to_z80_ram
 	dc.b	$7E, $01, $60, $02
-loc_761D8:
+;Write_byte_to_z80_ram
+Write_byte_to_z80_ram:
 	MOVEQ	#0, D7
 
 loc_761DA:
@@ -42403,7 +42617,7 @@ loc_7628A:
 	ADDI.w	#$009F, D0
 	MOVE.b	D0, (A4)
 	LEA	$00A01C09, A3
-	JSR	loc_761D8(PC)
+	JSR	Write_byte_to_z80_ram(PC)
 loc_762A2:
 	MOVE.w	#0, $20(A6)
 	RTS
