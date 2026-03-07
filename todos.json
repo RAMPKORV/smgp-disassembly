@@ -431,7 +431,8 @@
           ],
           "priority": "critical",
           "effort": "large",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Identified all 68K-side audio write sites (Audio_music_cmd and Audio_sfx_cmd). Defined Music_* constants for all 13 song IDs (credits, pre-race, race results, title, race, game over, team select, championship start/next/next_special/result_overlay/rival_encounter/final) and Sfx_* constants for known SFX IDs ($02 cursor, $04 countdown, $05 start go, $06 checkpoint, $0B thud, $0E confirm, $10 asphalt, $11 rough, $12 gravel, $1B demo transition). Replaced all 39 raw $00FF5AE0/$00FF5AC0 writes in smgp.asm with symbolic names and comments. Also replaced LEA $00FF5AC0/$00FF5AF0 in Update_audio_engine with Audio_engine_state/Audio_engine_scratch. Build verified bit-perfect."
         },
         {
           "id": "AUDIO-002",
@@ -443,7 +444,8 @@
           ],
           "priority": "critical",
           "effort": "medium",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Documented Z80 bus arbitration protocol across all 4 sites (Load_z80_driver, Update_input_bitset, Send_D567_to_VDP, Write_byte_to_z80_ram). Added protocol header comments to each site. Renamed loc_75C6E -> Update_audio_engine with full 8-step per-frame update description. Added Z80_reset=$A11200 and Z80_ram=$A00000 to constants.asm hardware section. Added full Audio engine state struct section with all known fields. Added Z80_audio_* communication address constants. Replaced raw $00FF5AE2/$00FF5AE4 literals with Audio_seq_timer/Audio_ctrl_mode in Halt_audio_sequence, Trigger_music_mode_1, Trigger_music_playback. Build verified bit-perfect."
         },
         {
           "id": "AUDIO-003",

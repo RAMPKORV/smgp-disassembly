@@ -254,7 +254,7 @@ Vertical_blank_interrupt:
 	JSR	(A0) ; =Practice_mode_vblank_handler in practice mode
 loc_3C4:
 	ANDI	#$F8FF, SR
-	JSR	loc_75C6E
+	JSR	Update_audio_engine
 	ADDQ.w	#1, Vblank_counter.w
 	MOVEM.l	(A7)+, D0-D7/A0-A6
 	RTE
@@ -297,6 +297,22 @@ Load_startup_graphics:
 
 ;loc_46A:
 Load_z80_driver:
+; Copy the Z80 sound driver code from Z80_data (ROM) to Z80 RAM ($A00000),
+; then release bus control to let the Z80 execute the freshly loaded driver.
+;
+; Protocol:
+;   1. Write $0100 to Z80_bus_request ($A11100) to request 68K ownership of Z80 bus.
+;   2. Reset_z80 asserts Z80 /RESET ($A11200 = $0000) then releases it ($0100) to
+;      ensure the Z80 is in a known idle state before the 68K writes to its RAM.
+;   3. Copy $1C10 bytes from Z80_data to Z80 RAM at $A00000.
+;   4. Reset_z80 again to force the Z80 to start executing from address $0000 in its
+;      freshly loaded RAM.
+;   5. Write $0000 to Z80_bus_request to release the bus, letting the Z80 run.
+;   6. Fall through to Halt_audio_sequence to initialise the audio sequence timer.
+;
+; The Z80 driver code is a complete sound driver that handles YM2612 FM synthesis
+; and PSG tone generation.  Once loaded, the 68K communicates with it solely by
+; writing command bytes to specific Z80 RAM locations via Write_byte_to_z80_ram.
 	MOVE.w	#$0100, Z80_bus_request
 	BSR.b	Reset_z80
 	LEA	Z80_data, A5
@@ -311,6 +327,15 @@ loc_484:
 
 ;loc_49A:
 Reset_z80:
+; Assert and then release the Z80 hardware reset line.
+;
+; Write $0000 to Z80_reset ($A11200) to pull /RESET low, hold for ~14 NOPs
+; (sufficient setup time), then write $0100 to release /RESET.  After release
+; the Z80 will start (or re-start) execution from address $0000 in its RAM.
+;
+; NOTE: The 68K must already hold Z80_bus_request ($A11100 = $0100) before
+; calling this routine; the Z80 bus must not be released between the reset
+; assertion and the data copy that follows in Load_z80_driver.
 	MOVE.w	#0, $00A11200
 	MOVEQ	#$0000000D, D0
 loc_4A4:
@@ -405,6 +430,16 @@ loc_58A:
 
 ;loc_5A6
 Update_input_bitset:
+; Read both controllers and update Input_state_bitset / Input_click_bitset.
+;
+; The controller data port ($A10003, $A10005) is on the 68K address bus, but
+; the bus arbitration sequence (request Z80 bus, wait for grant) is required
+; before accessing $A1xxxx ports because the Z80 also asserts the bus during
+; its interrupt service.  The 68K holds Z80_bus_request while reading the
+; two controller ports, then releases it immediately afterward.
+;
+; Outputs: Input_state_bitset (byte) = active-high button bits after NOT/EOR
+;          Input_click_bitset  (byte) = bits that changed to pressed this frame
 	MOVE.w	#$0100, Z80_bus_request
 	BTST.b	#0, Z80_bus_request
 	BNE.b	Update_input_bitset
@@ -771,6 +806,20 @@ loc_910:
 
 ;loc_914:
 Send_D567_to_VDP:
+; Write three pre-packed VDP control longwords (D5, D6, D7) to the VDP control
+; port, followed by the cached DMA setup word (Vdp_dma_setup) and one extra
+; control word from $FFFFFF0A.
+;
+; Bus arbitration: the VDP control port ($C00004) and the Z80 address space
+; ($A00000-$A0FFFF) both reside on the 68K expansion bus.  Writing to the VDP
+; while the Z80 also drives the bus causes bus contention.  This routine
+; therefore requests Z80 bus ownership before every write sequence and releases
+; it when done.  The spin-wait on bit 0 of Z80_bus_request blocks until the
+; Z80 has acknowledged the request and tri-stated its outputs.
+;
+; Inputs: D5.l, D6.l = VDP address/command longwords
+;         D7.w       = third VDP control word
+;         Vdp_dma_setup.w = DMA command longword (low word)
 	MOVE.w	#$0100, Z80_bus_request
 	BTST.b	#0, Z80_bus_request
 	BNE.b	Send_D567_to_VDP
@@ -3444,7 +3493,7 @@ loc_290E:
 	MOVE.l	#Race_preview_screen_init, Frame_callback.w
 	RTS
 loc_2918:
-	MOVE.w	#9, $00FF5AC0
+	MOVE.w	#Music_team_select, Audio_music_cmd ; team / driver select music
 loc_2920:
 	CLR.l	$FFFFBD00.w
 	CLR.l	$FFFFBD40.w
@@ -3552,7 +3601,7 @@ loc_2B20:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song = Music_title_screen (6)
 	CLR.w	Selection_count.w
 	JSR	Trigger_music_playback
 	MOVE.w	#1, Vblank_enable.w
@@ -3771,7 +3820,7 @@ loc_2E68:
 	BNE.b	loc_2E94
 	CMPI.w	#3, Title_menu_state.w
 	BNE.b	loc_2E80
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#$000E, Audio_sfx_cmd       ; Sfx_menu_confirm
 loc_2E80:
 	CMPI.w	#8, Title_menu_cursor.w
 	BEQ.b	loc_2E8E
@@ -3783,7 +3832,7 @@ loc_2E8E:
 loc_2E94:
 	CMPI.w	#3, Title_menu_state.w
 	BNE.b	loc_2EA4
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#$000E, Audio_sfx_cmd       ; Sfx_menu_confirm
 loc_2EA4:
 	MOVE.w	Title_menu_cursor.w, D0
 	BEQ.b	loc_2EB0
@@ -3805,7 +3854,7 @@ loc_2ED4:
 	MOVE.b	#$FF, D0
 	BRA.w	Update_title_menu_state
 loc_2EE2:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#$000E, Audio_sfx_cmd       ; Sfx_menu_confirm
 	CLR.b	Screen_subcounter.w
 	BSR.w	Render_title_car_indicator_tile
 	CMPI.w	#3, Title_menu_state.w
@@ -3815,7 +3864,7 @@ loc_2EE2:
 loc_2F00:
 	CMPI.w	#3, Title_menu_state.w
 	BEQ.b	loc_2F10
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#$000E, Audio_sfx_cmd       ; Sfx_menu_confirm
 loc_2F10:
 	CLR.b	Screen_subcounter.w
 	BSR.w	Render_title_car_indicator_tile
@@ -3830,7 +3879,7 @@ loc_2F24:
 loc_2F2E:
 	CMPI.w	#3, Title_menu_state.w
 	BEQ.b	loc_2F3E
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#$000E, Audio_sfx_cmd       ; Sfx_menu_confirm
 loc_2F3E:
 	CLR.b	Screen_subcounter.w
 	BSR.w	Render_title_car_indicator_tile
@@ -4011,7 +4060,7 @@ Options_setup_frame:
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.w	Options_cursor_update.w, D0
 	BEQ.b	loc_321A
-	MOVE.w	D0, $00FF5AE0
+	MOVE.w	D0, Audio_sfx_cmd           ; Options_cursor_update → SFX (Sfx_menu_cursor = 2)
 	CLR.w	Options_cursor_update.w
 loc_321A:
 	TST.w	Screen_scroll.w
@@ -4062,7 +4111,7 @@ loc_32AE:
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVEQ	#2, D0
 	MOVE.w	D0, Options_cursor_update.w
-	MOVE.w	D0, $00FF5AE0
+	MOVE.w	D0, Audio_sfx_cmd           ; Sfx_menu_cursor (2)
 	MOVE.w	#$002D, Screen_scroll.w
 loc_32CA:
 	RTS
@@ -4140,7 +4189,7 @@ loc_3360:
 	MOVE.l	#$000003D8, Vblank_callback.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song selection (context-dependent)
 	CLR.w	Selection_count.w
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
@@ -4454,7 +4503,7 @@ loc_385C:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank(PC)
 	JSR	Wait_for_vblank(PC)
-	MOVE.w	Options_cursor_update.w, $00FF5AC0
+	MOVE.w	Options_cursor_update.w, Audio_music_cmd ; song = $10 (race music on) or 0 (silent)
 	CLR.w	Practice_vblank_step.w
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8014, VDP_control_port
@@ -5226,7 +5275,7 @@ loc_43A4:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#5, $00FF5AC0
+	MOVE.w	#Music_race_results, Audio_music_cmd ; race finish results screen music
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -5669,7 +5718,7 @@ loc_49CA:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#3, $00FF5AC0
+	MOVE.w	#Music_pre_race, Audio_music_cmd    ; pre-race briefing music
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -6223,7 +6272,7 @@ loc_503A:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#3, $00FF5AC0
+	MOVE.w	#Music_pre_race, Audio_music_cmd    ; pre-race briefing music (championship)
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -6597,7 +6646,7 @@ loc_578E:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song = Music_championship_start (14)
 	CLR.w	Selection_count.w
 	JSR	Trigger_music_playback
 	MOVE.w	#1, Vblank_enable.w
@@ -10117,7 +10166,7 @@ loc_8082:
 	SUBQ.w	#1, $1C(A0)
 	BPL.b	loc_80AE
 	MOVE.w	#4, $1C(A0)
-	MOVE.w	#6, $00FF5AE0
+	MOVE.w	#Sfx_checkpoint, Audio_sfx_cmd      ; checkpoint / lap event SFX
 loc_80AE:
 	SUBQ.w	#1, $36(A0)
 	BNE.b	loc_80C2
@@ -10477,7 +10526,7 @@ loc_843E:
 	MOVE.w	D1, $FFFFFCAE.w
 	TST.w	Retire_flag.w
 	BNE.b	loc_8456
-	MOVE.w	#6, $00FF5AE0
+	MOVE.w	#Sfx_checkpoint, Audio_sfx_cmd      ; checkpoint / lap event SFX
 loc_8456:
 	TST.w	$FFFFFC8C.w
 	BEQ.b	loc_8464
@@ -12449,6 +12498,32 @@ loc_9AB2:
 
 ;loc_9AC4
 Update_engine_and_tire_sounds:
+; Update the 68K audio engine state for engine and tyre sounds.
+; Called once per Race_loop frame (step 24).
+;
+; This routine writes to the 68K-side audio engine state struct at
+; Audio_engine_state ($FF5AC0) to update engine pitch and road-surface SFX.
+; The actual Z80 writes happen separately in Update_audio_engine (called from
+; the VBI handler, loc_3C4) after the state has been updated here.
+;
+; Outputs written to audio engine struct (via absolute addresses):
+;   Audio_engine_speed ($FF5AC4):  scaled Player_rpm for engine pitch calculation
+;   Audio_engine_flags ($FF5AC6):  incremented to indicate engine-sound cycle
+;   Audio_engine_vol_ch1 ($FF5AC8): $00FF = silence engine channel 1
+;   Audio_engine_vol_ch2 ($FF5ACC): $00FF = silence engine channel 2
+;   Audio_sfx_cmd ($FF5AE0):       SFX command byte for road surface / tyre sound
+;
+; Engine sound logic:
+;   - If Practice_flag = 0 (not in race): silence both channels (vol = $00FF).
+;   - If Race_finish_flag set: silence both channels.
+;   - Otherwise: write Player_rpm (or Visual_rpm pre-race) to Audio_engine_speed.
+;     Update_audio_engine will then compute YM2612 pitch from this value.
+;
+; Tyre/road sound logic (loc_9B1E onward):
+;   Determines which road-surface SFX to play based on Road_marker_state and
+;   Player_speed.  Writes an SFX ID (0=$0010 asphalt, 1=$0011 rough, 2=$0012 gravel,
+;   $0B=collision thud) to Audio_sfx_cmd.  The ID is picked up by Update_audio_engine
+;   and forwarded to the Z80 as a sound-effect trigger byte.
 	TST.w	Practice_flag.w
 	BNE.b	loc_9ADC
 loc_9ACA:
@@ -12525,11 +12600,11 @@ loc_9B80:
 	MOVE.w	#5, $FFFFFC4E.w
 	MOVEQ	#$0000000B, D0
 loc_9B8E:
-	MOVE.w	D0, $00FF5AE0
+	MOVE.w	D0, Audio_sfx_cmd       ; send SFX ID to audio engine
 loc_9B94:
 	MOVE.w	Overtake_flag.w, D0
 	BEQ.b	loc_9BA4
-	MOVE.w	D0, $00FF5AE0
+	MOVE.w	D0, Audio_sfx_cmd       ; send overtake SFX ID to audio engine
 	CLR.w	Overtake_flag.w
 loc_9BA4:
 	LEA	$00FF5AC8, A4
@@ -12702,7 +12777,7 @@ loc_9E26:
 	MOVE.w	#$FFE2, $2C(A0)
 	MOVE.w	#$0180, $2E(A0)
 	MOVE.w	#$0082, $22(A0)
-	MOVE.w	#7, $00FF5AC0
+	MOVE.w	#Music_race, Audio_music_cmd        ; in-race background music
 	TST.w	$FFFFFCBC.w
 	BEQ.b	loc_9E52
 	MOVE.w	#$00A0, $22(A0)
@@ -13292,7 +13367,7 @@ loc_A716:
 	BNE.b	loc_A764
 	TST.w	Practice_flag.w
 	BEQ.b	loc_A72A
-	MOVE.w	#4, $00FF5AE0
+	MOVE.w	#Sfx_pre_race_countdown, Audio_sfx_cmd ; pre-race countdown SFX (practice mode)
 loc_A72A:
 	MOVE.w	#$0014, $2C(A0)
 	MOVE.l	#loc_A738, (A0)
@@ -13302,7 +13377,7 @@ loc_A738:
 	BNE.b	loc_A76A
 	TST.w	Practice_flag.w
 	BEQ.b	loc_A74C
-	MOVE.w	#5, $00FF5AE0
+	MOVE.w	#Sfx_race_start_go, Audio_sfx_cmd   ; race start "go" SFX (practice mode)
 loc_A74C:
 	MOVE.w	#1, Race_started.w
 	MOVE.w	#$0028, $2C(A0)
@@ -14500,7 +14575,7 @@ loc_B674:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.b	loc_B6C8
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$0C, D0
 	BEQ.b	loc_B6A0
 	BSR.w	loc_B734
@@ -14575,7 +14650,7 @@ loc_B7B4:
 	RTS
 loc_B7CE:
 	MOVE.l	#$0000E600, Frame_callback.w
-	MOVE.w	#$0011, $00FF5AC0
+	MOVE.w	#Music_rival_encounter, Audio_music_cmd ; rival team encounter music
 	RTS
 loc_B7E0:
 	MOVE.b	Rival_team.w, D0
@@ -14647,9 +14722,9 @@ loc_B8BA:
 	JSR	Halt_audio_sequence
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#$001B, $00FF5AE0
+	MOVE.w	#Sfx_demo_transition, Audio_sfx_cmd ; screen-transition sound
 	JSR	Wait_for_vblank
-	MOVE.w	#$001B, $00FF5AE0
+	MOVE.w	#Sfx_demo_transition, Audio_sfx_cmd ; repeat next frame
 	MOVEQ	#6, D0
 loc_B8E4:
 	LEA	$FFFFE9A0.w, A0
@@ -14753,7 +14828,7 @@ loc_BA12:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.w	loc_BA6C
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$0C, D0
 	BEQ.b	loc_BA3C
 	BSR.w	loc_BAD8
@@ -14951,7 +15026,7 @@ loc_BD26:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#$000C, $00FF5AC0
+	MOVE.w	#Music_race_result_overlay, Audio_music_cmd ; race result overlay music
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -14990,7 +15065,7 @@ loc_BDE0:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song = Music_championship_next (13) or Music_championship_next_special (11)
 	CLR.w	Selection_count.w
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
@@ -15063,7 +15138,7 @@ loc_BF08:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song selection
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -15975,7 +16050,7 @@ loc_CB60:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F3, D0
 	BEQ.b	loc_CBAA
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$F0, D0
 	BNE.b	loc_CB84
 	CLR.b	$FFFFFC19.w
@@ -16285,7 +16360,7 @@ loc_CFA4:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.w	loc_CFFE
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$0C, D0
 	BNE.w	loc_CFF0
 	BTST.b	#KEY_B, Input_click_bitset.w
@@ -16950,7 +17025,7 @@ loc_D940:
 	MOVE.l	(A2)+, $7C(A1)
 	MOVE.l	#Game_over_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song selection (game over path)
 	CLR.w	Selection_count.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
@@ -16991,7 +17066,7 @@ loc_DA5A:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#8, $00FF5AC0
+	MOVE.w	#Music_game_over, Audio_music_cmd   ; game over screen music
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -17129,7 +17204,7 @@ loc_DCF2:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	#2, $00FF5AC0
+	MOVE.w	#Music_credits, Audio_music_cmd     ; credits scroll music
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	CMPI.b	#$70, Input_state_bitset.w ; Keys A+B+C
@@ -17458,7 +17533,7 @@ loc_E1EE:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
-	MOVE.w	Options_cursor_update.w, $00FF5AC0
+	MOVE.w	Options_cursor_update.w, Audio_music_cmd ; song = $10 (race music on) or 0 (silent)
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
@@ -17681,7 +17756,7 @@ loc_E55E:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E3, D0
 	BEQ.b	loc_E5AC
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$E0, D0
 	BNE.b	loc_E584
 	CLR.b	Menu_cursor.w
@@ -17825,7 +17900,7 @@ loc_E7CC:
 loc_E7F8:
 	RTS
 loc_E7FA:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.b	#$18, Screen_timer.w
 	BEQ.w	loc_E8A4
 	CLR.w	D0
@@ -17839,7 +17914,7 @@ loc_E7FA:
 	MOVE.l	#$0000D2B0, Frame_callback.w
 	RTS
 loc_E838:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	MOVE.b	Screen_timer.w, D0
 	SUBQ.b	#1, D0
 	ANDI.b	#7, D0
@@ -17847,7 +17922,7 @@ loc_E838:
 	ADD.b	D0, Screen_timer.w
 	RTS
 loc_E856:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.b	#$0F, Screen_timer.w
 	BEQ.b	loc_E884
 	CMPI.b	#$18, Screen_timer.w
@@ -17865,7 +17940,7 @@ loc_E88C:
 	MOVE.b	#8, Screen_timer.w
 	RTS
 loc_E894:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	EORI.b	#8, Screen_timer.w
 	RTS
 loc_E8A4:
@@ -17983,7 +18058,7 @@ loc_EA58:
 	MOVE.w	D1, VDP_data_port
 	DBF	D0, loc_EA58
 	ANDI	#$F8FF, SR
-	MOVE.w	Selection_count.w, $00FF5AC0
+	MOVE.w	Selection_count.w, Audio_music_cmd ; song selection (options screen)
 	CLR.w	Selection_count.w
 	JSR	Wait_for_vblank
 	MOVE.w	#1, Vblank_enable.w
@@ -18017,7 +18092,7 @@ loc_EAA0:
 loc_EAE2:
 	RTS
 loc_EAE4:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.b	Screen_scroll.w
 	BSR.w	Draw_conditional_overlay_tile
 	TST.w	Screen_timer.w
@@ -18028,7 +18103,7 @@ loc_EB00:
 	MOVE.w	#6, Screen_timer.w
 	RTS
 loc_EB08:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.b	Screen_scroll.w
 	BSR.w	Draw_conditional_overlay_tile
 	CMPI.w	#6, Screen_timer.w
@@ -18122,7 +18197,7 @@ loc_EC0C:
 loc_EC2C:
 	MOVE.w	Temp_x_pos.w, D0
 	ADDQ.w	#1, D0
-	MOVE.w	D0, $00FF5AC0
+	MOVE.w	D0, Audio_music_cmd         ; song = Temp_x_pos + 1 (options scroll music)
 	RTS
 loc_EC3A:
 	MOVE.b	Input_click_bitset.w, D0
@@ -18157,7 +18232,7 @@ loc_EC98:
 	MOVE.w	Temp_distance.w, D0
 	CLR.w	D1
 	MOVE.b	(A1,D0.w), D1
-	MOVE.w	D1, $00FF5AE0
+	MOVE.w	D1, Audio_sfx_cmd           ; SFX looked up by Temp_distance from table
 	RTS
 loc_ECB0:
 	MOVE.b	Input_click_bitset.w, D0
@@ -18285,7 +18360,7 @@ loc_EE88:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F3, D0
 	BEQ.b	loc_EF02
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$F0, D0
 	BNE.b	loc_EEAC
 	CLR.b	Screen_data_ptr.w
@@ -18360,7 +18435,7 @@ loc_EF5C:
 	BNE.b	loc_EFD2
 	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BNE.b	loc_EFEE
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	MOVE.w	Screen_timer.w, D0
 	BEQ.b	loc_EFAE
 	SUBQ.w	#1, Screen_timer.w
@@ -18369,7 +18444,7 @@ loc_EFAE:
 	MOVE.w	#$000D, Screen_timer.w
 	RTS
 loc_EFB6:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	MOVE.w	Screen_tick.w, D0
 	BEQ.b	loc_EFCA
 	SUBQ.w	#1, Screen_tick.w
@@ -18378,7 +18453,7 @@ loc_EFCA:
 	MOVE.w	#4, Screen_tick.w
 	RTS
 loc_EFD2:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.w	#4, Screen_tick.w
 	BEQ.b	loc_EFE8
 	ADDQ.w	#1, Screen_tick.w
@@ -18387,7 +18462,7 @@ loc_EFE8:
 	CLR.w	Screen_tick.w
 	RTS
 loc_EFEE:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.w	#$000D, Screen_timer.w
 	BEQ.b	loc_F004
 	ADDQ.w	#1, Screen_timer.w
@@ -18436,7 +18511,7 @@ loc_F03E:
 	MOVE.w	#$000D, Screen_timer.w
 	MOVE.w	#4, Screen_tick.w
 loc_F0A0:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	CMPI.w	#$000F, Screen_scroll.w
@@ -18450,7 +18525,7 @@ loc_F0BE:
 	CLR.w	Screen_scroll.w
 	RTS
 loc_F0D2:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	MOVE.w	Screen_scroll.w, D0
@@ -18464,7 +18539,7 @@ loc_F0EE:
 	MOVE.w	#$000F, Screen_scroll.w
 	RTS
 loc_F102:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	MOVE.w	$FFFFFC06.w, D0
@@ -18473,7 +18548,7 @@ loc_F102:
 loc_F11C:
 	RTS
 loc_F11E:
-	MOVE.w	#$000E, $00FF5AE0
+	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	CMPI.w	#3, $FFFFFC06.w
@@ -18504,7 +18579,7 @@ loc_F13C:
 loc_F182:
 	RTS
 loc_F184:
-	MOVE.w	#$001B, $00FF5AE0
+	MOVE.w	#Sfx_demo_transition, Audio_sfx_cmd ; screen-transition sound
 	LEA	loc_F1B6, A1
 	MOVE.w	#4, D0
 loc_F196:
@@ -22010,7 +22085,7 @@ Endgame_sequence_frame:
 	BTST.b	#5, $FFFFFC06.w
 	BNE.b	loc_13464
 	BSET.b	#5, $FFFFFC06.w
-	MOVE.w	#$0011, $00FF5AC0
+	MOVE.w	#Music_rival_encounter, Audio_music_cmd ; rival team encounter music
 loc_13464:
 	TST.l	$FFFFBB40.w
 	BNE.b	loc_13472
@@ -22129,7 +22204,7 @@ loc_135BE:
 Championship_final_init:
 	JSR	Halt_audio_sequence
 	JSR	Fade_palette_to_black
-	MOVE.w	#$000F, $00FF5AC0
+	MOVE.w	#Music_championship_final, Audio_music_cmd ; championship final ending music
 	MOVE.w	#$0400, $FFFFE9E0.w
 	JSR	Wait_for_vblank
 	JSR	Initialize_h40_vdp_state
@@ -42453,30 +42528,69 @@ loc_73DEA:
 	dc.b	$FF, $33, $C0, $00, $FF, $5A, $E0, $80, $40, $4E, $75
 ;Halt_audio_sequence
 Halt_audio_sequence:
-; Stops the current audio sequence by writing the halt flag ($8000) to the
-; sequence timer field of the audio engine state struct at $FF5AC0+$22.
-; Also sets Z based on D0 so callers can branch if needed.
-	MOVE.w	#$8000, $00FF5AE2
+; Stop the current audio sequence immediately.
+; Writes the halt sentinel ($8000) to Audio_seq_timer (Audio_engine_state+$22).
+; The per-frame Update_audio_engine routine treats a negative sequence timer as
+; the halted state and performs a full channel reset at loc_76176.
+; OR.w D0,D0 sets Z so callers can test for silence/ready state.
+	MOVE.w	#$8000, Audio_seq_timer
 	OR.w	D0, D0
 	RTS
 
 ;Trigger_music_mode_1
 Trigger_music_mode_1:
-; Triggers audio playback with mode byte 1 to the audio engine control field.
-	MOVE.b	#1, $00FF5AE4
+; Trigger audio playback in mode 1.
+; Writes byte $01 to Audio_ctrl_mode (Audio_engine_state+$24 / $FF5AE4).
+; The Update_audio_engine routine reads this byte each frame; when non-zero it
+; dispatches the pending per-channel command (loc_761C4) and clears the latch.
+; OR.w D0,D0 preserves D0 for the caller.
+	MOVE.b	#1, Audio_ctrl_mode
 	OR.w	D0, D0
 	RTS
 
 ;Trigger_music_playback
 Trigger_music_playback:
-; Triggers audio playback with mode byte $80 to the audio engine control field.
-	MOVE.b	#$80, $00FF5AE4
+; Trigger standard music playback.
+; Writes byte $80 to Audio_ctrl_mode (Audio_engine_state+$24 / $FF5AE4).
+; Mode $80 causes Update_audio_engine to latch the music command from
+; Audio_music_cmd (+$00) and send it to the Z80 as a song-start byte
+; ($80 + song_id) via Z80_audio_music_cmd ($A01C09).
+; OR.w D0,D0 preserves D0 for the caller.
+	MOVE.b	#$80, Audio_ctrl_mode
 	OR.w	D0, D0
 	RTS
 
-loc_75C6E:
-	LEA	$00FF5AC0, A6
-	LEA	$00FF5AF0, A4
+;loc_75C6E
+Update_audio_engine:
+; Per-frame audio engine update routine called from Race_loop (step 24).
+; Updates the 68K-side audio engine state struct at Audio_engine_state ($FF5AC0)
+; and sends encoded note/command data to the Z80 sound driver via Z80 RAM writes.
+;
+; Inputs (from Audio_engine_state struct, A6 = $FF5AC0 on entry):
+;   +$00 .w  music command latch    – non-zero = pending song change
+;   +$02 .w  music mode             – bits 0-3 control active audio mode
+;   +$04 .w  engine speed           – scaled player speed for pitch calculation
+;   +$06 .w  channel flags          – bit 0 = engine channel active
+;   +$1E .b  engine flags           – bit 0 = rev-up screech; bit 1 = fade-in
+;
+; A4 = $FF5AF0 (Audio_engine_scratch, 12-byte note data scratch buffer)
+;
+; Per-frame update sequence:
+;   1. Increment frame counter (+$1C).
+;   2. Count down fade-in/out counter (+$12); suppress pitch writes while non-zero.
+;   3. Count down sequence timer (+$22):
+;        - positive → decrement and return (wait for next step)
+;        - zero     → process next sequence step (loc_75C9C)
+;        - negative ($8000) → halted; reset all channels (loc_76176)
+;   4. If Audio_ctrl_mode (+$24) is non-zero → dispatch pending command (loc_761C4).
+;   5. Process music mode bits from +$02 (silence, send music cmd, etc.).
+;   6. Write channel-enable byte to Z80 via Write_byte_to_z80_ram → Z80_audio_pitch_sfm.
+;   7. If engine channel active: compute YM pitch from speed/shift/RPM, encode
+;      note bytes via Encode_z80_note, write 12-byte block to Z80_audio_engine_ch1.
+;   8. Compute PSG ch1 and ch2 note blocks via loc_75F06 / loc_75F58 and write them
+;      to Z80_audio_engine_ch1 ($A01FA0) and Z80_audio_engine_ch2 ($A01FC0).
+	LEA	Audio_engine_state, A6
+	LEA	Audio_engine_scratch, A4
 	ADDQ.w	#1, $1C(A6)
 	MOVE.w	$12(A6), D0
 	BEQ.b	loc_75C8A
@@ -42853,6 +42967,36 @@ loc_761C4:
 	dc.b	$7E, $01, $60, $02
 ;Write_byte_to_z80_ram
 Write_byte_to_z80_ram:
+; Write one byte from the Audio_engine_scratch buffer (A4) to Z80 RAM (A3).
+; This is the single-byte entry point: D7 is set to 0 so the DBF loop copies
+; exactly 1 byte.  Falls through to loc_761DA.
+;
+; Inputs:  A3 = destination address in Z80 RAM window ($A00000-$A0FFFF)
+;          A4 = source pointer (byte to write; Audio_engine_scratch buffer)
+;
+; Three entry points share the bus-arbitration block at loc_761DC:
+;
+;   Write_byte_to_z80_ram (here, $761D4):
+;     D7 ← 0; falls to loc_761DA (copies A4 into A5)
+;     → Copies 1 byte from Audio_engine_scratch[0] to Z80 RAM[A3].
+;
+;   loc_761DA ($761DA):
+;     A5 ← A4 (source = scratch buffer start); then arbitrates and copies D7+1 bytes.
+;     → Copies D7+1 bytes from A4 to Z80 RAM[A3].
+;     Used when the caller wants to send a variable-length block from the scratch
+;     buffer (e.g. Encode_z80_note callers writing 12-byte note blocks).
+;
+;   loc_761DC ($761DC):
+;     Arbitrates and copies D7+1 bytes from A5 to Z80 RAM[A3].
+;     → Copies D7+1 bytes starting from caller-supplied A5 to Z80 RAM[A3].
+;     Used when A5 already points to a ROM data table (e.g. the silence-all block
+;     at loc_761FE).
+;
+; Bus arbitration protocol used by all three entry points:
+;   1. Write $0100 to Z80_bus_request to request 68K ownership.
+;   2. Spin on bit 0 of Z80_bus_request until the Z80 acknowledges (bit clears).
+;   3. Copy D7+1 bytes from A5 to A3 (Z80 RAM window).
+;   4. Write $0000 to Z80_bus_request to release the bus back to the Z80.
 	MOVEQ	#0, D7
 
 loc_761DA:
