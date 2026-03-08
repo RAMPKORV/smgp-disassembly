@@ -7,6 +7,47 @@ Z80_bus_request  = $A11100  ; write $0100 to request, $0000 to release; bit 0 = 
 Z80_reset        = $A11200  ; write $0000 to assert reset, $0100 to release reset
 Z80_ram          = $A00000  ; base address of Z80 address space as seen from 68K ($A00000-$A0FFFF)
 
+; I/O port registers ($A10000 area)
+; The Mega Drive exposes its controller/expansion ports here.
+; All accesses must be bracketed by Z80 bus request/release
+; because the Z80 also drives the bus during its ISR.
+; Registers exist as 16-bit slots; the 68K accesses data bytes at odd addresses.
+; Even addresses carry the upper half of each 16-bit slot (used at boot for settle checks).
+Version_register    = $00A10001 ; .b  hardware version byte: bit 7 = overseas, bit 6 = PAL
+Io_ctrl_port_1_data = $00A10003 ; .b  controller port 1 data register (read: button state)
+Io_ctrl_port_2_data = $00A10005 ; .b  controller port 2 data register
+Io_ctrl_port_3_data = $00A10007 ; .b  controller port 3 / expansion port data register
+Io_ctrl_port_1_dir  = $00A10009 ; .b  controller port 1 direction register ($40 = TH output)
+Io_ctrl_port_2_dir  = $00A1000B ; .b  controller port 2 direction register
+Io_ctrl_port_3_dir  = $00A1000D ; .b  controller port 3 / expansion port direction register
+; Boot settle check addresses (even = upper byte of 16-bit port slot; reads before RAM init):
+Io_port_settle_l    = $00A10008 ; .l  read as longword at boot entry to flush pending I/O state
+Io_port_settle_w    = $00A1000C ; .w  read as word in settle-wait loop until both ports are idle
+
+; ============================================================
+; VDP display geometry (fast-page RAM, $FFFFFF14-$FFFFFF24)
+; Set by Initialize_h40_vdp_state and Initialize_h32_vdp_state.
+; ============================================================
+Object_update_counter = $FFFFFF14 ; .w  countdown during Update_objects_and_build_sprite_buffer pass
+                                    ;     initialised to $4C per frame; decremented per slot;
+                                    ;     also used as per-object AI stagger offset (added to Frame_counter)
+Vdp_plane_row_bytes   = $FFFFFF16 ; .w  bytes per tilemap row for DMA and scroll computations
+                                    ;     $50 (80) in H40 mode, $40 (64) in H32 mode
+Vdp_plane_tile_count  = $FFFFFF24 ; .w  total visible tile count used for DMA fill and sprite Y culling
+                                    ;     $01C0 (448) in H40 mode, $0180 (384) in H32 mode
+
+; ============================================================
+; Track preview cursor (fast-page RAM, $FFFFFF28)
+; ============================================================
+Track_preview_index   = $FFFFFF28 ; .w  arcade track-select cursor index (0-15); cycles via ±1 + AND #$000F;
+                                    ;     copied to Track_index on confirmation
+
+; ============================================================
+; Boot / init sentinel (fast-page RAM, $FFFFFFFC)
+; ============================================================
+Boot_init_sentinel    = $FFFFFFFC ; .l  written $696E6974 ('init') by first-time boot path;
+                                    ;     checked each reset to distinguish cold boot from warm reset
+
 ; ============================================================
 ; Frame dispatch pointers (RAM function pointers)
 ; Changed each frame to transition game state.
@@ -164,7 +205,55 @@ Tileset_base_offset      = $FFFF9202 ; VDP tile index base offset for road tiles
 Player_x_negated         = $FFFF9204 ; negation of Horizontal_position, used by road renderer
 Track_length             = $FFFF9206 ; 2x value from track header (used as lap-distance modulus)
 Road_marker_state        = $FFFF9208 ; state of roadside marker sequence (0=inactive, 1=?, 2=active)
-Track_unknown_field_1    = $FFFF920C ; unknown word from track header offset $22
+Track_horizon_override_flag = $FFFF920C ; Track_data +$20: 1 = use special horizon/sky colour override (West Germany, Italy, Belgium); 0 = default sky
+                                       ; was Track_unknown_field_1
+Track_phys_slope_value   = $FFFF920A ; current physical-slope byte for the player's track position
+                                     ; (looked up from Physical_slope_data[Player_distance/4] each frame;
+                                     ;  used by Update_rpm to modulate RPM on hills: negative = uphill drag)
+; ============================================================
+; Sign / trackside object state  ($FFFF924x-$FFFF925F area)
+;
+; Signs are roadside objects (advertising hoardings, barriers, etc.) placed
+; at specific distances along each track.  Two parallel streams drive them:
+;
+;   Sign data stream (Track_data +$24):
+;     4 bytes per record: distance.w, count.b, sign_id.b
+;     Terminated by $FFFF distance word (high bit set → BPL falls through).
+;     At terminator, Signs_data_ptr is reset to Signs_data_start_ptr (new lap).
+;     sign_id indexes Sign_lookup_table (×4) → pointer to frame-index list.
+;     Signs_in_row_count signs are spaced $0010 apart at Signs_location.
+;
+;   Tileset stream (Track_data +$28):
+;     4 bytes per record: distance.w, tileset_offset.w
+;     Terminated by $FFFF distance word.
+;     tileset_offset indexes Sign_tileset_table → 10-byte DMA descriptor written
+;     to Sign_tileset_buf ($FFFF925C): DMA src (4 bytes), DMA length (2 bytes),
+;     second word (2 bytes), $FFFF sentinel (2 bytes).
+;
+; Both streams are polled each frame via Parse_tileset_for_signs /
+; Parse_sign_data when Player_distance is within 120 ($78) units of the entry.
+; ============================================================
+Signs_data_start_ptr  = $FFFF9240 ; pointer to start of sign data stream for current track (reset each lap)
+Signs_data_ptr        = $FFFF9244 ; current read position in sign data stream
+Sign_table_entry_start = $FFFF9248 ; pointer to first byte of current sign's frame-index list
+Sign_table_entry_ptr  = $FFFF924C ; current read position in sign's frame-index list
+Signs_location        = $FFFF9250 ; track-distance of the current sign (spacing +$0010 per sign in row)
+Signs_in_row_count    = $FFFF9252 ; how many signs remain in the current sign-row group
+Signs_tileset_start_ptr = $FFFF9254 ; pointer to start of sign tileset stream (reset each lap)
+Signs_tileset_ptr     = $FFFF9258 ; current read position in sign tileset stream
+Sign_tileset_buf      = $FFFF925C ; 10-byte DMA descriptor for current sign tileset:
+                                   ;   dc.l  DMA source address
+                                   ;   dc.w  DMA transfer length
+                                   ;   dc.w  secondary word field
+                                   ;   dc.w  $FFFF sentinel
+
+Track_placement_distance_table = $FFFF922C ; 3 packed placement checkpoint distances (dc.w × 3):
+                                            ; [0] = Track_length (initialised from track header),
+                                            ; [1],[2] = sub-lap quarter-point distances loaded from loc_FDCA
+Track_placement_seq_ptr  = $FFFF9284 ; pointer into current position in the placement-update sequence table
+                                     ; (points into loc_73CA or loc_73DC depending on arcade sub-variant)
+Track_lap_time_base_ptr  = $FFFF92FC ; Track_data +$3C: pointer into Track_lap_time_records for current track
+                                     ; (base = $FFFFFD00 + 8 × track_index; used by Draw_bcd_time_to_vdp)
 Background_zone_index    = $FFFF920E ; current background-zone index for parallax scroll region
 Background_zone_prev     = $FFFF9210 ; previous background-zone index (detects zone transitions)
 Background_zone_2_distance = $FFFF9212 ; track distance at which background zone 2 begins
@@ -177,11 +266,35 @@ Lap_time_ptr             = $FFFF92E0 ; pointer into lap time comparison table
 Lap_time_table_ptr       = $FFFF92E4 ; pointer to base of per-lap time table
 
 ; ============================================================
+; Track lap time records  ($FFFFFD00 area)
+; ============================================================
+; Initialised by loc_510A at startup from ROM data at loc_553E.
+; Structure: 37 entries × 8 bytes, packed as two sub-blocks:
+;   First block: 37 × 4-byte BCD records (format: $00, tens, units, $00)
+;                at $FFFFFD00; each track's pointer (Track_data +$3C) points
+;                to a sub-range of these 8-byte slots.
+;   Second block: 37 × 4-byte data records starting immediately after.
+; The per-track pointer (Track_lap_time_base_ptr) selects 8 bytes per track.
+; Used by Draw_bcd_time_to_vdp to render best-lap / target-time on the HUD.
+Track_lap_time_records   = $FFFFFD00 ; base of per-track BCD lap-time record block (8 bytes/track × 19 tracks = 152 bytes)
+
+; ============================================================
+; Per-lap target time buffer  ($FFFFAD40)
+; ============================================================
+; Initialised by Load_track_data from the Track_data +$40 pointer (loc_10176 etc.).
+; Contains 15 expanded 4-byte BCD records ($00, tens, units, $00) for each lap.
+; Written at race start; each entry is compared against the player's lap time
+; to decide whether to advance the lap counter in championship mode.
+Track_lap_target_buf     = $FFFFAD40 ; 15 × 4-byte expanded per-lap BCD target times for current track
+
+; ============================================================
 ; Decompressed in-memory track/road buffers
 ; ============================================================
 Background_horizontal_displacement = $00FF6300
 Background_vertical_displacement   = $00FF7B00
 Curve_data                         = $00FF5B00
+Visual_slope_data                  = $00FF7300 ; Track_data +$34: RLE-decompressed visual slope stream (read by Update_slope_data)
+Physical_slope_data                = $00FF8300 ; Track_data +$38: RLE-decompressed physical slope stream (drives RPM gravity modifier)
 
 ; ============================================================
 ; Retire / pause / pit flags  ($FFFFCxxx area, scattered)
@@ -230,6 +343,8 @@ Music_beat_flip    = $FFFFFC6C ; toggles each beat (used for flashing / sync eff
 ; Lap / overtake event flags  ($FFFFFC70-$FFFFFC8F area)
 ; ============================================================
 New_lap_flag         = $FFFFFC70 ; set to 1 when player completes a lap
+Finish_line_sign_active = $FFFFFC72 ; set to 1 when the finish-line flagkeeper sign has been triggered;
+                                     ; blocks further sign/tileset spawning until next lap reset
 Overtake_event_flag  = $FFFFFC74 ; set to 1 when player overtakes an AI car
 Current_placement    = $FFFFFC78 ; player's current race position (1-based ordinal)
 Placement_anim_state = $FFFFFC7C ; animation state for placement ordinal display (0/1/3)
@@ -284,6 +399,10 @@ Saved_shift_type_2   = $FFFFFF4A ; second copy of Shift_type (preserved across s
 Selection_count      = $FFFFFF4C ; number of selectable items in the current car/team picker
 Has_rival_flag       = $FFFFFF4E ; 1 = a rival car is present in this race, 0 = no rival
 Player_overtaken_flag = $FFFFFF50 ; set to 1 when an AI car overtakes the player
+Steering_divisor_straight = $FFFFFF52 ; Track_data +$44 low word: steering sensitivity divisor on straights
+                                       ; (fed into DIVS to scale steering output; larger = less sensitive)
+Steering_divisor_curve    = $FFFFFF54 ; Track_data +$44 high word: steering sensitivity divisor on curves
+                                       ; (same scale as Steering_divisor_straight; most tracks = $002B)
 Total_distance       = $FFFFFF56 ; cumulative total distance driven across all laps (track-length units)
 Replay_input_ptr     = $FFFFFF58 ; pointer into the replay / warm-up input data stream
 Frame_subtick        = $FFFFFF5C ; sub-tick counter within each display frame (0-3 cycle)
@@ -440,3 +559,186 @@ Sfx_asphalt              = $10  ; on-road tyre/surface sound
 Sfx_rough_road           = $11  ; rough road surface (Road_marker_state == 2)
 Sfx_gravel               = $12  ; gravel / grass off-road
 Sfx_demo_transition      = $1B  ; attract/demo button-press screen transition (written twice)
+
+; ============================================================
+; Title / options menu state values
+; ============================================================
+; Title_menu_state values:
+Title_menu_state_main      = 0 ; main menu (World Championship, Free Practice, Options, Arcade)
+Title_menu_state_newpw     = 1 ; new/password sub-menu (New Game, Password)
+Title_menu_state_champ     = 2 ; championship sub-menu (Warm Up, Race, Machine, Transmission);
+                                ;   also shows track preview art
+Title_menu_state_arcade    = 3 ; arcade/track-select sub-menu (track chooser)
+
+; Shift_type values (Shift_type = $FFFFFF2E):
+Shift_auto   = 0 ; automatic transmission
+Shift_4speed = 1 ; 4-speed manual
+Shift_7speed = 2 ; 7-speed manual
+
+; Control_type values (Control_type = $FFFFFF1E):
+; Values 0-5 are valid; the options screen wraps at 6 back to 0.
+Control_type_count = 6 ; total number of control configurations
+
+; Placement_anim_state values (Placement_anim_state = $FFFFFC7C):
+Placement_anim_idle        = 0 ; no change animation running
+Placement_anim_counting    = 1 ; animating position change (blinking)
+Placement_anim_finished    = 3 ; position animation complete (holds final tile)
+
+; ============================================================
+; RAM buffer base addresses
+; ============================================================
+; Object pools — each slot is $40 bytes wide.
+Main_object_pool = $FFFFAD80 ; base of main object pool (76 slots × $40 bytes);
+                               ;   cleared by Clear_main_object_pool;
+                               ;   iterated by Update_objects_and_build_sprite_buffer
+Aux_object_pool  = $FFFFB840 ; base of auxiliary object pool (signs, flagkeeper, tunnel objects;
+                               ;   $21 slots × $40 bytes); cleared by Clear_aux_object_pool
+
+; Sprite attribute table shadow buffer
+Sprite_attr_buf  = $FFFF9AC0 ; sprite attribute table RAM buffer ($280 bytes);
+                               ;   built each frame by Update_objects_and_build_sprite_buffer,
+                               ;   then DMA'd to VDP sprite table at $F800
+
+; Road rendering tables
+Road_scale_table = $FFFF9700 ; per-scanline road scale + displacement table (60 pairs of words);
+                               ;   initialised once per race by init routine near $8060;
+                               ;   read by road renderer to compute per-row scaling and object depth sort
+
+; Championship intro tilemap buffer
+Championship_logo_buf = $FFFFEE80 ; tilemap buffer used during Championship_start_init for
+                                    ;   scrolling team-logo strip decompression ($80 tiles)
+
+; ============================================================
+; General-purpose work RAM range
+; ============================================================
+Work_ram_start = $FFFF8000 ; start of game work RAM; EntryPoint bulk-clears $7000 bytes
+                            ;   ($FFFF8000–$FFFFEFFE) to zero on cold boot
+
+; ============================================================
+; Decompressor scratch buffers  ($FFFFFA00, $FFFFEA00)
+; ============================================================
+Decomp_code_table = $FFFFFA00 ; 256-entry Huffman decode table built by
+                                ;   Build_decompression_code_table (512 bytes);
+                                ;   reused by every Decompress_to_vdp / Decompress_to_ram call
+Tilemap_work_buf  = $FFFFEA00 ; 256-word general decompress/tilemap work buffer;
+                                ;   used by Draw_packed_tilemap_to_vdp, Build_car_tilemap_buffers,
+                                ;   and various tilemap decompression calls
+
+; ============================================================
+; Palette CRAM shadow buffer  ($FFFFE980)
+; ============================================================
+Palette_buffer = $FFFFE980 ; 64-entry (128-byte) CRAM shadow palette;
+                             ;   written by HUD init and portrait init;
+                             ;   DMA'd to VDP CRAM each VBlank
+
+; ============================================================
+; Streaming decompression descriptor buffer  ($FFFFC080)
+;
+; Used by Load_streamed_decompression_descriptor / Start_streamed_decompression /
+; Continue_streamed_decompression for multi-frame tile streaming.
+;
+; Layout (longwords, all .l unless noted):
+;   +$00 .l  source ROM pointer (A0 current read position in compressed stream)
+;   +$04 .w  tile base offset for VDP DMA (updated by +$80 per stripe)
+;   +$40 .l  decode jump address (loc_A32 or loc_A32+$0A depending on bit 15)
+;   +$44 .l  D0 saved state
+;   +$48 .l  D1 saved state
+;   +$4C .l  D2 saved state
+;   +$50 .l  D5 saved state
+;   +$54 .l  D6 saved state
+;   +$58 .w  remaining rows to decompress (decrements each stripe)
+;   +$5A .w  tiles-per-stripe step (reset to 4 each stripe)
+; ============================================================
+Decomp_stream_buf      = $FFFFC080 ; base of streaming decompression state buffer
+Decomp_stream_src_ptr  = $FFFFC080 ; +$00 .l  current compressed-stream source pointer
+Decomp_stream_tile_ofs = $FFFFC084 ; +$04 .w  current VDP tile base offset (+=  $80 per stripe)
+Decomp_stream_jump_ptr = $FFFFC0C0 ; +$40 .l  decode routine jump target
+Decomp_stream_d0       = $FFFFC0C4 ; +$44 .l  saved D0 (bit-buffer accumulator)
+Decomp_stream_d1       = $FFFFC0C8 ; +$48 .l  saved D1
+Decomp_stream_d2       = $FFFFC0CC ; +$4C .l  saved D2
+Decomp_stream_d5       = $FFFFC0D0 ; +$50 .l  saved D5 (bit window)
+Decomp_stream_d6       = $FFFFC0D4 ; +$54 .l  saved D6 (remaining bits)
+Decomp_stream_rows     = $FFFFC0D8 ; +$58 .w  remaining decompression rows
+Decomp_stream_step     = $FFFFC0DA ; +$5A .w  per-stripe tile step (reset to 4)
+
+; ============================================================
+; Object depth-sort buffers  ($FFFF8F80, $FFFF8FA0)
+; ============================================================
+; Written at the start of every Update_objects_and_build_sprite_buffer call.
+; Depth_sort_buf holds 16 × .w placement scores for all AI cars, used to
+; sort race standings.  Score_scratch_buf holds the corresponding 2-digit
+; BCD decimal values assembled for the standings minimap display.
+Depth_sort_buf       = $FFFF8F80 ; 16 × .w   AI car placement scores (initialised to $FFFF)
+Score_scratch_buf    = $FFFF8FA0 ; 16 × .w   packed BCD scores for standings display
+Score_scratch_names  = $FFFF8F90 ; 16 × .b   driver index bytes for sorted standings rows
+Score_scratch_pts    = $FFFF8FB0 ; per-team points accumulator for standings totals
+Depth_sort_value     = $FFFF9288 ; .l  current depth-sort comparison value (best seen so far;
+                                   ;     initialised to $FFFFFFFF each frame)
+Depth_sort_prev      = $FFFF928A ; .w  previous depth-sort value (for next-best step)
+
+; ============================================================
+; Race timer BCD struct  ($FFFF92F8)
+; ============================================================
+; 4-byte struct updated every 20 frames (1 second real-time at 20fps tick):
+;   +$00 .b  frame countdown (initialised to $14 = 20; decrements each Race_loop tick)
+;   +$01 .b  BCD minutes tens
+;   +$02 .b  BCD seconds (00–59)
+;   +$03 .b  display-rate index (lookup into loc_7400 BCD sub-second table)
+; Stored as a longword into Lap_time_ptr each tick.
+Race_timer_bcd = $FFFF92F8 ; 4-byte BCD lap timer struct (see Update_race_timer)
+
+; ============================================================
+; AI car tracking pointers  ($FFFFFC90–$FFFFFCAA)
+; ============================================================
+; Set during placement-sort scan in Update_race_position each frame.
+Best_ai_car_ptr    = $FFFFFCAA ; .w  pointer to AI car object with highest placement score
+Second_ai_car_ptr  = $FFFFFC92 ; .w  pointer to AI car with second-highest placement score
+Rival_ai_car_ptr   = $FFFFFC90 ; .w  pointer to the main rival car object used for
+                                 ;     comparison during placement updates
+Best_ai_place      = $FFFFFC96 ; .w  highest AI placement score seen this frame ($FFFF = init)
+Best_ai_distance   = $FFFF9234 ; .w  track distance of the leading AI car (used for lead detection)
+
+; ============================================================
+; Race placement threshold  ($FFFFFC7A)
+; ============================================================
+Placement_next_threshold = $FFFFFC7A ; .w  next position boundary from placement-sequence table;
+                                       ;     compared against Current_placement each frame
+
+; ============================================================
+; Race outcome / elimination flags
+; ============================================================
+Laps_done_flag      = $FFFFFC6E ; .w  set to 1 when the race lap count has been reached;
+                                  ;     also set at Race_finish; blocks lap timer and triggers
+                                  ;     result screens
+Player_eliminated   = $FFFFFCAC ; .w  0 = in race; 1 = time/position eliminated;
+                                  ;     $FFFF = player absent from standings (no championship entry)
+Placement_award_pending = $FFFFFC8C ; .w  set to 1 when placement changed and points must be awarded;
+                                      ;     cleared after Award_race_position_points is called
+Race_timer_freeze   = $FFFFFCB6 ; .w  non-zero while race timer is frozen (e.g. result screen);
+                                  ;     $FFFF = freeze; 0 = running; set by Race_result_overlay_frame
+Race_timer_phase    = $FFFFFCB8 ; .w  0..2 sub-phase counter for freeze/resume cycle in result screen
+
+; ============================================================
+; AI overtake mechanics  ($FFFFFCBA, $FFFFFCB4, $FFFFFC9A–$FFFFFC9E)
+; ============================================================
+Ai_x_delta        = $FFFFFCBA ; .w  AI car horizontal position delta for current overtake step
+Ai_speed_delta    = $FFFFFCB4 ; .w  AI speed contribution applied to player_speed during overtake
+Ai_overtake_ready = $FFFFFC98 ; .w  set to 1 when AI overtake step has been computed
+Ai_speed_override = $FFFFFC9A ; .w  if non-zero, overrides Player_speed_raw with this value
+                                ;     (set from Ai_speed_delta during overtake; cleared after apply)
+Ai_side_flag      = $FFFFFC9C ; .b  SGT result: 1 if AI is to the right of player, 0 if left
+Pit_prompt_flag   = $FFFFFC9E ; .w  set to 1 when pit-entry prompt should be shown;
+                                ;     cleared each frame by Update_pit_prompt
+
+; ============================================================
+; Digit rendering scratch buffer  ($FFFFFCB0)
+; ============================================================
+Digit_scratch_buf  = $FFFFFCB0 ; 8-byte scratch buffer used by Render_packed_digits_to_vdp;
+                                  ;   holds binary-to-decimal nibble output for up to 4 digits
+
+; ============================================================
+; AI active / collision state  ($FFFFFCBC, $FFFFFCDE)
+; ============================================================
+Ai_active_flag  = $FFFFFCBC ; .w  non-zero while AI collision/placement update is in progress
+Collision_palette_buf = $FFFFFCDE ; pointer used by Write_3_palette_vdp_bytes during
+                                    ;   collision-flash palette swap (6-byte palette data address)
