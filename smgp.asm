@@ -1619,7 +1619,7 @@ Refill_tilemap_bit_buffer_ret:
 ;loc_C0E:
 Load_streamed_decompression_descriptor:
 	MOVEM.l	A2/A1, -(A7)
-	LEA	loc_D2C, A1
+	LEA	Stream_descriptor_table, A1
 	ADD.w	D0, D0
 	MOVE.w	(A1,D0.w), D0
 	LEA	(A1,D0.w), A1
@@ -1645,16 +1645,17 @@ Load_stream_desc_done:
 ;loc_C44:
 Start_streamed_decompression:
 	TST.l	Decomp_stream_src_ptr.w
-	BEQ.b	loc_C98
+	BEQ.b	Start_stream_decomp_skip
 	TST.w	Decomp_stream_rows.w
-	BNE.b	loc_C98
+	BNE.b	Start_stream_decomp_skip
 	MOVEA.l	Decomp_stream_src_ptr.w, A0
 	LEA	Decompress_vdp_emit_group, A3
 	LEA	Decomp_code_table.w, A1
 	MOVE.w	(A0)+, D2
-	BPL.b	loc_C66
+	BPL.b	Start_stream_decomp_sink_select
 	ADDA.w	#$000A, A3
-loc_C66:
+;loc_C66
+Start_stream_decomp_sink_select:
 	ANDI.w	#$7FFF, D2
 	MOVE.w	D2, Decomp_stream_rows.w
 	BSR.w	Build_decompression_code_table
@@ -1670,12 +1671,13 @@ loc_C66:
 	MOVE.l	D0, Decomp_stream_d2.w
 	MOVE.l	D5, Decomp_stream_d5.w
 	MOVE.l	D6, Decomp_stream_d6.w
-loc_C98:
+;loc_C98
+Start_stream_decomp_skip:
 	RTS
 ;loc_C9A:
 Continue_streamed_decompression:
 	TST.w	Decomp_stream_rows.w
-	BEQ.b	loc_D1A
+	BEQ.b	Continue_stream_decomp_done
 	LEA	VDP_control_port, A4
 	MOVE.w	Decomp_stream_tile_ofs.w, D0
 	ANDI.l	#$0000FFFF, D0
@@ -1694,13 +1696,14 @@ Continue_streamed_decompression:
 	MOVE.l	Decomp_stream_d6.w, D6
 	LEA	Decomp_code_table.w, A1
 	MOVE.w	#4, Decomp_stream_step.w
-loc_CE4:
+;loc_CE4
+Continue_stream_decomp_inner:
 	MOVEA.w	#8, A5
 	BSR.w	Decompress_huffman_Next_group
 	SUBQ.w	#1, Decomp_stream_rows.w
-	BEQ.b	loc_D1C
+	BEQ.b	Continue_stream_decomp_flush
 	SUBQ.w	#1, Decomp_stream_step.w
-	BNE.b	loc_CE4
+	BNE.b	Continue_stream_decomp_inner
 	ADDI.w	#$0080, Decomp_stream_tile_ofs.w
 	MOVE.l	A0, Decomp_stream_src_ptr.w
 	MOVE.l	A3, Decomp_stream_jump_ptr.w
@@ -1709,16 +1712,20 @@ loc_CE4:
 	MOVE.l	D2, Decomp_stream_d2.w
 	MOVE.l	D5, Decomp_stream_d5.w
 	MOVE.l	D6, Decomp_stream_d6.w
-loc_D1A:
+;loc_D1A
+Continue_stream_decomp_done:
 	RTS
-loc_D1C:
+;loc_D1C
+Continue_stream_decomp_flush:
 	LEA	Decomp_stream_buf.w, A0
 	MOVEQ	#$0000000B, D0
-loc_D22:
+;loc_D22
+Continue_stream_desc_shift_loop:
 	MOVE.l	$6(A0), (A0)+
-	DBF	D0, loc_D22
+	DBF	D0, Continue_stream_desc_shift_loop
 	RTS
-loc_D2C:
+;loc_D2C
+Stream_descriptor_table:
 	dc.w	$0002
 	dc.b	$00, $00, $00, $05, $C9, $CA, $70, $80
 ;loc_D36
