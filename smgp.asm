@@ -7594,7 +7594,7 @@ Championship_driver_asset_list:
 	dc.b	$95, $80
 	dc.l	Race_hud_tiles_a
 	dc.b	$0B, $E0
-	dc.l	$00056E36
+	dc.l	Race_hud_tiles
 ;loc_52A8
 Championship_driver_palette_data:
 	dc.b	$02, $0E, $00, $00, $0E, $EE, $00, $AE, $06, $E2, $02, $22, $04, $44, $06, $66, $08, $88, $0A, $AA, $0C, $CC, $0E, $EE, $00, $AC, $00, $08, $00, $0C, $08, $22
@@ -32340,21 +32340,21 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_d6
 	dc.l	Team_msg_jp_d13
 	dc.l	Team_msg_jp_e
-	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o
 	dc.l	Team_msg_jp_after_jp34
 	dc.l	Team_msg_jp_d
 	dc.l	Team_msg_jp_e
-	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o
 	dc.l	Team_msg_jp_o2
 	dc.l	Team_msg_jp_e
-	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_p
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_l
-	dc.l	$0003A818
+	dc.l	Team_msg_jp_q
 	dc.l	Team_msg_jp_d
 	dc.l	Team_msg_jp_e
 	dc.l	Team_msg_jp_m
-	dc.l	$0003A818
+	dc.l	Team_msg_jp_q
 	dc.l	Team_msg_jp_e
 	dc.l	Team_msg_jp_m2
 	dc.l	Team_msg_jp_b
@@ -32367,7 +32367,7 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_d13
 	dc.l	Team_msg_jp_b
-	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o
 	dc.l	Team_msg_jp_o2
 	dc.l	Team_msg_jp_m5
 	dc.l	Team_msg_jp_b
@@ -32381,15 +32381,15 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_i4
 	dc.l	Team_msg_jp_i5
 	dc.l	Team_msg_jp_d
-	dc.l	$0003A818
+	dc.l	Team_msg_jp_q
 	dc.l	Team_msg_jp_i
 	dc.l	Team_msg_jp_m2
 	dc.l	Team_msg_jp_j
-	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o
 	dc.l	Team_msg_jp_o2
-	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_r
 	dc.l	Team_msg_jp_j
-	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_r
 	dc.l	Team_msg_jp_r2
 	dc.l	Team_msg_jp_j
 	dc.l	Team_msg_jp_b
@@ -32401,7 +32401,7 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_a2
 	dc.l	Team_msg_jp_b
-	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_p
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_m3
 	dc.l	Team_msg_jp_after_jp34
@@ -32423,9 +32423,9 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_j
 	dc.l	Team_msg_jp_b2
-	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_r
 	dc.l	Team_msg_jp_g
-	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_r
 	dc.l	Team_msg_jp_b3
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_b4
@@ -32444,18 +32444,18 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_d
 	dc.l	Team_msg_jp_g
 	dc.l	Team_msg_jp_l
-	dc.l	$0003A818
+	dc.l	Team_msg_jp_q
 	dc.l	Team_msg_jp_g
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_i
-	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_p
 	dc.l	Team_msg_jp_i
 	dc.l	Team_msg_jp_r2
 	dc.l	Team_msg_jp_i
 	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_a2
 	dc.l	Team_msg_jp_i
-	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_p
 	dc.l	Team_msg_jp_e
 	dc.l	Team_msg_jp_l
 	dc.l	Team_msg_jp_b2
@@ -32484,21 +32484,21 @@ Team_msg_jp_table:
 	dc.l	Team_msg_en_dont_take_advantage
 	dc.l	Team_msg_en_drive_quite_fast
 	dc.l	Team_msg_faster_than_you
-	dc.l	$0003ABF4
+	dc.l	Team_msg_you_still_want
 	dc.l	Team_msg_en_dont_make_me_angry
 	dc.l	Team_msg_your_days_gone
 	dc.l	Team_msg_faster_than_you
-	dc.l	$0003ABF4
+	dc.l	Team_msg_you_still_want
 	dc.l	Team_msg_en_dont_be_stuck
 	dc.l	Team_msg_faster_than_you
-	dc.l	$0003AC24
+	dc.l	Team_msg_its_interesting
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_better_stop_racing
-	dc.l	$0003AC66
+	dc.l	Team_msg_i_underestimated
 	dc.l	Team_msg_your_days_gone
 	dc.l	Team_msg_faster_than_you
 	dc.l	Team_msg_cearas_era
-	dc.l	$0003AC66
+	dc.l	Team_msg_i_underestimated
 	dc.l	Team_msg_faster_than_you
 	dc.l	Team_msg_en_need_experience
 	dc.l	Team_msg_lets_compete
@@ -32511,7 +32511,7 @@ Team_msg_jp_table:
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_en_drive_quite_fast
 	dc.l	Team_msg_lets_compete
-	dc.l	$0003ABF4
+	dc.l	Team_msg_you_still_want
 	dc.l	Team_msg_en_dont_be_stuck
 	dc.l	Team_msg_en_still_a_racer
 	dc.l	Team_msg_lets_compete
@@ -32525,15 +32525,15 @@ Team_msg_jp_table:
 	dc.l	Team_msg_en_still_competing
 	dc.l	Team_msg_en_working_hard
 	dc.l	Team_msg_your_days_gone
-	dc.l	$0003AC66
+	dc.l	Team_msg_i_underestimated
 	dc.l	Team_msg_go_easy
 	dc.l	Team_msg_en_need_experience
 	dc.l	Team_msg_no_easy_with_me
-	dc.l	$0003ABF4
+	dc.l	Team_msg_you_still_want
 	dc.l	Team_msg_en_dont_be_stuck
-	dc.l	$0003AE18
+	dc.l	Team_msg_never_speak_underdogs
 	dc.l	Team_msg_no_easy_with_me
-	dc.l	$0003AE18
+	dc.l	Team_msg_never_speak_underdogs
 	dc.l	Team_msg_en_do_you_intend
 	dc.l	Team_msg_no_easy_with_me
 	dc.l	Team_msg_lets_compete
@@ -32545,7 +32545,7 @@ Team_msg_jp_table:
 	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_en_you_can_never_win
 	dc.l	Team_msg_lets_compete
-	dc.l	$0003AC24
+	dc.l	Team_msg_its_interesting
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_en_effort_in_vain2
 	dc.l	Team_msg_en_dont_make_me_angry
@@ -32567,9 +32567,9 @@ Team_msg_jp_table:
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_no_easy_with_me
 	dc.l	Team_msg_en_im_serious
-	dc.l	$0003AE18
+	dc.l	Team_msg_never_speak_underdogs
 	dc.l	Team_msg_hi
-	dc.l	$0003AE18
+	dc.l	Team_msg_never_speak_underdogs
 	dc.l	Team_msg_en_still_top_racer
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_en_win_against_me
@@ -32588,18 +32588,18 @@ Team_msg_jp_table:
 	dc.l	Team_msg_your_days_gone
 	dc.l	Team_msg_hi
 	dc.l	Team_msg_better_stop_racing
-	dc.l	$0003AC66
+	dc.l	Team_msg_i_underestimated
 	dc.l	Team_msg_hi
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_go_easy
-	dc.l	$0003AC24
+	dc.l	Team_msg_its_interesting
 	dc.l	Team_msg_go_easy
 	dc.l	Team_msg_en_do_you_intend
 	dc.l	Team_msg_go_easy
 	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_en_you_can_never_win
 	dc.l	Team_msg_go_easy
-	dc.l	$0003AC24
+	dc.l	Team_msg_its_interesting
 	dc.l	Team_msg_faster_than_you
 	dc.l	Team_msg_better_stop_racing
 	dc.l	Team_msg_en_im_serious
