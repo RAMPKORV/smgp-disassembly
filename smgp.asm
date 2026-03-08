@@ -2630,9 +2630,10 @@ Format_bcd_time_to_tile_buffer:
 	LSR.l	#4, D0
 	MOVE.w	D0, D1
 	AND.w	D2, D1
-	BEQ.b	loc_1622
+	BEQ.b	Format_bcd_time_leading_zero
 	ADD.w	D3, D1
-loc_1622:
+;loc_1622
+Format_bcd_time_leading_zero:
 	MOVE.w	D1, -(A3)
 	RTS
 
@@ -2663,32 +2664,36 @@ Pack_hex_digits_to_tilemap: ; Suspected number to hex digit conversion
 	LSR.l	#4, D0
 	MOVE.w	D0, D1
 	AND.w	D2, D1
-	BNE.b	loc_1662
+	BNE.b	Pack_hex_leading_zero
 	MOVE.w	#$000D, D1
-loc_1662:
+;loc_1662
+Pack_hex_leading_zero:
 	MOVE.w	D1, -(A1)
 	RTS
 
-loc_1666:
+;loc_1666
+Flush_pending_dma_transfers:
 	LEA	$FFFFFCD2.w, A0
 	MOVE.w	(A0), D7
-	BEQ.b	loc_1688
+	BEQ.b	Flush_dma_slot_a_skip
 	MOVE.l	$2(A0), D6
 	MOVE.l	#$940093F0, D5
 	MOVE.l	#$4A400082, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	CLR.w	(A0)
-loc_1688:
+;loc_1688
+Flush_dma_slot_a_skip:
 	MOVE.w	$6(A0), D7
-	BEQ.b	loc_16AA
+	BEQ.b	Flush_dma_slot_b_skip
 	MOVE.l	$8(A0), D6
 	MOVE.l	#$940093C0, D5
 	MOVE.l	#$4C200082, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	CLR.w	$6(A0)
-loc_16AA:
+;loc_16AA
+Flush_dma_slot_b_skip:
 	MOVE.w	$C(A0), D7
-	BEQ.b	loc_16E8
+	BEQ.b	Flush_dma_slot_c_skip
 	MOVE.l	$E(A0), D6
 	MOVE.l	#$940093C0, D5
 	MOVE.l	#$4DA00082, Vdp_dma_setup.w
@@ -2699,54 +2704,62 @@ loc_16AA:
 	MOVE.l	#$4F200082, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	CLR.w	$C(A0)
-loc_16E8:
+;loc_16E8
+Flush_dma_slot_c_skip:
 	MOVE.w	$18(A0), D7
-	BEQ.b	loc_170A
+	BEQ.b	Flush_dma_slot_d_skip
 	MOVE.l	$1A(A0), D6
 	MOVE.l	#$94019390, D5
 	MOVE.l	#$43000082, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	CLR.w	$18(A0)
-loc_170A:
+;loc_170A
+Flush_dma_slot_d_skip:
 	MOVE.w	$1E(A0), D7
-	BEQ.b	loc_172C
+	BEQ.b	Flush_dma_slot_e_skip
 	MOVE.l	$20(A0), D6
 	MOVE.l	#$940293D0, D5
 	MOVE.l	#$7A000081, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	CLR.w	$1E(A0)
-loc_172C:
+;loc_172C
+Flush_dma_slot_e_skip:
 	MOVE.w	$24(A0), D7
-	BEQ.b	loc_174E
+	BEQ.b	Flush_dma_crash_check
 	MOVE.l	$26(A0), D6
 	MOVE.l	#$94049380, D5
 	MOVE.l	#$7A000081, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	CLR.w	$24(A0)
-loc_174E:
+;loc_174E
+Flush_dma_crash_check:
 	MOVE.w	Crash_animation_flag.w, D0
-	BEQ.b	loc_1776
+	BEQ.b	Flush_dma_crash_done
 	CLR.w	Crash_animation_flag.w
 	LEA	$00FF5980, A6
 	SUBQ.w	#1, D0
-	BEQ.b	loc_1766
+	BEQ.b	Flush_dma_crash_style_b
 	LEA	loc_2086(PC), A6
-loc_1766:
+;loc_1766
+Flush_dma_crash_style_b:
 	MOVE.l	#$664E0003, D7
 	MOVEQ	#$00000011, D6
 	MOVEQ	#2, D5
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
-loc_1776:
+;loc_1776
+Flush_dma_crash_done:
 	RTS
 
-loc_1778:
+;loc_1778
+Update_car_palette_dma:
 	MOVE.w	$FFFFFCA2.w, D0
-	BEQ.b	loc_17B6
+	BEQ.b	Update_hud_overtake_check
 	LEA	loc_12BF1, A0
 	SUBQ.w	#1, D0
-	BEQ.b	loc_178E
+	BEQ.b	Update_car_palette_send
 	LEA	loc_12BF5, A0
-loc_178E:
+;loc_178E
+Update_car_palette_send:
 	MOVE.w	#$9700, D7
 	MOVE.b	(A0)+, D7
 	MOVE.w	#$9600, D6
@@ -2757,11 +2770,12 @@ loc_178E:
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$52400082, Vdp_dma_setup.w
 	JMP	Send_D567_to_VDP
-loc_17B6:
+;loc_17B6
+Update_hud_overtake_check:
 	TST.w	Track_index_arcade_mode.w
-	BNE.w	loc_184C
+	BNE.w	Update_placement_anim_check
 	TST.w	Overtake_event_flag.w
-	BEQ.w	loc_184A
+	BEQ.w	Update_overtake_done
 	MOVE.w	Current_lap.w, D0
 	JSR	Wrap_index_mod10(PC)
 	LEA	loc_212A(PC), A0
@@ -2775,29 +2789,33 @@ loc_17B6:
 	JSR	Send_D567_to_VDP
 	LEA	$00FF5980, A6
 	CMPI.w	#2, Overtake_event_flag.w
-	BEQ.b	loc_1810
+	BEQ.b	Update_overtake_style_b
 	LEA	loc_2182(PC), A6
-loc_1810:
+;loc_1810
+Update_overtake_style_b:
 	MOVE.l	#$625A0003, D7
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	MOVE.w	Current_lap.w, D0
 	CMPI.w	#3, D0
-	BLS.b	loc_182C
+	BLS.b	Update_overtake_lap_clamp
 	MOVEQ	#3, D0
-loc_182C:
+;loc_182C
+Update_overtake_lap_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	MOVE.l	#$62A20003, VDP_control_port
 	LEA	loc_20F2(PC), A0
 	MOVE.l	(A0,D0.w), VDP_data_port
 	CLR.w	Overtake_event_flag.w
-loc_184A:
+;loc_184A
+Update_overtake_done:
 	RTS
-loc_184C:
+;loc_184C
+Update_placement_anim_check:
 	TST.w	Placement_anim_state.w
-	BEQ.w	loc_18FE
+	BEQ.w	Update_placement_anim_b_check
 	MOVE.w	Current_placement.w, D0
 	JSR	Wrap_index_mod10(PC)
 	LEA	loc_212A(PC), A0
@@ -2811,9 +2829,10 @@ loc_184C:
 	JSR	Send_D567_to_VDP
 	MOVE.w	Current_placement.w, D0
 	CMPI.w	#3, D0
-	BLS.b	loc_1898
+	BLS.b	Update_placement_lap_clamp
 	MOVEQ	#3, D0
-loc_1898:
+;loc_1898
+Update_placement_lap_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	LEA	loc_20F2(PC), A6
@@ -2821,13 +2840,14 @@ loc_1898:
 	LEA	loc_2192(PC), A4
 	LEA	loc_2102(PC), A3
 	CMPI.w	#1, Placement_anim_state.w
-	BEQ.b	loc_18C6
+	BEQ.b	Update_placement_draw
 	LEA	loc_21A2(PC), A4
 	CMPI.w	#3, Placement_anim_state.w
-	BEQ.b	loc_18C6
+	BEQ.b	Update_placement_draw
 	LEA	$00FF5980, A6
 	LEA	(A6), A3
-loc_18C6:
+;loc_18C6
+Update_placement_draw:
 	MOVE.l	#$62A20003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#0, D5
@@ -2843,9 +2863,10 @@ loc_18C6:
 	LEA	(A3), A6
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	CLR.w	Placement_anim_state.w
-loc_18FE:
+;loc_18FE
+Update_placement_anim_b_check:
 	TST.w	Placement_anim_state_b.w
-	BEQ.w	loc_1998
+	BEQ.w	Update_placement_b_done
 	MOVE.w	Player_grid_position.w, D0
 	JSR	Wrap_index_mod10(PC)
 	LEA	loc_2156(PC), A0
@@ -2859,21 +2880,23 @@ loc_18FE:
 	JSR	Send_D567_to_VDP
 	MOVE.w	Player_grid_position.w, D0
 	CMPI.w	#3, D0
-	BLS.b	loc_194A
+	BLS.b	Update_placement_b_clamp
 	MOVEQ	#3, D0
-loc_194A:
+;loc_194A
+Update_placement_b_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	LEA	loc_20F2(PC), A6
 	ADDA.w	D0, A6
 	LEA	loc_21B2(PC), A4
 	CMPI.w	#1, Placement_anim_state_b.w
-	BEQ.b	loc_1972
+	BEQ.b	Update_placement_b_draw
 	LEA	loc_21D6(PC), A4
 	CMPI.w	#3, Placement_anim_state_b.w
-	BEQ.b	loc_1972
+	BEQ.b	Update_placement_b_draw
 	LEA	$00FF5980, A6
-loc_1972:
+;loc_1972
+Update_placement_b_draw:
 	MOVE.l	#$63A20003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#0, D5
@@ -2884,7 +2907,8 @@ loc_1972:
 	LEA	(A4), A6
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	CLR.w	Placement_anim_state_b.w
-loc_1998:
+;loc_1998
+Update_placement_b_done:
 	RTS
 
 ;Wrap_index_mod10
@@ -2893,10 +2917,11 @@ Wrap_index_mod10:
 	MOVE.w	#$000A, D1
 	MOVEQ	#1, D4
 	SUB.w	D1, D0
-	BCC.b	loc_19AA
+	BCC.b	Wrap_index_mod10_done
 	ADD.w	D1, D0
 	MOVE.w	D1, D4
-loc_19AA:
+;loc_19AA
+Wrap_index_mod10_done:
 	RTS
 
 ;Load_palette_vdp_commands_from_table
@@ -5726,7 +5751,7 @@ loc_3E72:
 	MOVE.w	#$8F02, VDP_control_port
 	JSR	Upload_h32_tilemap_buffer_to_vram(PC)
 	JSR	Upload_palette_buffer_to_cram_delayed(PC)
-	JSR	loc_1666(PC)
+	JSR	Flush_pending_dma_transfers(PC)
 	JSR	loc_7298(PC)
 	BRA.b	loc_3ECE
 loc_3EB0:
@@ -5737,7 +5762,7 @@ loc_3EB0:
 loc_3EBE:
 	JSR	Update_input_bitset(PC) ; Update_input_bitset called from multiple locations, from here during practice mode
 	JSR	loc_3EE4(PC)
-	JSR	loc_1778(PC)
+	JSR	Update_car_palette_dma(PC)
 	JSR	Flush_tilemap_draw_queue(PC)
 loc_3ECE:
 	MOVE.w	#$9D42, D0
@@ -16313,7 +16338,7 @@ Race_preview_vblank_handler_2:
 	MOVE.l	#$940193C0, D5
 	MOVE.l	#$68000083, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
-	JMP	loc_1666
+	JMP	Flush_pending_dma_transfers
 
 ;Initialize_results_screen
 Initialize_results_screen:
