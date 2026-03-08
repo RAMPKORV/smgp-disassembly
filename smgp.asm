@@ -2137,7 +2137,7 @@ Initialize_race_hud:
 ;     VRAM at $63B0 (or $6370 for championship), 7×11 cells.
 ;  8. Copy four 96/54-byte car portrait palette strips into $FFFFE980 via
 ;     Copy_word_run_to_buffer.
-;  9. Initialize remaining objects: loc_1E32 (team palette VDP commands),
+;  9. Initialize remaining objects: Copy_ai_scroll_data_to_objects (team palette VDP commands),
 ;     loc_658C (road graphics state), Initialize_car_tile_scroll (car tile DMA).
 ; 10. Call Render_speed to show initial speed (0 km/h).
 ; 11. Draw shift indicator tilemap (manual/auto/semi, 8 or 6 tiles wide).
@@ -2202,7 +2202,7 @@ Init_hud_minimap_champ:
 	MOVEQ	#$00000076, D0
 	MOVEQ	#4, D1
 	JSR	Copy_word_run_to_buffer
-	JSR	loc_1E32(PC)
+	JSR	Copy_ai_scroll_data_to_objects(PC)
 	JSR	loc_658C
 	JSR	Initialize_car_tile_scroll(PC)
 	JSR	Render_speed(PC)
@@ -3051,7 +3051,7 @@ loc_1AA0:
 	MOVEQ	#8, D2
 	BSR.b	Fill_opponent_scroll_ring
 	BSR.b	Set_vdp_mode_h32_variant_a
-	BRA.w	loc_1B62
+	BRA.w	Set_vdp_mode_h32_variant_b
 
 loc_1AE0:
 	MOVEQ	#8, D2
@@ -3104,7 +3104,8 @@ Set_vdp_mode_h32_variant_a:
 	MOVE.l	#$42800083, Vdp_dma_setup.w
 	JMP	Send_D567_to_VDP
 
-loc_1B62:
+;loc_1B62
+Set_vdp_mode_h32_variant_b:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96C79540, D6
 	MOVE.l	#$94009380, D5
@@ -3256,46 +3257,47 @@ loc_1CC0:
 	MOVE.w	D1, (A1)+
 	RTS
 
-loc_1CCC:
+;loc_1CCC
+Flush_road_column_dma:
 	LEA	VDP_data_port, A6
 	TST.w	$FFFF927C.w
-	BEQ.b	loc_1CF2
+	BEQ.b	Flush_road_column_dma_Skip_tiles
 	MOVE.l	#$5F000003, $4(A6)
 	LEA	$FFFFE900.w, A0
 	MOVE.w	#$000F, D0
-loc_1CE8:
+Flush_road_column_dma_Tile_loop:
 	MOVE.l	(A0)+, (A6)
-	DBF	D0, loc_1CE8
+	DBF	D0, Flush_road_column_dma_Tile_loop
 	CLR.w	$FFFF927C.w
-loc_1CF2:
+Flush_road_column_dma_Skip_tiles:
 	MOVE.w	$FFFF9276.w, D4
-	BNE.b	loc_1CFA
+	BNE.b	Flush_road_column_dma_Scroll_pending
 	RTS
-loc_1CFA:
+Flush_road_column_dma_Scroll_pending:
 	CMPI.w	#2, D4
-	BNE.b	loc_1D04
+	BNE.b	Flush_road_column_dma_Write_cols
 	JSR	Set_vdp_mode_h32_variant_a(PC)
-loc_1D04:
+Flush_road_column_dma_Write_cols:
 	MOVE.w	#$8F80, VDP_control_port
 	MOVE.w	#$C280, D0
 	MOVE.w	#$007E, D1
 	MOVEA.l	$FFFF9268.w, A0
 	MOVE.w	$FFFF9274.w, D2
-	BPL.w	loc_1D2A
+	BPL.w	Flush_road_column_dma_Fwd
 	ANDI.w	#$7FFF, D2
 	MOVEQ	#-2, D3
 	MOVEQ	#2, D5
-	BRA.b	loc_1D2E
-loc_1D2A:
+	BRA.b	Flush_road_column_dma_Col_loop_init
+Flush_road_column_dma_Fwd:
 	MOVEQ	#2, D3
 	MOVEQ	#-2, D5
-loc_1D2E:
+Flush_road_column_dma_Col_loop_init:
 	ADDQ.w	#1, D2
 	MOVE.w	D2, D6
 	CMPI.w	#2, D4
-	BEQ.b	loc_1D76
+	BEQ.b	Flush_road_column_dma_Priority_cols
 	MOVE.w	$FFFF926C.w, D4
-loc_1D3C:
+Flush_road_column_dma_Col_loop:
 	MOVE.w	D0, D7
 	ADD.w	D4, D7
 	JSR	Tile_index_to_vdp_command
@@ -3312,12 +3314,12 @@ loc_1D3C:
 	ADD.w	D3, D4
 	AND.w	D1, D4
 	ADDA.w	D3, A0
-	DBF	D2, loc_1D3C
-loc_1D76:
+	DBF	D2, Flush_road_column_dma_Col_loop
+Flush_road_column_dma_Priority_cols:
 	MOVE.w	#$C080, D0
 	MOVEA.l	$FFFF926E.w, A0
 	MOVE.w	$FFFF9272.w, D4
-loc_1D82:
+Flush_road_column_dma_Priority_loop:
 	MOVE.w	D0, D7
 	ADD.w	D4, D7
 	JSR	Tile_index_to_vdp_command
@@ -3329,7 +3331,7 @@ loc_1D82:
 	ADD.w	D5, D4
 	AND.w	D1, D4
 	ADDA.w	D5, A0
-	DBF	D6, loc_1D82
+	DBF	D6, Flush_road_column_dma_Priority_loop
 	MOVE.w	#$8F02, VDP_control_port
 	CLR.w	$FFFF9276.w
 	RTS
@@ -3388,15 +3390,16 @@ loc_1DDA:
 loc_1E30:
 	RTS
 
-loc_1E32:
+;loc_1E32
+Copy_ai_scroll_data_to_objects:
 	LEA	$FFFFE9B6.w, A0
 	LEA	$FFFFAD00.w, A1
 	MOVEQ	#4, D0
-loc_1E3C:
+Copy_ai_scroll_data_to_objects_loop:
 	MOVE.w	(A0)+, (A1)+
 	MOVE.w	$1E(A0), $8(A1)
 	MOVE.w	$3E(A0), $12(A1)
-	DBF	D0, loc_1E3C
+	DBF	D0, Copy_ai_scroll_data_to_objects_loop
 	RTS
 loc_1E50:
 	dc.b	$00, $0B ; 12 objects
@@ -5167,27 +5170,30 @@ Race_loop:
 	CLR.w	Tilemap_queue_count.w
 	MOVE.l	#Tilemap_draw_queue, Tilemap_queue_ptr.w
 	TST.w	Race_finish_flag.w
-	BNE.b	loc_3748
+	BNE.b	Race_loop_Wait_vblank
 	JSR	Handle_pause(PC)
 	TST.w	Pause_flag.w
-	BEQ.b	loc_36D8
+	BEQ.b	Race_loop_Active
 	RTS
-loc_36D8:
+;loc_36D8
+Race_loop_Active:
 	JSR	Update_road_tile_scroll(PC)
 	JSR	Update_background_scroll_delta(PC)
 	TST.w	Retire_flag.w
-	BEQ.b	loc_36F4
+	BEQ.b	Race_loop_Update_driving
 	CLR.w	Player_shift.w
 	CLR.l	Player_rpm.w
 	CLR.l	Player_speed_raw.w
-	BRA.b	loc_3708
-loc_36F4:
+	BRA.b	Race_loop_Render
+;loc_36F4
+Race_loop_Update_driving:
 	JSR	Update_shift(PC)
 	JSR	Update_rpm(PC)
 	JSR	Update_breaking(PC)
 	JSR	Update_engine_sound_pitch(PC)
 	JSR	Update_speed(PC)
-loc_3708:
+;loc_3708
+Race_loop_Render:
 	JSR	Render_speed(PC)
 	JSR	Advance_lap_checkpoint(PC)
 	JSR	Render_placement_display(PC)
@@ -5204,9 +5210,10 @@ loc_3708:
 	JSR	Update_pit_prompt(PC)
 	JSR	Update_braking_performance(PC)
 	JSR	Apply_sorted_positions_to_cars(PC)
-loc_3748:
+;loc_3748
+Race_loop_Wait_vblank:
 	CMPI.w	#4, Practice_vblank_step.w
-	BLT.b	loc_3748
+	BLT.b	Race_loop_Wait_vblank
 	JSR	Update_objects_and_build_sprite_buffer(PC) ; Commenting out makes graphics freeze
 	JSR	Update_engine_and_tire_sounds(PC) ; Commenting out removes sound
 	JSR	Update_road_graphics(PC) ; Commenting out makes road graphics not updates (but signs still move)
@@ -5275,9 +5282,10 @@ Arcade_race_init:
 	JSR	Load_race_hud_graphics(PC)
 	JSR	Initialize_race_hud(PC)
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_385C
+	BEQ.b	Arcade_race_init_No_music
 	MOVE.w	#$0010, Options_cursor_update.w
-loc_385C:
+;loc_385C
+Arcade_race_init_No_music:
 	MOVE.l	#Race_loop, Frame_callback.w
 	MOVE.l	#Practice_mode_vblank_handler, Vblank_callback.w
 	JSR	Halt_audio_sequence
@@ -5759,7 +5767,7 @@ loc_3E72:
 	JSR	loc_7298(PC)
 	BRA.b	Race_loop_commit_tileset
 loc_3EB0:
-	JSR	loc_1CCC(PC)
+	JSR	Flush_road_column_dma(PC)
 	JSR	loc_72D6(PC)
 	JSR	Send_sign_tileset_to_VDP(PC)
 	BRA.b	Race_loop_commit_tileset
@@ -10194,7 +10202,7 @@ Update_road_tile_scroll_next_row:
 loc_7298:
 	CMPI.w	#2, $FFFF9276.w
 	BNE.b	loc_72A6
-	JSR	loc_1B62
+	JSR	Set_vdp_mode_h32_variant_b
 loc_72A6:
 	TST.w	$FFFF9282.w
 	BEQ.b	loc_72D0
