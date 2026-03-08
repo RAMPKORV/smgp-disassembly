@@ -9808,7 +9808,7 @@ Update_road_graphics_Dirty:
 ;loc_6B68:
 Advance_player_distance:
 	LEA	Player_obj.w, A0
-	JSR	loc_80E0
+	JSR	Compute_curve_speed_factor
 	MULU.w	Player_speed.w, D0
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
@@ -11857,7 +11857,8 @@ Load_minimap_position:
 	MOVE.b	$1(A1,D0.w), $2E(A0)
 	RTS
 
-loc_80E0:
+;loc_80E0
+Compute_curve_speed_factor:
 	MOVE.w	#$05AF, D0
 	MOVE.w	$1A(A0), D1
 	LSR.w	#2, D1
@@ -11866,40 +11867,46 @@ loc_80E0:
 	BCLR.l	#6, D1
 	SNE	D2
 	EXT.w	D1
-	BEQ.b	loc_8140
+	BEQ.b	Compute_curve_speed_factor_Rts
 	MOVE.w	$12(A0), D3
 	SMI	D4
-	BPL.b	loc_8108
+	BPL.b	Compute_curve_speed_factor_Abs
 	NEG.w	D3
-loc_8108:
+;loc_8108
+Compute_curve_speed_factor_Abs:
 	SUBI.w	#$0020, D3
-	BCS.b	loc_8140
+	BCS.b	Compute_curve_speed_factor_Rts
 	LSR.w	#5, D3
 	CMPI.w	#8, D3
-	BCS.b	loc_8118
+	BCS.b	Compute_curve_speed_factor_Clamp
 	MOVEQ	#7, D3
-loc_8118:
+;loc_8118
+Compute_curve_speed_factor_Clamp:
 	TST.b	D4
-	BNE.b	loc_8120
+	BNE.b	Compute_curve_speed_factor_Left
 	ADDQ.w	#8, D3
-	BRA.b	loc_8126
-loc_8120:
+	BRA.b	Compute_curve_speed_factor_Right
+;loc_8120
+Compute_curve_speed_factor_Left:
 	MOVEQ	#7, D7
 	SUB.w	D3, D7
 	MOVE.w	D7, D3
-loc_8126:
+;loc_8126
+Compute_curve_speed_factor_Right:
 	TST.b	D2
-	BEQ.b	loc_8130
+	BEQ.b	Compute_curve_speed_factor_Lookup
 	MOVEQ	#$0000000F, D7
 	SUB.w	D3, D7
 	MOVE.w	D7, D3
-loc_8130:
+;loc_8130
+Compute_curve_speed_factor_Lookup:
 	ADD.w	D3, D3
 	LSL.w	#5, D1
 	ADD.w	D3, D1
 	LEA	loc_6F340, A1
 	MOVE.w	(A1,D1.w), D0
-loc_8140:
+;loc_8140
+Compute_curve_speed_factor_Rts:
 	RTS
 
 ;loc_8142:
@@ -11923,7 +11930,7 @@ loc_8140:
 Update_horizontal_position:
 	CLR.w	Collision_flag.w
 	LEA	Steering_divisor_straight.w, A0
-	LEA	loc_8998(PC), A2
+	LEA	Steering_curve_divisors(PC), A2
 	MOVE.w	Overtake_delta.w, D3
 	OR.w	Overtake_position_delta.w, D3
 	BNE.w	Update_horizontal_position_Done
@@ -12276,7 +12283,7 @@ Update_race_position_Champ_set_rival_b:
 ;loc_84D0:
 Draw_placement_ordinal_to_vdp:
 	LSL.w	#4, D1
-	LEA	loc_8898(PC), A6
+	LEA	Placement_ordinal_tilemap(PC), A6
 	ADDA.w	D1, A6
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
@@ -12567,7 +12574,7 @@ Update_pit_prompt:
 	MOVE.w	#1, Pit_in_flag.w
 ;Update_pit_prompt_Display
 Update_pit_prompt_Display:
-	LEA	loc_8870(PC), A6
+	LEA	Pit_prompt_tilemap(PC), A6
 	MOVEQ	#1, D0
 	TST.w	Pit_in_flag.w
 	BNE.b	Update_pit_prompt_Queue
@@ -12659,14 +12666,17 @@ Update_tire_wear_counter_Check_degrade:
 	JSR	Load_team_car_data
 Update_tire_wear_counter_Return:
 	RTS
-loc_8870:
+;loc_8870
+Pit_prompt_tilemap:
 	dc.w	$8492, $8493, $8494, $8495, $8496, $8497, $8498, $8499, $849A, $849B, $849C, $849D, $849E, $849F, $84A0, $84A1, $84A2, $84A3, $84A4, $84A5
-loc_8898:
+;loc_8898
+Placement_ordinal_tilemap:
 	dc.w	$0000, $84B4, $0000, $0000, $0000, $84B5, $A7DC, $A7DD, $0000, $84B6, $0000, $0000, $0000, $84B7, $A7D7, $A7CD, $0000, $84B8, $0000, $0000, $0000, $84B9, $A7DB, $A7CD, $0000, $84BA, $0000, $0000, $0000, $84BB, $A7DD, $A7D1
 	dc.w	$0000, $84BC, $0000, $0000, $0000, $84BD, $A7DD, $A7D1, $0000, $84BE, $0000, $0000, $0000, $84BF, $A7DD, $A7D1, $0000, $84C0, $0000, $0000, $0000, $84C1, $A7DD, $A7D1, $0000, $84C2, $0000, $0000, $0000, $84C3, $A7DD, $A7D1
 	dc.w	$0000, $84C4, $0000, $0000, $0000, $84C5, $A7DD, $A7D1, $84B4, $84B2, $0000, $0000, $84B5, $84B3, $A7DD, $A7D1, $84B4, $84B4, $0000, $0000, $84B5, $84B5, $A7DD, $A7D1, $84B4, $84B6, $0000, $0000, $84B5, $84B7, $A7DD, $A7D1
 	dc.w	$84B4, $84B8, $0000, $0000, $84B5, $84B9, $A7DD, $A7D1, $84B4, $84BA, $0000, $0000, $84B5, $84BB, $A7DD, $A7D1, $84B4, $84BC, $0000, $0000, $84B5, $84BD, $A7DD, $A7D1, $84B4, $84BE, $0000, $0000, $84B5, $84BF, $A7DD, $A7D1
-loc_8998:
+;loc_8998
+Steering_curve_divisors:
 	dc.w	$0008, $0018
 	dc.w	$0002, $0006
 	dc.w	$0000, $0000
@@ -17504,7 +17514,7 @@ loc_C2C4:
 
 loc_C2CE:
 	LSL.w	#4, D1
-	LEA	loc_8898, A6
+	LEA	Placement_ordinal_tilemap, A6
 	ADDA.w	D1, A6
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
