@@ -6317,11 +6317,11 @@ Race_finish_results_init:
 	MOVEQ	#3, D2
 ;loc_434C
 Race_finish_results_init_Skip:
-	LEA	loc_4694(PC), A1
+	LEA	Pre_race_text_ptr_table(PC), A1
 	JSR	Draw_packed_list_loop
 	JSR	Race_finish_results_init_Shift_lap_times(PC)
 	JSR	Race_finish_results_init_Draw_lap_rows(PC)
-	LEA	loc_4622, A6
+	LEA	Pre_race_car_intro_palette_sequence, A6
 	JSR	Copy_word_run_from_stream
 	JSR	Copy_word_run_from_stream
 	MOVE.w	Current_lap.w, D0
@@ -6331,7 +6331,7 @@ Race_finish_results_init_Skip:
 ;loc_437C
 Race_finish_results_init_Penalty:
 	ADD.w	D0, D0
-	LEA	loc_473C(PC), A0
+	LEA	Pre_race_lap_time_offset_table(PC), A0
 	MOVE.w	(A0,D0.w), D2
 	MOVE.w	Race_time_bcd.w, D0
 	MOVEQ	#0, D1
@@ -6379,7 +6379,7 @@ Race_finish_results_init_Draw_lap_rows:
 	LEA	VDP_data_port, A1
 	LEA	Track_lap_target_buf.w, A0
 	LEA	$FFFFE810.w, A3
-	LEA	loc_471E(PC), A2
+	LEA	Pre_race_tile_addr_table(PC), A2
 	MOVEQ	#$0000000D, D4
 	CMPI.w	#$000E, Current_lap.w
 	BNE.b	Race_finish_results_init_Row_loop
@@ -6400,13 +6400,13 @@ Race_finish_results_init_Row_loop:
 	DBF	D4, Race_finish_results_init_Row_loop
 	TST.b	Lap_time_ptr.w
 	BPL.b	Race_finish_results_init_Current_row
-	LEA	loc_4710(PC), A6
+	LEA	Pre_race_text_points_labels(PC), A6
 	JSR	Draw_packed_tilemap_to_vdp
 ;loc_4464
 Race_finish_results_init_Current_row:
 	MOVE.w	Current_lap.w, D0
 	ADD.w	D0, D0
-	LEA	loc_471E(PC), A0
+	LEA	Pre_race_tile_addr_table(PC), A0
 	MOVE.w	(A0,D0.w), D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, Screen_timer.w
@@ -6475,7 +6475,7 @@ loc_4528:
 	JSR	Initialize_h40_vdp_state
 	MOVE.w	#$8B00, VDP_control_port
 	MOVE.w	#$9209, VDP_control_port
-	LEA	loc_467A(PC), A1
+	LEA	Pre_race_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_62310, A0
 	MOVE.w	#$E580, D0
@@ -6514,7 +6514,7 @@ loc_45B0:
 	ADDI.w	#$0020, D0
 	DBF	D2, loc_45AA
 	CLR.b	-$5(A0)
-	LEA	loc_463C, A6
+	LEA	Pre_race_intro_palette_strip_a, A6
 	JSR	Copy_word_run_from_stream
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00A5, Race_frame_counter.w
@@ -6527,12 +6527,15 @@ loc_45B0:
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-loc_4622:
+;loc_4622
+Pre_race_car_intro_palette_sequence:
 	dc.b	$60, $09, $04, $44, $00, $00, $0E, $EE, $08, $88, $08, $CC, $02, $88, $06, $AA, $02, $66, $02, $22, $08, $88, $04, $00, $0E, $66
-loc_463C:
+;loc_463C
+Pre_race_intro_palette_strip_a:
 	dc.b	$02, $0D, $02, $00, $04, $00, $04, $20, $06, $20, $06, $42, $08, $42, $08, $64, $0A, $64, $0A, $86, $0C, $86, $0C, $A8, $0E, $CA, $0E, $EC, $0E, $A8, $60, $0E
 	dc.b	$06, $44, $00, $00, $0E, $EE, $09, $99, $0C, $88, $08, $22, $0A, $66, $06, $22, $08, $66, $08, $66, $00, $00, $08, $88, $0A, $AA, $0C, $CC, $0E, $EE
-loc_467A:
+;loc_467A
+Pre_race_asset_list:
 	dc.b	$00, $03
 	dc.b	$B0, $00
 	dc.l	loc_622A0
@@ -6542,17 +6545,20 @@ loc_467A:
 	dc.l	loc_6263A
 	dc.b	$86, $40
 	dc.l	loc_56D3A
-loc_4694:
-	dc.l	loc_46A4
-	dc.l	loc_46C2
-	dc.l	loc_46E8
-	dc.l	loc_4708
-loc_46A4:
+;loc_4694
+Pre_race_text_ptr_table:
+	dc.l	Pre_race_text_results_header
+	dc.l	Pre_race_text_positions_1_8
+	dc.l	Pre_race_text_positions_9_14
+	dc.l	Pre_race_text_position_15
+;loc_46A4
+Pre_race_text_results_header:
 	dc.b	$E2, $8E, $FB, $87, $C0
 	txt "PRELIMINARY", $FA
 	txt "RACE", $FA
 	txt "RESULTS", $FF
-loc_46C2:
+;loc_46C2
+Pre_race_text_positions_1_8:
 	dc.b	$E3, $8A, $FB, $E7, $C0
 	txt "P.P", $FC
 	txt "2ND", $FC
@@ -6562,7 +6568,8 @@ loc_46C2:
 	txt "6TH", $FC
 	txt "7TH", $FC
 	txt "8TH", $FF, $00
-loc_46E8:
+;loc_46E8
+Pre_race_text_positions_9_14:
 	dc.b	$E3, $A8, $FA
 	txt "9TH", $FC
 	txt "10TH", $FC
@@ -6570,14 +6577,18 @@ loc_46E8:
 	txt "12TH", $FC
 	txt "13TH", $FC
 	txt "14TH", $FF
-loc_4708:
+;loc_4708
+Pre_race_text_position_15:
 	dc.b	$E9, $A8
 	txt "15TH", $FF, $00
-loc_4710:
+;loc_4710
+Pre_race_text_points_labels:
 	dc.b	$E9, $B2, $FB, $E7, $C0, $FA, $FA, $2C, $2C, $2C, $2C, $2C, $FA, $FF
-loc_471E:
+;loc_471E
+Pre_race_tile_addr_table:
 	dc.w	$E388, $E488, $E588, $E688, $E788, $E888, $E988, $EA88, $E3A8, $E4A8, $E5A8, $E6A8, $E7A8, $E8A8, $E9A8
-loc_473C:
+;loc_473C
+Pre_race_lap_time_offset_table:
 	dc.w	$0159
 	dc.b	$01, $07, $00, $87, $00, $74, $00, $68
 	dc.w	$0063
@@ -6594,30 +6605,35 @@ Name_entry_frame:
 	JSR	Draw_initials_entry_buffer(PC)
 	JSR	Update_objects_and_build_sprite_buffer
 	TST.w	Temp_distance.w
-	BEQ.b	loc_4798
+	BEQ.b	Name_entry_frame_Active
 	SUBQ.w	#1, Temp_distance.w
-	BNE.b	loc_4796
+	BNE.b	Name_entry_frame_Rts
 	MOVE.l	#$00002592, Frame_callback.w
-loc_4796:
+;loc_4796
+Name_entry_frame_Rts:
 	RTS
-loc_4798:
+;loc_4798
+Name_entry_frame_Active:
 	JSR	Update_initials_entry_selection(PC)
 	JSR	Handle_initials_entry_button_input(PC)
 	MOVEQ	#1, D1
 	SUB.b	D1, $FFFFFC2D.w
-	BNE.b	loc_47CA
+	BNE.b	Name_entry_frame_Bcd_write
 	MOVE.b	#$3C, $FFFFFC2D.w
 	MOVE.b	Race_frame_counter.w, D2
-	BNE.b	loc_47C0
-loc_47B4:
+	BNE.b	Name_entry_frame_Bcd_body
+;loc_47B4
+Name_entry_frame_Blink_clear:
 	JSR	Clear_initials_entry_placeholders(PC)
 	MOVE.w	#$005A, Temp_distance.w
 	RTS
-loc_47C0:
+;loc_47C0
+Name_entry_frame_Bcd_body:
 	ADDI.w	#0, D0
 	SBCD	D1, D2
 	MOVE.b	D2, Race_frame_counter.w
-loc_47CA:
+;loc_47CA
+Name_entry_frame_Bcd_write:
 	LEA	$FFFFE800.w, A1
 	MOVE.b	Race_frame_counter.w, D1
 	MOVEQ	#1, D0
@@ -6631,29 +6647,30 @@ loc_47CA:
 	LEA	$FFFFE800.w, A6
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	BTST.b	#KEY_START, Input_click_bitset.w
-	BEQ.b	loc_481C
+	BEQ.b	Name_entry_frame_End_rts
 	MOVE.w	#$FFFF, Temp_distance.w
 	JSR	Clear_initials_entry_placeholders(PC)
 	JSR	Draw_initials_entry_buffer(PC)
 	MOVE.w	#9, Selection_count.w
 	MOVE.l	#Title_menu, Frame_callback.w
-loc_481C:
+;loc_481C
+Name_entry_frame_End_rts:
 	RTS
 
 ;loc_481E
 Handle_initials_entry_button_input:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$0070, D0
-	BEQ.b	loc_486A
+	BEQ.b	Handle_initials_entry_button_input_Done
 	MOVEQ	#0, D0
 	MOVE.b	Menu_cursor.w, D0
 	LEA	loc_5501(PC), A0
 	MOVE.b	(A0,D0.w), D0
 	LSR.w	#1, D0
 	CMPI.w	#$001A, D0
-	BEQ.w	loc_47B4
+	BEQ.w	Name_entry_frame_Blink_clear
 	CMPI.w	#$001B, D0
-	BEQ.b	loc_486C
+	BEQ.b	Handle_initials_entry_button_input_Delete
 	MOVEQ	#0, D1
 	MOVE.b	Menu_substate.w, D1
 	MOVEA.l	Screen_data_ptr.w, A0
@@ -6661,86 +6678,98 @@ Handle_initials_entry_button_input:
 	MOVE.b	D0, (A0,D1.w)
 	ADDQ.b	#1, Menu_substate.w
 	CMPI.b	#3, Menu_substate.w
-	BNE.b	loc_486A
+	BNE.b	Handle_initials_entry_button_input_Done
 	MOVE.b	#$1C, Menu_cursor.w
-loc_486A:
+;loc_486A
+Handle_initials_entry_button_input_Done:
 	RTS
-loc_486C:
+;loc_486C
+Handle_initials_entry_button_input_Delete:
 	MOVE.b	Menu_substate.w, D1
 	MOVEA.l	Screen_data_ptr.w, A0
 	MOVE.b	#$36, (A0,D1.w)
 	TST.b	Menu_substate.w
-	BEQ.b	loc_4884
+	BEQ.b	Handle_initials_entry_button_input_Rts
 	SUBQ.b	#1, Menu_substate.w
-loc_4884:
+;loc_4884
+Handle_initials_entry_button_input_Rts:
 	RTS
 
 ;loc_4886
 Draw_initials_entry_buffer:
 	MOVEA.l	Screen_data_ptr.w, A0
 	TST.w	Temp_distance.w
-	BNE.b	loc_48A6
+	BNE.b	Draw_initials_entry_buffer_Draw
 	MOVEQ	#0, D0
 	BTST.b	#3, Frame_counter.w
-	BEQ.b	loc_489C
+	BEQ.b	Draw_initials_entry_buffer_Blank_tile
 	MOVEQ	#$00000036, D0
-loc_489C:
+;loc_489C
+Draw_initials_entry_buffer_Blank_tile:
 	MOVEQ	#0, D1
 	MOVE.b	Menu_substate.w, D1
 	MOVE.b	D0, (A0,D1.w)
-loc_48A6:
+;loc_48A6
+Draw_initials_entry_buffer_Draw:
 	LEA	VDP_data_port, A5
 	MOVE.l	Screen_scroll.w, D0
 	ADDI.l	#$00300000, D0
 	MOVE.l	D0, $4(A5)
-	JMP	loc_4DFA
+	JMP	Draw_initials_entry_name_tiles_No_blink
 
 ;loc_48C0
 Clear_initials_entry_placeholders:
 	MOVEA.l	Screen_data_ptr.w, A0
 	MOVEQ	#2, D0
-loc_48C6:
+;loc_48C6
+Clear_initials_entry_placeholders_Loop:
 	CMPI.b	#$36, (A0)
-	BNE.b	loc_48CE
+	BNE.b	Clear_initials_entry_placeholders_Next
 	CLR.b	(A0)
-loc_48CE:
+;loc_48CE
+Clear_initials_entry_placeholders_Next:
 	ADDQ.w	#1, A0
-	DBF	D0, loc_48C6
+	DBF	D0, Clear_initials_entry_placeholders_Loop
 	RTS
 
 ;loc_48D6
 Update_initials_entry_selection:
 	MOVE.b	Input_state_bitset.w, D0
 	ANDI.w	#$000C, D0 ; Keys left+right? (assuming D0 high was 0)
-	BNE.b	loc_48E6
+	BNE.b	Update_initials_entry_selection_Active
 	CLR.b	$FFFFFC11.w
-loc_48E4:
+;loc_48E4
+Update_initials_entry_selection_Rts:
 	RTS
-loc_48E6:
+;loc_48E6
+Update_initials_entry_selection_Active:
 	SUBQ.b	#1, $FFFFFC11.w
-	BPL.b	loc_48E4
+	BPL.b	Update_initials_entry_selection_Rts
 	MOVE.b	#7, $FFFFFC11.w
 	MOVE.b	Menu_cursor.w, D1
 	BTST.l	#2, D0
-	BNE.b	loc_4914
+	BNE.b	Update_initials_entry_selection_Left
 	ADDQ.b	#1, D1
 	CMPI.b	#$1D, D1
 	BCS.b	Update_initials_entry_Write
 	CMPI.b	#3, Menu_substate.w
-	BNE.b	loc_4910
+	BNE.b	Update_initials_entry_selection_Wrap_right
 	MOVEQ	#$0000001B, D1
 	BRA.b	Update_initials_entry_Write
-loc_4910:
+;loc_4910
+Update_initials_entry_selection_Wrap_right:
 	CLR.w	D1
 	BRA.b	Update_initials_entry_Write
-loc_4914:
+;loc_4914
+Update_initials_entry_selection_Left:
 	SUBQ.b	#1, D1
-	BCS.b	loc_4926
+	BCS.b	Update_initials_entry_selection_Wrap_left
 	CMPI.b	#3, Menu_substate.w
 	BNE.b	Update_initials_entry_Write
 	CMPI.b	#$1A, D1
 	BNE.b	Update_initials_entry_Write
-loc_4926:
+;loc_4926
+Update_initials_entry_selection_Wrap_left:
 	MOVEQ	#$0000001C, D1
 ;Update_initials_entry_Write
 Update_initials_entry_Write:
@@ -6781,25 +6810,27 @@ Pre_race_screen_init:
 	MOVEQ	#$00000019, D6
 	MOVEQ	#1, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	JSR	loc_4AE2(PC)
-	BCC.b	loc_49BA
-	JSR	loc_4CFE(PC)
+	JSR	Load_pre_race_qualifying_data(PC)
+	BCC.b	Pre_race_screen_init_Not_champ
+	JSR	Draw_pre_race_standings_With_target(PC)
 	MOVE.w	#$E88E, Screen_scroll.w
 	JSR	Read_vram_row_strip_priority(PC)
-	BRA.w	loc_4BE2
-loc_49BA:
-	JSR	loc_4CD6(PC)
+	BRA.w	Pre_race_screen_init_Common
+;loc_49BA
+Pre_race_screen_init_Not_champ:
+	JSR	Draw_pre_race_standings(PC)
 	MOVE.w	Screen_subcounter.w, D0
 	CMPI.w	#5, D0
-	BCS.b	loc_49CA
+	BCS.b	Pre_race_screen_init_Clamp_row
 	MOVEQ	#4, D0
-loc_49CA:
+;loc_49CA
+Pre_race_screen_init_Clamp_row:
 	LSL.w	#8, D0
 	ADDI.w	#$E30E, D0
 	MOVE.w	D0, Screen_scroll.w
 	JSR	Read_vram_row_strip_priority(PC)
 	JSR	Initialize_race_track_scroll_tables(PC)
-	JSR	loc_4A2C(PC)
+	JSR	Pre_race_init_road_vdp(PC)
 	MOVE.l	#$00004F5C, Ai_car_array.w
 	MOVE.w	#$603C, Race_frame_counter.w
 	MOVE.l	#Name_entry_frame, Frame_callback.w
@@ -6813,7 +6844,8 @@ loc_49CA:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
-loc_4A2C:
+;loc_4A2C
+Pre_race_init_road_vdp:
 	LEA	loc_570CA, A0
 	LEA	Curve_data, A4
 	JSR	Decompress_to_ram
@@ -6822,7 +6854,8 @@ loc_4A2C:
 	LEA	$00FF5C40, A0
 	LEA	VDP_data_port, A1
 	MOVE.l	#$53200000, VDP_control_port
-loc_4A58:
+;loc_4A58
+Pre_race_init_road_vdp_Loop:
 	MOVE.l	D1, (A1)
 	MOVE.l	D1, (A1)
 	MOVE.l	D1, (A1)
@@ -6839,7 +6872,7 @@ loc_4A58:
 	MOVE.l	D1, (A1)
 	MOVE.l	D1, (A1)
 	MOVE.l	D1, (A1)
-	DBF	D0, loc_4A58
+	DBF	D0, Pre_race_init_road_vdp_Loop
 	RTS
 
 ;Read_vram_row_strip_priority
@@ -6852,14 +6885,16 @@ Read_vram_row_strip_priority:
 	LEA	$FFFFCE00.w, A0
 	MOVEQ	#$0000001F, D0
 	MOVE.w	D0, D1
-loc_4A9E:
+;loc_4A9E
+Read_vram_row_strip_priority_Read_loop:
 	MOVE.w	VDP_data_port, (A0)+
-	DBF	D0, loc_4A9E
-loc_4AA8:
+	DBF	D0, Read_vram_row_strip_priority_Read_loop
+;loc_4AA8
+Read_vram_row_strip_priority_Clear_loop:
 	MOVE.w	-$40(A0), D2
 	ANDI.w	#$9FFF, D2
 	MOVE.w	D2, (A0)+
-	DBF	D1, loc_4AA8
+	DBF	D1, Read_vram_row_strip_priority_Clear_loop
 	RTS
 
 ;Upload_palette_buffer_to_vdp
@@ -6872,7 +6907,7 @@ Upload_palette_buffer_to_vdp:
 ; frames (Frame_counter bit 0) to implement double-buffering of the tile strip.
 ; Does nothing if Screen_scroll is 0.
 	MOVE.l	Screen_scroll.w, D0
-	BEQ.b	loc_4AE0
+	BEQ.b	Upload_palette_buffer_to_vdp_Rts
 	LEA	VDP_data_port, A6
 	MOVE.l	D0, $4(A6)
 	LEA	$FFFFCE00.w, A0
@@ -6881,13 +6916,16 @@ Upload_palette_buffer_to_vdp:
 	LSL.w	#6, D0
 	ADDA.w	D0, A0
 	MOVEQ	#$0000000F, D0
-loc_4ADA:
+;loc_4ADA
+Upload_palette_buffer_to_vdp_Loop:
 	MOVE.l	(A0)+, (A6)
-	DBF	D0, loc_4ADA
-loc_4AE0:
+	DBF	D0, Upload_palette_buffer_to_vdp_Loop
+;loc_4AE0
+Upload_palette_buffer_to_vdp_Rts:
 	RTS
 
-loc_4AE2:
+;loc_4AE2
+Load_pre_race_qualifying_data:
 	LEA	$FFFFC080.w, A0
 	MOVE.w	Race_time_bcd.w, (A0)+
 	MOVE.b	$FFFFFF3D.w, (A0)+
@@ -6906,33 +6944,38 @@ loc_4AE2:
 	MOVEQ	#0, D1
 	MOVEQ	#8, D2
 	LEA	$FFFFFD90.w, A0
-loc_4B24:
+;loc_4B24
+Load_pre_race_qualifying_data_Search_loop:
 	CMP.w	(A0), D0
-	BHI.b	loc_4B36
+	BHI.b	Load_pre_race_qualifying_data_Insert
 	ADDQ.w	#1, D1
 	LEA	$10(A0), A0
-	DBF	D2, loc_4B24
+	DBF	D2, Load_pre_race_qualifying_data_Search_loop
 	ADDQ.w	#2, D2
 	RTS
-loc_4B36:
+;loc_4B36
+Load_pre_race_qualifying_data_Insert:
 	MOVE.w	D1, Screen_subcounter.w
 	MOVEQ	#8, D0
 	SUB.w	D1, D0
-	BEQ.b	loc_4B54
+	BEQ.b	Load_pre_race_qualifying_data_Write
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	SUBQ.w	#1, D0
 	LEA	$FFFFFE20.w, A2
 	LEA	-$10(A2), A3
-loc_4B4E:
+;loc_4B4E
+Load_pre_race_qualifying_data_Shift_loop:
 	MOVE.l	-(A3), -(A2)
-	DBF	D0, loc_4B4E
-loc_4B54:
+	DBF	D0, Load_pre_race_qualifying_data_Shift_loop
+;loc_4B54
+Load_pre_race_qualifying_data_Write:
 	LEA	$FFFFC080.w, A1
 	MOVEQ	#3, D0
-loc_4B5A:
+;loc_4B5A
+Load_pre_race_qualifying_data_Copy_loop:
 	MOVE.l	(A1)+, (A0)+
-	DBF	D0, loc_4B5A
+	DBF	D0, Load_pre_race_qualifying_data_Copy_loop
 	LEA	-$4(A0), A0
 	MOVE.l	A0, Screen_data_ptr.w
 	MOVE.b	#$36, (A0)+
@@ -6951,15 +6994,17 @@ Pre_race_preview_car_frame:
 	JSR	Upload_palette_buffer_to_vdp(PC)
 	JSR	Update_objects_and_build_sprite_buffer
 	BTST.b	#KEY_START, Input_click_bitset.w
-	BEQ.b	loc_4BA2
+	BEQ.b	Pre_race_preview_car_frame_No_start
 	MOVE.w	#9, Selection_count.w
 	MOVE.l	#Title_menu, Frame_callback.w
 	RTS
-loc_4BA2:
+;loc_4BA2
+Pre_race_preview_car_frame_No_start:
 	SUBQ.w	#1, Race_frame_counter.w
-	BNE.b	loc_4BB0
+	BNE.b	Pre_race_preview_car_frame_Rts
 	MOVE.l	#$00002592, Frame_callback.w
-loc_4BB0:
+;loc_4BB0
+Pre_race_preview_car_frame_Rts:
 	RTS
 ;$00004BB2
 ; Pre_race_screen_championship_init — initialise the pre-championship spinning-car
@@ -6977,8 +7022,9 @@ Pre_race_screen_championship_init:
 	MOVEQ	#$00000019, D6
 	MOVEQ	#1, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	JSR	loc_4D54(PC)
-loc_4BE2:
+	JSR	Draw_pre_race_standings_Championship(PC)
+;loc_4BE2
+Pre_race_screen_init_Common:
 	JSR	Initialize_race_track_scroll_tables(PC)
 	MOVE.l	#$00004F56, Ai_car_array.w
 	MOVE.w	#$01E0, Race_frame_counter.w
@@ -7000,17 +7046,18 @@ Initialize_race_track_scroll_tables:
 	MOVE.l	#$00000148, D1
 	MOVE.l	#$00003500, D2
 	MOVE.w	#$00A0, D3
-loc_4C44:
+;loc_4C44
+Initialize_race_track_scroll_tables_Loop:
 	SWAP	D1
 	ADD.l	D2, D1
 	SWAP	D1
 	MOVE.w	D1, (A0)+
 	ADDQ.w	#1, D3
 	MOVE.w	D3, (A1)+
-	DBF	D0, loc_4C44
-	LEA	loc_5282(PC), A1
+	DBF	D0, Initialize_race_track_scroll_tables_Loop
+	LEA	Championship_driver_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_52A8(PC), A6
+	LEA	Championship_driver_palette_data(PC), A6
 	JSR	Copy_word_run_from_stream
 	JSR	Copy_word_run_from_stream
 	JSR	Copy_word_run_from_stream
@@ -7034,71 +7081,80 @@ Update_car_selection_screen:
 	MOVEQ	#9, D5
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	SUBQ.w	#1, Screen_timer.w
-	BPL.b	loc_4CD4
+	BPL.b	Update_car_selection_screen_Rts
 	MOVE.w	#4, Screen_timer.w
 	ADDQ.w	#1, Screen_tick.w
 	CMPI.w	#3, Screen_tick.w
-	BCS.b	loc_4CD4
+	BCS.b	Update_car_selection_screen_Rts
 	CLR.w	Screen_tick.w
-loc_4CD4:
+;loc_4CD4
+Update_car_selection_screen_Rts:
 	RTS
 
-loc_4CD6:
-	LEA	loc_532E(PC), A4
+;loc_4CD6
+Draw_pre_race_standings:
+	LEA	Position_text_1_4(PC), A4
 	LEA	$FFFFFD90.w, A0
 	MOVE.w	Screen_subcounter.w, D0
 	SUBQ.w	#4, D0
-	BLS.b	loc_4CF2
+	BLS.b	Draw_pre_race_standings_Offset
 	MOVE.w	D0, D1
 	ADD.w	D0, D0
 	ADD.w	D1, D0
 	ADDA.w	D0, A4
 	LSL.w	#4, D1
 	ADDA.w	D1, A0
-loc_4CF2:
+;loc_4CF2
+Draw_pre_race_standings_Offset:
 	MOVE.w	#$E184, D6
 	MOVE.w	#5, Screen_item_count.w
-	BRA.b	loc_4D66
+	BRA.b	Draw_pre_race_standings_Header
 
-loc_4CFE:
-	LEA	loc_533A(PC), A4
+;loc_4CFE
+Draw_pre_race_standings_With_target:
+	LEA	Position_text_5_9(PC), A4
 	LEA	$FFFFFDD0.w, A0
 	MOVE.w	#$E184, D6
 	MOVE.w	#5, Screen_item_count.w
-	JSR	loc_4D66(PC)
+	JSR	Draw_pre_race_standings_Header(PC)
 	LEA	$FFFFC080.w, A0
 	MOVE.w	#$E804, D6
-	LEA	loc_530E(PC), A4
+	LEA	Qualifying_rank_position_data(PC), A4
 	MOVE.w	Race_time_bcd.w, D0
-	LEA	loc_5306(PC), A6
+	LEA	Qualifying_time_thresholds(PC), A6
 	MOVEQ	#3, D1
-loc_4D2A:
+;loc_4D2A
+Draw_pre_race_standings_Time_loop:
 	CMP.w	(A6)+, D0
-	BCC.b	loc_4D34
+	BCC.b	Draw_pre_race_standings_Time_found
 	ADDQ.w	#3, A4
-	DBF	D1, loc_4D2A
-loc_4D34:
+	DBF	D1, Draw_pre_race_standings_Time_loop
+;loc_4D34
+Draw_pre_race_standings_Time_found:
 	MOVE.w	#1, Screen_item_count.w
-	LEA	loc_5397(PC), A6
+	LEA	Car_result_column_tilemap_3_laps(PC), A6
 	TST.b	$4(A0)
 	BMI.b	Update_car_selection_Draw
-	LEA	loc_53C0(PC), A6
+	LEA	Car_result_column_tilemap_5_laps(PC), A6
 	TST.b	$8(A0)
 	BMI.b	Update_car_selection_Draw
-	LEA	loc_53E9(PC), A6
+	LEA	Car_result_column_tilemap_7_laps(PC), A6
 	BRA.b	Update_car_selection_Draw
 
-loc_4D54:
-	LEA	loc_532E(PC), A4
+;loc_4D54
+Draw_pre_race_standings_Championship:
+	LEA	Position_text_1_4(PC), A4
 	LEA	$FFFFFD90.w, A0
 	MOVE.w	#$E204, D6
 	MOVE.w	#9, Screen_item_count.w
 
-loc_4D66:
+;loc_4D66
+Draw_pre_race_standings_Header:
 	LEA	VDP_data_port, A5
-	LEA	loc_5349(PC), A6
+	LEA	Car_result_column_tilemap(PC), A6
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
-loc_4D76:
+;loc_4D76
+Draw_pre_race_standings_Item:
 	LEA	loc_5463(PC), A6
 	TST.b	$4(A0)
 	BMI.b	Update_car_selection_Draw
@@ -7109,88 +7165,99 @@ loc_4D76:
 ;Update_car_selection_Draw
 Update_car_selection_Draw:
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
-	LEA	loc_543A(PC), A6
+	LEA	Car_result_shading_tilemap(PC), A6
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
-	JSR	loc_4DCC(PC)
+	JSR	Draw_car_result_placement_tiles(PC)
 	MOVE.w	(A0)+, D0
 	MOVEQ	#4, D1
 	MOVEQ	#$0000000A, D2
 	JSR	Render_number_tiles_at_row_col(PC)
-	JSR	loc_4EC8(PC)
-	JSR	loc_4EEC(PC)
-	JSR	loc_4E34(PC)
-	JSR	loc_4DEC(PC)
+	JSR	Draw_car_result_position_tile(PC)
+	JSR	Draw_car_result_nationality_tile(PC)
+	JSR	Draw_car_result_time_columns(PC)
+	JSR	Draw_initials_entry_name_tiles(PC)
 	SUBQ.w	#1, Screen_item_count.w
-	BNE.b	loc_4D76
-	LEA	loc_5412(PC), A6
+	BNE.b	Draw_pre_race_standings_Item
+	LEA	Car_result_grid_tilemap(PC), A6
 	JMP	Draw_packed_tilemap_to_vdp_preset_base
 
-loc_4DCC:
+;loc_4DCC
+Draw_car_result_placement_tiles:
 	MOVE.w	D6, D7
 	ADDI.w	#$FF82, D7
 	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVEQ	#2, D0
 	MOVE.w	#$C7C0, D1
-loc_4DDC:
+;loc_4DDC
+Draw_car_result_placement_tiles_Loop:
 	MOVEQ	#0, D2
 	MOVE.b	(A4)+, D2
-	BEQ.b	loc_4DE4
+	BEQ.b	Draw_car_result_placement_tiles_Write
 	ADD.w	D1, D2
-loc_4DE4:
+;loc_4DE4
+Draw_car_result_placement_tiles_Write:
 	MOVE.w	D2, (A5)
-	DBF	D0, loc_4DDC
+	DBF	D0, Draw_car_result_placement_tiles_Loop
 	RTS
 
-loc_4DEC:
+;loc_4DEC
+Draw_initials_entry_name_tiles:
 	MOVE.w	D6, D7
 	ADDI.w	#$FFBA, D7
 	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVEQ	#1, D7
-	BRA.b	loc_4DFC
-loc_4DFA:
+	BRA.b	Draw_initials_entry_name_tiles_Body
+;loc_4DFA
+Draw_initials_entry_name_tiles_No_blink:
 	MOVEQ	#0, D7
-loc_4DFC:
+;loc_4DFC
+Draw_initials_entry_name_tiles_Body:
 	MOVEQ	#2, D0
 	MOVE.w	#$C7C0, D1
 	TST.w	Temp_distance.w
-	BEQ.b	loc_4E14
+	BEQ.b	Draw_initials_entry_name_tiles_Loop
 	BTST.b	#0, Frame_counter.w
-	BEQ.b	loc_4E14
+	BEQ.b	Draw_initials_entry_name_tiles_Loop
 	MOVE.w	#$87C0, D1
-loc_4E14:
+;loc_4E14
+Draw_initials_entry_name_tiles_Loop:
 	MOVEQ	#0, D2
 	MOVE.b	(A0)+, D2
-	BEQ.b	loc_4E2A
+	BEQ.b	Draw_initials_entry_name_tiles_Store
 	CMPI.w	#$0036, D2
-	BNE.b	loc_4E28
+	BNE.b	Draw_initials_entry_name_tiles_Write
 	TST.w	D7
-	BEQ.b	loc_4E28
+	BEQ.b	Draw_initials_entry_name_tiles_Write
 	MOVEQ	#0, D2
-	BRA.b	loc_4E2A
-loc_4E28:
+	BRA.b	Draw_initials_entry_name_tiles_Store
+;loc_4E28
+Draw_initials_entry_name_tiles_Write:
 	ADD.w	D1, D2
-loc_4E2A:
+;loc_4E2A
+Draw_initials_entry_name_tiles_Store:
 	MOVE.w	D2, (A5)
-	DBF	D0, loc_4E14
+	DBF	D0, Draw_initials_entry_name_tiles_Loop
 	ADDQ.w	#1, A0
 	RTS
 
-loc_4E34:
+;loc_4E34
+Draw_car_result_time_columns:
 	MOVEQ	#0, D0
 	MOVE.b	(A0)+, D0
-	BMI.b	loc_4E88
+	BMI.b	Draw_car_result_time_columns_Retired
 	MOVE.w	D6, D7
 	ADDI.w	#$FF9A, D7
 	MOVE.w	#$001C, D2
-	JSR	loc_4E58(PC)
+	JSR	Draw_car_result_time_value(PC)
 	MOVEQ	#0, D0
 	MOVE.b	(A0)+, D0
-	BMI.b	loc_4EA8
+	BMI.b	Draw_car_result_time_columns_Skip
 	MOVE.w	D6, D7
 	ADDI.w	#$FFAA, D7
 	MOVE.w	#$002C, D2
 
-loc_4E58:
+;loc_4E58
+Draw_car_result_time_value:
 	MOVEM.w	D7/D0, -(A7)
 	MOVE.b	(A0)+, D0
 	SWAP	D0
@@ -7200,48 +7267,55 @@ loc_4E58:
 	MOVEM.w	(A7)+, D0/D7
 	JSR	Set_vdp_command_from_tile_index(PC)
 	CMPI.w	#9, D0
-	BCS.b	loc_4E7C
+	BCS.b	Draw_car_result_time_value_Small
 	MOVE.w	#$87EC, D0
-	BRA.b	loc_4E80
-loc_4E7C:
+	BRA.b	Draw_car_result_time_value_Write
+;loc_4E7C
+Draw_car_result_time_value_Small:
 	ADDI.w	#$87C1, D0
-loc_4E80:
+;loc_4E80
+Draw_car_result_time_value_Write:
 	MOVE.w	D0, (A5)
 	MOVE.w	#$87EC, (A5)
 	RTS
-loc_4E88:
+;loc_4E88
+Draw_car_result_time_columns_Retired:
 	ADDQ.w	#7, A0
 	MOVE.w	D6, D5
 	ADDI.w	#$FF9A, D6
-	LEA	loc_531D(PC), A6
+	LEA	Car_result_retired_tilemap(PC), A6
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	ADDI.w	#$0018, D6
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVE.w	D5, D6
 	RTS
-loc_4EA8:
+;loc_4EA8
+Draw_car_result_time_columns_Skip:
 	ADDQ.w	#3, A0
 	MOVE.w	D6, D5
 	ADDI.w	#$FFAA, D6
-	LEA	loc_531D(PC), A6
+	LEA	Car_result_retired_tilemap(PC), A6
 	ADDQ.b	#1, D0
-	BEQ.b	loc_4EBE
-	LEA	loc_5328(PC), A6
+	BEQ.b	Draw_car_result_time_columns_Draw
+	LEA	Car_result_dots_tilemap(PC), A6
 	ADDQ.w	#8, D6
-loc_4EBE:
+;loc_4EBE
+Draw_car_result_time_columns_Draw:
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVE.w	D5, D6
 	RTS
 
-loc_4EC8:
+;loc_4EC8
+Draw_car_result_position_tile:
 	MOVEQ	#0, D0
 	MOVE.b	(A0)+, D0
-	BNE.b	loc_4EDA
-	LEA	loc_5302(PC), A1
+	BNE.b	Draw_car_result_position_tile_Nonzero
+	LEA	Nationality_tile_pair_blank(PC), A1
 	MOVE.w	D6, D7
 	ADDI.w	#$FF94, D7
-	BRA.b	loc_4F00
-loc_4EDA:
+	BRA.b	Draw_car_result_nationality_tile_Write
+;loc_4EDA
+Draw_car_result_position_tile_Nonzero:
 	ADDQ.w	#1, D0
 	JSR	Binary_to_decimal
 	MOVE.w	D1, D0
@@ -7249,8 +7323,9 @@ loc_4EDA:
 	MOVEQ	#$00000014, D2
 	JMP	Render_number_tiles_at_row_col(PC)
 
-loc_4EEC:
-	LEA	loc_52F6(PC), A1
+;loc_4EEC
+Draw_car_result_nationality_tile:
+	LEA	Nationality_tile_pair_table(PC), A1
 	MOVEQ	#0, D0
 	MOVE.b	(A0)+, D0
 	ADD.w	D0, D0
@@ -7258,7 +7333,8 @@ loc_4EEC:
 	ADDA.w	D0, A1
 	MOVE.w	D6, D7
 	ADDI.w	#$FFC2, D7
-loc_4F00:
+;loc_4F00
+Draw_car_result_nationality_tile_Write:
 	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVE.l	(A1), (A5)
 	RTS
@@ -7283,15 +7359,17 @@ Render_packed_digits_to_vdp:
 	SUBQ.w	#1, D1
 	MOVEQ	#$0000000F, D2
 	MOVEQ	#0, D3
-loc_4F2E:
+;loc_4F2E
+Render_packed_digits_to_vdp_Loop:
 	MOVE.b	(A1)+, D0
 	BSR.b	Write_digit_tile_nibble
 	TST.w	D1
-	BNE.b	loc_4F38
+	BNE.b	Render_packed_digits_to_vdp_Body
 	MOVEQ	#1, D3
-loc_4F38:
+;loc_4F38
+Render_packed_digits_to_vdp_Body:
 	BSR.b	Write_digit_tile_nibble
-	DBF	D1, loc_4F2E
+	DBF	D1, Render_packed_digits_to_vdp_Loop
 	RTS
 
 ;Write_digit_tile_nibble
@@ -7299,35 +7377,42 @@ Write_digit_tile_nibble:
 	ROR.b	#4, D0
 	MOVE.w	D0, D5
 	AND.w	D2, D5
-	BNE.b	loc_4F4E
+	BNE.b	Write_digit_tile_nibble_Nonzero
 	TST.w	D3
-	BNE.b	loc_4F50
-	BRA.b	loc_4F52
-loc_4F4E:
+	BNE.b	Write_digit_tile_nibble_Leading_ok
+	BRA.b	Write_digit_tile_nibble_Write
+;loc_4F4E
+Write_digit_tile_nibble_Nonzero:
 	MOVEQ	#1, D3
-loc_4F50:
+;loc_4F50
+Write_digit_tile_nibble_Leading_ok:
 	ADD.w	D4, D5
-loc_4F52:
+;loc_4F52
+Write_digit_tile_nibble_Write:
 	MOVE.w	D5, (A5)
 	RTS
 	MOVE.w	#8, $2A(A0)
-loc_4F5C:
+;loc_4F5C
+Car_intro_object_Cooldown:
 	SUBQ.w	#1, $36(A0)
-	BMI.b	loc_4F64
+	BMI.b	Car_intro_object_Cooldown_Done
 	RTS
-loc_4F64:
-	MOVE.l	#loc_4F74, (A0)
+;loc_4F64
+Car_intro_object_Cooldown_Done:
+	MOVE.l	#Car_intro_object_Spin, (A0)
 	MOVE.w	#$0100, $C(A0)
 	CLR.w	$E(A0)
-loc_4F74:
+;loc_4F74
+Car_intro_object_Spin:
 	ADDQ.w	#1, $E(A0)
 	MOVE.w	$E(A0), D0
 	CMPI.w	#$00A1, D0
-	BHI.b	loc_4FCE
+	BHI.b	Car_intro_object_Spin_Done
 	CMPI.w	#$0090, D0
-	BNE.b	loc_4F90
+	BNE.b	Car_intro_object_Spin_Body
 	MOVE.w	$2A(A0), $00FF5AC2
-loc_4F90:
+;loc_4F90
+Car_intro_object_Spin_Body:
 	LEA	Ai_screen_y_table, A1
 
 	MOVE.b	(A1,D0.w), D1
@@ -7343,8 +7428,9 @@ loc_4F90:
 	LEA	loc_2F068, A1
 	MOVE.l	(A1,D0.w), $4(A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_4FCE:
-	MOVE.l	#loc_4F5C, (A0)
+;loc_4FCE
+Car_intro_object_Spin_Done:
+	MOVE.l	#Car_intro_object_Cooldown, (A0)
 	MOVE.w	#$0078, $36(A0)
 	RTS
 ;Championship_mode_init
@@ -7361,15 +7447,17 @@ Championship_mode_init:
 	MOVE.l	#$40000080, D7
 	JSR	Start_vdp_dma_fill
 	BTST.b	#2, Player_state_flags.w
-	BNE.b	loc_5030
-	JSR	loc_51E4(PC)
-loc_5030:
-	JSR	loc_5156(PC)
+	BNE.b	Championship_mode_init_Restored
+	JSR	Sort_and_apply_championship_standings(PC)
+;loc_5030
+Championship_mode_init_Restored:
+	JSR	Draw_team_driver_lineup(PC)
 	MOVEQ	#$0000000F, D0
 	LEA	Driver_points_by_team.w, A0
-loc_503A:
+;loc_503A
+Championship_mode_init_Clear_loop:
 	CLR.b	(A0)+
-	DBF	D0, loc_503A
+	DBF	D0, Championship_mode_init_Clear_loop
 	CLR.w	Track_index.w
 	MOVE.b	Player_state_flags.w, D0
 	ANDI.b	#$FC, D0
@@ -7398,20 +7486,22 @@ Car_selection_frame:
 	BEQ.b	loc_50F8
 	MOVE.b	Input_click_bitset.w, D1
 	ANDI.w	#$00F0, D1 ; Keys A+B+C+Start
-	BEQ.b	loc_50DC
+	BEQ.b	Car_selection_frame_Up_check
 	MOVE.l	#$0000D6E2, Frame_callback.w
 	RTS
-loc_50DC:
+;loc_50DC
+Car_selection_frame_Up_check:
 	BTST.b	#KEY_UP, Input_state_bitset.w
-	BEQ.b	loc_50F0
+	BEQ.b	Car_selection_frame_Down_check
 	ADDQ.w	#1, D0
 	CMPI.w	#$0060, D0
 	BLS.b	Car_selection_store_scroll
 	SUBQ.w	#1, D0
 	BRA.b	Car_selection_store_scroll
-loc_50F0:
+;loc_50F0
+Car_selection_frame_Down_check:
 	BTST.b	#KEY_DOWN, Input_state_bitset.w
-	BEQ.b	loc_5108
+	BEQ.b	Car_selection_frame_Rts
 loc_50F8:
 	SUBQ.w	#1, D0
 	BPL.b	Car_selection_store_scroll
@@ -7420,7 +7510,8 @@ loc_50F8:
 ;loc_5104
 Car_selection_store_scroll:
 	MOVE.w	D0, Anim_delay.w
-loc_5108:
+;loc_5108
+Car_selection_frame_Rts:
 	RTS
 
 ;loc_510A
@@ -7441,16 +7532,18 @@ Initialize_default_lap_times:
 	LEA	loc_553E(PC), A0
 	LEA	Track_lap_time_records.w, A1 ; base of per-track BCD lap-time records block
 	MOVEQ	#$00000023, D0
-loc_5114:
+;loc_5114
+Initialize_default_lap_times_Loop1:
 	CLR.b	(A1)+
 	MOVE.b	(A0)+, (A1)+
 	MOVE.b	(A0)+, (A1)+
 	CLR.b	(A1)+
-	DBF	D0, loc_5114
+	DBF	D0, Initialize_default_lap_times_Loop1
 	MOVEQ	#$00000023, D0
-loc_5122:
+;loc_5122
+Initialize_default_lap_times_Loop2:
 	MOVE.l	(A0)+, (A1)+
-	DBF	D0, loc_5122
+	DBF	D0, Initialize_default_lap_times_Loop2
 	RTS
 
 ;Write_tile_vdp_command_to_slot
@@ -7466,42 +7559,49 @@ Copy_tile_bytes_to_slot:
 	MOVEQ	#0, D0
 	MOVE.b	(A2)+, D0
 	CMPI.w	#$00FF, D0
-	BNE.b	loc_514C
+	BNE.b	Copy_tile_bytes_to_slot_Add
 	TST.w	D2
-	BNE.b	loc_5154
+	BNE.b	Copy_tile_bytes_to_slot_Rts
 	MOVEQ	#0, D0
-	BRA.b	loc_514E
-loc_514C:
+	BRA.b	Copy_tile_bytes_to_slot_Write
+;loc_514C
+Copy_tile_bytes_to_slot_Add:
 	ADD.w	D4, D0
-loc_514E:
+;loc_514E
+Copy_tile_bytes_to_slot_Write:
 	MOVE.w	D0, (A5)
 	DBF	D1, Copy_tile_bytes_to_slot
-loc_5154:
+;loc_5154
+Copy_tile_bytes_to_slot_Rts:
 	RTS
 
-loc_5156:
-	LEA	loc_5232(PC), A6
+;loc_5156
+Draw_team_driver_lineup:
+	LEA	Lineup_header_tilemap(PC), A6
 	JSR	Draw_packed_tilemap_to_vdp
 	LEA	VDP_data_port, A5
 	MOVE.w	#$0306, D6
 	MOVEQ	#0, D5
-loc_516C:
+;loc_516C
+Draw_team_driver_lineup_Loop:
 	MOVE.w	#$87C0, D4
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	CMP.w	D0, D5
-	BNE.b	loc_5184
+	BNE.b	Draw_team_driver_lineup_Other
 	MOVEQ	#$00000010, D0
 	MOVE.w	#$C7C0, D4
-	BRA.b	loc_519A
-loc_5184:
+	BRA.b	Draw_team_driver_lineup_Draw
+;loc_5184
+Draw_team_driver_lineup_Other:
 	LEA	Drivers_and_teams_map.w, A0
 	MOVE.b	(A0,D5.w), D0
 	ANDI.w	#$000F, D0
 	BTST.b	#6, Player_team.w
-	BEQ.b	loc_519A
+	BEQ.b	Draw_team_driver_lineup_Draw
 	SUBQ.w	#1, D0
-loc_519A:
+;loc_519A
+Draw_team_driver_lineup_Draw:
 	JSR	Load_driver_name_text_pointer
 	MOVE.w	D6, D7
 	ADDI.w	#$0016, D7
@@ -7523,10 +7623,11 @@ loc_519A:
 	ADDI.w	#$0100, D6
 	ADDQ.w	#1, D5
 	CMPI.w	#$0010, D5
-	BNE.b	loc_516C
+	BNE.b	Draw_team_driver_lineup_Loop
 	RTS
 
-loc_51E4:
+;loc_51E4
+Sort_and_apply_championship_standings:
 	JSR	Sort_championship_standings(PC)
 	LEA	Score_scratch_buf.w, A0
 	LEA	$FFFF8FC0.w, A1
@@ -7534,30 +7635,35 @@ loc_51E4:
 	MOVE.b	Player_team.w, D7
 	ANDI.w	#$00F0, D7
 	MOVEQ	#0, D0
-loc_51FE:
+;loc_51FE
+Sort_and_apply_championship_standings_Loop:
 	MOVEQ	#0, D1
 	MOVE.b	(A0)+, D1
-	BPL.b	loc_520E
+	BPL.b	Sort_and_apply_championship_standings_Named
 	OR.w	D0, D7
 	MOVE.b	D7, Player_team.w
 	MOVEQ	#0, D1
-	BRA.b	loc_5216
-loc_520E:
+	BRA.b	Sort_and_apply_championship_standings_Store
+;loc_520E
+Sort_and_apply_championship_standings_Named:
 	MOVE.b	(A2,D1.w), D1
 	ANDI.w	#$000F, D1
-loc_5216:
+;loc_5216
+Sort_and_apply_championship_standings_Store:
 	MOVE.b	D1, (A1)+
 	ADDQ.w	#1, D0
 	CMPI.w	#$0010, D0
-	BNE.b	loc_51FE
+	BNE.b	Sort_and_apply_championship_standings_Loop
 	LEA	$FFFF8FC0.w, A0
 	LEA	Drivers_and_teams_map.w, A1
 	MOVEQ	#$0000000F, D0
-loc_522A:
+;loc_522A
+Sort_and_apply_championship_standings_Copy_loop:
 	MOVE.b	(A0)+, (A1)+
-	DBF	D0, loc_522A
+	DBF	D0, Sort_and_apply_championship_standings_Copy_loop
 	RTS
-loc_5232:
+;loc_5232
+Lineup_header_tilemap:
 	dc.b	$01, $04, $FB, $C7, $C0
 	txt "-------", $FA
 	txt "NEXT", $FA
@@ -7571,7 +7677,8 @@ loc_5232:
 	txt "DRIVER"
 	dc.b	$FA, $FA, $FA, $FA, $FA
 	txt "NATIONALITY", $FF
-loc_5282:
+;loc_5282
+Championship_driver_asset_list:
 	dc.b	$00, $05
 	dc.b	$32, $80
 	dc.l	loc_2BE36
@@ -7585,53 +7692,68 @@ loc_5282:
 	dc.l	loc_58624
 	dc.b	$0B, $E0
 	dc.l	$00056E36
-loc_52A8:
+;loc_52A8
+Championship_driver_palette_data:
 	dc.b	$02, $0E, $00, $00, $0E, $EE, $00, $AE, $06, $E2, $02, $22, $04, $44, $06, $66, $08, $88, $0A, $AA, $0C, $CC, $0E, $EE, $00, $AC, $00, $08, $00, $0C, $08, $22
 	dc.b	$22, $01, $00, $00, $02, $2E, $42, $01, $00, $00, $00, $CE, $60, $0F, $08, $AA, $02, $22, $04, $44, $04, $66, $04, $68, $06, $88, $08, $AA, $0A, $AA, $04, $44
 	dc.b	$00, $00, $02, $44, $06, $8A, $02, $46, $00, $00, $00, $00, $00, $00
-loc_52F6:
+;loc_52F6
+Nationality_tile_pair_table:
 	dc.l	$C7CAC7DD
 	dc.l	$C7C4C7DC
 	dc.l	$C7C7C7DC
-loc_5302:
+;loc_5302
+Nationality_tile_pair_blank:
 	dc.l	$C7D9C7D9
-loc_5306:
+;loc_5306
+Qualifying_time_thresholds:
 	dc.w	$3500, $2500, $1000, $0200
-loc_530E:
+;loc_530E
+Qualifying_rank_position_data:
 	dc.b	$1C, $0A, $00, $00, $0A, $00, $00, $0B, $00, $00, $0C, $00, $00, $0D, $00
-loc_531D:
+;loc_531D
+Car_result_retired_tilemap:
 	dc.b	$FB, $C7, $C0
 	txt "RETIRED", $FF
-loc_5328:
+;loc_5328
+Car_result_dots_tilemap:
 	dc.b	$FB, $C7, $C0, $2C, $2C, $FF
-loc_532E:
+;loc_532E
+Position_text_1_4:
 	txt "1ST"
 	txt "2ND"
 	txt "3RD"
 	txt "4TH"
-loc_533A:
+;loc_533A
+Position_text_5_9:
 	txt "5TH"
 	txt "6TH"
 	txt "7TH"
 	txt "8TH"
 	txt "9TH"
-loc_5349:
+;loc_5349
+Car_result_column_tilemap:
 	dc.b	$FB, $80, $01, $00, $01, $01, $01, $02, $01, $01, $01, $01, $02, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02
 	dc.b	$01, $01, $01, $03, $01, $01, $04, $FD, $05, $06, $07, $08, $09, $0A, $0B, $0C, $0D, $0E, $0F, $10, $11, $12, $13, $14, $15, $16, $17, $18, $05, $19, $1A, $1B
 	dc.b	$15, $16, $17, $18, $1C, $1D, $1E, $1F, $20, $21, $22, $05, $FD, $FF
-loc_5397:
+;loc_5397
+Car_result_column_tilemap_3_laps:
 	dc.b	$FB, $80, $01, $00, $01, $01, $01, $02, $01, $01, $01, $01, $02, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02
 	dc.b	$01, $01, $01, $03, $01, $01, $04, $FD, $FF
-loc_53C0:
+;loc_53C0
+Car_result_column_tilemap_5_laps:
 	dc.b	$FB, $80, $01, $00, $01, $01, $01, $02, $01, $01, $01, $01, $02, $01, $01, $02, $01, $01, $01, $25, $26, $27, $01, $02, $01, $01, $01, $01, $01, $01, $01, $02
 	dc.b	$01, $01, $01, $03, $01, $01, $04, $FD, $FF
-loc_53E9:
+;loc_53E9
+Car_result_column_tilemap_7_laps:
 	dc.b	$FB, $80, $01, $00, $01, $01, $01, $02, $01, $01, $01, $01, $02, $01, $01, $02, $01, $01, $01, $25, $26, $27, $01, $02, $01, $01, $01, $25, $26, $27, $01, $02
 	dc.b	$01, $01, $01, $03, $01, $01, $04, $FD, $FF
-loc_5412:
+;loc_5412
+Car_result_grid_tilemap:
 	dc.b	$FB, $80, $01, $2B, $01, $01, $01, $2C, $01, $01, $01, $01, $2C, $01, $01, $2C, $01, $01, $01, $01, $01, $01, $01, $2C, $01, $01, $01, $01, $01, $01, $01, $2C
 	dc.b	$01, $01, $01, $2D, $01, $01, $2E, $FF
-loc_543A:
+;loc_543A
+Car_result_shading_tilemap:
 	dc.b	$FB, $80, $01, $05, $18, $18, $18, $05, $18, $18, $18, $18, $05, $18, $18, $05, $18, $18, $18, $18, $18, $18, $18, $05, $18, $18, $18, $18, $18, $18, $18, $05
 	dc.b	$18, $18, $18, $2A, $18, $18, $05, $FD, $FF
 loc_5463:
