@@ -1248,9 +1248,9 @@ Decompress_to_vdp:
 ; the VDP is currently set to via a prior control-port write).
 ; Inputs:  A0 = compressed data pointer (consumed on return)
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
-	LEA	loc_A32(PC), A3
+	LEA	Decompress_vdp_emit_group(PC), A3
 	LEA	VDP_data_port, A4
-	BRA.b	loc_98A
+	BRA.b	Decompress_shared_body
 
 ;loc_982:
 Decompress_to_ram:
@@ -1260,14 +1260,16 @@ Decompress_to_ram:
 ; the VDP data port.
 ; Inputs:  A0 = compressed data pointer (consumed on return)
 	MOVEM.l	A5/A4/A3/A1/A0/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
-	LEA	loc_A48(PC), A3
-loc_98A:
+	LEA	Decompress_ram_emit_group(PC), A3
+;loc_98A
+Decompress_shared_body:
 	LEA	Decomp_code_table.w, A1
 	MOVE.w	(A0)+, D2
 	LSL.w	#1, D2
-	BCC.b	loc_998
+	BCC.b	Decompress_code_table_skip
 	LEA	$A(A3), A3
-loc_998:
+;loc_998
+Decompress_code_table_skip:
 	LSL.w	#2, D2
 	MOVEA.w	D2, A5
 	MOVEQ	#8, D3
@@ -1278,56 +1280,63 @@ loc_998:
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
 	MOVE.w	#$0010, D6
-	JSR	loc_9BA(PC)
+	JSR	Decompress_huffman_decode(PC)
 	MOVEM.l	(A7)+, D0/D1/D2/D3/D4/D5/D6/D7/A0/A1/A3/A4/A5
 	RTS
 
-loc_9BA:
+;loc_9BA
+Decompress_huffman_decode:
 	MOVE.w	D6, D7
 	SUBQ.w	#8, D7
 	MOVE.w	D5, D1
 	LSR.w	D7, D1
 	CMPI.b	#$FC, D1
-	BCC.b	loc_A06
+	BCC.b	Decompress_huffman_extended
 	ANDI.w	#$00FF, D1
 	ADD.w	D1, D1
 	MOVE.b	(A1,D1.w), D0
 	EXT.w	D0
 	SUB.w	D0, D6
 	CMPI.w	#9, D6
-	BCC.b	loc_9E2
+	BCC.b	Decompress_huffman_next_nibble
 	ADDQ.w	#8, D6
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
-loc_9E2:
+;loc_9E2
+Decompress_huffman_next_nibble:
 	MOVE.b	$1(A1,D1.w), D1
 	MOVE.w	D1, D0
 	ANDI.w	#$000F, D1
 	ANDI.w	#$00F0, D0
-loc_9F0:
+;loc_9F0
+Decompress_huffman_shift_out:
 	LSR.w	#4, D0
-loc_9F2:
+;loc_9F2
+Decompress_huffman_emit_nibble:
 	LSL.l	#4, D4
 	OR.b	D1, D4
 	SUBQ.w	#1, D3
-	BNE.b	loc_A00
+	BNE.b	Decompress_huffman_loop_back
 	JMP	(A3)
 
 ;Decompress_huffman_Next_group
 Decompress_huffman_Next_group:
 	MOVEQ	#0, D4
 	MOVEQ	#8, D3
-loc_A00:
-	DBF	D0, loc_9F2
-	BRA.b	loc_9BA
-loc_A06:
+;loc_A00
+Decompress_huffman_loop_back:
+	DBF	D0, Decompress_huffman_emit_nibble
+	BRA.b	Decompress_huffman_decode
+;loc_A06
+Decompress_huffman_extended:
 	SUBQ.w	#6, D6
 	CMPI.w	#9, D6
-	BCC.b	loc_A14
+	BCC.b	Decompress_huffman_ext_reload
 	ADDQ.w	#8, D6
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
-loc_A14:
+;loc_A14
+Decompress_huffman_ext_reload:
 	SUBQ.w	#7, D6
 	MOVE.w	D5, D1
 	LSR.w	D6, D1
@@ -1335,12 +1344,13 @@ loc_A14:
 	ANDI.w	#$000F, D1
 	ANDI.w	#$0070, D0
 	CMPI.w	#9, D6
-	BCC.b	loc_9F0
+	BCC.b	Decompress_huffman_shift_out
 	ADDQ.w	#8, D6
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
-	BRA.b	loc_9F0
-loc_A32:
+	BRA.b	Decompress_huffman_shift_out
+;loc_A32
+Decompress_vdp_emit_group:
 	MOVE.l	D4, (A4)
 	SUBQ.w	#1, A5
 	MOVE.w	A5, D4
@@ -1352,7 +1362,8 @@ loc_A32:
 	MOVE.w	A5, D4
 	BNE.b	Decompress_huffman_Next_group
 	RTS
-loc_A48:
+;loc_A48
+Decompress_ram_emit_group:
 	MOVE.l	D4, (A4)+
 	SUBQ.w	#1, A5
 	MOVE.w	A5, D4
@@ -1375,16 +1386,19 @@ Build_decompression_code_table:
 ; Decompress_to_ram.
 ; Inputs:  A0 = descriptor stream (consumed), A1 = decode table output ($FFFFFA00)
 	MOVE.b	(A0)+, D0
-loc_A60:
+;loc_A60
+Build_code_table_next_entry:
 	CMPI.b	#$FF, D0
-	BNE.b	loc_A68
+	BNE.b	Build_code_table_process
 	RTS
-loc_A68:
+;loc_A68
+Build_code_table_process:
 	MOVE.w	D0, D7
-loc_A6A:
+;loc_A6A
+Build_code_table_read_slot:
 	MOVE.b	(A0)+, D0
 	CMPI.b	#$80, D0
-	BCC.b	loc_A60
+	BCC.b	Build_code_table_next_entry
 	MOVE.b	D0, D1
 	ANDI.w	#$000F, D7
 	ANDI.w	#$0070, D1
@@ -1395,23 +1409,25 @@ loc_A6A:
 	OR.w	D1, D7
 	MOVEQ	#8, D1
 	SUB.w	D0, D1
-	BNE.b	loc_A98
+	BNE.b	Build_code_table_multi
 	MOVE.b	(A0)+, D0
 	ADD.w	D0, D0
 	MOVE.w	D7, (A1,D0.w)
-	BRA.b	loc_A6A
-loc_A98:
+	BRA.b	Build_code_table_read_slot
+;loc_A98
+Build_code_table_multi:
 	MOVE.b	(A0)+, D0
 	LSL.w	D1, D0
 	ADD.w	D0, D0
 	MOVEQ	#1, D5
 	LSL.w	D1, D5
 	SUBQ.w	#1, D5
-loc_AA4:
+;loc_AA4
+Build_code_table_fill_loop:
 	MOVE.w	D7, (A1,D0.w)
 	ADDQ.w	#2, D0
-	DBF	D5, loc_AA4
-	BRA.b	loc_A6A
+	DBF	D5, Build_code_table_fill_loop
+	BRA.b	Build_code_table_read_slot
 
 ;loc_AB0:
 Decompress_tilemap_to_buffer:
@@ -1445,72 +1461,87 @@ Decompress_tilemap_to_buffer_Loop:
 	ANDI.w	#$007F, D1
 	MOVE.w	D1, D2
 	CMPI.w	#$0040, D1
-	BCC.b	loc_AF6
+	BCC.b	Decomp_tilemap_refill
 	MOVEQ	#6, D0
 	LSR.w	#1, D2
-loc_AF6:
+;loc_AF6
+Decomp_tilemap_refill:
 	JSR	Refill_tilemap_bit_buffer(PC)
 	ANDI.w	#$000F, D2
 	LSR.w	#4, D1
 	ADD.w	D1, D1
-	JMP	loc_B52(PC,D1.w)
-loc_B06:
+	JMP	Decomp_tilemap_dispatch(PC,D1.w)
+;loc_B06
+Decomp_tilemap_incrun_loop:
 	MOVE.w	A2, (A1)+
 	ADDQ.w	#1, A2
-	DBF	D2, loc_B06
+	DBF	D2, Decomp_tilemap_incrun_loop
 	BRA.b	Decompress_tilemap_to_buffer_Loop
-loc_B10:
+;loc_B10
+Decomp_tilemap_flatrun_loop:
 	MOVE.w	A4, (A1)+
-	DBF	D2, loc_B10
+	DBF	D2, Decomp_tilemap_flatrun_loop
 	BRA.b	Decompress_tilemap_to_buffer_Loop
-loc_B18:
+;loc_B18
+Decomp_tilemap_reprun_decode:
 	JSR	Decode_packed_tilemap_entry(PC)
-loc_B1C:
+;loc_B1C
+Decomp_tilemap_reprun_loop:
 	MOVE.w	D1, (A1)+
-	DBF	D2, loc_B1C
+	DBF	D2, Decomp_tilemap_reprun_loop
 	BRA.b	Decompress_tilemap_to_buffer_Loop
-loc_B24:
+;loc_B24
+Decomp_tilemap_ascrun_decode:
 	JSR	Decode_packed_tilemap_entry(PC)
-loc_B28:
+;loc_B28
+Decomp_tilemap_ascrun_loop:
 	MOVE.w	D1, (A1)+
 	ADDQ.w	#1, D1
-	DBF	D2, loc_B28
+	DBF	D2, Decomp_tilemap_ascrun_loop
 	BRA.b	Decompress_tilemap_to_buffer_Loop
-loc_B32:
+;loc_B32
+Decomp_tilemap_descrun_decode:
 	JSR	Decode_packed_tilemap_entry(PC)
-loc_B36:
+;loc_B36
+Decomp_tilemap_descrun_loop:
 	MOVE.w	D1, (A1)+
 	SUBQ.w	#1, D1
-	DBF	D2, loc_B36
+	DBF	D2, Decomp_tilemap_descrun_loop
 	BRA.b	Decompress_tilemap_to_buffer_Loop
-loc_B40:
+;loc_B40
+Decomp_tilemap_litrun_head:
 	CMPI.w	#$000F, D2
-	BEQ.b	loc_B62
-loc_B46:
+	BEQ.b	Decomp_tilemap_end
+;loc_B46
+Decomp_tilemap_litrun_loop:
 	JSR	Decode_packed_tilemap_entry(PC)
 	MOVE.w	D1, (A1)+
-	DBF	D2, loc_B46
+	DBF	D2, Decomp_tilemap_litrun_loop
 	BRA.b	Decompress_tilemap_to_buffer_Loop
-loc_B52:
-	BRA.b	loc_B06
-	BRA.b	loc_B06
-	BRA.b	loc_B10
-	BRA.b	loc_B10
-	BRA.b	loc_B18
-	BRA.b	loc_B24
-	BRA.b	loc_B32
-	BRA.b	loc_B40
-loc_B62:
+;loc_B52
+Decomp_tilemap_dispatch:
+	BRA.b	Decomp_tilemap_incrun_loop
+	BRA.b	Decomp_tilemap_incrun_loop
+	BRA.b	Decomp_tilemap_flatrun_loop
+	BRA.b	Decomp_tilemap_flatrun_loop
+	BRA.b	Decomp_tilemap_reprun_decode
+	BRA.b	Decomp_tilemap_ascrun_decode
+	BRA.b	Decomp_tilemap_descrun_decode
+	BRA.b	Decomp_tilemap_litrun_head
+;loc_B62
+Decomp_tilemap_end:
 	SUBQ.w	#1, A0
 	CMPI.w	#$0010, D6
-	BNE.b	loc_B6C
+	BNE.b	Decomp_tilemap_align
 	SUBQ.w	#1, A0
-loc_B6C:
+;loc_B6C
+Decomp_tilemap_align:
 	MOVE.w	A0, D0
 	LSR.w	#1, D0
-	BCC.b	loc_B74
+	BCC.b	Decomp_tilemap_exit
 	ADDQ.w	#1, A0
-loc_B74:
+;loc_B74
+Decomp_tilemap_exit:
 	MOVEM.l	(A7)+, D0-D7/A1-A5
 	RTS
 
@@ -1518,23 +1549,25 @@ loc_B74:
 Decode_packed_tilemap_entry:
 	MOVE.w	A3, D3
 	SWAP	D4
-	BPL.b	loc_B8A
+	BPL.b	Decode_packed_fliph_done
 	SUBQ.w	#1, D6
 	BTST.l	D6, D5
-	BEQ.b	loc_B8A
+	BEQ.b	Decode_packed_fliph_done
 	ORI.w	#$1000, D3
-loc_B8A:
+;loc_B8A
+Decode_packed_fliph_done:
 	SWAP	D4
-	BPL.b	loc_B98
+	BPL.b	Decode_packed_flipv_done
 	SUBQ.w	#1, D6
 	BTST.l	D6, D5
-	BEQ.b	loc_B98
+	BEQ.b	Decode_packed_flipv_done
 	ORI.w	#$0800, D3
-loc_B98:
+;loc_B98
+Decode_packed_flipv_done:
 	MOVE.w	D5, D1
 	MOVE.w	D6, D7
 	SUB.w	A5, D7
-	BCC.b	loc_BC8
+	BCC.b	Decode_packed_enough_bits
 	MOVE.w	D7, D6
 	ADDI.w	#$0010, D6
 	NEG.w	D7
@@ -1544,7 +1577,8 @@ loc_B98:
 	ADD.w	D7, D7
 	AND.w	loc_BDC(PC,D7.w), D5
 	ADD.w	D5, D1
-loc_BB6:
+;loc_BB6
+Decode_packed_mask_finish:
 	MOVE.w	A5, D0
 	ADD.w	D0, D0
 	AND.w	loc_BDC(PC,D0.w), D1
@@ -1553,8 +1587,9 @@ loc_BB6:
 	LSL.w	#8, D5
 	MOVE.b	(A0)+, D5
 	RTS
-loc_BC8:
-	BEQ.b	loc_BDA
+;loc_BC8
+Decode_packed_enough_bits:
+	BEQ.b	Decode_packed_exact_fit
 	LSR.w	D7, D1
 	MOVE.w	A5, D0
 	ADD.w	D0, D0
@@ -1562,21 +1597,23 @@ loc_BC8:
 	ADD.w	D3, D1
 	MOVE.w	A5, D0
 	BRA.b	Refill_tilemap_bit_buffer
-loc_BDA:
+;loc_BDA
+Decode_packed_exact_fit:
 	MOVEQ	#$00000010, D6
 loc_BDC:
-	BRA.b	loc_BB6
+	BRA.b	Decode_packed_mask_finish
 	dc.w	$0001, $0003, $0007, $000F, $001F, $003F, $007F, $00FF, $01FF, $03FF
 	dc.b	$07, $FF, $0F, $FF, $1F, $FF, $3F, $FF, $7F, $FF, $FF, $FF
 ;loc_BFE:
 Refill_tilemap_bit_buffer:
 	SUB.w	D0, D6
 	CMPI.w	#9, D6
-	BCC.b	loc_C0C
+	BCC.b	Refill_tilemap_bit_buffer_ret
 	ADDQ.w	#8, D6
 	ASL.w	#8, D5
 	MOVE.b	(A0)+, D5
-loc_C0C:
+;loc_C0C
+Refill_tilemap_bit_buffer_ret:
 	RTS
 
 ;loc_C0E:
@@ -1588,17 +1625,20 @@ Load_streamed_decompression_descriptor:
 	LEA	(A1,D0.w), A1
 	LEA	Decomp_stream_buf.w, A2
 	MOVEQ	#$0000003F, D0
-loc_C28:
+;loc_C28
+Load_stream_desc_clear_loop:
 	CLR.w	(A2)+
-	DBF	D0, loc_C28
+	DBF	D0, Load_stream_desc_clear_loop
 	LEA	Decomp_stream_buf.w, A2
 	MOVE.w	(A1)+, D0
-	BMI.b	loc_C3E
-loc_C36:
+	BMI.b	Load_stream_desc_done
+;loc_C36
+Load_stream_desc_copy_loop:
 	MOVE.l	(A1)+, (A2)+
 	MOVE.w	(A1)+, (A2)+
-	DBF	D0, loc_C36
-loc_C3E:
+	DBF	D0, Load_stream_desc_copy_loop
+;loc_C3E
+Load_stream_desc_done:
 	MOVEM.l	(A7)+, A1/A2
 	RTS
 
@@ -1609,7 +1649,7 @@ Start_streamed_decompression:
 	TST.w	Decomp_stream_rows.w
 	BNE.b	loc_C98
 	MOVEA.l	Decomp_stream_src_ptr.w, A0
-	LEA	loc_A32, A3
+	LEA	Decompress_vdp_emit_group, A3
 	LEA	Decomp_code_table.w, A1
 	MOVE.w	(A0)+, D2
 	BPL.b	loc_C66
