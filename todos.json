@@ -4,13 +4,14 @@
     "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
     "created": "2026-03-07",
     "phase": 1,
-    "label_progress": "400+ named labels, ~3317 loc_ labels remain (batch 13 done: Update_shift_Dispatch/Auto_dispatch/Do_down/Display_gear/Gear_auto_rts, Update_rpm_Accel_lookup, Update_visual_rpm_Falling, Update_engine_sound_pitch_High_rpm/Warn, Update_speed_Decel_clamp, Update_breaking_Apply, Update_steering 13 labels, Update_horizontal_position 10 labels)",
+    "label_progress": "4326+ named labels, 1861 loc_ labels remain. All JSR/BSR-called loc_ routines are named. Recent work renamed high-impact internal helpers in championship team-select, save/load state, endgame portrait, message-panel, and text-rendering paths; old ROM-address comments are preserved for renamed loc_ labels.",
     "total_commits": 199,
     "current_state": [
-      "Single monolithic smgp.asm source file (~43.7K lines)",
+      "Single monolithic smgp.asm source file (~46.7K normalized lines after blank-line cleanup)",
       "Bit-perfect Windows verification exists via verify.bat",
-      "A few major subsystems are partially documented: shift, RPM, curve data, sign parsing",
-      "Open reverse-engineering gaps remain in notes.txt: slope data, signs, artwork, Z80 audio, music IDs"
+      "Major subsystems now documented: startup, race loop, driving model, rendering/HUD, race flow, Track_data, slope data, and sign parsing",
+      "Macro coverage now includes verified VDP helpers plus several exact whole-block helper macros",
+      "Open reverse-engineering gaps remain in notes.txt: artwork identification, Z80 audio, music IDs, AI/placement internals, and many remaining internal loc_ branch labels"
     ]
   },
   "schema_version": 2,
@@ -93,7 +94,7 @@
           "effort": "very_large",
           "depends_on": "LABEL-001",
           "status": "in_progress",
-          "progress_notes": "Batches 1-19 complete. ~2660 loc_ labels remain. Batch 19 renamed 34 labels across the $6000-$674C region. Data labels renamed: Braking_strength_table (loc_60C0), Braking_track_modifier_table (loc_60D0), Track_steering_params (loc_61FC), Decomp_code_table_init (loc_27E0), Attract_car_segment_data (loc_27E8). Code labels renamed: Load_track_data internal loops (loc_6270-loc_63DA, 20 labels), Initialize_road_graphics_state_Scale_loop (loc_63F0), Initialize_road_graphics_state_Y_loop (loc_6404), Initialize_ui_tilemap_buffers_Clear_loop (loc_6434), Initialize_ui_tilemap_buffers_Copy_loop (loc_649A), Initialize_ui_tilemap_buffers_Copy2_loop (loc_6516), Apply_tilemap_attr_Or_loop (loc_6564), Copy_2d_rect_words_Inner_loop (loc_657C), Initialize_road_scroll_state (loc_658C) + Initialize_road_scroll_state_Loop (loc_6596), Render_road_bg_Zone_nonzero (loc_6622), Write_road_scroll_with_sky_to_vdp_Loop (loc_664E), Copy_displacement_rows_Row_loop (loc_6716), Copy_displacement_rows_Inner_loop (loc_672A), Copy_displacement_rows_Rts (loc_674C). Also replaced raw Audio_music_state literals and Arcade_race_init forward ref. Build verified bit-perfect."
+          "progress_notes": "Batches 1-22 complete. 1861 loc_ labels remain after a normalized-source cleanup pass. Recent high-impact renames include Championship_team_select_animate_cursor (loc_E5AC), Setup_message_panel_dimensions (loc_F830), Finalize_save_data_buffer (loc_131EC), Save_player_state_to_buffer (loc_13170), Load_player_state_from_buffer (loc_13218), Restore_saved_frame_callback (loc_132A0), Update_endgame_portrait_animation (loc_137EC), Load_endgame_portrait_tilemap (loc_13858), Draw_endgame_portrait_tilemap (loc_1387E), Copy_endgame_portrait_palette_strip (loc_138B0), Render_text_special_char_with_tile_76/77 (loc_F806/loc_F80C), and Championship_team_select_substate_* helpers (loc_E4DA/loc_E4DC/loc_E532/loc_E534). Build verified bit-perfect after each batch."
         },
         {
           "id": "LABEL-003",
@@ -102,7 +103,8 @@
           "file": "smgp.asm",
           "priority": "high",
           "effort": "large",
-          "status": "todo"
+          "status": "in_progress",
+          "progress_notes": "Original ROM offset comments are now preserved for newly renamed loc_ labels in recent naming batches, including macro-cleanup-era UI/save/endgame helper renames. Earlier renames should still be audited for consistency project-wide."
         },
         {
           "id": "LABEL-004",
@@ -111,7 +113,8 @@
           "file": "smgp.asm",
           "priority": "medium",
           "effort": "medium",
-          "status": "todo"
+          "status": "in_progress",
+          "progress_notes": "Naming style is now being standardized for new internal labels using helper-oriented names such as *_Rts, *_Loop, *_Scroll_text, *_Copy_row, and *_special_char_*. This is partially done in championship team-select, save/load, endgame portrait, and text rendering paths but not yet consistent across the whole ROM."
         },
         {
           "id": "LABEL-005",
@@ -121,7 +124,8 @@
           "priority": "medium",
           "effort": "large",
           "depends_on": "LABEL-001",
-          "status": "todo"
+          "status": "todo",
+          "progress_notes": "Now more valuable after normalized source formatting and recent high-impact helper renames; should report 1861 remaining loc_ labels and prioritize internal branch targets by reference count and region."
         },
         {
           "id": "LABEL-006",
@@ -140,7 +144,8 @@
           "file": "tools/label_coverage.py",
           "priority": "medium",
           "effort": "medium",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Added verified byte-identical helper macros in macros.asm and applied them across smgp.asm. Current macro set includes VDP helpers (vdpComm, VdpRowAdvance, SetH40MenuRegs), interrupt/display helpers (InterruptDisable, InterruptEnable, EnableDisplay, EnableDisplay_Rts, EnableDisplayAfterWait, InterruptWaitEnable_Rts), setup helpers (InitH40ClearObjects, HaltAudioAndEnableAfterWait), and exact whole-block helpers (WaitTwoVblanks, VdpWriteD7D0, DrawPackedTilemapInterrupt_Rts, GetPlayerAndRivalTeamsD0D1, ReturnToTitleMenu, SetPlayerTeamChampionship_Rts, DecompressTilemap64_27x1B). Safe vdpComm replacements now cover multiple repeated command classes including $0000/$0002/$0020/$0E16/$0E24/$1212/$1222/$3E80/$41A0/$63A0/$6B80/$7A00. Build verified bit-perfect."
         }
       ]
     },
@@ -223,7 +228,8 @@
           ],
           "priority": "medium",
           "effort": "medium",
-          "status": "todo"
+          "status": "in_progress",
+          "progress_notes": "A number of unsafe-looking but non-bit-perfect blanket replacements were identified and skipped during macro work, including several remaining VDP command literals and some seemingly obvious copy/team helper blocks. These constraints should be written down explicitly in AGENTS.md or source comments before more macro cleanup is attempted."
         },
         {
           "id": "CONST-007",
@@ -522,6 +528,18 @@
           "status": "todo"
         },
         {
+          "id": "TOOL-009",
+          "title": "Create a safe exact-block matcher for ASM macro and rename work",
+          "description": "Build a token-aware helper that can locate exact instruction blocks in smgp.asm even when formatting changes, then emit candidate replacements and verification batches. This would reduce the risk of raw regex edits and make future macro extraction and label cleanup more systematic.",
+          "files": [
+            "tools/asm_block_matcher.py",
+            "smgp.asm"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "status": "todo"
+        },
+        {
           "id": "LABEL-010",
           "title": "Name horizontal blank handler stub and frame callback pointers",
           "description": "Follow LABEL-006 by naming the copied hblank stub at $FFFFFFD2 and the RAM callback pointers used via $FFFFFF10 and $FFFFFF0C, so top-level scheduling becomes more self-describing.",
@@ -534,6 +552,15 @@
           "depends_on": "LABEL-006",
           "status": "done",
           "progress_notes": "Added Hblank_handler_stub = $FFFFFFD2 to constants.asm. Renamed loc_406 -> Hblank_handler_stub_src with ;loc_406 comment preserved. Replaced dc.l $FFFFFFD2 in vector table with Hblank_handler_stub. Replaced LEA $FFFFFFD2.w in Install_hblank_handler with Hblank_handler_stub.w. Replaced $FFFFFF10.w and $FFFFFF0C.w in main loop dispatch, VBI dispatch, and startup initialization with Frame_callback.w and Vblank_callback.w. Build verified bit-perfect."
+        },
+        {
+          "id": "TOOL-010",
+          "title": "Create a JSON updater for todos progress metadata",
+          "description": "Automate updates to roadmap metadata such as remaining loc_ count, label progress text, and completed macro batches so todos.json stays aligned with actual reverse-engineering progress.",
+          "file": "tools/update_todos.py",
+          "priority": "low",
+          "effort": "small",
+          "status": "todo"
         }
       ]
     },
@@ -658,7 +685,8 @@
           "file": "notes.txt",
           "priority": "medium",
           "effort": "medium",
-          "status": "todo"
+          "status": "in_progress",
+          "progress_notes": "Partially improved by solving and documenting Track_data, slope data, signs, and large portions of gameplay/rendering in source. notes.txt still needs a cleanup pass to remove stale solved items, point to current canonical labels, and reflect the post-normalization macro and label work."
         },
         {
           "id": "NOTES-002",

@@ -1,6 +1,5 @@
 	include "macros.asm"
 	include "constants.asm"
-
 ; =============================================================================
 ; ROM HEADER AND EXCEPTION VECTOR TABLE  ($000000 - $0001FF)
 ; =============================================================================
@@ -43,7 +42,6 @@
 ;  IRQ 6 (VINT, $78): Points to Vertical_blank_interrupt, which calls the
 ;    Vblank_callback function pointer, runs Update_audio_engine, and increments
 ;    Vblank_counter so the main loop can sync to 50/60 Hz.
-
 StartOfRom:
 Vectors:
 loc_0:
@@ -113,7 +111,6 @@ loc_8:
 	dc.l	ErrorTrap3 ; Reserved #61
 	dc.l	ErrorTrap3 ; Reserved #62
 	dc.l	ErrorTrap3 ; Reserved #63
-
 ; =============================================================================
 ; SEGA MEGA DRIVE ROM HEADER  ($000100 - $0001FF)
 ; =============================================================================
@@ -425,7 +422,6 @@ EntryPoint_Bad_rom_fill:
 ;loc_394
 EntryPoint_Bad_rom_halt:
 	BRA.b	EntryPoint_Bad_rom_halt             ; infinite loop — CPU halted
-
 ;loc_396:
 Wait_for_vblank:
 ; Synchronise the caller to the next vertical blank interrupt.
@@ -438,7 +434,6 @@ Wait_for_vblank_loop:
 	TST.w	Vblank_counter.w
 	BEQ.b	Wait_for_vblank_loop
 	RTS
-
 ;loc_3A2:
 Wait_for_practice_vblank_cycle:
 	JSR	Wait_for_vblank(PC)
@@ -471,7 +466,6 @@ Default_vblank_handler_h32:
 Vblank_tail:
 	JSR	Update_input_bitset
 	JMP	Upload_palette_buffer_to_cram
-
 ;loc_3F2:
 Install_hblank_handler:
 	LEA	Hblank_handler_stub_src(PC), A0
@@ -484,7 +478,6 @@ loc_3FE:
 ;loc_406:
 Hblank_handler_stub_src:
 	dc.w	$0C39, $00DE, $00C0, $0008, $6608, $33FC, $8AFF, $00C0, $0004, $23FC, $4002, $0010, $00C0, $0004, $33F8, $9D40, $00C0, $0000, $5478, $FFF0, $4E73
-
 ;loc_430:
 Load_startup_graphics:
 	LEA	loc_570CA, A0
@@ -496,7 +489,6 @@ Load_startup_graphics:
 	LEA	loc_3CEB0, A0
 	LEA	$00FF0100, A4
 	JMP	Decompress_to_ram
-
 ;loc_46A:
 Load_z80_driver:
 ; Copy the Z80 sound driver code from Z80_data (ROM) to Z80 RAM ($A00000),
@@ -526,7 +518,6 @@ loc_484:
 	BSR.b	Reset_z80
 	MOVE.w	#0, Z80_bus_request
 	JMP	Halt_audio_sequence
-
 ;loc_49A:
 Reset_z80:
 ; Assert and then release the Z80 hardware reset line.
@@ -585,7 +576,6 @@ Boot_init_data:
 	dc.b	$04, $14, $30, $3C, $07, $6C, $00, $00, $00, $00, $FF, $00, $81, $37, $00, $01, $01, $00, $00, $FF, $FF, $00, $00, $80, $AF, $01, $D7, $1F, $11, $29, $00, $21
 	dc.b	$28, $00, $F9, $77, $ED, $B0, $DD, $E1, $FD, $E1, $ED, $47, $ED, $4F, $08, $D9, $F1, $C1, $D1, $E1, $08, $D9, $F1, $D1, $E1, $F9, $F3, $ED, $56, $36, $E9, $E9
 	dc.b	$9F, $BF, $DF, $FF
-
 ;loc_518:
 Divide_fractional:
 ; Input D5 always swapped before call such that D5.high is the input and D5.low is always 0
@@ -603,7 +593,6 @@ Divide_fractional:
 	SWAP	D7     ; D7.h = D5 / D6
 	MOVE.w	D0, D7 ; D7.l = remainder / D6 (from $0000 to $FFFF)
 	RTS
-
 ;loc_52E:
 Decompress_asset_list_to_vdp:
 ; Decompress and upload a list of compressed graphics assets directly to VRAM.
@@ -632,7 +621,6 @@ Draw_tilemap_list_to_vdp_64_cell_rows:
 	MOVE.w	(A1)+, D0
 	LEA	Draw_tilemap_buffer_to_vdp_64_cell_rows, A4
 	BRA.b	Draw_tilemap_list_loop
-
 ;loc_55C:
 Draw_tilemap_list_to_vdp_32_cell_rows:
 ; Same as Draw_tilemap_list_to_vdp_64_cell_rows but with 32-cell (256-byte) row stride.
@@ -651,7 +639,6 @@ Draw_tilemap_list_loop:
 	JSR	(A4)
 	DBF	D0, Draw_tilemap_list_loop
 	RTS
-
 ;loc_57C
 Prng:
 ; Pseudo-random number generator (LCG-style).
@@ -685,7 +672,6 @@ Prng_nonzero_seed:
 	SWAP	D1
 	MOVE.l	D1, Saved_vdp_state.w
 	RTS
-
 ;loc_5A6
 Update_input_bitset:
 ; Read both controllers and update Input_state_bitset / Input_click_bitset.
@@ -708,7 +694,6 @@ Update_input_bitset:
 	JSR	Read_controller_input(PC)
 	MOVE.w	#0, Z80_bus_request
 	RTS
-
 ;loc_5D6:
 Read_controller_input:
 	MOVE.b	#$40, (A1)
@@ -730,7 +715,6 @@ Read_controller_input:
 	AND.w	D1, D0
 	MOVE.b	D0, (A0)+
 	RTS
-
 ;loc_604:
 Initialize_vdp:
 ; Write the 19-entry VDP register initialisation table at Vdp_init_register_table to the
@@ -749,7 +733,6 @@ Initialize_vdp_vram_loop:
 	MOVE.w	#0, VDP_data_port
 	DBF	D7, Initialize_vdp_vram_loop
 	RTS
-
 ;loc_62E:
 Initialize_h40_vdp_state:
 ; Set the VDP to H40 (320-pixel wide) mode and DMA-clear VRAM.
@@ -765,7 +748,6 @@ Initialize_h40_vdp_state:
 	MOVE.w	#$01C0, Vdp_plane_tile_count.w
 	MOVE.l	#$943793FF, D6
 	BRA.b	Initialize_vdp_dma_common
-
 ;loc_656:
 Initialize_h32_vdp_state:
 ; Set the VDP to H32 (256-pixel wide) mode and DMA-clear VRAM.
@@ -783,7 +765,6 @@ Initialize_h32_vdp_state:
 Initialize_vdp_dma_common:
 	MOVE.l	#$40000083, D7
 	JMP	Start_vdp_dma_fill(PC)
-
 ;loc_686:
 Reset_vdp_update_state:
 ; Reset VDP display state, zero screen state variables, and clear the sprite
@@ -815,14 +796,12 @@ Reset_vdp_sprite_clr_loop:
 	DBF	D0, Reset_vdp_sprite_clr_loop
 	CLR.w	Audio_engine_flags
 	RTS
-
 ;loc_6DA:
 Copy_word_run_from_stream:
 	MOVEQ	#0, D0
 	MOVEQ	#0, D1
 	MOVE.b	(A6)+, D0
 	MOVE.b	(A6)+, D1
-
 ;loc_6E2:
 Copy_word_run_to_buffer:
 	LEA	Palette_buffer.w, A5
@@ -832,7 +811,6 @@ Copy_word_run_loop:
 	MOVE.w	(A6)+, (A5)+
 	DBF	D1, Copy_word_run_loop
 	RTS
-
 ;loc_6F0:
 Upload_palette_buffer_to_cram:
 ; DMA the 64-entry (128-byte) palette buffer at $FFFFE980 to CRAM.
@@ -852,7 +830,6 @@ Upload_palette_dma:
 	MOVE.l	#$96F495C0, D6
 	MOVE.l	#$C0000080, Vdp_dma_setup.w
 	JMP	Send_D567_to_VDP(PC)
-
 ;loc_71A:
 Upload_palette_buffer_to_cram_delayed:
 ; Same as Upload_palette_buffer_to_cram but with a shorter ~$320 spin delay.
@@ -870,7 +847,6 @@ Upload_palette_delayed_dma:
 	MOVE.l	#$96F495C0, D6
 	MOVE.l	#$C0000080, Vdp_dma_setup.w
 	JMP	Send_D567_to_VDP(PC)
-
 ;loc_744:
 Upload_h40_tilemap_buffer_to_vram:
 ; DMA the tilemap buffer to VRAM in H40 (40-cell wide) mode.
@@ -879,7 +855,6 @@ Upload_h40_tilemap_buffer_to_vram:
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$74000083, Vdp_dma_setup.w
 	BRA.b	Upload_tilemap_dma
-
 ;loc_754:
 Upload_h32_tilemap_buffer_to_vram:
 ; DMA the tilemap buffer to VRAM in H32 (32-cell wide) mode.
@@ -891,7 +866,6 @@ Upload_tilemap_dma:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CD9560, D6
 	JMP	Send_D567_to_VDP(PC)
-
 ;loc_770:
 Draw_tilemap_buffer_to_vdp_128_cell_rows:
 ; Write rows of tilemap data directly to the VDP data port.
@@ -903,7 +877,6 @@ Draw_tilemap_buffer_to_vdp_128_cell_rows:
 ;  A6 = source tilemap word buffer (consumed)
 	MOVE.l	#$01000000, D3
 	BRA.b	Draw_tilemap_buffer_body
-
 ;loc_778:
 Draw_tilemap_buffer_to_vdp_64_cell_rows:
 ; Write rows of tilemap data to VDP with 64-cell (128-byte) row stride.
@@ -911,7 +884,6 @@ Draw_tilemap_buffer_to_vdp_64_cell_rows:
 ; Same inputs as Draw_tilemap_buffer_to_vdp_128_cell_rows.
 	MOVE.l	#$00800000, D3
 	BRA.b	Draw_tilemap_buffer_body
-
 ;loc_780:
 Draw_tilemap_buffer_to_vdp_32_cell_rows:
 ; Write rows of tilemap data to VDP with 32-cell (64-byte) row stride.
@@ -932,7 +904,6 @@ Draw_tilemap_buffer_tile:
 	ADD.l	D3, D7
 	DBF	D5, Draw_tilemap_buffer_row
 	RTS
-
 ;loc_7A0:
 Decompress_tilemap_to_vdp_128_cell_rows:
 ; Decompress a packed tilemap to the $FFFFEA00 work buffer then upload it
@@ -946,7 +917,6 @@ Decompress_tilemap_to_vdp_128_cell_rows:
 	JSR	Decompress_tilemap_to_buffer(PC)
 	LEA	Tilemap_work_buf.w, A6
 	BRA.b	Draw_tilemap_buffer_to_vdp_128_cell_rows
-
 ;loc_7AA:
 Decompress_tilemap_to_vdp_64_cell_rows:
 ; Decompress a packed tilemap to the $FFFFEA00 work buffer then upload it
@@ -976,7 +946,6 @@ Decompress_tilemap_to_vdp_32_cell_rows_with_base:
 Decompress_tilemap_with_base_body:
 	JSR	Decompress_tilemap_to_buffer(PC)
 	LEA	Tilemap_work_buf.w, A6
-
 ;Write_tilemap_rows_to_vdp
 Write_tilemap_rows_to_vdp:
 ; Writes rows of tilemap data to VDP, offsetting tile indices by D1.
@@ -1041,7 +1010,6 @@ Copy_tilemap_block_zero:
 	ADDA.w	D3, A5
 	DBF	D5, Copy_tilemap_block_row
 	RTS
-
 ;loc_846:
 Draw_packed_tilemap_to_vdp:
 ; Draw a run-length-encoded packed tilemap stream to the VDP.
@@ -1051,7 +1019,6 @@ Draw_packed_tilemap_to_vdp:
 ; (tile base read from first word in stream; see Draw_packed_tilemap_to_vdp_preset_base for format)
 	LEA	VDP_data_port, A5
 	MOVE.w	(A6)+, D6
-
 ;Draw_packed_tilemap_to_vdp_preset_base
 Draw_packed_tilemap_to_vdp_preset_base:
 ; Entry point for Draw_packed_tilemap_to_vdp with caller-supplied tile base in D6.
@@ -1109,18 +1076,15 @@ Draw_packed_base_add40a:
 Draw_packed_base_add40b:
 	ADDI.w	#$0040, D6
 	BRA.b	Draw_packed_tilemap_to_vdp_preset_base
-
 ;loc_8A0:
 Draw_packed_tilemap_list:
 	MOVE.w	(A1)+, D2
-
 ;loc_8A2
 Draw_packed_list_loop:
 	MOVEA.l	(A1)+, A6
 	JSR	Draw_packed_tilemap_to_vdp(PC)
 	DBF	D2, Draw_packed_list_loop
 	RTS
-
 ;loc_8AE:
 Tile_index_to_vdp_command:
 	ANDI.l	#$0000FFFF, D7
@@ -1129,7 +1093,6 @@ Tile_index_to_vdp_command:
 	ORI.w	#$4000, D7
 	SWAP	D7
 	RTS
-
 ;loc_8C0:
 Fade_palette_to_black:
 ; Fade all 64 palette entries ($FFFFE980..$FFFFE9FF) to black over 6 VBlanks.
@@ -1164,7 +1127,6 @@ Fade_palette_entry:
 Fade_palette_pal_extra:
 	DBF	D0, Fade_palette_frame
 	RTS
-
 ;loc_900:
 Darken_palette_component:
 ; Darken one 4-bit colour component extracted from the current palette word.
@@ -1183,7 +1145,6 @@ Darken_palette_component:
 Darken_palette_clamp:
 	OR.w	D3, D5
 	RTS
-
 ;loc_914:
 Send_D567_to_VDP:
 ; Write three pre-packed VDP control longwords (D5, D6, D7) to the VDP control
@@ -1211,7 +1172,6 @@ Send_D567_to_VDP:
 	MOVE.w	$FFFFFF0A.w, (A5)
 	MOVE.w	#0, Z80_bus_request
 	RTS
-
 ;loc_944:
 Start_vdp_dma_fill:
 ; Initiate a VDP DMA fill operation and spin-wait until it completes.
@@ -1238,7 +1198,6 @@ Start_dma_fill_wait:
 	BNE.b	Start_dma_fill_wait
 	MOVE.w	#$8F02, VDP_control_port
 	RTS
-
 ;loc_972:
 Decompress_to_vdp:
 ; Decompress tile graphics data from A0 and stream the decompressed pixels
@@ -1252,7 +1211,6 @@ Decompress_to_vdp:
 	LEA	Decompress_vdp_emit_group(PC), A3
 	LEA	VDP_data_port, A4
 	BRA.b	Decompress_shared_body
-
 ;loc_982:
 Decompress_to_ram:
 ; Decompress tile graphics data from A0 into a RAM buffer at A4.
@@ -1284,7 +1242,6 @@ Decompress_code_table_skip:
 	JSR	Decompress_huffman_decode(PC)
 	MOVEM.l	(A7)+, D0/D1/D2/D3/D4/D5/D6/D7/A0/A1/A3/A4/A5
 	RTS
-
 ;loc_9BA
 Decompress_huffman_decode:
 	MOVE.w	D6, D7
@@ -1319,7 +1276,6 @@ Decompress_huffman_emit_nibble:
 	SUBQ.w	#1, D3
 	BNE.b	Decompress_huffman_loop_back
 	JMP	(A3)
-
 ;Decompress_huffman_Next_group
 Decompress_huffman_Next_group:
 	MOVEQ	#0, D4
@@ -1376,7 +1332,6 @@ Decompress_ram_emit_group:
 	MOVE.w	A5, D4
 	BNE.b	Decompress_huffman_Next_group
 	RTS
-
 ;loc_A5E:
 Build_decompression_code_table:
 ; Build a flat decode table at A1 ($FFFFFA00) from a compact descriptor in A0.
@@ -1429,7 +1384,6 @@ Build_code_table_fill_loop:
 	ADDQ.w	#2, D0
 	DBF	D5, Build_code_table_fill_loop
 	BRA.b	Build_code_table_read_slot
-
 ;loc_AB0:
 Decompress_tilemap_to_buffer:
 	MOVEM.l	A5/A4/A3/A2/A1/D7/D6/D5/D4/D3/D2/D1/D0, -(A7)
@@ -1545,7 +1499,6 @@ Decomp_tilemap_align:
 Decomp_tilemap_exit:
 	MOVEM.l	(A7)+, D0-D7/A1-A5
 	RTS
-
 ;loc_B7A:
 Decode_packed_tilemap_entry:
 	MOVE.w	A3, D3
@@ -1617,7 +1570,6 @@ Refill_tilemap_bit_buffer:
 ;loc_C0C
 Refill_tilemap_bit_buffer_ret:
 	RTS
-
 ;loc_C0E:
 Load_streamed_decompression_descriptor:
 	MOVEM.l	A2/A1, -(A7)
@@ -1643,7 +1595,6 @@ Load_stream_desc_copy_loop:
 Load_stream_desc_done:
 	MOVEM.l	(A7)+, A1/A2
 	RTS
-
 ;loc_C44:
 Start_streamed_decompression:
 	TST.l	Decomp_stream_src_ptr.w
@@ -1734,7 +1685,6 @@ Stream_descriptor_table:
 Vdp_init_register_table:
 	dc.w	$8004, $8134, $8238, $8338, $8406
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
-
 ;loc_D5C:
 Update_objects_and_build_sprite_buffer:
 	MOVEQ	#-1, D0
@@ -1925,7 +1875,6 @@ Build_sprites_write_links_done:
 Queue_object_for_alt_sprite_buffer:
 	LEA	$FFFFA7B0.w, A1
 	BRA.b	Queue_object_shared_body
-
 ;loc_EF0:
 Queue_object_for_sprite_buffer:
 	LEA	$FFFFA280.w, A1
@@ -1945,19 +1894,16 @@ Queue_object_shared_body:
 Queue_object_full:
 	ADDI.w	#$FFFF, D1
 	RTS
-
 ;loc_F16:
 Clear_main_object_pool:
 	LEA	Main_object_pool.w, A0
 	MOVEQ	#$0000004B, D1
 	BRA.b	Clear_object_pool_loop
-
 ;loc_F1E:
 Clear_partial_main_object_pool:
 	LEA	Main_object_pool.w, A0
 	MOVEQ	#$0000000B, D1
 	BRA.b	Clear_object_pool_loop
-
 ;loc_F26:
 Clear_aux_object_pool:
 	LEA	Aux_object_pool.w, A0
@@ -1968,7 +1914,6 @@ Clear_object_pool_loop:
 	LEA	$40(A0), A0
 	DBF	D1, Clear_object_pool_loop
 	RTS
-
 ;loc_F38:
 Clear_object_slot:
 	LEA	(A0), A1
@@ -2054,7 +1999,6 @@ Flag_anim_tiles_phase1:
 ;loc_107E
 Flag_anim_tiles_phase2:
 	dc.w	$87B1, $87B2, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
-
 ;loc_10A2:
 Load_race_hud_graphics:
 ; Decompress and upload all graphics assets needed for the race HUD and road
@@ -2118,7 +2062,6 @@ Load_hud_gfx_decomp:
 ;loc_1142
 Load_hud_gfx_done:
 	RTS
-
 ;loc_1144:
 Initialize_race_hud:
 ; Build the initial race HUD layout in VRAM and the palette buffer.
@@ -2298,7 +2241,6 @@ Init_hud_player_ordinal:
 	JSR	Draw_placement_ordinal_to_vdp
 	LEA	loc_1F08(PC), A1
 	JMP	Draw_packed_tilemap_list
-
 ;loc_139C
 Draw_lap_number_and_times:
 	MOVE.w	Laps_completed.w, D0
@@ -2325,7 +2267,6 @@ Draw_lap_times_loop:
 	SUBQ.w	#1, Screen_timer.w
 	BPL.b	Draw_lap_times_loop
 	RTS
-
 ;loc_13F6
 Initialize_hud_objects:
 	TST.w	Use_world_championship_tracks.w
@@ -2370,7 +2311,6 @@ Init_hud_objects_copy_palette:
 	MOVE.l	$FFFFE9CC.w, (A0)+
 	MOVE.l	$FFFFE9D0.w, (A0)+
 	RTS
-
 ;Load_team_palette_entry
 Load_team_palette_entry:
 	AND.w	D7, D0
@@ -2380,7 +2320,6 @@ Load_team_palette_entry:
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0), (A1)
 	RTS
-
 ;Queue_tilemap_draw
 Queue_tilemap_draw:
 ; Appends a tilemap draw command to the deferred draw queue.
@@ -2397,7 +2336,6 @@ Queue_tilemap_draw:
 	MOVE.l	A5, Tilemap_queue_ptr.w
 	ADDQ.w	#1, Tilemap_queue_count.w
 	RTS
-
 ;Flush_tilemap_draw_queue
 Flush_tilemap_draw_queue:
 ; Drain the deferred tilemap draw queue built during the game frame.
@@ -2422,7 +2360,6 @@ Flush_tilemap_queue_loop:
 ;loc_14A4
 Flush_tilemap_queue_done:
 	RTS
-
 ;loc_14A6
 Render_placement_display:
 ; Redraw the race placement (position) tile strip if the dirty flag is set.
@@ -2433,7 +2370,6 @@ Render_placement_display:
 ; Clears Placement_display_dirty after drawing.
 	TST.w	Placement_display_dirty.w
 	BEQ.b	Unpack_placement_nop
-
 ;loc_14AC
 Render_placement_display_body:
 	CLR.w	Placement_display_dirty.w
@@ -2451,7 +2387,6 @@ Render_placement_display_body:
 	MOVEQ	#0, D5
 	LEA	$FFFFE8AC.w, A6
 	JMP	Queue_tilemap_draw(PC)
-
 ;Unpack_placement_nibble_to_tile
 Unpack_placement_nibble_to_tile:
 	ROL.w	#4, D0
@@ -2472,7 +2407,6 @@ Unpack_placement_store:
 ;loc_14F0
 Unpack_placement_nop:
 	RTS
-
 ;loc_14F2
 Unpack_placement_units:
 	ROL.w	#4, D0
@@ -2481,7 +2415,6 @@ Unpack_placement_units:
 	ADD.w	D4, D1
 	MOVE.w	D1, (A1)+
 	RTS
-
 ;loc_14FE:
 Render_speed:
 ; Redraw the speedometer digit tiles on the HUD.
@@ -2502,7 +2435,6 @@ Render_speed:
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
 	JMP	Queue_tilemap_draw(PC)
-
 ;Unpack_bcd_digits_to_buffer
 Unpack_bcd_digits_to_buffer:
 	MOVEQ	#$0000000F, D4
@@ -2518,12 +2450,10 @@ Unpack_bcd_digits_loop:
 	LSR.w	#4, D1
 	DBF	D0, Unpack_bcd_digits_loop
 	RTS
-
 ;Copy_digits_to_tilemap
 Copy_digits_to_tilemap:
 	MOVEQ	#0, D2
 	BRA.b	Copy_digits_shared_body
-
 ;Copy_digits_to_tilemap_with_suppress
 Copy_digits_to_tilemap_with_suppress:
 	MOVEQ	#-1, D2
@@ -2554,7 +2484,6 @@ Copy_digits_emit:
 	MOVE.w	$2(A2,D3.w), -$2(A1,D1.w)
 	DBF	D0, Copy_digits_loop
 	RTS
-
 ;loc_157C:
 Binary_to_decimal: ; For instance: input D0 = $007B yields output D1 = $0123
 	CLR.l	$FFFFFCFC.w ; clears bytes referenced from A2 below
@@ -2638,7 +2567,6 @@ Format_bcd_time_to_tile_buffer:
 Format_bcd_time_leading_zero:
 	MOVE.w	D1, -(A3)
 	RTS
-
 ;Pack_hex_digits_to_tilemap
 Pack_hex_digits_to_tilemap: ; Suspected number to hex digit conversion
 	MOVEQ	#$0000000F, D2
@@ -2672,7 +2600,6 @@ Pack_hex_digits_to_tilemap: ; Suspected number to hex digit conversion
 Pack_hex_leading_zero:
 	MOVE.w	D1, -(A1)
 	RTS
-
 ;loc_1666
 Flush_pending_dma_transfers:
 	LEA	$FFFFFCD2.w, A0
@@ -2751,7 +2678,6 @@ Flush_dma_crash_style_b:
 ;loc_1776
 Flush_dma_crash_done:
 	RTS
-
 ;loc_1778
 Update_car_palette_dma:
 	MOVE.w	$FFFFFCA2.w, D0
@@ -2912,7 +2838,6 @@ Update_placement_b_draw:
 ;loc_1998
 Update_placement_b_done:
 	RTS
-
 ;Wrap_index_mod10
 Wrap_index_mod10:
 	ADDQ.w	#1, D0
@@ -2925,7 +2850,6 @@ Wrap_index_mod10:
 ;loc_19AA
 Wrap_index_mod10_done:
 	RTS
-
 ;Load_palette_vdp_commands_from_table
 Load_palette_vdp_commands_from_table:
 ; Reads 3 palette bytes from table A0 at index D4 and packs them into VDP
@@ -2941,7 +2865,6 @@ Load_palette_vdp_commands_from_table:
 	SWAP	D6
 	MOVE.b	$3(A0,D4.w), D6
 	RTS
-
 ;Build_car_tilemap_buffers
 Build_car_tilemap_buffers:
 ; Copy the decompressed player car tilemap from $FFFFEA00 into six 9×32-word
@@ -2992,7 +2915,6 @@ Build_car_tilemap_buffers:
 	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCF40.w, A1
 	LEA	$FFFFC880.w, A0
-
 ;Copy_tiles_with_priority_flip
 Copy_tiles_with_priority_flip:
 	MOVEQ	#3, D0
@@ -3011,7 +2933,6 @@ Copy_tiles_with_priority_flip_Inner:
 	LEA	$180(A1), A1
 	DBF	D0, Copy_tiles_with_priority_flip_Outer
 	RTS
-
 ;loc_1A7C
 Initialize_car_tile_scroll:
 ; Initialize the car road-scroll tile display at the start of a race.
@@ -3056,7 +2977,6 @@ Initialize_car_tile_scroll_Inner:
 	BSR.b	Fill_opponent_scroll_ring
 	BSR.b	Set_vdp_mode_h32_variant_a
 	BRA.w	Set_vdp_mode_h32_variant_b
-
 ;loc_1AE0
 Update_car_scroll_column:
 	MOVEQ	#8, D2
@@ -3067,7 +2987,6 @@ Update_car_scroll_column:
 	CMPI.w	#8, D0
 	BHI.b	Fill_opponent_scroll_ring
 	MOVE.w	D0, D2
-
 ;Fill_opponent_scroll_ring
 Fill_opponent_scroll_ring:
 	MOVE.w	Player_distance_steps.w, D0
@@ -3102,7 +3021,6 @@ Fill_opponent_scroll_ring_Inner:
 	LEA	$80(A1), A1
 	DBF	D2, Fill_opponent_scroll_ring_Outer
 	RTS
-
 ;Set_vdp_mode_h32_variant_a
 Set_vdp_mode_h32_variant_a:
 	MOVE.w	#$977F, D7
@@ -3110,7 +3028,6 @@ Set_vdp_mode_h32_variant_a:
 	MOVE.l	#$940193C0, D5
 	MOVE.l	#$42800083, Vdp_dma_setup.w
 	JMP	Send_D567_to_VDP
-
 ;loc_1B62
 Set_vdp_mode_h32_variant_b:
 	MOVE.w	#$977F, D7
@@ -3118,7 +3035,6 @@ Set_vdp_mode_h32_variant_b:
 	MOVE.l	#$94009380, D5
 	MOVE.l	#$46000083, Vdp_dma_setup.w
 	JMP	Send_D567_to_VDP
-
 ;loc_1B80
 Update_background_scroll_delta:
 ; Compute the per-frame horizontal scroll delta for the road background plane
@@ -3224,7 +3140,6 @@ Update_background_scroll_delta_Signal_full:
 ;loc_1C62
 Update_background_scroll_delta_Rts:
 	RTS
-
 ;Fill_tilemap_column_stride
 Fill_tilemap_column_stride:
 	AND.w	D4, D2
@@ -3241,7 +3156,6 @@ Fill_tilemap_column_stride:
 	ADD.w	D5, D2
 	DBF	D0, Fill_tilemap_column_stride
 	RTS
-
 ;Compute_vram_tile_address
 Compute_vram_tile_address:
 	ADDI.w	#$0100, D0
@@ -3253,7 +3167,6 @@ Compute_vram_tile_address:
 	ANDI.w	#$007E, D1
 	MOVE.w	D1, (A1)+
 	RTS
-
 ;Compute_vram_tile_address_neg
 Compute_vram_tile_address_neg:
 	SUBQ.w	#8, D0
@@ -3270,7 +3183,6 @@ Compute_vram_tile_address_neg_Wrap:
 	ANDI.w	#$007E, D1
 	MOVE.w	D1, (A1)+
 	RTS
-
 ;loc_1CCC
 Flush_road_column_dma:
 	LEA	VDP_data_port, A6
@@ -3349,7 +3261,6 @@ Flush_road_column_dma_Priority_loop:
 	MOVE.w	#$8F02, VDP_control_port
 	CLR.w	$FFFF9276.w
 	RTS
-
 ;loc_1DB6:
 Send_sign_tileset_to_VDP:
 ; Stream the next frame of a sign tileset into VRAM via DMA.
@@ -3406,7 +3317,6 @@ Send_sign_tileset_to_VDP_Send:
 ;loc_1E30
 Send_sign_tileset_to_VDP_Rts:
 	RTS
-
 ;loc_1E32
 Copy_ai_scroll_data_to_objects:
 	LEA	$FFFFE9B6.w, A0
@@ -3655,7 +3565,6 @@ Team_colour_palette_table: ; Teams in-game palette
 	dc.b	$0C, $EE, $06, $88, $0C, $EE, $06, $88 ; Comet
 	dc.b	$06, $66, $02, $22, $00, $EE, $00, $8A ; Orchis
 	dc.b	$0E, $EE, $06, $66, $02, $6E, $00, $28 ; ZeroForce
-
 ; ============================================================
 ; GAME FLOW OVERVIEW
 ;
@@ -4046,7 +3955,6 @@ Upload_words_to_vram_Loop:
 	MOVE.w	(A0)+, (A1)
 	DBF	D1, Upload_words_to_vram_Loop
 	RTS
-
 ;loc_26B4
 Attract_anim_cell_update:
 	CLR.b	$FFFFFB12.w
@@ -4141,7 +4049,6 @@ Attract_anim_cell_update_Store:
 	SWAP	D6
 	SWAP	D7
 	BRA.w	Attract_anim_cell_update_Loop
-
 ;loc_2776
 Attract_anim_cell_read:
 	MOVE.w	$0(A6), D2
@@ -4188,7 +4095,6 @@ Attract_anim_cell_row_prev:
 ;loc_27B2
 Attract_anim_cell_row_prev_rts:
 	RTS
-
 ;Menu_cursor_col_next
 Menu_cursor_col_next:
 	ADDQ.w	#1, D2
@@ -4209,7 +4115,6 @@ Menu_cursor_row_next:
 ;loc_27D2
 Menu_cursor_row_next_Rts:
 	RTS
-
 ;Menu_cursor_col_prev
 Menu_cursor_col_prev:
 	SUBQ.w	#1, D2
@@ -4249,7 +4154,6 @@ Title_anim_frame_Active:
 	MOVE.w	Screen_scroll.w, D0
 	JSR	Title_anim_scroll_dispatch(PC,D0.w)
 	RTS
-
 ;loc_284E
 Title_anim_scroll_dispatch:
 	BRA.w	Title_anim_car_seq_tick
@@ -4304,7 +4208,6 @@ Title_anim_car_seq_Done:
 Title_anim_car_seq_Next_state:
 	ADDQ.w	#4, Screen_scroll.w
 	RTS
-
 ;loc_28D4
 Title_anim_alloc_car_obj:
 	LEA	Ai_car_array.w, A0
@@ -4554,7 +4457,6 @@ Title_anim_car_obj_data:
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$00A1, $E(A0)
 	JMP	Queue_object_for_sprite_buffer
-
 ;loc_2CB2
 Title_anim_draw_cursor:
 	BTST.b	#0, Title_menu_flags.w
@@ -4632,7 +4534,6 @@ Title_anim_draw_cursor_Active:
 	BSR.b	Title_menu_handle_input
 	CMPI.w	#3, Title_menu_state.w
 	BEQ.b	Title_anim_draw_track_cursor
-
 ;Render_title_car_indicator_tile
 Render_title_car_indicator_tile:
 	MOVE.l	Title_menu_vdp_command.w, D7
@@ -4667,7 +4568,6 @@ Title_anim_draw_track_cursor:
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
-
 ;loc_2E34
 Title_menu_handle_input:
 	MOVE.b	Input_click_bitset.w, D0
@@ -4787,7 +4687,6 @@ Title_menu_handle_input_Warm_up:
 	MOVE.w	#$000A, Selection_count.w
 	MOVE.l	#$00003800, Frame_callback.w
 	RTS
-
 ;loc_2F8A
 Title_menu_write_items:
 	MOVE.l	D7, VDP_control_port
@@ -4802,7 +4701,6 @@ Title_menu_write_items_Loop:
 	ADDI.l	#$01000000, D7
 	DBF	D1, Title_menu_write_items
 	RTS
-
 ;loc_2FB0:
 Update_title_menu_state:
 	TST.b	D0
@@ -5305,7 +5203,6 @@ Options_shift_anim_frames:
 	dc.b	$06, $EE, $04, $CE, $02, $AE
 	dc.l	$028E06EE
 	dc.l	$04CE02AE
-
 ;Race_loop
 ; ============================================================
 ; Race_loop - per-frame race update routine
@@ -5477,7 +5374,6 @@ Arcade_race_init_No_music:
 	JSR	Wait_for_practice_vblank_cycle(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-
 ;Init_race_object_pool
 Init_race_object_pool:
 	JSR	Clear_main_object_pool(PC)
@@ -5732,7 +5628,6 @@ Init_ai_placement_Rival_Next:
 	NEG.w	Temp_x_pos.w
 	MOVE.w	Temp_x_pos.w, Player_x_negated.w
 	RTS
-
 ;loc_3B96:
 Initialize_race_objects:
 	JSR	Clear_partial_main_object_pool(PC)
@@ -5761,18 +5656,15 @@ Initialize_race_objects_Loop:
 	MOVE.w	D1, Player_distance.w
 	MOVE.w	D0, Player_place_score.w
 	RTS
-
 ;loc_3C02
 Load_default_control_type_handler:
 	MOVE.w	Control_type.w, D0
-
 ;loc_3C06
 Load_control_type_handler:
 	LSL.w	#2, D0
 	LEA	Control_types, A2
 	MOVE.l	(A2,D0.w), Control_handler_ptr.w
 	RTS
-
 ;Init_race_player_state
 Init_race_player_state:
 	BSR.b	Load_default_control_type_handler
@@ -5867,7 +5759,6 @@ Init_race_player_state_Rival_store:
 ;loc_3D26
 Init_race_player_state_Rts:
 	RTS
-
 ;Clear_word_range
 Clear_word_range: ; Copy D0 zeros to A0 upwards
 	MOVEQ	#0, D1
@@ -5876,7 +5767,6 @@ Clear_word_range_Loop:
 	MOVE.w	D1, (A0)+
 	DBF	D0, Clear_word_range_Loop
 	RTS
-
 ;loc_3D32:
 Reset_race_state:
 	LEA	Player_shift.w, A0
@@ -5945,7 +5835,6 @@ Practice_mode_init:
 	JSR	Wait_for_practice_vblank_cycle(PC)
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-
 ;loc_3E2A:
 Practice_mode_vblank_handler:
 	MOVE.l	#$40020010, VDP_control_port
@@ -6004,7 +5893,6 @@ Race_loop_commit_tileset:
 	MOVE.w	D0, $FFFFFFF0.w
 	MOVE.w	#$8A00, VDP_control_port
 	RTS
-
 ;loc_3EE4
 Replay_input_update:
 	TST.w	Practice_flag.w
@@ -6024,7 +5912,6 @@ Replay_input_update:
 ;loc_3F0C
 Replay_input_update_Rts:
 	RTS
-
 ;loc_3F0E:
 Handle_pause:
 	BTST.b	#KEY_START, Input_click_bitset.w
@@ -6103,7 +5990,6 @@ Handle_pause_Road_tilemap:
 	MOVEQ	#8, D6
 	MOVEQ	#0, D5
 	JMP	Queue_tilemap_draw(PC)
-
 ;loc_3FE0
 Update_braking_performance:
 	MOVEQ	#0, D7
@@ -6157,7 +6043,6 @@ Handle_pause_Done:
 ;loc_4064
 Update_braking_performance_Overtake:
 	RTS
-
 ;loc_4066
 Update_braking_perf_On_collision:
 	MOVE.w	Tire_braking_wear_rate.w, D0
@@ -6183,7 +6068,6 @@ Update_braking_perf_Steer_ok:
 ;loc_4094
 Update_braking_perf_Steer_rts:
 	RTS
-
 ;loc_4096
 Update_braking_perf_On_road_marker_b:
 	MOVE.w	Tire_steering_wear_rate.w, D0
@@ -6375,7 +6259,6 @@ Race_finish_results_init_Store_target:
 	LEA	Track_lap_target_buf.w, A0
 	MOVE.l	Lap_time_ptr.w, (A0,D0.w)
 	RTS
-
 ;loc_440E
 Race_finish_results_init_Draw_lap_rows:
 	LEA	VDP_data_port, A1
@@ -6663,7 +6546,6 @@ Name_entry_frame_Bcd_write:
 ;loc_481C
 Name_entry_frame_End_rts:
 	RTS
-
 ;loc_481E
 Handle_initials_entry_button_input:
 	MOVE.b	Input_click_bitset.w, D0
@@ -6701,7 +6583,6 @@ Handle_initials_entry_button_input_Delete:
 ;loc_4884
 Handle_initials_entry_button_input_Rts:
 	RTS
-
 ;loc_4886
 Draw_initials_entry_buffer:
 	MOVEA.l	Screen_data_ptr.w, A0
@@ -6723,7 +6604,6 @@ Draw_initials_entry_buffer_Draw:
 	ADDI.l	#$00300000, D0
 	MOVE.l	D0, $4(A5)
 	JMP	Draw_initials_entry_name_tiles_No_blink
-
 ;loc_48C0
 Clear_initials_entry_placeholders:
 	MOVEA.l	Screen_data_ptr.w, A0
@@ -6738,7 +6618,6 @@ Clear_initials_entry_placeholders_Next:
 	ADDQ.w	#1, A0
 	DBF	D0, Clear_initials_entry_placeholders_Loop
 	RTS
-
 ;loc_48D6
 Update_initials_entry_selection:
 	MOVE.b	Input_state_bitset.w, D0
@@ -6782,7 +6661,6 @@ Update_initials_entry_selection_Wrap_left:
 Update_initials_entry_Write:
 	MOVE.b	D1, Menu_cursor.w
 	RTS
-
 ;loc_492E
 Draw_initials_entry_selection:
 	MOVEQ	#0, D0
@@ -6800,7 +6678,6 @@ Draw_initials_entry_selection:
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
 	RTS
-
 ;loc_4968
 Set_vdp_command_from_tile_index:
 	JSR	Tile_index_to_vdp_command
@@ -6881,7 +6758,6 @@ Pre_race_init_road_vdp_Loop:
 	MOVE.l	D1, (A1)
 	DBF	D0, Pre_race_init_road_vdp_Loop
 	RTS
-
 ;Read_vram_row_strip_priority
 Read_vram_row_strip_priority:
 	MOVE.w	Screen_scroll.w, D7
@@ -6903,7 +6779,6 @@ Read_vram_row_strip_priority_Clear_loop:
 	MOVE.w	D2, (A0)+
 	DBF	D1, Read_vram_row_strip_priority_Clear_loop
 	RTS
-
 ;Upload_palette_buffer_to_vdp
 Upload_palette_buffer_to_vdp:
 ; Write 16 longwords (64 bytes) of palette tile data to the VDP data port
@@ -6930,7 +6805,6 @@ Upload_palette_buffer_to_vdp_Loop:
 ;loc_4AE0
 Upload_palette_buffer_to_vdp_Rts:
 	RTS
-
 ;loc_4AE2
 Load_pre_race_qualifying_data:
 	LEA	$FFFFC080.w, A0
@@ -7072,7 +6946,6 @@ Initialize_race_track_scroll_tables_Loop:
 	MOVE.w	#$6194, D0
 	LEA	loc_2EF7A, A0
 	JMP	Decompress_tilemap_to_buffer
-
 ;Update_car_selection_screen
 Update_car_selection_screen:
 	MOVE.w	Screen_tick.w, D0
@@ -7097,7 +6970,6 @@ Update_car_selection_screen:
 ;loc_4CD4
 Update_car_selection_screen_Rts:
 	RTS
-
 ;loc_4CD6
 Draw_pre_race_standings:
 	LEA	Position_text_1_4(PC), A4
@@ -7116,7 +6988,6 @@ Draw_pre_race_standings_Offset:
 	MOVE.w	#$E184, D6
 	MOVE.w	#5, Screen_item_count.w
 	BRA.b	Draw_pre_race_standings_Header
-
 ;loc_4CFE
 Draw_pre_race_standings_With_target:
 	LEA	Position_text_5_9(PC), A4
@@ -7147,14 +7018,12 @@ Draw_pre_race_standings_Time_found:
 	BMI.b	Update_car_selection_Draw
 	LEA	Car_result_column_tilemap_7_laps(PC), A6
 	BRA.b	Update_car_selection_Draw
-
 ;loc_4D54
 Draw_pre_race_standings_Championship:
 	LEA	Position_text_1_4(PC), A4
 	LEA	$FFFFFD90.w, A0
 	MOVE.w	#$E204, D6
 	MOVE.w	#9, Screen_item_count.w
-
 ;loc_4D66
 Draw_pre_race_standings_Header:
 	LEA	VDP_data_port, A5
@@ -7187,7 +7056,6 @@ Update_car_selection_Draw:
 	BNE.b	Draw_pre_race_standings_Item
 	LEA	Car_result_grid_tilemap(PC), A6
 	JMP	Draw_packed_tilemap_to_vdp_preset_base
-
 ;loc_4DCC
 Draw_car_result_placement_tiles:
 	MOVE.w	D6, D7
@@ -7206,7 +7074,6 @@ Draw_car_result_placement_tiles_Write:
 	MOVE.w	D2, (A5)
 	DBF	D0, Draw_car_result_placement_tiles_Loop
 	RTS
-
 ;loc_4DEC
 Draw_initials_entry_name_tiles:
 	MOVE.w	D6, D7
@@ -7246,7 +7113,6 @@ Draw_initials_entry_name_tiles_Store:
 	DBF	D0, Draw_initials_entry_name_tiles_Loop
 	ADDQ.w	#1, A0
 	RTS
-
 ;loc_4E34
 Draw_car_result_time_columns:
 	MOVEQ	#0, D0
@@ -7262,7 +7128,6 @@ Draw_car_result_time_columns:
 	MOVE.w	D6, D7
 	ADDI.w	#$FFAA, D7
 	MOVE.w	#$002C, D2
-
 ;loc_4E58
 Draw_car_result_time_value:
 	MOVEM.w	D7/D0, -(A7)
@@ -7311,7 +7176,6 @@ Draw_car_result_time_columns_Draw:
 	JSR	Draw_packed_tilemap_to_vdp_preset_base
 	MOVE.w	D5, D6
 	RTS
-
 ;loc_4EC8
 Draw_car_result_position_tile:
 	MOVEQ	#0, D0
@@ -7329,7 +7193,6 @@ Draw_car_result_position_tile_Nonzero:
 	MOVEQ	#2, D1
 	MOVEQ	#$00000014, D2
 	JMP	Render_number_tiles_at_row_col(PC)
-
 ;loc_4EEC
 Draw_car_result_nationality_tile:
 	LEA	Nationality_tile_pair_table(PC), A1
@@ -7345,14 +7208,12 @@ Draw_car_result_nationality_tile_Write:
 	JSR	Set_vdp_command_from_tile_index(PC)
 	MOVE.l	(A1), (A5)
 	RTS
-
 ;Render_number_tiles_at_row_col
 Render_number_tiles_at_row_col:
 	MOVE.w	D6, D7
 	SUBI.w	#$0080, D7
 	ADD.w	D2, D7
 	MOVE.w	#$C7C0, D4
-
 ;Render_packed_digits_to_vdp
 Render_packed_digits_to_vdp:
 	JSR	Set_vdp_command_from_tile_index(PC)
@@ -7378,7 +7239,6 @@ Render_packed_digits_to_vdp_Body:
 	BSR.b	Write_digit_tile_nibble
 	DBF	D1, Render_packed_digits_to_vdp_Loop
 	RTS
-
 ;Write_digit_tile_nibble
 Write_digit_tile_nibble:
 	ROR.b	#4, D0
@@ -7421,7 +7281,6 @@ Car_intro_object_Spin:
 ;loc_4F90
 Car_intro_object_Spin_Body:
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D0.w), D1
 	EXT.w	D1
 	ADD.w	D1, D1
@@ -7430,7 +7289,6 @@ Car_intro_object_Spin_Body:
 	LEA	$FFFF9600.w, A1
 	MOVE.w	(A1,D1.w), $18(A0)
 	LEA	Ai_screen_x_to_angle_table, A1
-
 	MOVE.b	(A1,D0.w), D0
 	LEA	loc_2F068, A1
 	MOVE.l	(A1,D0.w), $4(A0)
@@ -7491,7 +7349,6 @@ Car_selection_frame:
 	MOVE.w	Anim_delay.w, D0
 	TST.w	Temp_distance.w
 	BEQ.b	Car_selection_frame_Down_step
-
 	MOVE.b	Input_click_bitset.w, D1
 	ANDI.w	#$00F0, D1 ; Keys A+B+C+Start
 	BEQ.b	Car_selection_frame_Up_check
@@ -7522,7 +7379,6 @@ Car_selection_store_scroll:
 ;loc_5108
 Car_selection_frame_Rts:
 	RTS
-
 ;loc_510A
 Initialize_default_lap_times:
 ; Copy ROM default BCD lap-time records into RAM.
@@ -7554,7 +7410,6 @@ Initialize_default_lap_times_Loop2:
 	MOVE.l	(A0)+, (A1)+
 	DBF	D0, Initialize_default_lap_times_Loop2
 	RTS
-
 ;Write_tile_vdp_command_to_slot
 Write_tile_vdp_command_to_slot:
 	JSR	Tile_index_to_vdp_command
@@ -7562,7 +7417,6 @@ Write_tile_vdp_command_to_slot:
 	ADDQ.w	#1, A2
 	SUBQ.w	#1, D1
 	RTS
-
 ;Copy_tile_bytes_to_slot
 Copy_tile_bytes_to_slot:
 	MOVEQ	#0, D0
@@ -7583,7 +7437,6 @@ Copy_tile_bytes_to_slot_Write:
 ;loc_5154
 Copy_tile_bytes_to_slot_Rts:
 	RTS
-
 ;loc_5156
 Draw_team_driver_lineup:
 	LEA	Lineup_header_tilemap(PC), A6
@@ -7634,7 +7487,6 @@ Draw_team_driver_lineup_Draw:
 	CMPI.w	#$0010, D5
 	BNE.b	Draw_team_driver_lineup_Loop
 	RTS
-
 ;loc_51E4
 Sort_and_apply_championship_standings:
 	JSR	Sort_championship_standings(PC)
@@ -7811,7 +7663,6 @@ Title_menu_frame:
 	SUBQ.w	#1, Screen_subcounter.w
 	BSR.b	Title_menu_frame_Update
 	RTS
-
 ;loc_562A
 Title_menu_frame_Update:
 	MOVE.w	Screen_scroll.w, D0
@@ -7981,7 +7832,6 @@ Race_preview_vblank_Copy_loop:
 ;loc_58C2
 Race_preview_vblank_Rts:
 	RTS
-
 ;loc_58C4
 Load_track_preview_data:
 	JSR	Load_track_data_pointer
@@ -8028,7 +7878,6 @@ Load_track_preview_data:
 	MOVE.l	#$636A0003, VDP_control_port
 	MOVEA.l	$3C(A1), A2
 	MOVE.w	#$2000, D3
-
 ;loc_5996:
 Draw_bcd_time_to_vdp:
 ; Format a BCD lap/race time longword from (A2) into a 4-longword tile buffer
@@ -8047,7 +7896,6 @@ Draw_bcd_time_to_vdp:
 	MOVE.l	(A3)+, VDP_data_port
 	MOVE.l	(A3)+, VDP_data_port
 	RTS
-
 ;loc_59BC
 ; Update_shift - process gear shift input and update Player_shift / Player_rpm
 ;
@@ -8142,7 +7990,6 @@ Update_shift_Up:
 Update_shift_Down:
 	CMPI.w	#0, Player_shift.w ; if shift 0
 	BEQ.b	Update_shift_Return        ; then RTS
-
 ;loc_5A6A
 Update_shift_Do_down:
 	SUBQ.w	#1, Player_shift.w ; else shift down
@@ -8173,7 +8020,6 @@ Update_shift_Display_gear:
 ;loc_5AAE
 Update_shift_Gear_auto_rts:
 	RTS ; end of Update_shift
-
 ;loc_5AB0
 Update_rpm_Crash_decel: ; crash/spin deceleration: rpm -= 30/frame, sync visual, auto-downshift when rpm < 700
 	SUBI.w	#30, Player_rpm.w
@@ -8191,7 +8037,6 @@ Update_rpm_Crash_decel_chk:
 Sync_visual_rpm:
 	MOVE.w	Player_rpm.w, Visual_rpm.w
 	RTS
-
 ;loc_5AD6
 Update_rpm_Pre_race_anim: ; pre-race rev animation: visual_rpm ticks down 60/frame (floor 801); if accel held, rises 120/frame (ceiling 1251)
 	LEA	Visual_rpm.w, A1
@@ -8211,7 +8056,6 @@ Update_rpm_Pre_race_anim_up:
 ;loc_5B00
 Update_rpm_Pre_race_anim_rts:
 	RTS
-
 ;loc_5B02:
 ; Update_rpm - simulate engine RPM for this frame
 ;
@@ -8348,7 +8192,6 @@ Update_visual_rpm_Falling:
 Apply_visual_rpm_delta:
 	ADD.w	D0, Visual_rpm.w ; Add capped delta to visual rpm, making it approach actual rpm (but +1)
 	RTS
-
 ;loc_5C1E
 Update_rpm_Collision_penalty:
 	MOVE.w	Rpm_derivative.w, D0 ; Suspected derivative of rpm
@@ -8371,7 +8214,6 @@ Update_rpm_Collision_set:
 ;loc_5C44
 Update_rpm_Collision_rts:
 	RTS
-
 ;loc_5C46
 Update_rpm_Slipstream:
 	MOVE.w	Player_speed.w, D4
@@ -8419,7 +8261,6 @@ Update_visual_rpm_Next:
 ;loc_5CA8
 Update_rpm_Slipstream_rts:
 	RTS
-
 ;loc_5CAA
 Update_rpm_Slope_drag:
 	MOVE.w	Track_phys_slope_value.w, D0 ; physical slope at current position (negative = uphill → RPM drag)
@@ -8432,7 +8273,6 @@ Update_rpm_Slope_drag:
 ;loc_5CC2
 Update_rpm_Return:
 	RTS
-
 ;loc_5CC4
 Update_rpm_Collision_speed:
 	MOVE.w	$FFFFFC5A.w, D0
@@ -8534,7 +8374,6 @@ Update_engine_sound_pitch_Warn:
 Update_engine_sound_pitch_Write:
 	MOVE.w	D0, Engine_sound_pitch.w ; $022E (normal) or $0E86 (shift-warning pulse)
 	RTS
-
 ;loc_5F5E
 ; Update_speed - derive Player_speed from Player_rpm using Engine_data table
 ;
@@ -8577,13 +8416,11 @@ Update_speed_Decel_clamp:
 Apply_speed_delta:
 	ADD.w	D0, Player_speed.w; Add delta speed and return
 	RTS
-
 ;loc_5FAE
 Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different variants for different teams
 	dc.w	1674, 823, 584, 467
 	dc.w	1674, 816, 570, 446
 	dc.w	1858, 923, 639, 507, 447, 418, 383
-
 	dc.w	1662, 799, 548, 419
 	dc.w	1662, 792, 534, 398
 	dc.w	1850, 907, 615, 475, 407, 370, 327
@@ -8591,19 +8428,15 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different
 	dc.w	1660, 795, 542, 411                ; RPM at 100km/h for automatic
 	dc.w	1660, 788, 528, 390                ; RPM at 100km/h for 4-shift
 	dc.w	1849, 905, 612, 471, 402, 364, 320 ; RPM at 100km/h for 7-shift
-
 	dc.w	1658, 791, 536, 403
 	dc.w	1652, 784, 522, 382
 	dc.w	1848, 903, 609, 467, 397, 358, 313
-
 	dc.w	1656, 787, 530, 395
 	dc.w	1650, 780, 516, 374
 	dc.w	1847, 901, 606, 463, 392, 352, 306
-
 	dc.w	1654, 783, 524, 387
 	dc.w	1648, 776, 510, 366
 	dc.w	1846, 899, 603, 459, 387, 346, 299
-
 ;loc_6062:
 ; Update_breaking - apply brake deceleration to Player_rpm
 ;
@@ -8613,12 +8446,10 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different
 ; If brake key is held:
 ;   1. If rpm > Engine_rpm_max (1500): shed 40 RPM first.
 ;   2. Look up braking strength from Braking_strength_table [shift_type * 4 + shift]:
-
 ;        automatic (type 0): 50 / 40 / 30 / 20 RPM/frame for shifts 0-3
 ;        4-shift   (type 1): 50 / 40 / 30 / 20 RPM/frame for shifts 0-3
 ;        7-shift   (type 2): 48 / 42 / 36 / 30 / 24 / 18 / 12 / 6 for shifts 0-6
 ;   3. In world-championship mode (not practice): apply track-quality modifier from Braking_track_modifier_table
-
 ;      (signed byte adjustment ±6, indexed by Track_braking_index).
 ;   4. Player_rpm -= braking_strength; clamped to 0.
 ; Skipped entirely if Crash_spin_flag is set.
@@ -8656,7 +8487,6 @@ Subtract_rpm_floor_zero:
 ;loc_60BE
 Update_breaking_Return:
 	RTS
-
 ;loc_60C0
 Braking_strength_table:
 ; RPM reduction per frame while braking, indexed by [Shift_type*4 + Player_shift].
@@ -8832,7 +8662,6 @@ Track_steering_params:
 ; Indexed by Track_steering_index (0-4), 4 words per entry.
 ; Entries 0-4 = tracks 1-5 (based on Track_steering_index from Track_data +$44).
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008
-
 ;loc_6224:
 Load_track_data:
 ; Load and decompress all per-track data for the current track.
@@ -8848,7 +8677,6 @@ Load_track_data:
 ;   9. Initialise BCD lap time accumulator at $FFFFAD74 from Shift_type
 ;  10. Load steering divisors (+$44) → Steering_divisor_straight / Steering_divisor_curve
 ;  11. Initialise placement sequence from Arcade_placement_seq_v1/Arcade_placement_seq_v2
-
 	JSR	Load_track_data_pointer
 	LEA	$20(A1), A1
 	MOVE.w	(A1)+, Track_horizon_override_flag.w ; 1 = special horizon palette (West Germany, Italy, Belgium)
@@ -9042,7 +8870,6 @@ Load_track_data_Arcade_placement:
 	MOVE.w	(A6)+, Placement_next_threshold.w
 	MOVE.l	A6, $FFFF9284.w
 	RTS
-
 ;loc_63E8:
 Initialize_road_graphics_state:
 ; Initialise the per-row road scale table at $FFFF9700 and the per-row
@@ -9080,7 +8907,6 @@ Initialize_road_graphics_state_Y_loop:
 	MOVE.w	(A0,D0.w), D0
 	MOVE.w	D0, Player_distance_fixed.w
 	RTS
-
 ;loc_6428
 Initialize_ui_tilemap_buffers:
 ; Decompress and arrange all persistent UI tilemap buffers in work RAM.
@@ -9194,7 +9020,6 @@ Initialize_ui_tilemap_buffers_Copy2_loop:
 	LEA	$FFFFD900.w, A0
 	LEA	$FFFFE000.w, A1
 	MOVE.w	#$01BF, D0
-
 Apply_tilemap_attr_Or_loop:
 	MOVE.l	(A0), D3
 	OR.l	D1, D3
@@ -9204,7 +9029,6 @@ Apply_tilemap_attr_Or_loop:
 	MOVE.l	D3, (A1)+
 	DBF	D0, Apply_tilemap_attr_Or_loop
 	RTS
-
 ;Copy_2d_rect_words
 Copy_2d_rect_words:
 ; Copies a 2-D rectangle of words: (D6+1) words per row, (D5+1) rows.
@@ -9221,7 +9045,6 @@ Copy_2d_rect_words_Inner_loop:
 	ADDA.w	D4, A6
 	DBF	D5, Copy_2d_rect_words
 	RTS
-
 ;loc_658C
 Initialize_road_scroll_state:
 	LEA	$FFFF9658.w, A0
@@ -9264,7 +9087,6 @@ Render_road_bg_Zone_nonzero:
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$2000, D0
 	MOVE.l	#$4D000003, VDP_control_port
-
 ;Write_road_scroll_with_sky_to_vdp
 Write_road_scroll_with_sky_to_vdp:
 ; Write 768 H-scroll words from the road scroll work buffer ($FFFFF600) to
@@ -9289,7 +9111,6 @@ Write_road_scroll_with_sky_to_vdp_Loop:
 	MOVE.w	D3, (A1)
 	DBF	D1, Write_road_scroll_with_sky_to_vdp_Loop
 	RTS
-
 ;Copy_displacement_rows_to_work_buffer
 Copy_displacement_rows_to_work_buffer:
 ; Bulk-copy a road scroll displacement row table from A0 into the work buffer
@@ -9376,7 +9197,6 @@ Copy_displacement_rows_Inner_loop:
 	DBF	D0, Copy_displacement_rows_Row_loop
 Copy_displacement_rows_Rts:
 	RTS
-
 ;loc_674E:
 Update_road_graphics:
 ; Main per-frame road and background rendering update.
@@ -9500,7 +9320,6 @@ Update_road_graphics_Sign_in_range:
 	MOVE.w	#$009F, D1
 	SUB.w	D0, D1
 	LEA	Ai_screen_y_table, A4
-
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D0
 	MOVE.b	(A4,D1.w), D2
@@ -9552,7 +9371,6 @@ Update_road_graphics_Bg_done:
 	MOVE.w	#$00A0, D1
 	SUB.w	Background_zone_index.w, D1
 	LEA	Ai_screen_y_table, A4
-
 	MOVE.b	(A4,D1.w), D1
 	MOVE.w	D1, D2
 	ADD.w	D1, D1
@@ -9804,7 +9622,6 @@ Update_road_graphics_Signs2_next:
 Update_road_graphics_Dirty:
 	MOVE.w	#$FFFF, Tileset_dirty_flag.w
 	RTS
-
 ;loc_6B68:
 Advance_player_distance:
 	LEA	Player_obj.w, A0
@@ -10033,7 +9850,6 @@ Update_road_graphics_Bg_combine_loop:
 	ADDQ.w	#4, A0
 	DBF	D0, Update_road_graphics_Bg_combine_loop
 	RTS
-
 ;loc_6D66:
 Update_slope_data:
 ; Rebuild the 40-entry slope displacement table for the current track position.
@@ -10296,7 +10112,6 @@ Bg_interp_segment_counts:
 	dc.w	$0000
 	dc.w	$0000
 	dc.w	$0001
-
 ;loc_6F5E:
 Integrate_curveslope:
 ; Stepwise integrator for curve or slope data.  Appends one displacement word
@@ -10361,7 +10176,6 @@ Integrate_curveslope_Rts:
 Integrate_curveslope_Sentinel:
 	ORI	#1, CCR ; set carry flag
 	RTS
-
 ;Interpolate_curveslope_segment
 Interpolate_curveslope_segment:
 	MOVE.w	(A4)+, D6
@@ -10408,7 +10222,6 @@ Interpolate_curveslope_Rts:
 Interpolate_curveslope_Sentinel:
 	ORI	#1, CCR
 	RTS
-
 ;Scale_curveslope_entry
 Scale_curveslope_entry:
 	MOVE.w	(A5), D1
@@ -10440,7 +10253,6 @@ Scale_curveslope_Skip_advance:
 Scale_curveslope_Advance:
 	ADDQ.w	#2, A5
 	RTS
-
 ;loc_704C
 Update_road_tile_scroll:
 ; Update the per-scanline HScroll table in the $FFFFF600 work buffer and
@@ -10676,7 +10488,6 @@ Update_road_tile_scroll_next_row:
 	ADDI.w	#$0100, D0
 	DBF	D2, Update_road_tile_scroll_curve_row
 	RTS
-
 ;loc_7298
 Flush_vdp_mode_and_signs:
 	CMPI.w	#2, $FFFF9276.w
@@ -10694,7 +10505,6 @@ Flush_vdp_mode_and_signs_Check:
 	RTS
 Flush_vdp_mode_and_signs_Skip:
 	JMP	Send_sign_tileset_to_VDP
-
 ;loc_72D6
 Upload_tilemap_rows_to_vdp:
 	MOVE.l	#$49800003, D0
@@ -10737,7 +10547,6 @@ Upload_tilemap_rows_to_vdp_Next_slot:
 	LEA	$180(A2), A2
 	DBF	D1, Upload_tilemap_rows_to_vdp_Slot_loop
 	RTS
-
 ;Fill_table_stride_loop
 Fill_table_stride_loop:
 	AND.w	D4, D2
@@ -10969,7 +10778,6 @@ Update_race_timer_Format_display:
 ;loc_7612
 Update_race_timer_Return:
 	RTS
-
 ;loc_7614
 Update_best_lap_time:
 	MOVEA.l	$4(A0), A1
@@ -10995,7 +10803,6 @@ Update_best_lap_Draw:
 ;loc_7654
 Update_best_lap_Return:
 	RTS
-
 ;loc_7656
 Update_rival_best_lap_time:
 	MOVEA.l	$4(A0), A1
@@ -11015,7 +10822,6 @@ Update_rival_best_lap_time:
 ;loc_7686
 Update_rival_best_lap_Return:
 	RTS
-
 ;Bcd_add_lap_time
 Bcd_add_lap_time:
 	MOVEQ	#0, D0
@@ -11141,7 +10947,6 @@ Lap_end_obj_Flash_visible:
 	MOVE.w	$2A(A0), D0
 	BEQ.b	Lap_end_obj_Draw
 	MOVE.w	D0, $00FF5AC2
-
 Lap_end_obj_Draw:
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
@@ -11162,7 +10967,6 @@ Lap_end_obj_Draw_queue:
 	JSR	Queue_tilemap_draw
 Lap_end_obj_Flash_rts:
 	RTS
-
 ;loc_7822
 Advance_rival_position_bcd:
 	TST.w	Use_world_championship_tracks.w
@@ -11185,7 +10989,6 @@ Advance_rival_position_bcd_Offset:
 	MOVE.w	#1, Placement_display_dirty.w
 Advance_rival_position_bcd_Rts:
 	RTS
-
 ;loc_785C:
 Update_gap_to_rival_display:
 	TST.w	Retire_animation_flag.w
@@ -11523,7 +11326,6 @@ Update_gap_to_rival_Calc_frame:
 Update_gap_to_rival_Wrap_frame:
 	MOVE.w	D0, $A(A0)
 	ADDQ.w	#1, D7
-
 Update_gap_to_rival_Steering:
 	MOVEQ	#0, D2
 	MOVE.b	Steering_output.w, D0
@@ -11612,7 +11414,6 @@ Crash_obj_gauge_write:
 	JSR	Write_3_palette_vdp_bytes(PC)
 Crash_obj_gauge_done:
 	JMP	Queue_object_for_sprite_buffer
-
 ;Write_3_palette_vdp_bytes
 Write_3_palette_vdp_bytes:
 ; Appends 3 pairs of (VDP register command byte, colour value byte) to (A2)+,
@@ -11833,7 +11634,6 @@ Checkpoint_anim_obj_Countdown:
 ;loc_80C2
 Checkpoint_anim_obj_Rts:
 	RTS
-
 ;Compute_minimap_index
 Compute_minimap_index:
 ; Convert a raw track distance in D0 to a word-aligned minimap position index.
@@ -11844,7 +11644,6 @@ Compute_minimap_index:
 	MOVEQ	#0, D2
 	LSR.w	#5, D0
 	ANDI.w	#$FFFE, D0
-
 ;Load_minimap_position
 Load_minimap_position:
 ; Read the (x, y) minimap pixel position for a car at track index D0 and
@@ -11856,7 +11655,6 @@ Load_minimap_position:
 	MOVE.b	(A1,D0.w), $2C(A0)
 	MOVE.b	$1(A1,D0.w), $2E(A0)
 	RTS
-
 ;loc_80E0
 Compute_curve_speed_factor:
 	MOVE.w	#$05AF, D0
@@ -11908,7 +11706,6 @@ Compute_curve_speed_factor_Lookup:
 ;loc_8140
 Compute_curve_speed_factor_Rts:
 	RTS
-
 ;loc_8142:
 ; Update_horizontal_position - integrate curve displacement and steering into Horizontal_position
 ;
@@ -12042,7 +11839,6 @@ Update_horizontal_position_Done:
 	NEG.w	D0
 	MOVE.w	D0, Player_x_negated.w
 	RTS
-
 ;loc_8250
 Update_race_position:
 	MOVE.w	Warm_up.w, D0
@@ -12237,7 +12033,6 @@ Update_race_position_Check_award:
 	JSR	Award_race_position_points(PC)
 Update_race_position_Return:
 	RTS
-
 ;loc_8466
 Update_race_position_Champ:
 	TST.w	Retire_animation_flag.w
@@ -12279,7 +12074,6 @@ Update_race_position_Champ_set_rival_b:
 	TST.w	Ai_active_flag.w
 	BNE.b	Update_race_position_Done
 	MOVE.l	#$625C0003, D7
-
 ;loc_84D0:
 Draw_placement_ordinal_to_vdp:
 	LSL.w	#4, D1
@@ -12401,7 +12195,6 @@ Update_placement_overlay_Tick:
 	MOVE.w	$2A(A0), D0
 	BEQ.b	Update_placement_overlay_Redraw
 	MOVE.w	D0, $00FF5AC2
-
 ;loc_85F6
 Update_placement_overlay_Redraw:
 	LEA	$00FF5980, A6
@@ -12423,7 +12216,6 @@ Update_placement_overlay_Queue:
 ;loc_862C
 Update_placement_overlay_Done:
 	RTS
-
 ;Decrement_lap_time_bcd
 Decrement_lap_time_bcd:
 	LEA	Rival_grid_position.w, A1
@@ -12442,7 +12234,6 @@ Decrement_lap_time_Check:
 	MOVE.w	#1, Placement_display_dirty.w
 Decrement_lap_time_Return:
 	RTS
-
 ;Award_race_position_points
 Award_race_position_points:
 	MOVE.w	Player_grid_position.w, D0
@@ -12458,7 +12249,6 @@ Award_race_position_points_Add:
 	JSR	Bcd_add_loop
 	MOVE.w	D0, Race_time_bcd.w
 	BRA.b	Decrement_lap_time_Check
-
 ;loc_867C
 Advance_lap_checkpoint:
 	MOVE.w	$FFFFFC8E.w, D0
@@ -12549,7 +12339,6 @@ Placement_hud_tiles_wide_a:
 Placement_hud_tiles_wide_b:
 	dc.w	$A7D8, $A7DF, $A7CE, $A7DB
 	dc.w	$0010
-
 ;loc_873A:
 Update_pit_prompt:
 	TST.w	Use_world_championship_tracks.w
@@ -12602,7 +12391,6 @@ Update_pit_prompt_Queue:
 	JSR	Queue_tilemap_draw
 Update_pit_prompt_Return:
 	RTS
-
 ;Update_tire_wear_counter
 Update_tire_wear_counter:
 	TST.w	Use_world_championship_tracks.w
@@ -12682,7 +12470,6 @@ Steering_curve_divisors:
 	dc.w	$0000, $0000
 	dc.w	$FFFE, $FFFA
 	dc.w	$FFFC, $FFF4
-
 ;loc_89AC:
 Parse_tileset_for_signs:
 ; Advance the sign tileset stream pointer to the next entry whose track
@@ -12734,7 +12521,6 @@ Parse_tileset_for_signs_Write_buf:
 	MOVE.w	#$FFFF, (A1)
 Parse_tileset_for_signs_Return:
 	RTS
-
 ;loc_89F4:
 Parse_sign_data:
 ; Advance the sign data stream pointer to the next sign whose track distance
@@ -12858,7 +12644,6 @@ Parse_sign_data_Dispatch:
 	ADD.w	D1, D1 ; D1 is at least 4, so below lookup begins at Init_background_ai_car_0 declaration
 	MOVE.l	Sign_handler_dispatch_rts-2(PC,D1.w), D1
 	ADD.w	Total_distance.w, D0 ; some multiple of track length?
-
 ;Alloc_aux_object_slot
 Alloc_aux_object_slot:
 ; Finds a free slot (handler == 0) in the aux object pool at $FFFFB840,
@@ -12866,7 +12651,6 @@ Alloc_aux_object_slot:
 ; Carry clear = slot allocated; Carry set (via fallthrough branch) = pool full.
 	LEA	Aux_object_pool.w, A1
 	MOVEQ	#$00000020, D2
-
 ;Find_free_aux_object_slot
 Find_free_aux_object_slot:
 ; Inner search loop; also callable directly to search from A1 with D2 limit.
@@ -13454,7 +13238,6 @@ Advance_ai_track_position_Slope_smoke:
 ;Advance_ai_track_position_Return
 Advance_ai_track_position_Return:
 	RTS
-
 ;Apply_lateral_offset_clamped_with_flip
 Apply_lateral_offset_clamped_with_flip:
 ; Variant of Apply_lateral_offset_clamped that negates D0 if bit 6 of D4 is 0.
@@ -13462,7 +13245,6 @@ Apply_lateral_offset_clamped_with_flip:
 	ANDI.w	#$0040, D4
 	BNE.b	Apply_lateral_offset_clamped
 	NEG.w	D0
-
 ;Apply_lateral_offset_clamped
 Apply_lateral_offset_clamped:
 ; Adds D0 to the object's lateral offset ($12(A0)), clamps to ±$B8.
@@ -13939,7 +13721,6 @@ Advance_rival_track_position_Live_check:
 	BEQ.w	Advance_ai_check_collision
 	JSR	Check_ai_collision_with_player(PC)
 	BRA.w	Advance_ai_check_collision
-
 ;Check_ai_collision_with_player
 Check_ai_collision_with_player:
 	TST.b	$10(A0)
@@ -14066,7 +13847,6 @@ Check_ai_collision_with_player_Direct_clamp:
 ;loc_970E
 Check_ai_collision_with_player_Direct_cap:
 	RTS
-
 ;Skip_if_hidden_flag
 Skip_if_hidden_flag:
 	TST.w	Race_timer_freeze.w
@@ -14182,12 +13962,10 @@ loc_97EA:
 	LEA	$FFFF9480.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
 	LEA	Ai_screen_x_to_angle_table(PC), A1
-
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	Queue_object_for_alt_sprite_buffer
-
 ;loc_980C
 Compute_rival_screen_x:
 	LEA	$FFFF9600.w, A1
@@ -14295,12 +14073,10 @@ Compute_rival_screen_x_Queue:
 	ADDI.w	#$0130, D1
 	MOVE.w	D1, $16(A0)
 	LEA	Ai_screen_x_to_angle_table(PC), A1
-
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	Queue_object_for_sprite_buffer
-
 ;Compute_ai_position_and_depth_sort
 Compute_ai_position_and_depth_sort:
 	MOVEA.w	#0, A6
@@ -14436,14 +14212,12 @@ Compute_ai_position_Behind_near_mark:
 ;loc_9A42
 Compute_ai_position_Ahead_far_y_calc:
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
 	ADD.w	D0, D0
 	ADD.w	D4, D3
 	MOVE.w	D3, $E(A0)
 	RTS
-
 ;Compute_ai_screen_x_offset
 Compute_ai_screen_x_offset:
 	MOVE.w	Track_length.w, D5
@@ -14475,7 +14249,6 @@ Compute_ai_screen_x_offset_Ahead:
 ;loc_9A9C
 Compute_ai_screen_x_offset_Y_calc:
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
 	ADD.w	D0, D0
@@ -14490,7 +14263,6 @@ Compute_ai_screen_x_offset_Behind:
 	SUB.w	D2, D4
 	MOVE.w	#$8000, D3
 	BRA.b	Compute_ai_screen_x_offset_Y_calc
-
 ;loc_9AC4
 Update_engine_and_tire_sounds:
 ; Update the 68K audio engine state for engine and tyre sounds.
@@ -14622,7 +14394,6 @@ Update_engine_and_tire_sounds_Overtake_sfx:
 	ADDQ.w	#4, A4
 	ADDQ.w	#2, A5
 	ADDQ.w	#2, A6
-
 ;loc_9BBA
 Update_engine_and_tire_sounds_Set_engine_vol:
 	MOVE.w	(A5), D0
@@ -14762,7 +14533,6 @@ Nearby_rival_car_obj_Wrap:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D0.w), D0
 	MOVE.w	D0, D2
 	LSR.w	#3, D2
@@ -14784,7 +14554,6 @@ Race_grid_obj_init_champ:
 	BSR.b	Spawn_trackside_objects
 	MOVE.l	#$0000BD56, $1E(A0)
 	BRA.b	Race_grid_obj
-
 ;Spawn_trackside_objects
 Spawn_trackside_objects:
 	MOVE.w	Track_index_arcade_mode.w, D0
@@ -14864,7 +14633,6 @@ Race_grid_obj_Return:
 ;loc_9EA4 — palette color word written by Write_3_palette_vdp_bytes above
 loc_9EA4:
 	dc.w	$AD80
-
 ;Wrap_ai_track_position
 Wrap_ai_track_position:
 	ADD.w	D1, D0
@@ -15006,7 +14774,6 @@ Ai_car_obj_Move_no_decr:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D0.w), D0
 	LSR.w	#1, D0
 	SUB.w	D0, $16(A0)
@@ -15040,12 +14807,10 @@ Ai_car_obj_Oscillate:
 	ANDI.w	#$7FFF, D0
 	MOVE.w	D0, D1
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D0.w), D0
 	LSR.w	#1, D0
 	SUB.w	D0, $16(A0)
 	LEA	Ai_screen_x_to_angle_table(PC), A1
-
 	MOVE.b	(A1,D1.w), D1
 	MOVEA.l	$30(A0), A1
 	MOVEA.l	(A1,D1.w), A1
@@ -15053,7 +14818,6 @@ Ai_car_obj_Oscillate:
 	JSR	Copy_sprite_frame_data(PC)
 loc_A066:
 	RTS
-
 ;Copy_sprite_frame_data
 Copy_sprite_frame_data:
 	MOVEM.l	(A1)+, D0-D7/A3-A6
@@ -15074,13 +14838,11 @@ Copy_sprite_frame_data:
 	MOVEM.l	(A1), D0-D7/A3-A6
 	MOVEM.l	D0-D7/A3-A6, (A2)
 	RTS
-
 ;loc_A0AE
 Ai_oscillation_phase_offset:
 	MOVE.w	$10(A0), D0
 	ADDI.w	#$0020, D0
 	BRA.b	Ai_oscillation_phase_Lookup
-
 ;loc_A0B8
 Ai_oscillation_phase:
 	MOVE.w	$10(A0), D0
@@ -15129,12 +14891,10 @@ Rival_dust_obj_Done:
 ;loc_A132
 Rival_dust_obj_Rts:
 	RTS
-
 ;Alloc_and_init_aux_object_slot
 Alloc_and_init_aux_object_slot:
 	LEA	Aux_object_pool.w, A1
 	MOVEQ	#$00000020, D2
-
 ;Find_free_aux_slot_loop
 Find_free_aux_slot_loop:
 	TST.l	(A1)
@@ -15150,7 +14910,6 @@ Find_free_aux_slot_loop_Found:
 ;loc_A150
 Find_free_aux_slot_loop_Return:
 	RTS
-
 ;loc_A152
 Update_rival_sprite_tiles:
 	TST.w	Race_started.w
@@ -15243,13 +15002,11 @@ Flagkeeper_car_obj_Bounce_move:
 	MOVE.w	D4, D3
 	MOVEQ	#0, D0
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D4.w), D0
 	ADD.w	D0, D0
 	JSR	Compute_rival_screen_x(PC)
 	MOVE.w	$E(A0), D0
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D0.w), D0
 	MOVE.w	#$0080, D1
 	SUB.w	D0, D1
@@ -15260,7 +15017,6 @@ Flagkeeper_car_obj_Bounce_move:
 	ADD.w	D1, D0
 	SUB.w	D0, $16(A0)
 	RTS
-
 ;loc_A278
 Apply_sorted_positions_to_cars:
 	LEA	Score_scratch_buf.w, A0
@@ -15496,7 +15252,6 @@ Gear_diagram_obj_Activate:
 ;loc_A6B4
 Gear_diagram_obj_Queue:
 	JMP	Queue_object_for_sprite_buffer
-
 ;Queue_gear_diagram_draw
 Queue_gear_diagram_draw:
 	MOVE.l	#$65520003, D7
@@ -15762,11 +15517,9 @@ Background_ai_car_d_obj:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D0.w), D0
 	SUB.w	D0, $16(A0)
 	RTS
-
 ;Check_despawn_ai_car
 Check_despawn_ai_car:
 	MOVE.w	$FFFF9238.w, D1
@@ -15837,7 +15590,6 @@ Ai_car_lateral_update_b_rts:
 ;loc_AA68
 Ai_car_lateral_update_b_draw:
 	LEA	Ai_screen_x_to_angle_table, A1
-
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
@@ -15875,12 +15627,10 @@ Ai_car_lateral_update_a_rts:
 ;loc_AAD0
 Ai_car_lateral_update_a_draw:
 	LEA	Ai_screen_x_to_angle_table, A1
-
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	Queue_object_for_sprite_buffer
-
 ;Update_ai_car_screen_x
 Update_ai_car_screen_x:
 ; Computes the AI car's screen X displacement relative to the player and writes
@@ -15898,7 +15648,6 @@ Update_ai_car_screen_x:
 	MOVEQ	#4, D7
 loc_AB04:
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
 	ADD.w	D0, D0
@@ -15969,7 +15718,6 @@ Crash_car_obj_update_body:
 	MOVE.w	D4, D1
 	ANDI.w	#$7FFF, D4
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D4.w), D4
 	MOVE.w	D4, D2
 	LSR.w	#1, D2
@@ -15991,7 +15739,6 @@ Crash_car_obj_clamp_depth:
 	MOVE.w	D2, $FFFFFC38.w
 	MOVE.w	$E(A0), D0
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D0.w), D0
 	CMPI.w	#$005F, D0
 	BLS.b	Crash_car_obj_store_hud
@@ -16056,7 +15803,6 @@ Crash_car_obj2_update_body:
 	MOVE.w	D4, D1
 	ANDI.w	#$7FFF, D4
 	LEA	Ai_screen_y_table_b, A1
-
 	MOVE.b	(A1,D4.w), D4
 	MOVE.w	D4, D2
 	LSR.w	#1, D2
@@ -16069,7 +15815,6 @@ Crash_car_obj2_update_body:
 Crash_car_obj2_screen_right:
 	MOVE.w	$E(A0), D0
 	LEA	Ai_screen_y_table, A1
-
 	MOVE.b	(A1,D0.w), D0
 	CMPI.w	#$005F, D0
 	BLS.b	Crash_car_obj2_clamp_depth
@@ -16211,13 +15956,11 @@ Crash_depth_obj_update:
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
-
 ;Setup_ai_object_state_alt
 Setup_ai_object_state_alt:
 ; Like Setup_ai_object_state but uses the alternate sprite-angle table loc_6E9D8.
 	MOVE.l	#loc_6E9D8, $30(A0)
 	BRA.b	Setup_ai_object_state_common
-
 ;Setup_ai_object_state
 Setup_ai_object_state:
 ; Initialises an AI car object slot with handler D0, sprite table ptr D1,
@@ -16233,7 +15976,6 @@ Setup_ai_object_state_common:
 	MOVE.w	D3, $34(A0)
 	MOVE.w	#2, $24(A0)
 	RTS
-
 ;Update_ai_car_sprite_frame
 Update_ai_car_sprite_frame:
 ; Looks up the AI car's screen-X value in the angle table to choose the
@@ -16241,7 +15983,6 @@ Update_ai_car_sprite_frame:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_x_to_angle_table, A1
-
 	MOVE.b	(A1,D0.w), D0
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D0.w), $4(A0)
@@ -16274,7 +16015,6 @@ Crash_shadow_obj_update:
 	MOVE.w	D1, D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_y_table_b, A2
-
 	MOVE.b	(A2,D0.w), D0
 	MOVE.w	$16(A1), D2
 	SUB.w	D0, D2
@@ -16342,9 +16082,7 @@ Crash_approach_obj_Onscreen:
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	$E(A0), D4
 	LEA	Ai_screen_y_table_b, A1
-
 	LEA	Ai_screen_y_table, A2
-
 	MOVEQ	#0, D0
 	MOVE.b	(A2,D4.w), D0
 	CMPI.w	#$005F, D0
@@ -16405,7 +16143,6 @@ Crash_approach_obj_Park_Onscreen:
 	CLR.l	$4(A0)
 	MOVE.w	$E(A0), D4
 	LEA	Ai_screen_y_table, A2
-
 	MOVE.b	(A2,D4.w), D4
 	MOVE.w	#$005F, D0
 	SUB.w	D4, D0
@@ -16459,9 +16196,7 @@ Rival_approach_obj_Onscreen:
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	$E(A0), D4
 	LEA	Ai_screen_y_table_b, A1
-
 	LEA	Ai_screen_y_table, A2
-
 	MOVEQ	#0, D0
 	MOVE.b	(A2,D4.w), D0
 	CMPI.w	#$005F, D0
@@ -16579,12 +16314,10 @@ Write_approach_scroll_strip_Uniform_Loop:
 Write_approach_scroll_strip_Done:
 	MOVE.w	#$FFFF, $FFFF927C.w
 	RTS
-
 ;Check_ai_lateral_bounds
 Check_ai_lateral_bounds:
 	MOVE.w	#$00D8, D7
 	BRA.b	loc_B258
-
 ;Check_ai_lateral_bounds_wide
 Check_ai_lateral_bounds_wide:
 	MOVE.w	#$0118, D7
@@ -16741,19 +16474,14 @@ Race_result_phase_table_3:
 	dc.l	Pre_race_scroll_Minimap
 	dc.l	Podium_minimap_dispatch
 	dc.l	Draw_rival_team_message
-
 	dc.l	Wait_for_button_press
 	dc.l	Championship_next_race_advance
-
 	dc.l	Championship_podium_load_or_fade
-
 	dc.l	Championship_team_select_update_controls
-
 	dc.l	Wait_for_button_press
 	dc.l	Championship_team_select_confirm
 	dc.l	Championship_standings_display_setup
 	dc.l	Championship_standings_display_setup_Rts
-
 ;loc_B480
 Build_result_scroll_table:
 	LEA	$FFFF9D40.w, A1
@@ -16900,11 +16628,11 @@ Race_result_show_text:
 	BNE.b	Race_result_show_text_Rts
 	MOVE.w	#$431D, $FFFF905A.w
 	JSR	Load_font_tiles_to_work_buffer
-	JSR	loc_F54A
+	JSR	Select_team_pre_race_message
 	JSR	Render_text_to_tilemap
 	BTST.b	#5, Player_team.w
 	BEQ.b	Race_result_show_text_Done
-	JSR	loc_F576
+	JSR	Select_rival_team_name
 	JSR	Render_text_to_tilemap
 ;loc_B626
 Race_result_show_text_Done:
@@ -16919,7 +16647,6 @@ Wait_for_button_press:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.b	Wait_for_button_press_Rts
-
 	ADDQ.w	#4, Anim_delay.w
 ;loc_B646
 Wait_for_button_press_Rts:
@@ -16986,7 +16713,6 @@ Set_gear_indicator_CO:
 	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
-
 ;loc_B734
 Set_gear_indicator_OO:
 	ORI	#$0700, SR
@@ -17001,7 +16727,7 @@ Draw_rival_team_message:
 	MOVE.w	#$0EEE, $FFFFE9C4.w
 	MOVE.w	#$431D, $FFFF905A.w
 	JSR	Load_font_tiles_to_work_buffer
-	JSR	loc_F59A
+	JSR	Select_post_race_message
 	JSR	Render_text_to_tilemap
 	MOVE.l	#$440A0000, D7
 	JSR	Draw_message_panel_wide
@@ -17206,7 +16932,6 @@ Championship_podium_load_or_fade_Msg_loop:
 	ANDI	#$F8FF, SR
 	ADDQ.w	#8, Anim_delay.w
 	RTS
-
 ;Pack_tile_palette_field
 Pack_tile_palette_field:
 	LSL.w	#4, D5
@@ -17267,7 +16992,6 @@ Set_champ_gear_indicator_CO:
 	MOVE.w	#$434F, VDP_data_port
 	ANDI	#$F8FF, SR
 	RTS
-
 ;loc_BAD8
 Set_champ_gear_indicator_OO:
 	ORI	#$0700, SR
@@ -17550,7 +17274,7 @@ Championship_next_race_init_MidChamp_Objects_loop:
 ;loc_BECC
 Championship_next_race_init_MidChamp_NoRival:
 	CLR.l	D0
-	LEA	loc_F736, A2
+	LEA	Post_race_driver_target_points, A2
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ADD.l	D0, D0
@@ -17588,7 +17312,6 @@ Race_preview_vblank_handler_2:
 	MOVE.l	#$68000083, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
 	JMP	Flush_pending_dma_transfers
-
 ;Initialize_results_screen
 Initialize_results_screen:
 	JSR	Fade_palette_to_black
@@ -17695,7 +17418,6 @@ Initialize_results_screen_Palette2_loop:
 	CLR.l	Saved_frame_callback.w
 	BCLR.b	#4, Player_state_flags.w
 	RTS
-
 ;loc_C11A
 Init_race_result_scores:
 	LEA	$FFFF9010.w, A1
@@ -17703,7 +17425,6 @@ Init_race_result_scores:
 	BSR.b	Format_result_score_row
 	MOVE.b	#$FF, Race_event_flags.w
 	RTS
-
 ;loc_C12E
 Update_race_result_scores:
 	LEA	$FFFF901A.w, A1
@@ -17712,7 +17433,6 @@ Update_race_result_scores:
 	BSR.b	Format_result_score_row
 	ANDI	#$F8FF, SR
 	RTS
-
 ;loc_C144
 Format_result_score_row:
 	MOVE.w	#4, D0
@@ -17729,7 +17449,6 @@ Format_result_score_row_Loop:
 	MOVEM.w	(A7)+, D0
 	DBF	D0, Format_result_score_row_Loop
 	RTS
-
 ;loc_C16E
 Write_bcd_digits_to_vdp:
 	JSR	Tile_index_to_vdp_command
@@ -17743,11 +17462,9 @@ Write_bcd_digits_to_vdp:
 	MOVE.b	(A1)+, D0
 	BSR.b	Write_bcd_digits_to_vdp_Hi
 	MOVEQ	#1, D3
-
 ;loc_C18E
 Write_bcd_digits_to_vdp_Hi:
 	ROR.b	#4, D0
-
 ;loc_C190
 Write_bcd_digits_to_vdp_Digit:
 	MOVE.w	D0, D5
@@ -17812,7 +17529,6 @@ Track_name_tilemap_ptrs: ; Track names
 	dc.l	Track_name_Belgium
 	dc.l	Track_name_Australia
 	dc.l	Track_name_Monaco
-
 ;loc_C242
 Finish_race_shared_setup:
 	MOVE.w	#$FFFF, Ai_active_flag.w
@@ -17848,7 +17564,6 @@ Finish_race_shared_setup_Buf2_loop:
 	MOVE.w	D1, (A0)+
 	DBF	D0, Finish_race_shared_setup_Buf2_loop
 	RTS
-
 ;Draw_car_machine_graphics
 Draw_car_machine_graphics:
 	TST.w	Has_rival_flag.w
@@ -17860,7 +17575,6 @@ Draw_car_machine_graphics:
 Draw_car_machine_graphics_Player:
 	MOVE.w	Player_grid_position.w, D1
 	MOVE.l	#$441C0000, D7
-
 ;loc_C2CE
 Draw_placement_tilemap:
 	LSL.w	#4, D1
@@ -17869,7 +17583,6 @@ Draw_placement_tilemap:
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
 	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
-
 ;Draw_gear_indicator
 Draw_gear_indicator:
 	MOVE.w	Laps_completed.w, D0
@@ -17880,7 +17593,6 @@ Draw_gear_indicator:
 	MOVEQ	#1, D5
 	MOVE.l	#$44360000, D7
 	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
-
 ;Draw_race_timer
 Draw_race_timer:
 	MOVE.l	Race_timer_bcd.w, D0
@@ -17892,7 +17604,6 @@ Draw_race_timer:
 	MOVEQ	#0, D5
 	LEA	(A3), A6
 	JMP	Draw_tilemap_buffer_to_vdp_128_cell_rows
-
 ;loc_C324
 Initialize_minimap_display_buffers:
 	LEA	$FFFFC080.w, A0
@@ -17907,7 +17618,6 @@ Initialize_minimap_display_buffers_Clear_loop:
 	MOVE.l	#$FFFFC080, $FFFFC48A.w
 	MOVE.w	#$0406, $FFFFC482.w
 	RTS
-
 ;loc_C34C
 Podium_minimap_dispatch:
 	MOVE.w	$FFFFC480.w, D0
@@ -18160,7 +17870,6 @@ Copy_words_A5_to_A6:
 	MOVE.w	(A5)+, (A6)+
 	DBF	D7, Copy_words_A5_to_A6
 	RTS
-
 ;Load_driver_name_text_pointer
 Load_driver_name_text_pointer:
 	LEA	Driver_info_table, A1
@@ -18169,7 +17878,6 @@ Load_driver_name_text_pointer:
 	MOVEA.l	(A1)+, A2
 	MOVE.w	(A1)+, D1
 	RTS
-
 ;Load_car_spec_text_pointer
 Load_car_spec_text_pointer:
 	LEA	loc_19114, A1
@@ -18178,7 +17886,6 @@ Load_car_spec_text_pointer:
 	MOVEA.l	(A1)+, A2
 	MOVE.w	(A1)+, D1
 	RTS
-
 ;loc_C6D6
 Build_minimap_player_row_buffer:
 ; Build the minimap display row buffer for the player-position view
@@ -18291,7 +17998,6 @@ Build_minimap_player_row_buffer_Player_car_loop:
 ;loc_C7DE
 Build_minimap_player_row_buffer_Rts:
 	RTS
-
 ;loc_C7E0
 Build_minimap_standings_row_buffer:
 ; Build the minimap display row buffer for the championship standings view.
@@ -18465,7 +18171,6 @@ Build_minimap_standings_row_buffer_Player_car_loop:
 ;loc_C97A
 Build_minimap_standings_row_buffer_Rts:
 	RTS
-
 ;Write_digit_or_blank_tile
 Write_digit_or_blank_tile:
 ; Writes a digit tile or a blank tile to the scoreboard tilemap buffer (A6)+.
@@ -18486,7 +18191,6 @@ Write_digit_or_blank_tile_Nonzero:
 Write_digit_or_blank_tile_Write:
 	MOVE.w	D0, (A6)+
 	RTS
-
 ;Sort_championship_standings
 Sort_championship_standings:
 	LEA	Depth_sort_buf.w, A6
@@ -18644,7 +18348,6 @@ Championship_standings_input_Accept_Next:
 ;loc_CBAA
 Championship_standings_input_Rts:
 	RTS
-
 ;Draw_lap_counter_tiles
 Draw_lap_counter_tiles:
 	MOVE.l	#$51160000, D7
@@ -18894,7 +18597,6 @@ Team_select_phase0_rts:
 	RTS
 Team_select_phase1:
 	LEA	loc_18D40, A1
-
 Load_team_message_tiles:
 	TST.w	English_flag.w
 	BEQ.b	Load_team_message_tiles_team_a
@@ -18997,7 +18699,7 @@ Team_select_phase2_rts:
 Team_select_phase3:
 	MOVE.w	#$431D, $FFFF905A.w
 	JSR	Load_font_tiles_to_work_buffer
-	JSR	loc_F46A
+	JSR	Select_team_message_before_race
 	JSR	Render_text_to_tilemap
 	MOVE.l	#$6A980003, D7
 	JSR	Draw_message_panel_narrow
@@ -19021,7 +18723,6 @@ Team_select_phase4_go:
 	MOVE.l	#$00003800, Frame_callback.w
 Team_select_phase4_rts:
 	RTS
-
 Advance_team_stat_display:
 	SUBQ.b	#1, Screen_tick.w
 	BNE.w	Advance_team_stat_display_rts
@@ -19065,7 +18766,6 @@ Advance_team_stat_display_done:
 	ADDQ.w	#1, Screen_item_count.w
 Advance_team_stat_display_rts:
 	RTS
-
 Advance_road_marker_sequence_a:
 	SUBQ.b	#1, $FFFFB88E.w
 	BNE.b	Advance_road_marker_sequence_a_rts
@@ -19097,7 +18797,6 @@ Advance_road_marker_sequence_a_next:
 	CLR.w	$FFFFB8D6.w
 	ADDQ.w	#1, $FFFFB892.w
 	RTS
-
 ;loc_D164
 Advance_road_marker_sequence_b:
 ; Advance the second road-marker animation sequence (throttled to every 6 frames).
@@ -19136,7 +18835,6 @@ Advance_road_marker_sequence_b_next:
 	CLR.w	$FFFFB956.w
 	ADDQ.w	#1, $FFFFB912.w
 	RTS
-
 ;loc_D1CC
 Step_road_marker_tile:
 	ADDI.l	#$00020000, D7
@@ -19448,7 +19146,6 @@ Game_over_frame:
 	SUBQ.w	#1, Screen_timer.w
 	BEQ.b	Game_over_set_title
 	RTS
-
 ;loc_D6C8
 Game_over_check_input:
 	MOVE.b	Input_click_bitset.w, D0
@@ -19661,7 +19358,7 @@ Championship_standings_init_Intro_loop:
 	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.w	#$431D, $FFFF905A.w
 	JSR	Load_font_tiles_to_work_buffer
-	JSR	loc_F518
+	JSR	Select_team_intro_text
 	JSR	Render_text_to_tilemap
 	MOVE.l	#$62920003, D7
 	JSR	Draw_message_panel_narrow
@@ -19756,7 +19453,6 @@ Credits_scroll_frame:
 	JSR	Update_objects_and_build_sprite_buffer
 	BSR.b	Credits_scroll_check_input
 	RTS
-
 ;loc_DB42
 Credits_scroll_check_input:
 	MOVE.b	Input_click_bitset.w, D0
@@ -19767,7 +19463,6 @@ Credits_scroll_check_input:
 Credits_scroll_exit:
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
 	RTS
-
 ;loc_DB56
 Credits_scroll_update:
 	LEA	Race_finish_buffer_ptr_table, A1
@@ -19905,7 +19600,6 @@ Race_finish_credits_init_Quick_skip_loop:
 	DBF	D0, Race_finish_credits_init_Quick_skip_loop
 	CLR.l	Aux_object_pool.w
 	RTS
-
 ;Copy_ea00_block_to_a5
 Copy_ea00_block_to_a5:
 	LEA	Tilemap_work_buf.w, A6
@@ -19915,7 +19609,6 @@ Copy_ea00_block_to_a5_loop:
 	MOVE.w	(A6)+, (A5)+
 	DBF	D1, Copy_ea00_block_to_a5_loop
 	RTS
-
 ;Accumulate_bcd_race_time
 Accumulate_bcd_race_time:
 	MOVEQ	#0, D0
@@ -19939,7 +19632,6 @@ Accumulate_bcd_race_time:
 	BSR.b	Bcd_add_loop
 	MOVE.w	D0, Race_time_bcd.w
 	RTS
-
 ;Bcd_add_loop
 Bcd_add_loop:
 	ADDI.w	#0, D0
@@ -20263,7 +19955,6 @@ loc_E29C:
 	LEA	Placement_tile_data, A0
 	MOVE.l	(A0,D0.w), VDP_data_port
 	RTS
-
 ;Draw_car_stat_rows
 Draw_car_stat_rows:
 	MOVEA.l	(A3)+, A6
@@ -20281,7 +19972,6 @@ Draw_car_stat_rows:
 	SUBQ.w	#1, Screen_timer.w
 	BNE.b	Draw_car_stat_rows
 	RTS
-
 ;Draw_bcd_value_display
 Draw_bcd_value_display:
 	LEA	$FFFFE800.w, A1
@@ -20363,8 +20053,8 @@ Championship_team_select_frame:
 loc_E3F4:
 	dc.l	loc_E40C
 	dc.l	loc_E43E
-	dc.l	loc_E4DC
-	dc.l	loc_E534
+	dc.l	Championship_team_select_substate_Copy_row
+	dc.l	Championship_team_select_substate_Scroll_text
 	dc.l	loc_E55E
 	dc.l	loc_E5EA
 loc_E40C:
@@ -20385,7 +20075,7 @@ loc_E43C:
 	RTS
 loc_E43E:
 	SUBQ.w	#1, Screen_subcounter.w
-	BNE.w	loc_E4DA
+	BNE.w	Championship_team_select_substate_Rts
 	LEA	Aux_object_pool.w, A1
 	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$0120, $18(A1)
@@ -20411,14 +20101,16 @@ loc_E43E:
 	MOVE.w	#1, $E(A1)
 	MOVE.l	#loc_33A3C, $4(A1)
 	BSR.w	Championship_team_select_scroll_reset
-loc_E4DA:
+;loc_E4DA:
+Championship_team_select_substate_Rts:
 	RTS
-loc_E4DC:
+;loc_E4DC:
+Championship_team_select_substate_Copy_row:
 	SUBQ.w	#1, Screen_subcounter.w
-	BNE.b	loc_E4DA
+	BNE.b	Championship_team_select_substate_Rts
 	MOVE.w	#1, Screen_subcounter.w
 	SUBQ.w	#1, Temp_x_pos.w
-	BNE.b	loc_E532
+	BNE.b	Championship_team_select_copy_row_Rts
 	MOVE.w	#8, Temp_x_pos.w
 	CMPI.w	#$005A, $FFFFFC16.w
 	BEQ.w	Championship_team_select_scroll_reset
@@ -20436,9 +20128,11 @@ loc_E50A:
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, $FFFFFC16.w
-loc_E532:
+;loc_E532:
+Championship_team_select_copy_row_Rts:
 	RTS
-loc_E534:
+;loc_E534:
+Championship_team_select_substate_Scroll_text:
 	TST.b	Menu_substate.w
 	BEQ.b	loc_E53E
 	ADDQ.w	#8, Screen_scroll.w
@@ -20453,15 +20147,15 @@ loc_E53E:
 loc_E55C:
 	RTS
 loc_E55E:
-	BSR.b	loc_E5AC
+	BSR.b	Championship_team_select_animate_cursor
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E3, D0
-	BEQ.b	loc_E5AC
+	BEQ.b	Championship_team_select_animate_cursor
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$E0, D0
 	BNE.b	loc_E584
 	CLR.b	Menu_cursor.w
-	BSR.b	loc_E5AC
+	BSR.b	Championship_team_select_animate_cursor
 	ADDQ.b	#1, $FFFFFC11.w
 	RTS
 loc_E584:
@@ -20473,8 +20167,8 @@ loc_E584:
 	MOVE.l	#$0000F288, Frame_callback.w
 loc_E5AA:
 	RTS
-
-loc_E5AC:
+;loc_E5AC:
+Championship_team_select_animate_cursor:
 	MOVE.l	#$6B320003, D7
 	BTST.b	#0, $FFFFFC11.w
 	BEQ.b	loc_E5C0
@@ -20576,44 +20270,48 @@ loc_E72A:
 Championship_podium_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
-	BSR.w	loc_E8B4
-	BSR.w	loc_E790
+	BSR.w	Championship_podium_update_portrait_anim
+	BSR.w	Championship_podium_check_champion
 	RTS
-
-loc_E790:
+;loc_E790
+Championship_podium_check_champion:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Screen_timer.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	BCLR.b	#7, Player_team.w
 	CMP.b	D0, D1
-	BNE.b	loc_E7AC
+	BNE.b	Championship_podium_input
 	BSET.b	#7, Player_team.w
-loc_E7AC:
+;loc_E7AC
+Championship_podium_input:
 	MOVE.b	Input_click_bitset.w, D0
-	BEQ.w	loc_E8B2
+	BEQ.w	Championship_podium_Done
 	ANDI.b	#$E0, D0
-	BNE.b	loc_E7FA
+	BNE.b	Championship_podium_confirm
 	BTST.b	#0, Screen_tick.w
-	BEQ.b	loc_E7CC
+	BEQ.b	Championship_podium_input_dir
 	MOVE.b	#1, $FFFFFC01.w
-	BSR.w	loc_E8B4
-loc_E7CC:
+	BSR.w	Championship_podium_update_portrait_anim
+;loc_E7CC
+Championship_podium_input_dir:
 	BTST.b	#KEY_UP, Input_click_bitset.w
-	BNE.b	loc_E838
+	BNE.b	Championship_podium_prev_driver
 	BTST.b	#KEY_DOWN, Input_click_bitset.w
-	BNE.b	loc_E856
+	BNE.b	Championship_podium_next_driver
 	CMPI.b	#$18, Screen_timer.w
-	BEQ.b	loc_E7F8
+	BEQ.b	Championship_podium_Rts
 	BTST.b	#KEY_LEFT, Input_click_bitset.w
-	BNE.w	loc_E894
+	BNE.w	Championship_podium_toggle_page
 	BTST.b	#KEY_RIGHT, Input_click_bitset.w
-	BNE.w	loc_E894
-loc_E7F8:
+	BNE.w	Championship_podium_toggle_page
+;loc_E7F8
+Championship_podium_Rts:
 	RTS
-loc_E7FA:
+;loc_E7FA
+Championship_podium_confirm:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.b	#$18, Screen_timer.w
-	BEQ.w	loc_E8A4
+	BEQ.w	Championship_podium_to_new_season
 	CLR.w	D0
 	MOVE.b	Screen_timer.w, D0
 	MOVE.b	D0, Rival_team.w
@@ -20624,7 +20322,8 @@ loc_E7FA:
 	MOVE.l	#$0000E94C, Saved_frame_callback.w
 	MOVE.l	#$0000D2B0, Frame_callback.w
 	RTS
-loc_E838:
+;loc_E838
+Championship_podium_prev_driver:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	MOVE.b	Screen_timer.w, D0
 	SUBQ.b	#1, D0
@@ -20632,58 +20331,68 @@ loc_E838:
 	ANDI.b	#8, Screen_timer.w
 	ADD.b	D0, Screen_timer.w
 	RTS
-loc_E856:
+;loc_E856
+Championship_podium_next_driver:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.b	#$0F, Screen_timer.w
-	BEQ.b	loc_E884
+	BEQ.b	Championship_podium_set_24
 	CMPI.b	#$18, Screen_timer.w
-	BEQ.b	loc_E88C
+	BEQ.b	Championship_podium_set_08
 	MOVE.b	Screen_timer.w, D0
 	ADDQ.b	#1, D0
 	ANDI.b	#7, D0
 	ANDI.b	#8, Screen_timer.w
 	ADD.b	D0, Screen_timer.w
 	RTS
-loc_E884:
+;loc_E884
+Championship_podium_set_24:
 	MOVE.b	#$18, Screen_timer.w
 	RTS
-loc_E88C:
+;loc_E88C
+Championship_podium_set_08:
 	MOVE.b	#8, Screen_timer.w
 	RTS
-loc_E894:
+;loc_E894
+Championship_podium_toggle_page:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	EORI.b	#8, Screen_timer.w
 	RTS
-loc_E8A4:
+;loc_E8A4
+Championship_podium_to_new_season:
 	ANDI.b	#$CF, Player_team.w
 	MOVE.l	#$00003800, Frame_callback.w
-loc_E8B2:
+;loc_E8B2
+Championship_podium_Done:
 	RTS
-
-loc_E8B4:
+;loc_E8B4
+Championship_podium_update_portrait_anim:
 	SUBQ.b	#1, $FFFFFC01.w
-	BNE.w	loc_E94A
+	BNE.w	Championship_podium_portrait_Rts
 	MOVE.b	#3, $FFFFFC01.w
 	CMPI.b	#$18, Screen_timer.w
-	BNE.b	loc_E8D0
+	BNE.b	Championship_podium_portrait_D7
 	MOVE.w	#$ECAC, D7
-	BRA.b	loc_E8FC
-loc_E8D0:
+	BRA.b	Championship_podium_portrait_draw
+;loc_E8D0
+Championship_podium_portrait_D7:
 	MOVE.w	#$E388, D7
 	BTST.b	#3, Screen_timer.w
-	BEQ.b	loc_E8E0
+	BEQ.b	Championship_podium_portrait_row
 	MOVE.w	#$E3AC, D7
-loc_E8E0:
+;loc_E8E0
+Championship_podium_portrait_row:
 	CLR.w	D0
 	MOVE.b	Screen_timer.w, D0
 	BTST.b	#2, Screen_timer.w
-	BEQ.b	loc_E8F2
+	BEQ.b	Championship_podium_portrait_cmd
 	ADDI.w	#$0080, D7
-loc_E8F2:
+;loc_E8F2
+Championship_podium_portrait_cmd:
 	ANDI.b	#7, D0
 	MULS.w	#$0100, D0
 	ADD.w	D0, D7
-loc_E8FC:
+;loc_E8FC
+Championship_podium_portrait_draw:
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, D6
 	BCLR.l	#$1E, D7
@@ -20691,20 +20400,23 @@ loc_E8FC:
 	MOVE.w	#9, D0
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-loc_E91A:
+;loc_E91A
+Championship_podium_portrait_read_loop:
 	MOVE.w	VDP_data_port, (A1)+
-	DBF	D0, loc_E91A
+	DBF	D0, Championship_podium_portrait_read_loop
 	LEA	Screen_data_ptr.w, A1
 	MOVE.w	#9, D0
 	MOVE.l	D6, VDP_control_port
-loc_E932:
+;loc_E932
+Championship_podium_portrait_write_loop:
 	MOVE.w	(A1)+, D1
 	ADDI.w	#$C000, D1
 	MOVE.w	D1, VDP_data_port
-	DBF	D0, loc_E932
+	DBF	D0, Championship_podium_portrait_write_loop
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, Screen_tick.w
-loc_E94A:
+;loc_E94A
+Championship_podium_portrait_Rts:
 	RTS
 ;$0000E94C
 ; Championship_standings_2_init — initialise the second championship standings screen
@@ -20747,13 +20459,15 @@ Championship_standings_2_init:
 	ANDI.b	#$0F, D0  ; isolate the player's team number
 	MOVE.w	#$E388, D7
 	BTST.l	#3, D0
-	BEQ.b	loc_EA12
+	BEQ.b	Options_arcade_init_Vdp_cmd
 	MOVE.w	#$E3AC, D7
-loc_EA12:
+;loc_EA12
+Options_arcade_init_Vdp_cmd:
 	BTST.l	#2, D0
-	BEQ.b	loc_EA1C
+	BEQ.b	Options_arcade_init_Team_bits
 	ADDI.w	#$0080, D7
-loc_EA1C:
+;loc_EA1C
+Options_arcade_init_Team_bits:
 	ANDI.b	#7, D0
 	MULS.w	#$0100, D0
 	ADD.w	D0, D7
@@ -20763,17 +20477,19 @@ loc_EA1C:
 	LEA	Screen_data_ptr.w, A1
 	MOVE.w	#9, D0
 	MOVE.l	D7, VDP_control_port
-loc_EA40:
+;loc_EA40
+Options_arcade_init_Read_loop:
 	MOVE.w	VDP_data_port, (A1)+
-	DBF	D0, loc_EA40
+	DBF	D0, Options_arcade_init_Read_loop
 	LEA	Screen_data_ptr.w, A1
 	MOVE.w	#9, D0
 	MOVE.l	D6, VDP_control_port
-loc_EA58:
+;loc_EA58
+Options_arcade_init_Write_loop:
 	MOVE.w	(A1)+, D1
 	ADDI.w	#$2000, D1
 	MOVE.w	D1, VDP_data_port
-	DBF	D0, loc_EA58
+	DBF	D0, Options_arcade_init_Write_loop
 	ANDI	#$F8FF, SR
 	MOVE.w	Selection_count.w, Audio_music_cmd ; song selection (options screen)
 	CLR.w	Selection_count.w
@@ -20784,23 +20500,23 @@ loc_EA58:
 ;$0000EA8E
 Options_screen_frame:
 	JSR	Wait_for_vblank
-	BSR.b	loc_EAA0
+	BSR.b	Options_handle_input
 	BSR.w	Draw_conditional_overlay_tile
 	ADDQ.b	#1, Screen_scroll.w
 	RTS
-
-loc_EAA0:
+;loc_EAA0
+Options_handle_input:
 	MOVE.b	Input_click_bitset.w, D0
 	BEQ.b	Options_input_Return
 	JSR	Halt_audio_sequence
 	MOVE.b	Input_click_bitset.w, D0
 	BTST.b	#KEY_B, Input_click_bitset.w
-	BNE.w	loc_ED1E
+	BNE.w	Options_back_to_title
 	BTST.b	#KEY_UP, Input_click_bitset.w
-	BNE.w	loc_EAE4
+	BNE.w	Options_handle_up
 	BTST.b	#KEY_DOWN, Input_click_bitset.w
-	BNE.w	loc_EB08
-	LEA	loc_ED3A, A1
+	BNE.w	Options_handle_down
+	LEA	Options_input_dispatch_table, A1
 	MOVE.w	Screen_timer.w, D1
 	ADD.w	D1, D1
 	ADD.w	D1, D1
@@ -20809,43 +20525,48 @@ loc_EAA0:
 ;Options_input_Return
 Options_input_Return:
 	RTS
-loc_EAE4:
+;loc_EAE4
+Options_handle_up:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.b	Screen_scroll.w
 	BSR.w	Draw_conditional_overlay_tile
 	TST.w	Screen_timer.w
-	BEQ.b	loc_EB00
+	BEQ.b	Options_up_Rts
 	SUBQ.w	#1, Screen_timer.w
 	RTS
-loc_EB00:
+;loc_EB00
+Options_up_Rts:
 	MOVE.w	#6, Screen_timer.w
 	RTS
-loc_EB08:
+;loc_EB08
+Options_handle_down:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.b	Screen_scroll.w
 	BSR.w	Draw_conditional_overlay_tile
 	CMPI.w	#6, Screen_timer.w
-	BEQ.b	loc_EB26
+	BEQ.b	Options_down_Rts
 	ADDQ.w	#1, Screen_timer.w
 	RTS
-loc_EB26:
+;loc_EB26
+Options_down_Rts:
 	CLR.w	Screen_timer.w
 	RTS
-loc_EB2C:
+;loc_EB2C
+Options_control_type_input:
 	ANDI.b	#$0C, D0
 	BEQ.b	Options_input_Return
 	BTST.l	#2, D0
-	BEQ.b	loc_EB46
+	BEQ.b	Options_control_type_inc
 	SUBQ.w	#1, Control_type.w
 	BCC.b	Options_redraw_control_type
 	MOVE.w	#5, Control_type.w
 	BRA.b	Options_redraw_control_type
-loc_EB46:
+;loc_EB46
+Options_control_type_inc:
 	ADDQ.w	#1, Control_type.w
 	CMPI.w	#6, Control_type.w
 	BNE.b	Options_redraw_control_type
 	CLR.w	Control_type.w
-
 Options_redraw_control_type:
 	MOVE.w	Control_type.w, D0
 	ASL.w	#2, D0
@@ -20855,12 +20576,14 @@ Options_redraw_control_type:
 	JSR	Draw_packed_tilemap_list
 	ANDI	#$F8FF, SR
 	RTS
-loc_EB76:
+;loc_EB76
+Options_easy_input:
 	ANDI.b	#$0C, D0
 	BEQ.w	Options_input_Return
 	ADDQ.w	#1, Easy_flag.w
 
-loc_EB82:
+;loc_EB82
+Options_redraw_easy:
 	ANDI.w	#1, Easy_flag.w
 	MOVE.w	Easy_flag.w, D0
 	ASL.w	#2, D0
@@ -20870,34 +20593,39 @@ loc_EB82:
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
-loc_EBA8:
+;loc_EBA8
+Options_language_input:
 	ANDI.b	#$0C, D0
 	BEQ.w	Options_input_Return
 	ADDQ.w	#1, English_flag.w
 
-loc_EBB4:
+;loc_EBB4
+Options_redraw_language:
 	ANDI.w	#1, English_flag.w
 	LEA	loc_32F44, A2
 	CLR.w	D0
 	TST.w	English_flag.w
-	BEQ.b	loc_EBCC
+	BEQ.b	Options_language_Jp
 	MOVE.b	#4, D0
-loc_EBCC:
+;loc_EBCC
+Options_language_Jp:
 	MOVEA.l	(A2,D0.w), A6
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
-loc_EBE0:
+;loc_EBE0
+Options_music_input:
 	ANDI.b	#$E0, D0
-	BNE.b	loc_EC2C
+	BNE.b	Options_music_play
 	BTST.b	#KEY_LEFT, Input_click_bitset.w
-	BEQ.b	loc_EBFC
+	BEQ.b	Options_music_inc
 	SUBQ.w	#1, Temp_x_pos.w
 	BCC.b	Options_redraw_music_select
 	MOVE.w	#$000E, Temp_x_pos.w
 	BRA.b	Options_redraw_music_select
-loc_EBFC:
+;loc_EBFC
+Options_music_inc:
 	ADDQ.w	#1, Temp_x_pos.w
 	CMPI.w	#$000F, Temp_x_pos.w
 	BNE.b	Options_redraw_music_select
@@ -20912,27 +20640,29 @@ Options_redraw_music_select:
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
-loc_EC2C:
+;loc_EC2C
+Options_music_play:
 	MOVE.w	Temp_x_pos.w, D0
 	ADDQ.w	#1, D0
 	MOVE.w	D0, Audio_music_cmd         ; song = Temp_x_pos + 1 (options scroll music)
 	RTS
-loc_EC3A:
+;loc_EC3A
+Options_units_input:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E0, D0
-	BNE.b	loc_EC98
+	BNE.b	Options_units_play_sfx
 	BTST.b	#KEY_LEFT, Input_click_bitset.w
-	BEQ.b	loc_EC5A
+	BEQ.b	Options_units_inc
 	SUBQ.w	#1, Temp_distance.w
 	BCC.b	Options_redraw_units
 	MOVE.w	#$0010, Temp_distance.w
 	BRA.b	Options_redraw_units
-loc_EC5A:
+;loc_EC5A
+Options_units_inc:
 	ADDQ.w	#1, Temp_distance.w
 	CMPI.w	#$0011, Temp_distance.w
 	BNE.b	Options_redraw_units
 	CLR.w	Temp_distance.w
-
 Options_redraw_units:
 	MOVE.w	Temp_distance.w, D0
 	JSR	Binary_to_decimal
@@ -20945,24 +20675,27 @@ Options_redraw_units:
 	JSR	Render_packed_digits_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
-loc_EC98:
+;loc_EC98
+Options_units_play_sfx:
 	LEA	loc_330F8, A1
 	MOVE.w	Temp_distance.w, D0
 	CLR.w	D1
 	MOVE.b	(A1,D0.w), D1
 	MOVE.w	D1, Audio_sfx_cmd           ; SFX looked up by Temp_distance from table
 	RTS
-loc_ECB0:
+;loc_ECB0
+Options_transmission_input:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E0, D0
-	BNE.b	loc_ED00
+	BNE.b	Options_transmission_play_sfx
 	BTST.b	#KEY_LEFT, Input_click_bitset.w
-	BEQ.b	loc_ECD0
+	BEQ.b	Options_transmission_inc
 	SUBQ.w	#1, Anim_delay.w
 	BCC.b	Options_redraw_transmission
 	MOVE.w	#5, Anim_delay.w
 	BRA.b	Options_redraw_transmission
-loc_ECD0:
+;loc_ECD0
+Options_transmission_inc:
 	ADDQ.w	#1, Anim_delay.w
 	CMPI.w	#6, Anim_delay.w
 	BNE.b	Options_redraw_transmission
@@ -20977,7 +20710,8 @@ Options_redraw_transmission:
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	RTS
-loc_ED00:
+;loc_ED00
+Options_transmission_play_sfx:
 	JSR	Wait_for_vblank
 	LEA	loc_331BE, A1
 	MOVE.w	Anim_delay.w, D0
@@ -20985,36 +20719,40 @@ loc_ED00:
 	MOVE.b	(A1,D0.w), D1
 	MOVE.w	D1, $00FF5AC2
 	RTS
-loc_ED1E:
+;loc_ED1E
+Options_back_to_title:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F0, D0
 	BEQ.w	Options_input_Return
 	MOVE.w	#9, Selection_count.w
 	MOVE.l	#Title_menu, Frame_callback.w
 	RTS
-loc_ED3A:
-	dc.l	loc_EB2C
-	dc.l	loc_EB76
-	dc.l	loc_EBA8
-	dc.l	loc_EBE0
-	dc.l	loc_EC3A
-	dc.l	loc_ECB0
-	dc.l	loc_ED1E
-
+;loc_ED3A
+Options_input_dispatch_table:
+	dc.l	Options_control_type_input
+	dc.l	Options_easy_input
+	dc.l	Options_language_input
+	dc.l	Options_music_input
+	dc.l	Options_units_input
+	dc.l	Options_transmission_input
+	dc.l	Options_back_to_title
 ;Draw_conditional_overlay_tile
 Draw_conditional_overlay_tile:
 	BTST.b	#2, Screen_scroll.w
-	BEQ.b	loc_ED64
+	BEQ.b	Draw_conditional_overlay_tile_Blank
 	MOVE.w	#$4224, D0
-	BRA.b	loc_ED66
-loc_ED64:
+	BRA.b	Draw_conditional_overlay_tile_Cmd
+;loc_ED64
+Draw_conditional_overlay_tile_Blank:
 	CLR.w	D0
-loc_ED66:
+;loc_ED66
+Draw_conditional_overlay_tile_Cmd:
 	MOVE.l	#$62140003, D7
 	MOVE.w	Screen_timer.w, D1
-loc_ED70:
+;loc_ED70
+Draw_conditional_overlay_tile_Loop:
 	ADDI.l	#$00800000, D7
-	DBF	D1, loc_ED70
+	DBF	D1, Draw_conditional_overlay_tile_Loop
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
@@ -21039,8 +20777,8 @@ Options_screen_champ_init:
 	LEA	loc_331C4, A6
 	JSR	Draw_packed_tilemap_to_vdp
 	BSR.w	Options_redraw_control_type
-	BSR.w	loc_EB82
-	BSR.w	loc_EBB4
+	BSR.w	Options_redraw_easy
+	BSR.w	Options_redraw_language
 	BSR.w	Options_redraw_music_select
 	BSR.w	Options_redraw_units
 	BSR.w	Options_redraw_transmission
@@ -21070,22 +20808,23 @@ Control_types: ; keys for Shift down, Shift up, Accelerate, Break
 ;$0000EE78
 Team_select_driver_frame:
 	JSR	Wait_for_vblank
-	BSR.w	loc_EE88
-	BSR.w	loc_EF04
+	BSR.w	Team_select_driver_input
+	BSR.w	Team_select_driver_draw_cursor
 	RTS
-
-loc_EE88:
+;loc_EE88
+Team_select_driver_input:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$F3, D0
-	BEQ.b	loc_EF02
+	BEQ.b	Team_select_driver_Rts
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$F0, D0
-	BNE.b	loc_EEAC
+	BNE.b	Team_select_driver_Check_cheat
 	CLR.b	Screen_data_ptr.w
-	BSR.b	loc_EF04
+	BSR.b	Team_select_driver_draw_cursor
 	ADDQ.b	#1, $FFFFFC0D.w
 	RTS
-loc_EEAC:
+;loc_EEAC
+Team_select_driver_Check_cheat:
 	JSR	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
@@ -21102,27 +20841,31 @@ loc_EEAC:
 	CMP.b	$FFFFFFBC.w, D2
 	BNE.w	Demo_screen_transition
 	BTST.b	#0, $FFFFFC0D.w
-	BEQ.b	loc_EEFC
+	BEQ.b	Team_select_driver_Restore_cb
 	CLR.b	Title_menu_flags.w
 	CLR.w	Title_menu_state.w
 	MOVE.l	#$00002592, Frame_callback.w
 	RTS
-loc_EEFC:
+;loc_EEFC
+Team_select_driver_Restore_cb:
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
-loc_EF02:
+;loc_EF02
+Team_select_driver_Rts:
 	RTS
-
-loc_EF04:
+;loc_EF04
+Team_select_driver_draw_cursor:
 	MOVE.l	#$4FAA0003, D7
 	BTST.b	#0, $FFFFFC0D.w
-	BEQ.b	loc_EF18
+	BEQ.b	Team_select_driver_Cursor_tile
 	MOVE.l	#$50AA0003, D7
-loc_EF18:
+;loc_EF18
+Team_select_driver_Cursor_tile:
 	MOVE.w	#$2096, D0
 	BTST.b	#2, Screen_data_ptr.w
-	BEQ.b	loc_EF28
+	BEQ.b	Team_select_driver_Cursor_draw
 	MOVE.w	#$2094, D0
-loc_EF28:
+;loc_EF28
+Team_select_driver_Cursor_draw:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
@@ -21133,76 +20876,86 @@ loc_EF28:
 Name_entry_frame_2:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
-	BSR.w	loc_EF5C
+	BSR.w	Name_entry_handle_input
 	BSR.w	Draw_cursor_tile
-	BSR.w	loc_F21C
+	BSR.w	Name_entry_update_bg_colors
 	RTS
-
-loc_EF5C:
+;loc_EF5C
+Name_entry_handle_input:
 	MOVE.b	Input_click_bitset.w, D0
 	BEQ.w	Name_entry_Return
 	MOVE.w	#9, D7
 	MOVE.l	#$04440444, $FFFFE982.w
 	ANDI.b	#$E0, D0
-	BNE.w	loc_F03E
+	BNE.w	Name_entry_button_press
 	BTST.b	#KEY_B, Input_state_bitset.w
-	BNE.w	loc_F00A
+	BNE.w	Name_entry_b_held
 	BTST.b	#KEY_UP, Input_click_bitset.w
-	BNE.b	loc_EFB6
+	BNE.b	Name_entry_up
 	BTST.b	#KEY_DOWN, Input_click_bitset.w
-	BNE.b	loc_EFD2
+	BNE.b	Name_entry_down
 	BTST.b	#KEY_RIGHT, Input_click_bitset.w
-	BNE.b	loc_EFEE
+	BNE.b	Name_entry_right
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	MOVE.w	Screen_timer.w, D0
-	BEQ.b	loc_EFAE
+	BEQ.b	Name_entry_col_wrap
 	SUBQ.w	#1, Screen_timer.w
 	RTS
-loc_EFAE:
+;loc_EFAE
+Name_entry_col_wrap:
 	MOVE.w	#$000D, Screen_timer.w
 	RTS
-loc_EFB6:
+;loc_EFB6
+Name_entry_up:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	MOVE.w	Screen_tick.w, D0
-	BEQ.b	loc_EFCA
+	BEQ.b	Name_entry_up_wrap
 	SUBQ.w	#1, Screen_tick.w
 	RTS
-loc_EFCA:
+;loc_EFCA
+Name_entry_up_wrap:
 	MOVE.w	#4, Screen_tick.w
 	RTS
-loc_EFD2:
+;loc_EFD2
+Name_entry_down:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.w	#4, Screen_tick.w
-	BEQ.b	loc_EFE8
+	BEQ.b	Name_entry_down_wrap
 	ADDQ.w	#1, Screen_tick.w
 	RTS
-loc_EFE8:
+;loc_EFE8
+Name_entry_down_wrap:
 	CLR.w	Screen_tick.w
 	RTS
-loc_EFEE:
+;loc_EFEE
+Name_entry_right:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CMPI.w	#$000D, Screen_timer.w
-	BEQ.b	loc_F004
+	BEQ.b	Name_entry_right_wrap
 	ADDQ.w	#1, Screen_timer.w
 	RTS
-loc_F004:
+;loc_F004
+Name_entry_right_wrap:
 	CLR.w	Screen_timer.w
 	RTS
-loc_F00A:
+;loc_F00A
+Name_entry_b_held:
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$0F, D0
-	BEQ.b	loc_F03C
+	BEQ.b	Name_entry_b_Rts
 	BTST.b	#KEY_UP, Input_click_bitset.w
-	BNE.w	loc_F102
+	BNE.w	Name_entry_cursor_up
 	BTST.b	#KEY_DOWN, Input_click_bitset.w
-	BNE.w	loc_F11E
+	BNE.w	Name_entry_cursor_down
 	BTST.b	#KEY_LEFT, Input_click_bitset.w
-	BNE.w	loc_F0D2
+	BNE.w	Name_entry_cursor_left
 	BTST.b	#KEY_RIGHT, Input_click_bitset.w
 	BNE.w	Name_entry_confirm_selection
-loc_F03C:
+;loc_F03C
+Name_entry_b_Rts:
 	RTS
-loc_F03E:
+;loc_F03E
+Name_entry_button_press:
 	MOVE.w	Screen_timer.w, D0
 	MOVE.w	Screen_tick.w, D1
 	MULS.w	#$000E, D1
@@ -21210,9 +20963,9 @@ loc_F03E:
 	CMPI.w	#$0044, D0
 	BEQ.b	Name_entry_confirm_selection
 	CMPI.w	#$0043, D0
-	BEQ.b	loc_F0D2
+	BEQ.b	Name_entry_cursor_left
 	CMPI.w	#$0045, D0
-	BEQ.w	loc_F13C
+	BEQ.w	Name_entry_load_save
 	LEA	$FFFFFF80.w, A1
 	MOVE.w	Screen_tick.w, D0
 	MULS.w	#$000E, D0
@@ -21221,7 +20974,7 @@ loc_F03E:
 	MULS.w	#$0010, D1
 	ADD.w	Screen_scroll.w, D1
 	MOVE.b	D0, (A1,D1.w)
-	BSR.w	loc_F414
+	BSR.w	Endgame_init_clear_portrait_cells
 	CMPI.w	#$000F, Screen_scroll.w
 	BNE.b	Name_entry_confirm_selection
 	CMPI.w	#3, $FFFFFC06.w
@@ -21233,51 +20986,59 @@ Name_entry_confirm_selection:
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	CMPI.w	#$000F, Screen_scroll.w
-	BEQ.b	loc_F0BE
+	BEQ.b	Name_entry_next_row
 	ADDQ.w	#1, Screen_scroll.w
 	RTS
-loc_F0BE:
+;loc_F0BE
+Name_entry_next_row:
 	CMPI.w	#3, $FFFFFC06.w
 	BEQ.w	Name_entry_Return
 	ADDQ.w	#1, $FFFFFC06.w
 	CLR.w	Screen_scroll.w
 	RTS
-loc_F0D2:
+;loc_F0D2
+Name_entry_cursor_left:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	MOVE.w	Screen_scroll.w, D0
-	BEQ.b	loc_F0EE
+	BEQ.b	Name_entry_cursor_left_row
 	SUBQ.w	#1, Screen_scroll.w
 	RTS
-loc_F0EE:
+;loc_F0EE
+Name_entry_cursor_left_row:
 	MOVE.w	$FFFFFC06.w, D1
 	BEQ.w	Name_entry_Return
 	SUBQ.w	#1, $FFFFFC06.w
 	MOVE.w	#$000F, Screen_scroll.w
 	RTS
-loc_F102:
+;loc_F102
+Name_entry_cursor_up:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	MOVE.w	$FFFFFC06.w, D0
-	BEQ.b	loc_F11C
+	BEQ.b	Name_entry_cursor_up_Rts
 	SUBQ.w	#1, $FFFFFC06.w
-loc_F11C:
+;loc_F11C
+Name_entry_cursor_up_Rts:
 	RTS
-loc_F11E:
+;loc_F11E
+Name_entry_cursor_down:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
 	CMPI.w	#3, $FFFFFC06.w
-	BEQ.b	loc_F13A
+	BEQ.b	Name_entry_cursor_down_Rts
 	ADDQ.w	#1, $FFFFFC06.w
-loc_F13A:
+;loc_F13A
+Name_entry_cursor_down_Rts:
 	RTS
-loc_F13C:
+;loc_F13C
+Name_entry_load_save:
 	MOVE.b	$FFFFFFB9.w, D0
 	BEQ.b	Demo_screen_transition
-	JSR	loc_13218
+	JSR	Load_player_state_from_buffer
 	JSR	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
@@ -21300,31 +21061,35 @@ Name_entry_Return:
 Demo_screen_transition:
 ; Screen-wipe palette fade for demo/attract/title transitions.
 ; Plays Sfx_demo_transition sound, then runs a 5-step palette fade
-; using the table at loc_F1B6 (5 palette command pairs, 20 vblanks each).
+; using the table at Demo_screen_transition_palette (5 palette command pairs, 20 vblanks each).
 ; Called when the attract demo detects a button mismatch or save-data
 ; checksum failure, forcing a return to the title cycle.
 	MOVE.w	#Sfx_demo_transition, Audio_sfx_cmd ; screen-transition sound
-	LEA	loc_F1B6, A1
+	LEA	Demo_screen_transition_palette, A1
 	MOVE.w	#4, D0
-loc_F196:
+;loc_F196
+Demo_screen_transition_Loop:
 	MOVE.l	(A1)+, $FFFFE982.w
 	MOVE.w	#$0014, D1
-loc_F19E:
+;loc_F19E
+Demo_screen_transition_Wait:
 	MOVEM.l	A1/D1/D0, -(A7)
 	JSR	Wait_for_vblank
 	MOVEM.l	(A7)+, D0/D1/A1
-	DBF	D1, loc_F19E
-	DBF	D0, loc_F196
+	DBF	D1, Demo_screen_transition_Wait
+	DBF	D0, Demo_screen_transition_Loop
 	RTS
-loc_F1B6:
+;loc_F1B6
+Demo_screen_transition_palette:
 	dc.b	$04, $44, $04, $46, $04, $44, $04, $48, $02, $22, $04, $4A, $02, $22, $04, $4C, $00, $00, $04, $4E
 ;loc_F1CA
 Draw_cursor_tile:
 	MOVE.w	#0, D6
 	BTST.b	#2, $FFFFFC0B.w
-	BEQ.b	loc_F1DA
+	BEQ.b	Draw_cursor_tile_Cmd
 	MOVE.w	#$6050, D6
-loc_F1DA:
+;loc_F1DA
+Draw_cursor_tile_Cmd:
 	MOVE.w	#$C988, D7
 	MOVE.w	$FFFFFC06.w, D0
 	LSL.w	#8, D0
@@ -21344,14 +21109,15 @@ loc_F1DA:
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, Screen_item_count.w
 	RTS
-
-loc_F21C:
-	LEA	loc_F232, A1
+;loc_F21C
+Name_entry_update_bg_colors:
+	LEA	Name_entry_bg_colors_phase0, A1
 	LEA	$FFFFE9B0.w, A2
 	MOVE.w	Screen_subcounter.w, D0
 	ANDI.w	#$000C, D0
 	JMP	(A1,D0.w)
-loc_F232:
+;loc_F232
+Name_entry_bg_colors_phase0:
 	MOVE.w	#$06EE, (A2)+
 	MOVE.w	#$04CE, (A2)+
 	MOVE.w	#$02AE, (A2)+
@@ -21362,9 +21128,10 @@ loc_F232:
 	MOVE.w	#$028E, (A2)+
 	SUBQ.w	#1, Screen_subcounter.w
 	BTST.b	#KEY_B, Input_state_bitset.w
-	BEQ.b	loc_F262
+	BEQ.b	Name_entry_bg_colors_Rts
 	ADDQ.w	#2, Screen_subcounter.w
-loc_F262:
+;loc_F262
+Name_entry_bg_colors_Rts:
 	RTS
 	MOVE.w	Screen_timer.w, D0
 	LSL.w	#4, D0
@@ -21378,8 +21145,8 @@ loc_F262:
 	RTS
 ;$0000F288
 Save_name_entry_init:
-	JSR	loc_13170
-	BSR.w	loc_F336
+	JSR	Save_player_state_to_buffer
+	BSR.w	Endgame_init_clear_vdp
 	MOVE.l	#$40020010, VDP_control_port
 	MOVE.w	#$0048, VDP_data_port
 	LEA	loc_39E80, A6
@@ -21394,11 +21161,11 @@ Save_name_entry_init:
 	RTS
 ;Endgame_sequence_init
 Endgame_sequence_init:
-	BSR.w	loc_F336
+	BSR.w	Endgame_init_clear_vdp
 	MOVE.l	#$0000F264, Aux_object_pool.w
 	MOVE.w	#1, $FFFFB84E.w
 	MOVE.l	#$00039EEC, $FFFFB844.w
-	BSR.w	loc_F3DE
+	BSR.w	Endgame_init_draw_race_nums
 	LEA	loc_39E68, A6
 	JSR	Draw_packed_tilemap_to_vdp
 	LEA	loc_39E4E, A6
@@ -21410,7 +21177,8 @@ Endgame_sequence_init:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
-loc_F336:
+;loc_F336
+Endgame_init_clear_vdp:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h32_vdp_state
 	JSR	Clear_main_object_pool
@@ -21432,54 +21200,59 @@ loc_F336:
 	MOVE.l	#$00EE0000, $FFFFE9E4.w
 	MOVE.l	#$00E0000E, $FFFFE9E8.w
 	MOVE.w	#$0EE0, $FFFFE9EC.w
-	BSR.w	loc_F414
+	BSR.w	Endgame_init_clear_portrait_cells
 	MOVE.l	#Default_vblank_handler_h32, Vblank_callback.w
 	RTS
-
-loc_F3DE:
+;loc_F3DE
+Endgame_init_draw_race_nums:
 	MOVE.w	#$C302, D6
 	MOVE.l	#$0000600A, D0
 	MOVE.w	#4, D1
-loc_F3EC:
+;loc_F3EC
+Endgame_init_draw_nums_row_loop:
 	MOVE.w	D6, D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	#$000D, D2
-loc_F3FE:
+;loc_F3FE
+Endgame_init_draw_nums_cell_loop:
 	MOVE.l	D0, VDP_data_port
 	ADDQ.w	#1, D0
-	DBF	D2, loc_F3FE
+	DBF	D2, Endgame_init_draw_nums_cell_loop
 	ADDI.w	#$0100, D6
-	DBF	D1, loc_F3EC
+	DBF	D1, Endgame_init_draw_nums_row_loop
 	RTS
-
-loc_F414:
+;loc_F414
+Endgame_init_clear_portrait_cells:
 	LEA	$FFFFFF80.w, A1
 	MOVE.w	#$600A, D0
 	MOVE.w	#$C908, D6
 	MOVE.w	#3, D1
-loc_F424:
+;loc_F424
+Endgame_init_clear_portrait_row_loop:
 	MOVE.w	D6, D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.w	#3, D2
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
-loc_F43A:
+;loc_F43A
+Endgame_init_clear_portrait_col_loop:
 	MOVE.w	#3, D3
-loc_F43E:
+;loc_F43E
+Endgame_init_clear_portrait_pixel_loop:
 	CLR.w	D4
 	MOVE.b	(A1)+, D4
 	ADD.w	D0, D4
 	MOVE.w	D4, VDP_data_port
-	DBF	D3, loc_F43E
+	DBF	D3, Endgame_init_clear_portrait_pixel_loop
 	MOVE.l	#0, VDP_data_port
-	DBF	D2, loc_F43A
+	DBF	D2, Endgame_init_clear_portrait_col_loop
 	ANDI	#$F8FF, SR
 	ADDI.w	#$0100, D6
-	DBF	D1, loc_F424
+	DBF	D1, Endgame_init_clear_portrait_row_loop
 	RTS
-
-loc_F46A:
+;loc_F46A
+Select_team_message_before_race:
 	CLR.l	D0
 	CLR.l	D6
 	CLR.l	D7
@@ -21487,34 +21260,37 @@ loc_F46A:
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	BTST.b	#6, Player_team.w
-	BEQ.b	loc_F498
+	BEQ.b	Select_team_message_before_race_offset
 	SUBI.l	#$00000024, D6
 	BTST.b	#5, Player_team.w
-	BNE.b	loc_F498
+	BNE.b	Select_team_message_before_race_offset
 	ADDI.l	#$00000010, D6
-loc_F498:
+;loc_F498
+Select_team_message_before_race_offset:
 	MOVE.b	(A1,D0.w), D7
 	ANDI.b	#$0F, D7
 	MULS.w	#$0024, D7
 	ADD.l	D6, D7
 	LEA	Team_msg_jp_table, A1
 	TST.w	English_flag.w
-	BEQ.b	loc_F4B8
+	BEQ.b	Select_team_message_before_race_lang
 	ADDA.l	#$00000240, A1
-loc_F4B8:
+;loc_F4B8
+Select_team_message_before_race_lang:
 	BTST.b	#5, Player_team.w
-	BEQ.b	loc_F4C6
+	BEQ.b	Select_team_message_before_race_normal
 	MOVEA.l	$20(A1,D7.w), A6
 	RTS
-loc_F4C6:
+;loc_F4C6
+Select_team_message_before_race_normal:
 	CLR.l	D0
 	LEA	Drivers_and_teams_map.w, A2
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	BTST.b	#4, (A2,D0.w)
-	BNE.b	loc_F50C
+	BNE.b	Select_team_message_before_race_lose
 	BTST.b	#6, (A2,D0.w)
-	BNE.b	loc_F512
+	BNE.b	Select_team_message_before_race_partner
 	CLR.l	D0
 	CLR.l	D1
 	LEA	Drivers_and_teams_map.w, A2
@@ -21523,78 +21299,87 @@ loc_F4C6:
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	ANDI.b	#$0F, D1 ; isolate the player's team number
 	CMP.b	D0, D1
-	BCC.b	loc_F506
+	BCC.b	Select_team_message_before_race_win
 	MOVEA.l	$4(A1,D7.w), A6
 	RTS
-loc_F506:
+;loc_F506
+Select_team_message_before_race_win:
 	MOVEA.l	(A1,D7.w), A6
 	RTS
-loc_F50C:
+;loc_F50C
+Select_team_message_before_race_lose:
 	MOVEA.l	$C(A1,D7.w), A6
 	RTS
-loc_F512:
+;loc_F512
+Select_team_message_before_race_partner:
 	MOVEA.l	$8(A1,D7.w), A6
 	RTS
-
-loc_F518:
+;loc_F518
+Select_team_intro_text:
 	CLR.l	D7
 	MOVE.b	Player_team.w, D7
 	ANDI.b	#$0F, D7 ; isolate the player's team number
 	LSL.l	#2, D7
 	LEA	Team_intro_table, A1
 	TST.w	English_flag.w
-	BEQ.b	loc_F536
+	BEQ.b	Select_team_intro_text_lang
 	ADDA.l	#$00000080, A1
-loc_F536:
+;loc_F536
+Select_team_intro_text_lang:
 	BTST.b	#6, Player_team.w
-	BEQ.b	loc_F544
+	BEQ.b	Select_team_intro_text_load
 	ADDA.l	#$00000040, A1
-loc_F544:
+;loc_F544
+Select_team_intro_text_load:
 	MOVEA.l	(A1,D7.w), A6
 	RTS
-
-loc_F54A:
+;loc_F54A
+Select_team_pre_race_message:
 	LEA	TeamMessagesBeforeRace, A1
 	TST.w	English_flag.w
-	BEQ.b	loc_F55C
+	BEQ.b	Select_team_pre_race_message_lang
 	ADDA.l	#$00000044, A1
-loc_F55C:
+;loc_F55C
+Select_team_pre_race_message_lang:
 	BTST.b	#5, Player_team.w
-	BEQ.b	loc_F568
+	BEQ.b	Select_team_pre_race_message_by_track
 	MOVEA.l	(A1), A6
 	RTS
-loc_F568:
+;loc_F568
+Select_team_pre_race_message_by_track:
 	CLR.l	D0
 	MOVE.w	Track_index.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	$4(A1,D0.w), A6
 	RTS
-
-loc_F576:
+;loc_F576
+Select_rival_team_name:
 	LEA	Team_name_strings_table, A1
 	TST.w	English_flag.w
-	BEQ.b	loc_F588
+	BEQ.b	Select_rival_team_name_lang
 	ADDA.l	#$00000040, A1
-loc_F588:
+;loc_F588
+Select_rival_team_name_lang:
 	CLR.l	D0
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A6
 	RTS
-
-loc_F59A:
+;loc_F59A
+Select_post_race_message:
 	CLR.l	D7
 	MOVE.b	Player_team.w, D7
 	ANDI.b	#$0F, D7 ; isolate the player's team number
 	MULS.w	#$0028, D7
 	LEA	Team_msg_after_race_table, A1
 	TST.w	English_flag.w
-	BEQ.b	loc_F5BA
+	BEQ.b	Select_post_race_message_lang
 	ADDA.l	#$00000280, A1
-loc_F5BA:
+;loc_F5BA
+Select_post_race_message_lang:
 	CMPI.w	#$000F, Track_index.w
-	BNE.b	loc_F5FE
+	BNE.b	Select_post_race_message_normal
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	MOVE.b	D0, Rival_team.w
@@ -21605,119 +21390,136 @@ loc_F5BA:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	(A6,D0.w), D1
 	MOVE.w	#$0010, D0
-loc_F5EA:
+;loc_F5EA
+Select_post_race_message_Scan:
 	CMP.b	(A6)+, D1
-	BCS.b	loc_F5F8
-	DBF	D0, loc_F5EA
+	BCS.b	Select_post_race_message_Win
+	DBF	D0, Select_post_race_message_Scan
 	MOVEA.l	$5C(A1), A6
 	RTS
-loc_F5F8:
+;loc_F5F8
+Select_post_race_message_Win:
 	MOVEA.l	$8(A1), A6
 	RTS
-loc_F5FE:
+;loc_F5FE
+Select_post_race_message_normal:
 	BTST.b	#1, Player_state_flags.w
-	BNE.w	loc_F708
+	BNE.w	Select_post_race_message_Swap
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
-	BNE.b	loc_F664
+	BNE.b	Select_post_race_message_Rival
 	CMPI.w	#$FFFF, Player_grid_position.w
-	BEQ.b	loc_F640
+	BEQ.b	Select_post_race_message_Lose
 	CLR.l	D0
-	LEA	loc_F736, A2
+	LEA	Post_race_driver_target_points, A2
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ADD.l	D0, D0
 	MOVE.b	(A2,D0.w), D1
 	CMP.b	$FFFFFF35.w, D1
-	BCC.b	loc_F658
+	BCC.b	Select_post_race_message_Promote
 	MOVE.b	$1(A2,D0.w), D1
 	CMP.b	$FFFFFF35.w, D1
-	BCC.b	loc_F64C
-loc_F640:
+	BCC.b	Select_post_race_message_Partner
+;loc_F640
+Select_post_race_message_Lose:
 	MOVEA.l	$8(A1,D7.w), A6
 	MOVE.w	#$000B, Selection_count.w
 	RTS
-loc_F64C:
+;loc_F64C
+Select_post_race_message_Partner:
 	MOVEA.l	$4(A1,D7.w), A6
 	MOVE.w	#$000B, Selection_count.w
 	RTS
-loc_F658:
+;loc_F658
+Select_post_race_message_Promote:
 	MOVEA.l	(A1,D7.w), A6
 	MOVE.w	#$000D, Selection_count.w
 	RTS
-loc_F664:
+;loc_F664
+Select_post_race_message_Rival:
 	BTST.b	#5, Rival_team.w
-	BNE.b	loc_F6C8
+	BNE.b	Select_post_race_message_Same_team
 	BTST.b	#7, Rival_team.w
-	BNE.b	loc_F6E8
+	BNE.b	Select_post_race_message_New_partner
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
-	BCS.b	loc_F6A8
+	BCS.b	Select_post_race_message_Rival_lose
 	MOVE.b	$FFFFFF35.w, D0
 	MOVE.b	$FFFFFF3B.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
-	BCC.b	loc_F6A2
+	BCC.b	Select_post_race_message_Rival_win
 	MOVEA.l	$18(A1,D7.w), A6
 	RTS
-loc_F6A2:
+;loc_F6A2
+Select_post_race_message_Rival_win:
 	MOVEA.l	$10(A1,D7.w), A6
 	RTS
-loc_F6A8:
+;loc_F6A8
+Select_post_race_message_Rival_lose:
 	MOVE.b	$FFFFFF35.w, D0
 	MOVE.b	$FFFFFF3B.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
-	BCC.b	loc_F6C2
+	BCC.b	Select_post_race_message_Rival_tie
 	MOVEA.l	$14(A1,D7.w), A6
 	RTS
-loc_F6C2:
+;loc_F6C2
+Select_post_race_message_Rival_tie:
 	MOVEA.l	$C(A1,D7.w), A6
 	RTS
-loc_F6C8:
+;loc_F6C8
+Select_post_race_message_Same_team:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
-	BCS.b	loc_F6E2
+	BCS.b	Select_post_race_message_Same_lose
 	MOVEA.l	$24(A1,D7.w), A6
 	RTS
-loc_F6E2:
+;loc_F6E2
+Select_post_race_message_Same_lose:
 	MOVEA.l	$20(A1,D7.w), A6
 	RTS
-loc_F6E8:
+;loc_F6E8
+Select_post_race_message_New_partner:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
-	BCC.b	loc_F702
+	BCC.b	Select_post_race_message_New_partner_lose
 	MOVEA.l	$14(A1,D7.w), A6
 	RTS
-loc_F702:
+;loc_F702
+Select_post_race_message_New_partner_lose:
 	MOVEA.l	$1C(A1,D7.w), A6
 	RTS
-loc_F708:
+;loc_F708
+Select_post_race_message_Swap:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
-	BCC.b	loc_F728
+	BCC.b	Select_post_race_message_Swap_set
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	D0, Rival_team.w
-loc_F728:
+;loc_F728
+Select_post_race_message_Swap_set:
 	BSET.b	#6, Rival_team.w
 	BSET.b	#7, Rival_team.w
-	BRA.b	loc_F6E8
-loc_F736:
+	BRA.b	Select_post_race_message_New_partner
+;loc_F736
+Post_race_driver_target_points:
 	dc.b	$02
 	dc.b	$05
 	dc.b	$02, $05, $02, $05, $02, $05, $02, $05, $03, $06
@@ -21734,16 +21536,16 @@ Load_font_tiles_to_work_buffer:
 	MOVE.w	#$0083, D0
 	LEA	loc_18C10, A2
 	TST.w	English_flag.w
-	BEQ.b	loc_F770
+	BEQ.b	Load_font_tiles_Loop
 	LEA	loc_18C94, A2
-loc_F770:
+;loc_F770
+Load_font_tiles_Loop:
 	CLR.w	D1
 	MOVE.b	(A2)+, D1
 	ADD.w	$FFFF905A.w, D1
 	MOVE.w	D1, (A1)+
-	DBF	D0, loc_F770
+	DBF	D0, Load_font_tiles_Loop
 	RTS
-
 ;Render_text_to_tilemap
 Render_text_to_tilemap:
 ; Decode a custom-encoded text string from A6 into the HUD tilemap work buffer.
@@ -21766,114 +21568,128 @@ Render_text_to_tilemap:
 ;  $FFFF905A = tile base index (font tileset offset)
 	LEA	$FFFFF74A.w, A1
 	TST.w	English_flag.w
-	BEQ.b	loc_F78E
+	BEQ.b	Render_text_En
 	LEA	$FFFFF71E.w, A1
-loc_F78E:
+;loc_F78E
+Render_text_En:
 	MOVE.w	#$002C, D0
-loc_F792:
+;loc_F792
+Render_text_Next_line:
 	LEA	(A1), A2
-loc_F794:
+;loc_F794
+Render_text_Next_char:
 	CLR.w	D1
 	MOVE.b	(A6)+, D1
 	CMPI.b	#$FF, D1
-	BEQ.b	loc_F7D6
+	BEQ.b	Render_text_End
 	CMPI.b	#$FD, D1
-	BEQ.b	loc_F7D8
+	BEQ.b	Render_text_Next_row
 	CMPI.b	#$FC, D1
-	BEQ.b	loc_F7DE
+	BEQ.b	Render_text_Skip_row
 	CMPI.b	#$DF, D1
-	BCC.b	loc_F7E4
+	BCC.b	Render_text_Special_DF
 	CMPI.b	#$DA, D1
-	BCC.b	loc_F7EA
+	BCC.b	Render_text_Special_DA
 	CMPI.b	#$D5, D1
-	BCC.b	loc_F7F0
+	BCC.b	Render_text_Special_D5
 	CMPI.b	#$C6, D1
-	BCC.b	loc_F7FC
+	BCC.b	Render_text_Special_C6
 	CMPI.b	#$C1, D1
-	BCC.b	loc_F7F6
+	BCC.b	Render_text_Special_C1
 	CMPI.b	#$B2, D1
-	BCC.b	loc_F802
-loc_F7CE:
+	BCC.b	Render_text_Special_B2
+;loc_F7CE
+Render_text_Write_tile:
 	ADD.w	$FFFF905A.w, D1
 	MOVE.w	D1, (A1)+
-	BRA.b	loc_F794
-loc_F7D6:
+	BRA.b	Render_text_Next_char
+;loc_F7D6
+Render_text_End:
 	RTS
-loc_F7D8:
+;loc_F7D8
+Render_text_Next_row:
 	LEA	$2C(A2), A1
-	BRA.b	loc_F792
-loc_F7DE:
+	BRA.b	Render_text_Next_line
+;loc_F7DE
+Render_text_Skip_row:
 	LEA	$58(A2), A1
-	BRA.b	loc_F792
-loc_F7E4:
+	BRA.b	Render_text_Next_line
+;loc_F7E4
+Render_text_Special_DF:
 	SUBI.b	#$4A, D1
-	BRA.b	loc_F80C
-loc_F7EA:
+	BRA.b	Render_text_special_char_with_tile_77
+;loc_F7EA
+Render_text_Special_DA:
 	SUBI.b	#$82, D1
-	BRA.b	loc_F80C
-loc_F7F0:
+	BRA.b	Render_text_special_char_with_tile_77
+;loc_F7F0
+Render_text_Special_D5:
 	SUBI.b	#$40, D1
-	BRA.b	loc_F806
-loc_F7F6:
+	BRA.b	Render_text_special_char_with_tile_76
+;loc_F7F6
+Render_text_Special_C1:
 	SUBI.b	#$69, D1
-	BRA.b	loc_F806
-loc_F7FC:
+	BRA.b	Render_text_special_char_with_tile_76
+;loc_F7FC
+Render_text_Special_C6:
 	SUBI.b	#$45, D1
-	BRA.b	loc_F806
-loc_F802:
+	BRA.b	Render_text_special_char_with_tile_76
+;loc_F802
+Render_text_Special_B2:
 	SUBI.b	#$6E, D1
-loc_F806:
+;loc_F806:
+Render_text_special_char_with_tile_76:
 	MOVE.w	#$0076, D2
-	BRA.b	loc_F810
-loc_F80C:
+	BRA.b	Render_text_Special_write
+;loc_F80C:
+Render_text_special_char_with_tile_77:
 	MOVE.w	#$0077, D2
-loc_F810:
+;loc_F810
+Render_text_Special_write:
 	LEA	-$2C(A1), A3
 	ADD.w	$FFFF905A.w, D2
 	MOVE.w	D2, (A3)
-	BRA.b	loc_F7CE
-
+	BRA.b	Render_text_Write_tile
 ;Draw_message_panel_narrow
 Draw_message_panel_narrow:
-	BSR.b	loc_F830
+	BSR.b	Setup_message_panel_dimensions
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	RTS
-
 ;Draw_message_panel_wide
 Draw_message_panel_wide:
-	BSR.b	loc_F830
+	BSR.b	Setup_message_panel_dimensions
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	RTS
-
-loc_F830:
+;loc_F830:
+Setup_message_panel_dimensions:
 	LEA	$FFFFF6F0.w, A6
 	MOVE.w	#5, D5
 	TST.w	English_flag.w
-	BEQ.b	loc_F842
+	BEQ.b	Setup_message_panel_Jp
 	MOVE.w	#4, D5
-loc_F842:
+;loc_F842
+Setup_message_panel_Jp:
 	MOVE.w	#$0015, D6
 	RTS
-
 ;Load_track_data_pointer
 Load_track_data_pointer:
 ; Loads A1 with a pointer to the current track's entry in Track_data.
 ; Uses Track_index for championship mode or Track_index_arcade_mode for arcade.
 	MOVE.w	Use_world_championship_tracks.w, D0
 	EORI.w	#1, D0
-	BEQ.b	loc_F860 ; jump if Use_world_championship_tracks == 1
+	BEQ.b	Load_track_data_pointer_Champ ; jump if Use_world_championship_tracks == 1
 	MOVE.w	#$0480, D0 ; $0480 = 1152 = 72*16 = offset from Track_data to arcade tracks
 	MOVE.w	Track_index_arcade_mode.w, D1
 	MULU.w	#$0048, D1
 	ADD.w	D1, D0
-loc_F860:
+;loc_F860
+Load_track_data_pointer_Champ:
 	MOVE.w	Track_index.w, D1
 	MULU.w	#$0048, D1 ; Multiply by 72. Each track in Track_data is 18*4=72 bytes.
 	ADD.w	D1, D0 ; D0 = row offset? (before adding D1)
 	LEA	Track_data(PC), A1
 	ADDA.w	D0, A1 ; A1 = A1 + 72*track_idx + row_offset?
 	RTS
-
 ; Track_data table
 ; Each entry is $48 bytes (72 bytes), 19 entries total:
 ;   16 championship tracks (indices 0-$0F), followed by 3 arcade Monaco variants.
@@ -21924,7 +21740,6 @@ Track_data:
 	dc.l	Track_lap_time_records ; San Marino BCD lap-time record pointer (base = $FFFFFD00, +$08 per track)
 	dc.l	loc_10176 ; San Marino per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B (both 43)
-
 ; Brazil
 	dc.l	loc_5683C ; Brazil tiles used for minimap
 	dc.l	loc_679D8 ; Brazil tiles used used for background
@@ -21945,7 +21760,6 @@ Track_data:
 	dc.l	$FFFFFD08 ; Brazil BCD lap-time record pointer (Track_lap_time_records + $08)
 	dc.l	loc_101A4 ; Brazil per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; France
 	dc.l	loc_55516 ; France tiles used for minimap
 	dc.l	loc_6ACB6 ; France tiles used used for background
@@ -21966,7 +21780,6 @@ Track_data:
 	dc.l	$FFFFFD10 ; France BCD lap-time record pointer (Track_lap_time_records + $10)
 	dc.l	loc_101D2 ; France per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Hungary
 	dc.l	loc_559D0 ; Hungary tiles used for minimap
 	dc.l	loc_6A16E ; Hungary tiles used used for background
@@ -21987,7 +21800,6 @@ Track_data:
 	dc.l	$FFFFFD18 ; Hungary BCD lap-time record pointer (Track_lap_time_records + $18)
 	dc.l	loc_10200 ; Hungary per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002c002e ; steering divisors: straight=$002C, curve=$002E (slightly less sensitive on curves)
-
 ; West Germany
 	dc.l	loc_5583E ; West Germany tiles used for minimap
 	dc.l	loc_65D64 ; West Germany tiles used used for background
@@ -22008,7 +21820,6 @@ Track_data:
 	dc.l	$FFFFFD20 ; West Germany BCD lap-time record pointer (Track_lap_time_records + $20)
 	dc.l	loc_1022E ; West Germany per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; USA
 	dc.l	loc_5627E ; USA tiles used for minimap
 	dc.l	loc_6C048 ; USA tiles used used for background
@@ -22029,7 +21840,6 @@ Track_data:
 	dc.l	$FFFFFD28 ; USA BCD lap-time record pointer (Track_lap_time_records + $28)
 	dc.l	loc_1025C ; USA per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Canada
 	dc.l	loc_5655C ; Canada tiles used for minimap
 	dc.l	loc_6841A ; Canada tiles used used for background
@@ -22050,7 +21860,6 @@ Track_data:
 	dc.l	$FFFFFD30 ; Canada BCD lap-time record pointer (Track_lap_time_records + $30)
 	dc.l	loc_1028A; Canada per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Great Britain
 	dc.l	loc_5568C  ; Great Britain tiles used for minimap
 	dc.l	loc_66FDE  ; Great Britain tiles used used for background
@@ -22071,7 +21880,6 @@ Track_data:
 	dc.l	$FFFFFD38 ; Great Britain BCD lap-time record pointer (Track_lap_time_records + $38)
 	dc.l	loc_102B8; Great Britain per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Italy
 	dc.l	loc_566BC ; Italy tiles used for minimap
 	dc.l	loc_651F0 ; Italy tiles used used for background
@@ -22092,7 +21900,6 @@ Track_data:
 	dc.l	$FFFFFD40 ; Italy BCD lap-time record pointer (Track_lap_time_records + $40)
 	dc.l	loc_102E6 ; Italy per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Portugal
 	dc.l	loc_55D3A ; Portugal tiles used for minimap
 	dc.l	loc_6D3A2 ; Portugal tiles used used for background
@@ -22113,7 +21920,6 @@ Track_data:
 	dc.l	$FFFFFD48 ; Portugal BCD lap-time record pointer (Track_lap_time_records + $48)
 	dc.l	loc_10314 ; Portugal per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Spain
 	dc.l	loc_55EF2 ; Spain tiles used for minimap
 	dc.l	loc_66488 ; Spain tiles used used for background
@@ -22134,7 +21940,6 @@ Track_data:
 	dc.l	$FFFFFD50 ; Spain BCD lap-time record pointer (Track_lap_time_records + $50)
 	dc.l	loc_10342 ; Spain per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Mexico
 	dc.l	loc_553B6 ; Mexico tiles used for minimap
 	dc.l	loc_6C9E6 ; Mexico tiles used used for background
@@ -22155,7 +21960,6 @@ Track_data:
 	dc.l	$FFFFFD58 ; Mexico BCD lap-time record pointer (Track_lap_time_records + $58)
 	dc.l	loc_10370 ; Mexico per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Japan
 	dc.l	loc_563B6 ; Japan tiles used for minimap
 	dc.l	loc_649FC ; Japan tiles used used for background
@@ -22176,7 +21980,6 @@ Track_data:
 	dc.l	$FFFFFD60 ; Japan BCD lap-time record pointer (Track_lap_time_records + $60)
 	dc.l	loc_1039E ; Japan per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Belgium
 	dc.l	loc_55B8A ; Belgium tiles used for minimap
 	dc.l	loc_6B708 ; Belgium tiles used used for background
@@ -22197,7 +22000,6 @@ Track_data:
 	dc.l	$FFFFFD68 ; Belgium BCD lap-time record pointer (Track_lap_time_records + $68)
 	dc.l	loc_103CC ; Belgium per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Australia
 	dc.l	loc_560D4 ; Australia tiles used for minimap
 	dc.l	loc_69758 ; Australia tiles used used for background
@@ -22218,7 +22020,6 @@ Track_data:
 	dc.l	$FFFFFD70 ; Australia BCD lap-time record pointer (Track_lap_time_records + $70)
 	dc.l	loc_103FA ; Australia per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Monaco
 	dc.l	loc_551B4 ; Monaco tiles used for minimap
 	dc.l	loc_6DCF8 ; Monaco tiles used used for background
@@ -22239,7 +22040,6 @@ Track_data:
 	dc.l	$FFFFFD78 ; Monaco BCD lap-time record pointer (Track_lap_time_records + $78)
 	dc.l	loc_10428 ; Monaco per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Monaco (Arcade preliminary)
 	dc.l	loc_54CB2 ; Monaco (Arcade preliminary) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade preliminary) tiles used used for background
@@ -22260,7 +22060,6 @@ Track_data:
 	dc.l	$FFFFFD80 ; Monaco (Arcade preliminary) BCD lap-time record pointer (Track_lap_time_records + $80)
 	dc.l	loc_10456 ; Monaco (Arcade preliminary) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Monaco (Arcade main)
 	dc.l	loc_54E88 ; Monaco (Arcade main) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade main) tiles used used for background
@@ -22281,7 +22080,6 @@ Track_data:
 	dc.l	$FFFFFD88 ; Monaco (Arcade main) BCD lap-time record pointer (Track_lap_time_records + $88)
 	dc.l	loc_10456 ; Monaco (Arcade main) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
-
 ; Monaco (Arcade Wet Condition)
 	dc.l	loc_54E88 ; Monaco (Arcade Wet Condition) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade Wet Condition) tiles used used for background
@@ -22302,7 +22100,6 @@ Track_data:
 	dc.l	$FFFFFD88 ; Monaco (Arcade Wet Condition) BCD lap-time record pointer (shares Monaco Arcade main)
 	dc.l	loc_10456 ; Monaco (Arcade Wet Condition) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002f0038 ; steering divisors: straight=$002F (47), curve=$0038 (56) — wet tyres, reduced sensitivity
-
 loc_FDCA:
 	dc.l	$0A1014F0
 loc_FDCE:
@@ -24392,7 +24189,6 @@ loc_12E56:
 	MOVE.w	#$0024, Anim_delay.w
 	MOVE.l	(A7)+, D0
 	RTS
-
 loc_12E60:
 	LEA	$FFFF906E.w, A1
 	MOVE.w	#$000F, D0
@@ -24478,7 +24274,6 @@ loc_12F50:
 	BSR.b	Rotate_standings_buffer
 	BSR.b	loc_12F88
 	BRA.w	loc_12FB8
-
 ;Rotate_standings_buffer
 Rotate_standings_buffer:
 	CLR.l	D0
@@ -24497,7 +24292,6 @@ loc_12F76:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	D0, (A1)
 	RTS
-
 loc_12F88:
 	CLR.l	D0
 	LEA	$FFFF906E.w, A1
@@ -24545,7 +24339,6 @@ loc_12FFE:
 	ADDQ.w	#1, D3
 	DBF	D0, loc_12FFE
 	RTS
-
 ;Initialize_drivers_and_teams
 Initialize_drivers_and_teams:
 	LEA	Driver_points_by_team.w, A1
@@ -24565,7 +24358,6 @@ loc_13044:
 	MOVE.b	(A2)+, (A1)+
 	DBF	D0, loc_13044
 	RTS
-
 ;Load_team_machine_stats
 Load_team_machine_stats:
 	CLR.w	D0
@@ -24633,10 +24425,9 @@ loc_1310E:
 	MOVE.w	#$0028, $FFFF9172.w
 	CLR.w	$FFFF9150.w
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_1316E
+	BEQ.b	Load_team_car_data_Rts
 	TST.w	Practice_mode.w
-	BNE.b	loc_1316E
-
+	BNE.b	Load_team_car_data_Rts
 ;locx_13152:
 Load_team_car_data:
 	MOVE.w	Team_car_acceleration.w, D0
@@ -24645,10 +24436,11 @@ Load_team_car_data:
 	MOVE.w	Team_car_engine_data.w, D0
 	LEA	Engine_data_offset_table(PC), A1
 	MOVE.w	(A1,D0.w), Engine_data_offset.w
-loc_1316E:
+;loc_1316E:
+Load_team_car_data_Rts:
 	RTS
-
-loc_13170:
+;loc_13170:
+Save_player_state_to_buffer:
 	LEA	$FFFFFF80.w, A1
 	MOVE.w	#$003F, D7
 loc_13178:
@@ -24683,16 +24475,17 @@ loc_1319E:
 	CMPI.l	#Championship_mode_init, D0
 	BEQ.b	loc_131DC
 	MOVE.b	#4, (A1)+
-	BRA.b	loc_131EC
+	BRA.b	Finalize_save_data_buffer
 loc_131DC:
 	MOVE.b	#3, (A1)+
-	BRA.b	loc_131EC
+	BRA.b	Finalize_save_data_buffer
 loc_131E2:
 	MOVE.b	#2, (A1)+
-	BRA.b	loc_131EC
+	BRA.b	Finalize_save_data_buffer
 loc_131E8:
 	MOVE.b	#1, (A1)+
-loc_131EC:
+;loc_131EC:
+Finalize_save_data_buffer:
 	BSR.w	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
@@ -24706,8 +24499,8 @@ loc_131EC:
 	MOVE.b	D2, $FFFFFFBC.w
 	ANDI.b	#$0F, Player_state_flags.w
 	RTS
-
-loc_13218:
+;loc_13218:
+Load_player_state_from_buffer:
 	LEA	Player_state_flags.w, A1
 	MOVE.w	#$0024, D7
 loc_13220:
@@ -24743,18 +24536,18 @@ loc_1324A:
 	CMPI.b	#3, D0
 	BEQ.b	loc_13284
 	MOVE.l	#0, Saved_frame_callback.w
-	BRA.b	loc_132A0
+	BRA.b	Restore_saved_frame_callback
 loc_13284:
 	MOVE.l	#Championship_mode_init, Saved_frame_callback.w
-	BRA.b	loc_132A0
+	BRA.b	Restore_saved_frame_callback
 loc_1328E:
 	MOVE.l	#Title_menu, Saved_frame_callback.w
-	BRA.b	loc_132A0
+	BRA.b	Restore_saved_frame_callback
 loc_13298:
 	MOVE.l	#Championship_standings_init, Saved_frame_callback.w
-loc_132A0:
+;loc_132A0:
+Restore_saved_frame_callback:
 	RTS
-
 ;Compute_save_data_checksum
 Compute_save_data_checksum:
 	LEA	$FFFFFF80.w, A0
@@ -24784,11 +24577,9 @@ loc_132B2:
 loc_132E4:
 	DBF	D0, loc_132B2
 	RTS
-
 ;loc_132EA:
 PointsAwardedPerPlacement:
 	dc.b 9, 6, 4, 3, 2, 1
-
 loc_132F0:
 	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01
 loc_13300:
@@ -24854,45 +24645,50 @@ Engine_data_offset_table:
 Endgame_sequence_frame:
 	JSR	Wait_for_vblank
 	SUBQ.w	#1, $FFFFFC16.w
-	BCC.b	loc_13484
+	BCC.b	Endgame_frame_Rts
 	ADDQ.w	#1, $FFFFFC16.w
 	SUBQ.w	#1, Temp_x_pos.w
-	BCC.b	loc_13476
+	BCC.b	Endgame_frame_portrait_tick
 	ADDQ.w	#1, Temp_x_pos.w
 	BTST.b	#1, $FFFFFC06.w
-	BNE.w	loc_137EC
+	BNE.w	Update_endgame_portrait_animation
 	BTST.b	#2, $FFFFFC06.w
-	BNE.w	loc_137EC
+	BNE.w	Update_endgame_portrait_animation
 	CMPI.w	#$0090, $FFFFBB56.w
-	BCC.b	loc_13464
+	BCC.b	Endgame_frame_music_trigger
 	BTST.b	#5, $FFFFFC06.w
-	BNE.b	loc_13464
+	BNE.b	Endgame_frame_music_trigger
 	BSET.b	#5, $FFFFFC06.w
 	MOVE.w	#Music_rival_encounter, Audio_music_cmd ; rival team encounter music
-loc_13464:
+;loc_13464
+Endgame_frame_music_trigger:
 	TST.l	$FFFFBB40.w
-	BNE.b	loc_13472
+	BNE.b	Endgame_frame_scroll_update
 	MOVE.l	#$0000E600, Frame_callback.w
-loc_13472:
-	BSR.b	loc_13486
-	BSR.b	loc_13494
-loc_13476:
+;loc_13472
+Endgame_frame_scroll_update:
+	BSR.b	Endgame_frame_update_scroll_right
+	BSR.b	Endgame_frame_update_scroll_left
+;loc_13476
+Endgame_frame_portrait_tick:
 	BTST.b	#0, $FFFFFC06.w
-	BNE.w	loc_137B8
-	BSR.w	loc_13586
-loc_13484:
+	BNE.w	Draw_endgame_portrait_tilemap_select
+	BSR.w	Endgame_frame_copy_screen_data
+;loc_13484
+Endgame_frame_Rts:
 	RTS
-
-loc_13486:
+;loc_13486
+Endgame_frame_update_scroll_right:
 	BTST.b	#3, $FFFFFC06.w
-	BEQ.w	loc_134A2
-	BRA.w	loc_13512
-
-loc_13494:
+	BEQ.w	Endgame_scroll_right_inc
+	BRA.w	Endgame_scroll_right_dec
+;loc_13494
+Endgame_frame_update_scroll_left:
 	BTST.b	#4, $FFFFFC06.w
-	BEQ.w	loc_134DC
-	BRA.w	loc_1354E
-loc_134A2:
+	BEQ.w	Endgame_scroll_left_dec
+	BRA.w	Endgame_scroll_left_inc
+;loc_134A2
+Endgame_scroll_right_inc:
 	LEA	$FFFF9D80.w, A1
 	CLR.l	D7
 	MOVE.w	Menu_cursor.w, D7
@@ -24902,15 +24698,17 @@ loc_134A2:
 	ADDA.l	#2, A1
 	ADDI.w	#$0010, (A1)
 	CMPI.w	#$0060, (A1)
-	BNE.b	loc_134DA
+	BNE.b	Endgame_scroll_right_Rts
 	ADDQ.w	#2, Menu_cursor.w
 	CMPI.w	#$0050, Menu_cursor.w
-	BNE.b	loc_134DA
+	BNE.b	Endgame_scroll_right_Rts
 	CLR.w	Menu_cursor.w
 	BSET.b	#3, $FFFFFC06.w
-loc_134DA:
+;loc_134DA
+Endgame_scroll_right_Rts:
 	RTS
-loc_134DC:
+;loc_134DC
+Endgame_scroll_left_dec:
 	LEA	$FFFF9D7E.w, A1
 	CLR.l	D7
 	MOVE.w	Menu_substate.w, D7
@@ -24920,14 +24718,16 @@ loc_134DC:
 	ADDA.l	#2, A1
 	SUBI.w	#$0010, (A1)
 	CMPI.w	#$FFA0, (A1)
-	BNE.b	loc_13510
+	BNE.b	Endgame_scroll_left_Rts
 	SUBQ.w	#2, Menu_substate.w
-	BNE.b	loc_13510
+	BNE.b	Endgame_scroll_left_Rts
 	MOVE.w	#$0050, Menu_substate.w
 	BSET.b	#4, $FFFFFC06.w
-loc_13510:
+;loc_13510
+Endgame_scroll_left_Rts:
 	RTS
-loc_13512:
+;loc_13512
+Endgame_scroll_right_dec:
 	LEA	$FFFF9D80.w, A1
 	CLR.l	D7
 	MOVE.w	Menu_cursor.w, D7
@@ -24936,16 +24736,18 @@ loc_13512:
 	SUBI.w	#$0010, (A1)+
 	ADDA.l	#2, A1
 	SUBI.w	#$0010, (A1)
-	BNE.b	loc_1354C
+	BNE.b	Endgame_scroll_right_dec_Rts
 	ADDQ.w	#2, Menu_cursor.w
 	CMPI.w	#$0050, Menu_cursor.w
-	BNE.b	loc_1354C
+	BNE.b	Endgame_scroll_right_dec_Rts
 	CLR.w	Menu_cursor.w
 	BCLR.b	#3, $FFFFFC06.w
 	BSET.b	#1, $FFFFFC06.w
-loc_1354C:
+;loc_1354C
+Endgame_scroll_right_dec_Rts:
 	RTS
-loc_1354E:
+;loc_1354E
+Endgame_scroll_left_inc:
 	LEA	$FFFF9D7E.w, A1
 	CLR.l	D7
 	MOVE.w	Menu_substate.w, D7
@@ -24954,33 +24756,37 @@ loc_1354E:
 	ADDI.w	#$0010, (A1)+
 	ADDA.l	#2, A1
 	ADDI.w	#$0010, (A1)
-	BNE.b	loc_13584
+	BNE.b	Endgame_scroll_left_inc_Rts
 	SUBQ.w	#2, Menu_substate.w
-	BNE.b	loc_13584
+	BNE.b	Endgame_scroll_left_inc_Rts
 	MOVE.w	#$0050, Menu_substate.w
 	BCLR.b	#4, $FFFFFC06.w
 	BSET.b	#2, $FFFFFC06.w
-loc_13584:
+;loc_13584
+Endgame_scroll_left_inc_Rts:
 	RTS
-
-loc_13586:
+;loc_13586
+Endgame_frame_copy_screen_data:
 	LEA	$FFFF9F00.w, A1
 	MOVE.w	Screen_data_ptr.w, D0
 	MOVE.w	#$0070, D7
-loc_13592:
+;loc_13592
+Endgame_frame_copy_screen_data_loop:
 	MOVE.l	D0, (A1)+
-	DBF	D7, loc_13592
+	DBF	D7, Endgame_frame_copy_screen_data_loop
 	RTS
-loc_1359A:
+;loc_1359A
+Endgame_star_obj:
 	SUBQ.w	#1, $1A(A0)
-	BNE.w	loc_135BE
+	BNE.w	Endgame_star_obj_queue
 	ADDQ.w	#1, $1A(A0)
 	SUBI.l	#$00004000, $12(A0)
 	MOVE.w	$12(A0), $16(A0)
 	CMPI.w	#$0080, $16(A0)
-	BNE.b	loc_135BE
+	BNE.b	Endgame_star_obj_queue
 	CLR.l	(A0)
-loc_135BE:
+;loc_135BE
+Endgame_star_obj_queue:
 	JSR	Queue_object_for_sprite_buffer
 	RTS
 ;$000135C6
@@ -25001,10 +24807,11 @@ Championship_final_init:
 	JSR	Start_vdp_dma_fill
 	LEA	$FFFF9D40.w, A1
 	MOVE.w	#$00E0, D0
-loc_1362C:
+;loc_1362C
+Championship_final_init_clear_loop:
 	CLR.l	(A1)+
-	DBF	D0, loc_1362C
-	BSR.w	loc_13760
+	DBF	D0, Championship_final_init_clear_loop
+	BSR.w	Load_all_driver_portraits
 	MOVE.l	#$5C200002, VDP_control_port
 	LEA	loc_6263A, A0
 	JSR	Decompress_to_vdp
@@ -25014,21 +24821,23 @@ loc_1362C:
 	LEA	$FFFFEED8.w, A1
 	LEA	$FFFFEF5C.w, A2
 	MOVE.w	#$026C, D0
-loc_13668:
+;loc_13668
+Championship_final_init_copy_loop:
 	MOVE.w	-(A1), -(A2)
-	DBF	D0, loc_13668
+	DBF	D0, Championship_final_init_copy_loop
 	MOVE.b	#$64, Screen_timer.w
 	MOVE.b	#1, Screen_tick.w
 	MOVE.l	#Endgame_sequence_frame, Frame_callback.w
 	MOVE.l	#$000138CE, Vblank_callback.w
 	LEA	loc_13938, A1
 	MOVE.w	#$000B, D0
-loc_13694:
+;loc_13694
+Championship_final_init_obj_loop:
 	MOVE.w	D0, D1
 	LEA	$FFFFB880.w, A2
 	MULS.w	#$0040, D1
 	ADDA.l	D1, A2
-	MOVE.l	#loc_1359A, (A2)
+	MOVE.l	#Endgame_star_obj, (A2)
 	MOVE.w	#$011C, $18(A2)
 	MOVE.w	#$0188, $12(A2)
 	MOVE.w	#$0188, $16(A2)
@@ -25042,28 +24851,30 @@ loc_13694:
 	LSL.w	#5, D1
 	ADDQ.w	#1, D1
 	MOVE.w	D1, $1A(A2)
-	DBF	D0, loc_13694
+	DBF	D0, Championship_final_init_obj_loop
 	LEA	loc_19624, A6
 	JSR	Copy_word_run_from_stream
 	LEA	loc_1379A, A1
 	LEA	$FFFFE9E2.w, A2
 	MOVE.w	#$000E, D0
-loc_136F4:
+;loc_136F4
+Championship_final_init_palette_loop:
 	MOVE.w	(A1)+, (A2)+
-	DBF	D0, loc_136F4
+	DBF	D0, Championship_final_init_palette_loop
 	MOVE.l	#$00000EEE, $FFFFE982.w
 	MOVE.w	#$0400, $FFFFE9E0.w
 	BSET.b	#1, $FFFFFC06.w
-	BSR.w	loc_137EC
+	BSR.w	Update_endgame_portrait_animation
 	MOVE.w	#0, Menu_cursor.w
 	MOVE.w	#$0050, Menu_substate.w
 	BSET.b	#4, $FFFFFC06.w
 	LEA	$FFFF9D7E.w, A1
 	MOVE.w	#$0051, D0
-loc_1372C:
+;loc_1372C
+Championship_final_init_scroll_loop:
 	MOVE.w	#$FFA0, (A1)+
 	ADDA.l	#2, A1
-	DBF	D0, loc_1372C
+	DBF	D0, Championship_final_init_scroll_loop
 	MOVE.w	#$049C, Temp_x_pos.w
 	MOVE.w	#$020D, $FFFFFC16.w
 	ANDI	#$F8FF, SR
@@ -25071,10 +24882,11 @@ loc_1372C:
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-
-loc_13760:
+;loc_13760
+Load_all_driver_portraits:
 	MOVE.w	#$000F, D0
-loc_13764:
+;loc_13764
+Load_driver_portrait_loop:
 	CLR.l	D1
 	MOVE.w	D0, D1
 	LEA	DriverPortraitTiles, A1
@@ -25088,17 +24900,19 @@ loc_13764:
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
 	JSR	Decompress_to_vdp
-	DBF	D0, loc_13764
+	DBF	D0, Load_driver_portrait_loop
 	RTS
 loc_1379A:
 	dc.w	$0200, $0400, $0420, $0620, $0642, $0842, $0864, $0A64, $0A86, $0C86, $0CA8, $0ECA, $0EEC, $0EA8, $0000
-loc_137B8:
+;loc_137B8
+Draw_endgame_portrait_tilemap_select:
 	BCLR.b	#0, $FFFFFC06.w
 	LEA	$FFFFEA84.w, A6
 	BTST.b	#0, $FFFFFC03.w
-	BEQ.b	loc_137CE
+	BEQ.b	Draw_endgame_portrait_tilemap_draw
 	LEA	$FFFFECF0.w, A6
-loc_137CE:
+;loc_137CE
+Draw_endgame_portrait_tilemap_draw:
 	MOVE.l	#$4F0A0003, D7
 	MOVEQ	#$0000001E, D6
 	MOVEQ	#9, D5
@@ -25107,17 +24921,17 @@ loc_137CE:
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC03.w
 	RTS
-
-loc_137EC:
+;loc_137EC:
+Update_endgame_portrait_animation:
 	BTST.b	#1, $FFFFFC06.w
 	BNE.b	loc_13826
 	BCLR.b	#2, $FFFFFC06.w
-	BSR.w	loc_13858
+	BSR.w	Load_endgame_portrait_tilemap
 	MOVE.w	#$20E1, D0
 	MOVE.l	#$44520003, D7
-	BSR.w	loc_1387E
+	BSR.w	Draw_endgame_portrait_tilemap
 	LEA	$FFFFE9A2.w, A1
-	BSR.w	loc_138B0
+	BSR.w	Copy_endgame_portrait_palette_strip
 	ADDQ.b	#1, $FFFFFC01.w
 	CMPI.b	#$10, $FFFFFC01.w
 	BCS.b	loc_13824
@@ -25126,20 +24940,20 @@ loc_13824:
 	RTS
 loc_13826:
 	BCLR.b	#1, $FFFFFC06.w
-	BSR.w	loc_13858
+	BSR.w	Load_endgame_portrait_tilemap
 	MOVE.w	#$40E1, D0
 	MOVE.l	#$44EE0000, D7
-	BSR.w	loc_1387E
+	BSR.w	Draw_endgame_portrait_tilemap
 	LEA	$FFFFE9C2.w, A1
-	BSR.w	loc_138B0
+	BSR.w	Copy_endgame_portrait_palette_strip
 	ADDQ.b	#1, $FFFFFC01.w
 	CMPI.b	#$10, $FFFFFC01.w
 	BCS.b	loc_13856
 	CLR.b	$FFFFFC01.w
 loc_13856:
 	RTS
-
-loc_13858:
+;loc_13858:
+Load_endgame_portrait_tilemap:
 	CLR.l	D0
 	CLR.l	D1
 	LEA	DriverPortraitTileMappings, A1
@@ -25151,8 +24965,8 @@ loc_13858:
 	MOVE.b	$FFFFFC01.w, D1
 	MULS.w	#$0040, D1
 	RTS
-
-loc_1387E:
+;loc_1387E:
+Draw_endgame_portrait_tilemap:
 	ADD.w	D1, D0
 	JSR	Decompress_tilemap_to_buffer
 	LEA	Tilemap_work_buf.w, A6
@@ -25168,8 +24982,8 @@ loc_138A0:
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
 	RTS
-
-loc_138B0:
+;loc_138B0:
+Copy_endgame_portrait_palette_strip:
 	CLR.l	D0
 	MOVE.b	$FFFFFC01.w, D0
 	LSL.l	#5, D0
@@ -26151,119 +25965,102 @@ loc_19108:
 	dc.l	$65940003
 	dc.l	$669A0003
 loc_19114:
-
 	dc.l	loc_19234-1 ; Car 1 name
 	dc.w	$000B       ; Car 1 name length
 	dc.l	loc_192E6-1 ; Car 1 engine
 	dc.w	$000C       ; Car 1 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 1 max power
 	dc.w	$0012       ; Car 1 max power length
-
 	dc.l	loc_19240-1 ; Car 2 name
 	dc.w	$000B       ; Car 2 name length
 	dc.l	loc_192F2-1 ; Car 2 engine
 	dc.w	$000E       ; Car 2 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 2 max power
 	dc.w	$0012       ; Car 2 max power length
-
 	dc.l	loc_1924C-1 ; Car 3 name
 	dc.w	$000C       ; Car 3 name length
 	dc.l	loc_19300-1 ; Car 3 engine
 	dc.w	$000B       ; Car 3 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 3 max power
 	dc.w	$0012       ; Car 3 max power length
-
 	dc.l	loc_19258-1 ; Car 4 name
 	dc.w	$000C       ; Car 4 name length
 	dc.l	Car_engine_text_vapor-1 ; Car 4 engine
 	dc.w	$000D       ; Car 4 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 4 max power
 	dc.w	$0012       ; Car 4 max power length
-
 	dc.l	loc_19264-1 ; Car 5 name
 	dc.w	$000B       ; Car 5 name length
 	dc.l	loc_1931A-1 ; Car 5 engine
 	dc.w	$000D       ; Car 5 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 5 max power
 	dc.w	$0012       ; Car 5 max power length
-
 	dc.l	loc_19270-1 ; Car 6 name
 	dc.w	$000A       ; Car 6 name length
 	dc.l	Car_engine_text_lizzie-1 ; Car 6 engine
 	dc.w	$000C       ; Car 6 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 6 max power
 	dc.w	$0012       ; Car 6 max power length
-
 	dc.l	loc_1927A-1 ; Car 7 name
 	dc.w	$0009       ; Car 7 name length
 	dc.l	Car_engine_text_vapor-1 ; Car 7 engine
 	dc.w	$000D       ; Car 7 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 7 max power
 	dc.w	$0012       ; Car 7 max power length
-
 	dc.l	loc_19284-1 ; Car 8 name
 	dc.w	$0007       ; Car 8 name length
 	dc.l	loc_19334-1 ; Car 8 engine
 	dc.w	$000B       ; Car 8 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 8 max power
 	dc.w	$0012       ; Car 8 max power length
-
 	dc.l	loc_1928C-1 ; Car 9 name
 	dc.w	$000B       ; Car 9 name length
 	dc.l	Car_engine_text_lizzie-1 ; Car 9 engine
 	dc.w	$000C       ; Car 9 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 9 max power
 	dc.w	$0012       ; Car 9 max power length
-
 	dc.l	loc_19298-1 ; Car 10 name
 	dc.w	$000A       ; Car 10 name length
 	dc.l	Car_engine_text_vapor-1 ; Car 10 engine
 	dc.w	$000D       ; Car 10 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 10 max power
 	dc.w	$0012       ; Car 10 max power length
-
 	dc.l	loc_192A2-1 ; Car 11 name
 	dc.w	$000C       ; Car 11 name length
 	dc.l	loc_19334-1 ; Car 11 engine
 	dc.w	$000B       ; Car 11 engine length
 	dc.l	loc_19392-1 ; Car 11 max power
 	dc.w	$0012       ; Car 11 max power length
-
 	dc.l	loc_192AE-1 ; Car 12 name
 	dc.w	$000B       ; Car 12 name length
 	dc.l	loc_19340-1 ; Car 12 engine
 	dc.w	$000E       ; Car 12 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 12 max power
 	dc.w	$0012       ; Car 12 max power length
-
 	dc.l	loc_192BA-1 ; Car 13 name
 	dc.w	$000A       ; Car 13 name length
 	dc.l	loc_19334-1 ; Car 13 engine
 	dc.w	$000B       ; Car 13 engine length
 	dc.l	loc_19392-1 ; Car 13 max power
 	dc.w	$0012       ; Car 13 max power length
-
 	dc.l	loc_192C4-1 ; Car 14 name
 	dc.w	$0009       ; Car 14 name length
 	dc.l	Car_engine_text_lizzie-1 ; Car 14 engine
 	dc.w	$000C       ; Car 14 engine length
 	dc.l	loc_193A4-1 ; Car 14 max power
 	dc.w	$0012       ; Car 14 max power length
-
 	dc.l	loc_192CE-1 ; Car 15 name
 	dc.w	$000A       ; Car 15 name length
 	dc.l	loc_1934E-1 ; Car 15 engine
 	dc.w	$000D       ; Car 15 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 15 max power
 	dc.w	$0012       ; Car 15 max power length
-
 	dc.l	loc_192D8-1 ; Car 16 name
 	dc.w	$000D       ; Car 16 name length
 	dc.l	loc_19334-1 ; Car 16 engine
 	dc.w	$000B       ; Car 16 engine length
 	dc.l	loc_193A4-1 ; Car 16 max power
 	dc.w	$0012       ; Car 16 max power length
-
 loc_19234:
 	txt "MADONNA", $FF
 	txt "456", $00
@@ -26377,92 +26174,74 @@ Driver_info_table:
 	dc.w	$0007       ; Driver 0 name length
 	dc.l	loc_19526-1 ; Driver 0 country
 	dc.w	$0006       ; Driver 0 country length
-
 	dc.l	loc_1949E-1 ; Driver 1 name
 	dc.w	$0009       ; Driver 1 name length
 	dc.l	loc_1952C-1 ; Driver 1 country
 	dc.w	$0006       ; Driver 1 country length
-
 	dc.l	loc_194A8-1 ; Driver 2 name
 	dc.w	$0009       ; Driver 2 name length
 	dc.l	loc_19532-1 ; Driver 2 country
 	dc.w	$0007       ; Driver 2 country length
-
 	dc.l	loc_194B2-1 ; Driver 3 name
 	dc.w	$0009       ; Driver 3 name length
 	dc.l	loc_1953A-1 ; Driver 3 country
 	dc.w	$0005       ; Driver 3 country length
-
 	dc.l	loc_194BC-1 ; Driver 4 name
 	dc.w	$0007       ; Driver 4 name length
 	dc.l	loc_19540-1 ; Driver 4 country
 	dc.w	$0006       ; Driver 4 country length
-
 	dc.l	loc_194C4-1 ; Driver 5 name
 	dc.w	$0008       ; Driver 5 name length
 	dc.l	loc_19546-1 ; Driver 5 country
 	dc.w	$0006       ; Driver 5 country length
-
 	dc.l	loc_194CC-1 ; Driver 6 name
 	dc.w	$0008       ; Driver 6 name length
 	dc.l	loc_1954C-1 ; Driver 6 country
 	dc.w	$0005       ; Driver 6 country length
-
 	dc.l	loc_194D4-1 ; Driver 7 name
 	dc.w	$0009       ; Driver 7 name length
 	dc.l	loc_19552-1 ; Driver 7 country
 	dc.w	$0005       ; Driver 7 country length
-
 	dc.l	loc_194DE-1 ; Driver 8 name
 	dc.w	$0008       ; Driver 8 name length
 	dc.l	loc_19558-1 ; Driver 8 country
 	dc.w	$000D       ; Driver 8 country length
-
 	dc.l	loc_194E6-1 ; Driver 9 name
 	dc.w	$0008       ; Driver 9 name length
 	dc.l	loc_19566-1 ; Driver 9 country
 	dc.w	$0006       ; Driver 9 country length
-
 	dc.l	loc_194EE-1 ; Driver 10 name
 	dc.w	$0009       ; Driver 10 name length
 	dc.l	loc_1956C-1 ; Driver 10 country
 	dc.w	$0005       ; Driver 10 country length
-
 	dc.l	loc_194F8-1 ; Driver 11 name
 	dc.w	$0008       ; Driver 11 name length
 	dc.l	loc_19572-1 ; Driver 11 country
 	dc.w	$0006       ; Driver 11 country length
-
 	dc.l	loc_19500-1 ; Driver 12 name
 	dc.w	$0008       ; Driver 12 name length
 	dc.l	loc_19578-1 ; Driver 12 country
 	dc.w	$000D       ; Driver 12 country length
-
 	dc.l	loc_19508-1 ; Driver 13 name
 	dc.w	$0008       ; Driver 13 name length
 	dc.l	loc_19586-1 ; Driver 13 country
 	dc.w	$0007       ; Driver 13 country length
-
 	dc.l	loc_19510-1 ; Driver 14 name
 	dc.w	$0008       ; Driver 14 name length
 	dc.l	loc_1958E-1 ; Driver 14 country
 	dc.w	$0006       ; Driver 14 country length
-
 	dc.l	loc_19518-1 ; Driver 15 name
 	dc.w	$0009       ; Driver 15 name length
 	dc.l	loc_19594-1 ; Driver 15 country
 	dc.w	$000C       ; Driver 15 country length
-
 	dc.l	loc_19522-1 ; Driver 16 name
 	dc.w	$0003       ; Driver 16 name length
 	dc.l	loc_195A0-1 ; Driver 16 country
 	dc.w	$000C       ; Driver 16 country length
-
 	dc.l	loc_19522-1 ; Your name
 	dc.w	$000F       ; Your name length
 	dc.l	loc_195A0-1 ; Your country
 	dc.w	$0005       ; Your country length
-
 loc_19496:  txt "G.CEARA", $00
 loc_1949E:  txt "A.ASSELIN", $00
 loc_194A8:  txt "F.ELSSLER", $00
@@ -26505,7 +26284,6 @@ loc_19594:
 loc_195A0:
 	txt "YOUR", $FF
 	txt "COUNTRY"
-
 ;loc_195AC:
 TeamMachineScreenStats:
 ; ENG., T.M, SUS., TIRE, BRA., ?, ?
@@ -27736,7 +27514,6 @@ loc_20F2E:
 	dc.b	$08, $AA, $00, $00, $00, $EE, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $06, $66, $00, $6C, $02, $AE, $00, $26, $0E, $EE, $08, $AA, $02, $44
 ;loc_20FAE
 Team_palette_data: ; Team palette (everywhere except while driving)
-
 	dc.b	$00, $06, $00, $0C, $00, $EC, $0A, $AE, $00, $0E  ; Madonna truck
 	dc.w	$000E, $0008, $00EE, $0088                        ; Madonna car
 	dc.b	$0E, $EE, $0A, $AA, $06, $66, $06, $6E, $02, $2C, $00, $04, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $08, $88, $02, $22, $06, $66, $00, $26
@@ -32640,7 +32417,7 @@ loc_3B978:
 	txt "COMPLETELY SLOW DOWN\nAT THE SHARP CURVES.", $FF
 ;loc_3B9A2
 ; 32-entry pointer table: team name display strings (JP names 0..15, EN names 16..31)
-; Accessed via +$40 offset for English. See loc_F576 for usage.
+; Accessed via +$40 offset for English. See Select_rival_team_name for usage.
 Team_name_strings_table:
 	dc.l	loc_3BA22
 	dc.l	loc_3BA28
@@ -43476,7 +43253,6 @@ Road_scanline_descriptor_table:
 	dc.l	$FFA0FFA0	;A0
 	dc.l	$FFA0FFA0	;A1
 	dc.l	$FFA0FFA0	;A2
-
 ;loc_7053C:
 Road_displacement_table: ; Used to render curves and slopes, from sharp to soft
 	dc.l	$FFA00000 ; first value not used
@@ -45512,7 +45288,6 @@ Halt_audio_sequence:
 	MOVE.w	#$8000, Audio_seq_timer
 	OR.w	D0, D0
 	RTS
-
 ;Trigger_music_mode_1
 Trigger_music_mode_1:
 ; Trigger audio playback in mode 1.
@@ -45523,7 +45298,6 @@ Trigger_music_mode_1:
 	MOVE.b	#1, Audio_ctrl_mode
 	OR.w	D0, D0
 	RTS
-
 ;Trigger_music_playback
 Trigger_music_playback:
 ; Trigger standard music playback.
@@ -45535,7 +45309,6 @@ Trigger_music_playback:
 	MOVE.b	#$80, Audio_ctrl_mode
 	OR.w	D0, D0
 	RTS
-
 ;loc_75C6E
 Update_audio_engine:
 ; Per-frame audio engine update routine called from Race_loop (step 24).
@@ -45638,7 +45411,6 @@ loc_75D4A:
 	JSR	loc_75F06(PC)
 	JSR	loc_75F58(PC)
 	RTS
-
 loc_75D60:
 	MOVE.w	$26(A6), D0
 	BNE.b	loc_75D6E
@@ -45789,7 +45561,6 @@ loc_75EE2:
 	MOVEQ	#2, D7
 	LEA	$00A01FC6, A3
 	BRA.w	Copy_scratch_to_z80_ram
-
 loc_75F06:
 	MOVEA.l	A4, A5
 	MOVE.w	$8(A6), D0
@@ -45817,7 +45588,6 @@ loc_75F4C:
 	LEA	$00A01FA0, A3
 	MOVEQ	#5, D7
 	BRA.w	Copy_scratch_to_z80_ram
-
 loc_75F58:
 	MOVEA.l	A4, A5
 	MOVE.w	$C(A6), D0
@@ -45845,7 +45615,6 @@ loc_75F9E:
 	LEA	$00A01FC0, A3
 	MOVEQ	#5, D7
 	BRA.w	Copy_scratch_to_z80_ram
-
 loc_75FAA:
 	MOVE.w	$1C(A6), D0
 	ANDI.w	#$000F, D0
@@ -45857,7 +45626,6 @@ loc_75FBE:
 	LSL.w	#3, D0
 	ADDI.w	#$0010, D0
 	RTS
-
 loc_75FC6:
 	ANDI.w	#$007F, D0
 	LSR.w	#1, D0
@@ -45871,7 +45639,6 @@ loc_75FC6:
 	ADDQ.w	#1, D1
 	ADD.b	(A1,D1.w), D7
 	RTS
-
 loc_75FEA:
 	ANDI.w	#$007F, D0
 	LSL.w	#4, D0
@@ -45974,13 +45741,11 @@ Write_byte_to_z80_ram:
 ;   3. Copy D7+1 bytes from A5 to A3 (Z80 RAM window).
 ;   4. Write $0000 to Z80_bus_request to release the bus back to the Z80.
 	MOVEQ	#0, D7
-
 ;loc_761DA
 Copy_scratch_to_z80_ram:
 ; Mid-entry: set A5 = A4 (Audio_engine_scratch start), then fall through
 ; to the bus-arbitration block to copy D7+1 bytes from A4 to Z80 RAM at A3.
 	MOVEA.l	A4, A5
-
 ;loc_761DC
 Z80_bus_arbitrate_and_copy:
 	MOVE.w	#$0100, Z80_bus_request
