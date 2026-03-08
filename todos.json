@@ -4,7 +4,7 @@
     "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
     "created": "2026-03-07",
     "phase": 1,
-    "label_progress": "4326+ named labels, 1467 loc_ labels remain. All JSR/BSR-called loc_ routines are named. Recent work renamed high-impact internal helpers in championship team-select, save/load state, endgame portrait, message-panel, and text-rendering paths; old ROM-address comments are preserved for renamed loc_ labels.",
+    "label_progress": "4344+ named labels, 1446 loc_ labels remain. All JSR/BSR-called loc_ routines are named. Recent work (batch 28) named result-screen and championship-podium data tables: Championship_podium_text_jp/en, Team_select_intro_car_tilemap, Result_decomp_list, Result_tilemap_list, Race_finish_car_anim_a/b, Team_name_display_strings, Result_sprite_anim_data, Result_tiles_a..f, Race_finish_car_tiles, Result_screen_tiles_a/b.",
     "total_commits": 199,
     "current_state": [
       "Single monolithic smgp.asm source file (~46.7K normalized lines after blank-line cleanup)",
@@ -94,7 +94,7 @@
           "effort": "very_large",
           "depends_on": "LABEL-001",
           "status": "in_progress",
-          "progress_notes": "Batches 1-27 complete. 1467 loc_ labels remain (down from 1526). Batch 27 (59 labels): named all 32 post-race EN team message strings (Team_msg_en_we_should_be_top..Team_msg_en_forfeit_license) and 30 JP message strings (Team_msg_jp_after_jp6..Team_msg_jp_after_jp35) in the $3C000-$3C8C0 ROM region. Also replaced all 9 raw $0003Cxxx literals in Team_msg_after_race_table with symbolic names (Team_msg_jp_after_jp1..jp5, Team_msg_en_youll_be_staying, Team_msg_en_you_darn_fool, Team_msg_en_get_hold, Team_msg_en_could_have_done) and updated all dc.l table entries for the newly renamed labels. Build verified bit-perfect (SHA256 9046c9d6...)."
+          "progress_notes": "Batches 1-28 complete. 1446 loc_ labels remain (down from 1526). Batch 28 (18 labels): named result-screen and championship-podium data tables in the $143AE-$16166 ROM region: Championship_podium_text_jp, Championship_podium_text_en (JP/EN podium results tilemap text, 2 callers each), Team_select_intro_car_tilemap (1 caller: Draw_intro_car_tilemap), Result_decomp_list, Result_tilemap_list (6- and 8-entry dispatch tables used by Initialize_results_screen), Race_finish_car_anim_a, Race_finish_car_anim_b (podium car animation frame data, used by Race_finish_results_init and Championship_next_race_init), Team_name_display_strings (9-char fixed-width team name strings, 16+16 entries), Result_sprite_anim_data (palette/sprite animation stream for result screen), Result_tiles_a..f (6 compressed tile blocks in Result_decomp_list), Race_finish_car_tiles (podium car tileset, 1 caller), Result_screen_tiles_a, Result_screen_tiles_b (2 compressed tile decompression targets). All dc.l table pointers and LEA callsites updated. Build verified bit-perfect (SHA256 9046c9d6...)."
         },
         {
           "id": "LABEL-003",

@@ -16673,7 +16673,7 @@ Wait_for_button_press_Rts:
 Draw_intro_car_tilemap:
 	BTST.b	#5, Player_team.w
 	BNE.b	Draw_intro_car_tilemap_Queued
-	LEA	loc_1453C, A6
+	LEA	Team_select_intro_car_tilemap, A6
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
@@ -16794,8 +16794,8 @@ Championship_next_race_advance_Rival:
 ;loc_B810
 Championship_next_race_advance_ShowMsg:
 	LEA	$FFFFF6F0.w, A6
-	LEA	loc_143AE, A1
-	LEA	loc_14878, A2
+	LEA	Championship_podium_text_jp, A1
+	LEA	Team_name_display_strings, A2
 	MOVE.w	#8, D5
 	MOVE.w	#$00BD, D0
 	LEA	$FFFFF71C.w, A4
@@ -16804,7 +16804,7 @@ Championship_next_race_advance_ShowMsg:
 	MOVE.l	#$4B0C0000, D7
 	TST.w	English_flag.w
 	BEQ.b	Championship_next_race_advance_ShowMsg_Copy
-	LEA	loc_1446C, A1
+	LEA	Championship_podium_text_en, A1
 	ADDA.l	#$00000090, A2
 	MOVE.w	#$00CF, D0
 	LEA	$FFFFF78C.w, A4
@@ -16888,8 +16888,8 @@ Championship_podium_load_or_fade_Wait:
 	BNE.b	Championship_podium_load_or_fade_Wait
 	BSR.w	loc_12DFC
 	LEA	$FFFFF6F0.w, A6
-	LEA	loc_143AE, A1
-	LEA	loc_14878, A2
+	LEA	Championship_podium_text_jp, A1
+	LEA	Team_name_display_strings, A2
 	MOVE.w	#4, D5
 	MOVEQ	#$00000054, D4
 	MOVE.w	#$0053, D0
@@ -16899,7 +16899,7 @@ Championship_podium_load_or_fade_Wait:
 	MOVE.l	#$4B0C0000, D7
 	TST.w	English_flag.w
 	BEQ.b	Championship_podium_load_or_fade_Copy
-	LEA	loc_1446C, A1
+	LEA	Championship_podium_text_en, A1
 	ADDA.l	#$00000090, A2
 	MOVEQ	#$0000005C, D4
 	MOVE.w	#$005B, D0
@@ -17151,7 +17151,7 @@ Race_finish_init_HasRival:
 	JSR	Update_gap_to_rival_display
 	MOVE.w	#$000B, D0
 	LEA	Aux_object_pool.w, A1
-	LEA	loc_14644, A2
+	LEA	Race_finish_car_anim_a, A2
 ;loc_BCA6
 Race_finish_init_Objects_loop:
 	MOVE.l	#Podium_car_obj_Update_Tick, (A1)
@@ -17164,7 +17164,7 @@ Race_finish_init_Objects_loop:
 	LEA	$40(A1), A1
 	DBF	D0, Race_finish_init_Objects_loop
 	MOVE.l	#$46D60000, D7
-	LEA	loc_14F04, A0
+	LEA	Race_finish_car_tiles, A0
 	MOVE.w	#$40E0, D0
 	MOVE.w	#$0013, D6
 	MOVE.w	#$000B, D5
@@ -17213,8 +17213,7 @@ Championship_next_race_init:
 	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
 	LEA	Aux_object_pool.w, A1
-	LEA	loc_14704, A2
-;loc_BD92
+	LEA	Race_finish_car_anim_b, A2
 Championship_next_race_init_Objects_loop:
 	MOVE.l	#Podium_car_obj_Update, (A1)
 	MOVE.w	(A2)+, $18(A1)
@@ -17265,7 +17264,7 @@ Championship_next_race_init_MidChamp:
 	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
 	LEA	Aux_object_pool.w, A1
-	LEA	loc_14704, A2
+	LEA	Race_finish_car_anim_b, A2
 ;loc_BE6C
 Championship_next_race_init_MidChamp_Objects_loop:
 	MOVE.l	#Podium_car_obj_Update, (A1)
@@ -17348,16 +17347,16 @@ Initialize_results_screen_Clear_loop:
 	CLR.l	(A1)+
 	DBF	D0, Initialize_results_screen_Clear_loop
 	MOVE.l	#$5C000000, VDP_control_port
-	LEA	loc_14F9A, A0
+	LEA	Result_screen_tiles_a, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$45800001, VDP_control_port
-	LEA	loc_16166, A0
+	LEA	Result_screen_tiles_b, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$63A00001, VDP_control_port
 	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.w	#5, D0
-	LEA	loc_145B0, A1
+	LEA	Result_decomp_list, A1
 ;loc_BFF6
 Initialize_results_screen_Decomp_loop:
 	MOVEM.w	D0, -(A7)
@@ -17372,7 +17371,7 @@ Initialize_results_screen_Decomp_loop:
 	MOVEM.w	(A7)+, D0
 	DBF	D0, Initialize_results_screen_Decomp_loop
 	MOVE.w	#7, D0
-	LEA	loc_14604, A1
+	LEA	Result_tilemap_list, A1
 ;loc_C024
 Initialize_results_screen_Tilemap_loop:
 	MOVEM.w	D0, -(A7)
@@ -17407,7 +17406,7 @@ Initialize_results_screen_Row_inner:
 	DBF	D0, Initialize_results_screen_Row_loop
 	MOVE.w	#$004B, $FFFFFC1A.w
 	MOVE.l	#$00050000, Screen_timer.w
-	LEA	loc_149C8, A6
+	LEA	Result_sprite_anim_data, A6
 	JSR	Copy_word_run_from_stream
 	CLR.l	D0
 	MOVE.b	Player_team.w, D0
@@ -25306,7 +25305,8 @@ loc_13D5C:
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF
-loc_143AE:
+;loc_143AE
+Championship_podium_text_jp:
 	dc.b	$37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$20, $0A, $17, $1D, $1C, $32, $22, $18, $1E, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A
 	dc.b	$18, $17, $32, $1D, $11, $0E, $12, $1B, $32, $1D, $0E, $0A, $16, $29, $29, $29, $32, $32, $32, $3B
@@ -25314,7 +25314,8 @@ loc_143AE:
 	dc.b	$16, $1C, $2E, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A
 	dc.b	$32, $32, $32, $22, $0E, $1C, $32, $32, $32, $32, $32, $17, $18, $32, $32, $32, $32, $32, $32, $3B
 	dc.b	$3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $00
-loc_1446C:
+;loc_1446C
+Championship_podium_text_en:
 	dc.b	$37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $22, $18, $1E, $26, $1B, $0E, $32, $18
 	dc.b	$0F, $0F, $0E, $1B, $0E, $0D, $32, $0A, $32, $1C, $0E, $0A, $1D, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $32, $3B, $3A, $0B, $22, $32, $1D, $0E, $0A, $16, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32
@@ -25323,26 +25324,29 @@ loc_1446C:
 	dc.b	$3B, $3A, $32, $32, $32, $32, $22, $0E, $1C, $32, $32, $32, $32, $32, $17, $18, $32, $32, $32, $32, $32, $32, $32, $3B
 	dc.b	'<=====================>'
 	dc.b	$00
-loc_1453C:
+;loc_1453C
+Team_select_intro_car_tilemap:
 	dc.b	$0B, $10, $FB, $43, $1D, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FC, $3A, $32, $1C, $0E, $15, $0E, $0C, $1D, $32
 	dc.b	$1B, $12, $1F, $0A, $15, $2E, $32, $3B, $FC, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FC, $3A, $32, $32, $32, $22
 	dc.b	$0E, $1C, $32, $32, $32, $32, $17, $18, $32, $32, $32, $3B, $FC, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF, $00
 	dc.b	$47, $D8, $00, $00, $4E, $D8, $00, $00, $50, $EE, $00, $00, $47, $EE, $00, $00, $4E, $EE, $00, $00
-loc_145B0:
+;loc_145B0
+Result_decomp_list:
 	dc.b	$4E, $80, $00, $03
-	dc.l	loc_14C32
+	dc.l	Result_tiles_a
 	dc.b	$60, $E0, $00, $1F, $00, $0B, $4E, $C0, $00, $03
-	dc.l	loc_14CC2
+	dc.l	Result_tiles_b
 	dc.b	$60, $E0, $00, $1F, $00, $0B, $4E, $00, $00, $03
-	dc.l	loc_14D6A
+	dc.l	Result_tiles_c
 	dc.b	$60, $E0, $00, $1F, $00, $0B, $4E, $40, $00, $03
-	dc.l	loc_14E2A
+	dc.l	Result_tiles_d
 	dc.b	$60, $E0, $00, $1F, $00, $0B, $55, $44, $00, $00
-	dc.l	loc_14EE6
+	dc.l	Result_tiles_e
 	dc.b	$00, $E0, $00, $0B, $00, $03, $59, $40, $00, $00
-	dc.l	loc_14EF4
+	dc.l	Result_tiles_f
 	dc.b	$A0, $E0, $00, $14, $00, $02
-loc_14604:
+;loc_14604
+Result_tilemap_list:
 	dc.l	$53840003
 	dc.l	Result_screen_tile_col_b
 	dc.b	$53, $98, $00, $03
@@ -25359,7 +25363,8 @@ loc_14604:
 	dc.l	Result_screen_tile_col_b
 	dc.b	$53, $08, $00, $03
 	dc.l	Result_screen_tile_col_a
-loc_14644:
+;loc_14644
+Race_finish_car_anim_a:
 	dc.w	$0000, $0148, $0008, $0088
 	dc.b	$00, $01, $4C, $1C, $00, $01, $47, $34, $00, $00, $01, $48, $00, $08, $00, $88, $00, $01, $4C, $24, $00, $01, $47, $40, $FE, $0A, $01, $4A, $00, $18, $00, $88
 	dc.b	$00, $01, $4A, $6C, $00, $01, $47, $4C, $FE, $48, $01, $4A, $00, $18, $00, $88, $00, $01, $4A, $96, $00, $01, $47, $70, $FE, $18, $01, $4A, $00, $20, $00, $88
@@ -25367,7 +25372,8 @@ loc_14644:
 	dc.b	$00, $01, $4A, $48, $00, $01, $47, $94, $FE, $56, $01, $4A, $00, $20, $00, $88, $00, $01, $4A, $48, $00, $01, $47, $A0, $FE, $3A, $01, $4A, $00, $10, $00, $58
 	dc.b	$00, $01, $4B, $B0, $00, $01, $47, $C4, $FE, $39, $01, $4A, $00, $08, $00, $58, $00, $01, $4A, $48, $00, $01, $47, $FA, $FE, $68, $01, $46, $00, $01, $00, $44
 	dc.b	$00, $01, $4B, $46, $00, $01, $48, $30, $FD, $E8, $01, $46, $00, $01, $00, $4C, $00, $01, $4A, $DC, $00, $01, $48, $4E
-loc_14704:
+;loc_14704
+Race_finish_car_anim_b:
 	dc.w	$0000, $0148, $0008, $FFFF
 	dc.b	$00, $01, $4C, $1C, $00, $00, $00, $00, $00, $00, $01, $48, $00, $08, $FF, $FF, $00, $01, $4C, $24, $00, $00, $00, $00, $FE, $38, $01, $4A, $00, $10, $00, $60
 	dc.b	$00, $01, $4B, $B0, $00, $01, $48, $6C, $00, $18, $00, $01, $4A, $48, $FF, $FF, $00, $01, $4C, $1C, $00, $18, $00, $01, $4A, $48, $FF, $FF, $00, $01, $4C, $24
@@ -25381,7 +25387,8 @@ loc_14704:
 	dc.b	$00, $01, $4B, $E6, $00, $06, $00, $01, $4B, $5A, $00, $0C, $00, $01, $4B, $6E, $0F, $FF, $00, $01, $4B, $82, $00, $08, $00, $01, $4B, $6E, $FF, $FF, $00, $01
 	dc.b	$4B, $9C, $00, $08, $00, $01, $4B, $04, $0F, $FF, $00, $01, $4B, $18, $00, $0C, $00, $01, $4B, $04, $00, $06, $00, $01, $4A, $F0, $FF, $FF, $00, $01, $4B, $32
 	dc.b	$00, $05, $00, $01, $4B, $FA, $FF, $FF, $00, $01, $4C, $08
-loc_14878:
+;loc_14878
+Team_name_display_strings:
 	txt " MADONNA "
 	txt " FIRENZE "
 	txt "MILLIONS "
@@ -25414,7 +25421,8 @@ loc_14878:
 	txt " COMET....  "
 	txt " ORCHIS.... "
 	txt "ZEROFORCE..."
-loc_149C8:
+;loc_149C8
+Result_sprite_anim_data:
 	dc.b	$02, $3E, $00, $00, $0E, $EE, $0A, $AA, $02, $22, $06, $66, $0C, $C0, $06, $60, $06, $EE, $00, $88, $04, $44, $04, $6A, $00, $00, $04, $44, $00, $0E, $00, $CE
 	dc.b	$00, $00, $00, $00, $02, $2E, $00, $00, $02, $22, $06, $66, $00, $80, $00, $60, $00, $AE, $00, $6C, $04, $44, $00, $00, $00, $CE, $0E, $EE, $02, $22, $00, $0E
 	dc.b	$00, $00, $00, $00, $00, $CE, $0A, $66, $00, $00, $04, $44, $0C, $CC, $0E, $EE, $04, $0A, $06, $4C, $00, $00, $04, $66, $06, $88, $02, $22, $06, $66, $06, $8A
@@ -25435,38 +25443,45 @@ loc_149C8:
 	dc.b	$D0, $08, $02, $DB, $FF, $F4, $D8, $07, $02, $DE, $FF, $F4, $F8, $08, $02, $C3, $FF, $F4, $00, $01, $E0, $0A, $02, $E6, $FF, $EC, $F8, $04, $02, $EF, $FF, $F4
 	dc.b	$00, $02, $E0, $08, $02, $F1, $FF, $E0, $E8, $0D, $02, $F4, $FF, $E0, $F8, $08, $02, $FC, $FF, $E8, $00, $00, $F0, $05, $02, $FF, $FF, $F8, $00, $01, $E8, $00
 	dc.b	$03, $03, $FF, $FC, $F0, $09, $03, $04, $FF, $F4
-loc_14C32:
+;loc_14C32
+Result_tiles_a:
 	dc.b	$06, $03, $00, $01, $00, $14, $17, $80, $35, $50, $1E, $00, $D5, $40, $62, $83, $09, $00, $18, $08, $01, $80, $51, $84, $82, $0D, $04, $33, $C8, $6C, $24, $28
 	dc.b	$30, $30, $60, $60, $6C, $24, $2C, $60, $60, $F8, $C5, $83, $01, $3C, $4A, $10, $90, $10, $C1, $B8, $29, $C5, $12, $01, $F4, $80, $86, $0D, $C1, $55, $F6, $78
 	dc.b	$0A, $C3, $06, $E0, $AA, $FB, $3C, $05, $61, $83, $71, $55, $14, $05, $F5, $B8, $0A, $C3, $06, $E2, $AA, $28, $0B, $EB, $70, $15, $86, $0D, $C5, $54, $50, $17
 	dc.b	$D6, $E0, $2B, $0C, $1B, $8A, $A8, $A0, $29, $01, $3C, $7A, $10, $F0, $10, $C1, $B8, $AF, $8F, $03, $08, $78, $08, $24, $40, $C0, $22, $02, $31, $17, $02, $59
 	dc.b	$64, $40, $D1, $23, $8C, $44, $04, $62, $2E, $05, $13, $C8, $A0, $11, $7F, $00
-loc_14CC2:
+;loc_14CC2
+Result_tiles_b:
 	dc.b	$06, $03, $00, $06, $00, $14, $16, $08, $35, $40, $78, $A0, $D4, $8A, $79, $B5, $16, $03, $03, $52, $29, $E6, $D4, $58, $0C, $0D, $4C, $3B, $94, $58, $30, $35
 	dc.b	$30, $EE, $11, $71, $41, $A9, $16, $F3, $EA, $AC, $06, $06, $A4, $5B, $CB, $AA, $B0, $1A, $60, $97, $01, $38, $60, $DC, $14, $E6, $09, $39, $C0, $56, $18, $37
 	dc.b	$05, $57, $D9, $E0, $2B, $0C, $1B, $82, $AB, $D4, $4C, $15, $A2, $2C, $87, $01, $58, $60, $DC, $15, $5E, $A2, $64, $AD, $11, $84, $38, $0A, $C3, $06, $E0, $AA
 	dc.b	$F5, $13, $45, $68, $8D, $21, $C0, $56, $18, $37, $05, $57, $A8, $9B, $2B, $44, $71, $0E, $02, $B0, $C1, $B8, $2A, $B9, $04, $7A, $89, $C4, $51, $EA, $24, $14
 	dc.b	$47, $A1, $83, $70, $5F, $98, $3D, $CC, $94, $88, $E8, $EE, $19, $17, $32, $52, $22, $62, $79, $04, $54, $48, $F8, $91, $12, $C6, $22, $E0, $51, $18, $8B, $81
 	dc.b	$44, $E2, $2E, $05, $11, $88, $BF, $80
-loc_14D6A:
+;loc_14D6A
+Result_tiles_c:
 	dc.b	$07, $03, $00, $06, $00, $14, $02, $90, $A7, $8A, $A8, $59, $18, $0D, $50, $79, $04, $0D, $50, $79, $04, $0D, $50, $79, $C0, $0D, $48, $5B, $C7, $55, $2C, $8C
 	dc.b	$06, $E1, $3C, $A6, $41, $82, $06, $E1, $3C, $A6, $41, $82, $06, $E1, $3C, $A6, $41, $8A, $12, $E0, $13, $86, $06, $E0, $93, $9E, $12, $86, $12, $57, $80, $56
 	dc.b	$18, $1B, $82, $55, $F6, $78, $05, $61, $81, $B8, $25, $5F, $67, $80, $56, $18, $1B, $82, $55, $6A, $23, $04, $28, $85, $95, $A2, $30, $57, $80, $56, $18, $1B
 	dc.b	$82, $55, $6A, $23, $24, $28, $86, $15, $A2, $32, $57, $80, $56, $18, $1B, $82, $55, $6A, $23, $44, $28, $86, $95, $A2, $34, $57, $80, $56, $18, $1B, $82, $55
 	dc.b	$6A, $23, $64, $28, $87, $15, $A2, $36, $8A, $1E, $E0, $1F, $86, $06, $E0, $9F, $8C, $1E, $A2, $38, $E4, $1E, $10, $08, $62, $87, $A8, $8E, $38, $09, $66, $08
 	dc.b	$A8, $88, $FC, $88, $84, $A2, $21, $D0, $EC, $44, $26, $13, $88, $84, $B0, $C4, $54, $47, $5C, $05, $13, $C4, $5C, $05, $11, $84, $5C, $05, $11, $44, $5F, $C0
-loc_14E2A:
+;loc_14E2A
+Result_tiles_d:
 	dc.b	$07, $03, $00, $06, $00, $06, $01, $4A, $84, $54, $6A, $11, $51, $A8, $45, $72, $89, $2B, $95, $1C, $98, $4D, $46, $89, $2B, $95, $1C, $98, $4D, $46, $89, $2B
 	dc.b	$95, $1C, $98, $4D, $5B, $80, $4D, $3E, $09, $39, $E1, $28, $61, $2E, $01, $34, $F8, $A4, $C2, $A9, $F0, $4A, $CF, $0A, $43, $0A, $70, $0A, $A7, $C5, $2A, $15
 	dc.b	$4F, $82, $56, $78, $52, $18, $53, $80, $55, $3E, $29, $50, $AA, $7C, $12, $B3, $C2, $9D, $02, $84, $E0, $A0, $50, $2A, $9F, $14, $A8, $55, $3E, $09, $59, $E1
 	dc.b	$4A, $24, $F8, $21, $4E, $01, $54, $F8, $A5, $42, $A9, $F0, $4A, $C4, $0A, $51, $28, $C2, $0A, $51, $29, $C1, $0A, $71, $2A, $85, $29, $15, $A8, $85, $13, $E2
 	dc.b	$95, $0A, $A7, $C1, $2B, $10, $29, $4C, $B3, $C0, $29, $60, $BB, $44, $28, $9F, $14, $A8, $7D, $3E, $09, $F8, $81, $EA, $66, $6E, $01, $EA, $E6, $A8, $21, $EE
 	dc.b	$01, $F4, $F8, $27, $E4, $08, $B8, $08, $EA, $1C, $B8, $08, $AC, $1D, $E7, $88, $A1, $08, $B8, $0A, $23, $08, $B8, $0A, $25, $08, $BF, $80
-loc_14EE6:
+;loc_14EE6
+Result_tiles_e:
 	dc.b	$08, $00, $00, $80, $00, $00, $50, $24, $41, $48, $F3, $C0, $FE, $00
-loc_14EF4:
+;loc_14EF4
+Result_tiles_f:
 	dc.b	$08, $00, $00, $A6, $00, $00, $54, $64, $C3, $48, $14, $08, $44, $F2, $3F, $80
-loc_14F04:
+;loc_14F04
+Race_finish_car_tiles:
 	dc.b	$09, $03, $00, $D5, $00, $D5, $01, $F7, $D6, $25, $10, $20, $8D, $E1, $16, $05, $20, $5B, $0E, $00, $DE, $0D, $A0, $A0, $2F, $31, $1A, $81, $3A
 	dc.b	$81
 	dc.b	$81, $3B
@@ -25487,7 +25502,8 @@ Result_screen_tile_col_b:
 ;loc_14F82
 Result_screen_tile_col_c:
 	dc.w	$421D, $421E, $421F, $4220, $4221, $4222, $4223, $4224, $4225, $4226, $4227, $4228
-loc_14F9A:
+;loc_14F9A
+Result_screen_tiles_a:
 	dc.b	$81, $4C, $80, $03, $01, $14, $04, $25, $0A, $35, $10, $45, $12, $55, $0F, $65, $14, $73, $00, $81, $04, $06, $16, $34, $28, $EA, $82, $05, $11, $18, $E3, $83
 	dc.b	$06, $30, $84, $06, $2A, $18, $DF, $28, $ED, $85, $05, $0E, $17, $6E, $28, $EF, $86, $07, $6A, $18, $EC, $87, $05, $0B, $15, $13, $28, $E6, $37, $70, $48, $EE
 	dc.b	$77, $6C, $88, $06, $2F, $17, $6B, $28, $E7, $89, $06, $2B, $18, $E8, $28, $F0, $8A, $06, $31, $18, $E9, $8B, $07, $72, $18, $F2, $8C, $06, $32, $8D, $05, $16
@@ -25631,7 +25647,8 @@ loc_14F9A:
 	dc.b	$6A, $8B, $1E, $A7, $2D, $34, $84, $5E, $E5, $46, $8B, $7C, $7F, $70, $A6, $FD, $F2, $BB, $AA, $2C, $EA, $92, $AA, $44, $C7, $F2, $71, $D4, $35, $27, $F9, $80
 	dc.b	$1B, $FA, $A5, $11, $13, $A8, $76, $27, $F5, $80, $09, $FF, $E0, $02, $5F, $D9, $7A, $AF, $BB, $F2, $77, $5E, $13, $91, $FC, $99, $E4, $5D, $AB, $F6, $7A, $9C
 	dc.b	$3F, $E6, $00, $FF, $F0, $FF, $98, $FF, $88, $03, $FF, $20
-loc_16166:
+;loc_16166
+Result_screen_tiles_b:
 	dc.b	$80, $DE, $80, $04, $04, $14, $06, $24, $07, $35, $13, $45, $14, $55, $12, $65, $17, $73, $01, $81, $03, $00, $15, $16, $27, $71, $38, $F7, $82, $06, $36, $18
 	dc.b	$F5, $83, $06, $37, $84, $06, $32, $17, $73, $28, $F6, $85, $05, $15, $17, $72, $28, $F3, $86, $04, $05, $16, $33, $28, $EE, $87, $04, $08, $17, $76, $88, $07
 	dc.b	$74, $18, $F4, $89, $06, $34, $18, $F2, $8A, $05, $18, $8B, $06, $35, $8C, $07, $75, $8D, $08, $EF, $8E, $07, $70, $18, $F1, $8F, $08, $F0, $FF, $FF, $A7, $EB
