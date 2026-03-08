@@ -1757,36 +1757,41 @@ Update_objects_and_build_sprite_buffer:
 	MOVE.l	D0, (A0)+
 	MOVE.w	#$004C, Object_update_counter.w
 	LEA	Main_object_pool.w, A0
-loc_D92:
+;loc_D92
+Update_objects_loop:
 	MOVE.l	(A0), D0
-	BEQ.b	loc_D9A
+	BEQ.b	Update_objects_next
 	MOVEA.l	D0, A1
 	JSR	(A1) ; can jump to loc_A838, configured by loc_8B1C
-loc_D9A:
+;loc_D9A
+Update_objects_next:
 	LEA	$40(A0), A0
 	SUBQ.w	#1, Object_update_counter.w
-	BNE.b	loc_D92 ; loop from A0=$FFFFAD80 in jumps of $40 at most #$004C steps (final iteration at $FFFFC040)
+	BNE.b	Update_objects_loop ; loop from A0=$FFFFAD80 in jumps of $40 at most #$004C steps (final iteration at $FFFFC040)
 	LEA	Sprite_attr_buf.w, A6
 	MOVEQ	#$00000052, D0
 	LEA	$FFFFA7A0.w, A5
 	MOVE.w	Vdp_plane_row_bytes.w, $FFFFFC30.w
 	MOVE.w	Vdp_plane_tile_count.w, D7
-loc_DB8:
+;loc_DB8
+Build_sprites_bg_row:
 	MOVEA.l	A5, A4
 	MOVE.w	(A4)+, D1
-	BEQ.b	loc_E12
+	BEQ.b	Build_sprites_bg_row_next
 	ASR.w	#1, D1
 	SUBQ.w	#1, D1
-loc_DC2:
+;loc_DC2
+Build_sprites_bg_entry:
 	MOVEA.w	(A4)+, A3
 	MOVE.l	$4(A3), D2
-	BEQ.b	loc_E0E
+	BEQ.b	Build_sprites_bg_entry_next
 	MOVEA.l	D2, A2
 	MOVE.w	(A2)+, D2
 	MOVE.w	$16(A3), D3
 	MOVE.w	$18(A3), D4
 	MOVE.w	$C(A3), D6
-loc_DDA:
+;loc_DDA
+Build_sprites_bg_sprite:
 	MOVEQ	#-1, D5
 	MOVE.b	(A2)+, D5
 	ADD.w	D3, D5
@@ -1799,38 +1804,44 @@ loc_DDA:
 	ADD.w	D4, D5
 	MOVE.w	D5, $6(A6)
 	CMP.w	D7, D5
-	BCC.b	loc_E0A
+	BCC.b	Build_sprites_bg_sprite_skip
 	CMPI.w	#$0060, D5
-	BLS.b	loc_E0A
+	BLS.b	Build_sprites_bg_sprite_skip
 	ADDQ.w	#8, A6
 	SUBQ.w	#1, $FFFFFC30.w
-	BEQ.w	loc_E86
-loc_E0A:
-	DBF	D2, loc_DDA
-loc_E0E:
-	DBF	D1, loc_DC2
-loc_E12:
+	BEQ.w	Build_sprites_link_chain
+;loc_E0A
+Build_sprites_bg_sprite_skip:
+	DBF	D2, Build_sprites_bg_sprite
+;loc_E0E
+Build_sprites_bg_entry_next:
+	DBF	D1, Build_sprites_bg_entry
+;loc_E12
+Build_sprites_bg_row_next:
 	LEA	-$10(A5), A5
-	DBF	D0, loc_DB8
+	DBF	D0, Build_sprites_bg_row
 	MOVEQ	#$00000048, D0
 	LEA	$FFFFAC30.w, A5
 	MOVE.w	#$0170, D7
-loc_E24:
+;loc_E24
+Build_sprites_fg_row:
 	MOVEA.l	A5, A4
 	MOVE.w	(A4)+, D1
-	BEQ.b	loc_E7E
+	BEQ.b	Build_sprites_fg_row_next
 	ASR.w	#1, D1
 	SUBQ.w	#1, D1
-loc_E2E:
+;loc_E2E
+Build_sprites_fg_entry:
 	MOVEA.w	(A4)+, A3
 	MOVE.l	$4(A3), D2
-	BEQ.b	loc_E7A
+	BEQ.b	Build_sprites_fg_entry_next
 	MOVEA.l	D2, A2
 	MOVE.w	(A2)+, D2
 	MOVE.w	$16(A3), D3
 	MOVE.w	$18(A3), D4
 	MOVE.w	$C(A3), D6
-loc_E46:
+;loc_E46
+Build_sprites_fg_sprite:
 	MOVEQ	#-1, D5
 	MOVE.b	(A2)+, D5
 	ADD.w	D3, D5
@@ -1843,58 +1854,69 @@ loc_E46:
 	ADD.w	D4, D5
 	MOVE.w	D5, $6(A6)
 	CMP.w	D7, D5
-	BCC.b	loc_E76
+	BCC.b	Build_sprites_fg_sprite_skip
 	CMPI.w	#$0070, D5
-	BLS.b	loc_E76
+	BLS.b	Build_sprites_fg_sprite_skip
 	ADDQ.w	#8, A6
 	SUBQ.w	#1, $FFFFFC30.w
-	BEQ.w	loc_E86
-loc_E76:
-	DBF	D2, loc_E46
-loc_E7A:
-	DBF	D1, loc_E2E
-loc_E7E:
+	BEQ.w	Build_sprites_link_chain
+;loc_E76
+Build_sprites_fg_sprite_skip:
+	DBF	D2, Build_sprites_fg_sprite
+;loc_E7A
+Build_sprites_fg_entry_next:
+	DBF	D1, Build_sprites_fg_entry
+;loc_E7E
+Build_sprites_fg_row_next:
 	LEA	-$10(A5), A5
-	DBF	D0, loc_E24
-loc_E86:
+	DBF	D0, Build_sprites_fg_row
+;loc_E86
+Build_sprites_link_chain:
 	LEA	$FFFFA280.w, A0
 	MOVE.w	#$009B, D0
 	MOVEQ	#0, D1
-loc_E90:
+;loc_E90
+Build_sprites_clear_loop:
 	MOVE.w	D1, (A0)
 	LEA	$10(A0), A0
-	DBF	D0, loc_E90
+	DBF	D0, Build_sprites_clear_loop
 	LEA	Sprite_attr_buf+4.w, A0
 	MOVE.w	Vdp_plane_row_bytes.w, D0
 	SUBQ.w	#1, D0
-loc_EA4:
+;loc_EA4
+Build_sprites_fix_link_loop:
 	CMPI.w	#$FFFE, (A0)
-	BCS.b	loc_EB8
-	BNE.b	loc_EB4
+	BCS.b	Build_sprites_fix_link_next
+	BNE.b	Build_sprites_fix_link_clr
 	MOVE.w	#1, $2(A0)
-	BRA.b	loc_EB8
-loc_EB4:
+	BRA.b	Build_sprites_fix_link_next
+;loc_EB4
+Build_sprites_fix_link_clr:
 	CLR.w	$2(A0)
-loc_EB8:
+;loc_EB8
+Build_sprites_fix_link_next:
 	ADDQ.w	#8, A0
-	DBF	D0, loc_EA4
+	DBF	D0, Build_sprites_fix_link_loop
 	LEA	Sprite_attr_buf+3.w, A0
 	MOVE.w	Vdp_plane_row_bytes.w, D0
 	SUB.w	$FFFFFC30.w, D0
-	BNE.b	loc_ED6
+	BNE.b	Build_sprites_write_links
 	MOVE.w	#$0168, -$3(A0)
 	CLR.b	(A0)
 	RTS
-loc_ED6:
+;loc_ED6
+Build_sprites_write_links:
 	SUBQ.w	#2, D0
-	BMI.b	loc_EE6
+	BMI.b	Build_sprites_write_links_done
 	MOVEQ	#1, D1
-loc_EDC:
+;loc_EDC
+Build_sprites_write_links_loop:
 	MOVE.b	D1, (A0)
 	ADDQ.w	#1, D1
 	ADDQ.w	#8, A0
-	DBF	D0, loc_EDC
-loc_EE6:
+	DBF	D0, Build_sprites_write_links_loop
+;loc_EE6
+Build_sprites_write_links_done:
 	CLR.b	(A0)
 	RTS
 ;loc_EEA:
