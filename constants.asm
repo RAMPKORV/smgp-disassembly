@@ -106,9 +106,20 @@ Race_event_flags  = $FFFF902E ; event bits: bit 5 = ?, bit 6 = ?, bit 7 = ?
 Player_state_flags = $FFFF902F ; bit 0 = ?, bit 1 = ?, bit 2 = ?, bit 3 = ?, bit 4 = ?
 
 ; ============================================================
-; Standings / points data  ($FFFF903x area)
+; Standings / points data  ($FFFF903x-$FFFF907F area)
 ; ============================================================
-Driver_points_by_team = $FFFF9030 ; points table indexed by team
+Driver_points_by_team = $FFFF9030 ; 16-byte table: accumulated championship points indexed by team number (0-15)
+
+Promoted_teams_bitfield = $FFFF9040 ; .w  16-bit bitmask: bit N set = team N has been promoted as partner/rival during championship
+                                     ; read/written in Championship_standings_init and standings rotation routines
+
+; Standings sort buffers (used by Initialize_standings_order_buffer + Rotate_standings_buffer)
+Standings_perf_scores = $FFFF905E   ; 16 bytes: per-driver randomised AI performance scores used for display-order sort
+Standings_team_order  = $FFFF906E   ; 16 bytes: driver indices sorted ascending by Standings_perf_scores (position 0 = last place)
+;                                   ; slot 15 (highest score) = 1st place driver; built by Initialize_standings_order_buffer
+;                                   ; read by Build_minimap_player_row_buffer to display team colour strips in order
+Standings_points_buf  = $FFFF907E   ; 16 bytes: points earned per Standings_team_order slot this race;
+;                                   ; cleared then filled from PointsAwardedPerPlacement by Accumulate_race_points
 
 ; ============================================================
 ; Team / driver selection  ($FFFF904x area)

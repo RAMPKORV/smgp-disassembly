@@ -4,8 +4,8 @@
     "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
     "created": "2026-03-07",
     "phase": 1,
-    "label_progress": "4344+ named labels, 1446 loc_ labels remain. All JSR/BSR-called loc_ routines are named. Recent work (batch 28) named result-screen and championship-podium data tables: Championship_podium_text_jp/en, Team_select_intro_car_tilemap, Result_decomp_list, Result_tilemap_list, Race_finish_car_anim_a/b, Team_name_display_strings, Result_sprite_anim_data, Result_tiles_a..f, Race_finish_car_tiles, Result_screen_tiles_a/b.",
-    "total_commits": 199,
+    "label_progress": "ALL loc_ label definitions eliminated as of batch 41+. 0 loc_ definitions remain (3064 loc_XXXX preservation comments remain as cross-reference anchors). ~1369 new labels added in this final batch covering: HUD asset/tilemap lists, Z80 audio engine internals, sprite frame data cluster, standings/standings sort, per-track data records (all 19 tracks), championship/endgame/podium assets, result screen data, save/load routines, AI placement data, driver standings display assets, audio sequencer, and more.",
+    "total_commits": 200,
     "current_state": [
       "Single monolithic smgp.asm source file (~46.7K normalized lines after blank-line cleanup)",
       "Bit-perfect Windows verification exists via verify.bat",
@@ -93,8 +93,8 @@
           "priority": "high",
           "effort": "very_large",
           "depends_on": "LABEL-001",
-          "status": "in_progress",
-          "progress_notes": "Batches 1-28 complete. 1446 loc_ labels remain (down from 1526). Batch 28 (18 labels): named result-screen and championship-podium data tables in the $143AE-$16166 ROM region: Championship_podium_text_jp, Championship_podium_text_en (JP/EN podium results tilemap text, 2 callers each), Team_select_intro_car_tilemap (1 caller: Draw_intro_car_tilemap), Result_decomp_list, Result_tilemap_list (6- and 8-entry dispatch tables used by Initialize_results_screen), Race_finish_car_anim_a, Race_finish_car_anim_b (podium car animation frame data, used by Race_finish_results_init and Championship_next_race_init), Team_name_display_strings (9-char fixed-width team name strings, 16+16 entries), Result_sprite_anim_data (palette/sprite animation stream for result screen), Result_tiles_a..f (6 compressed tile blocks in Result_decomp_list), Race_finish_car_tiles (podium car tileset, 1 caller), Result_screen_tiles_a, Result_screen_tiles_b (2 compressed tile decompression targets). All dc.l table pointers and LEA callsites updated. Build verified bit-perfect (SHA256 9046c9d6...)."
+          "status": "done",
+          "progress_notes": "COMPLETE. All loc_ label definitions eliminated across 41+ batches. 0 loc_ definitions remain in smgp.asm. Final batch (~1369 new labels): HUD asset/tilemap lists (Race_hud_full_asset_list, Race_hud_tilemap_list, Hud_best/rival/champ_lap_tilemap_list, etc.), Z80 audio engine internals (Audio_engine_seq_*, Audio_engine_ym_*, Audio_engine_psg_*, etc.), sprite frame data cluster ($108D8-$129AE), standings sort buffers, per-track data records for all 19 tracks, championship/endgame/podium assets, result screen data, save/load routines, AI placement data, driver standings display assets. Fixed one incorrect Race_hud_tiles_a->Race_hud_tiles_f substitution in Race_hud_asset_list that broke bit-perfect verification. Build verified bit-perfect SHA256 9046c9d6... Previous: Batches 1-40 complete. Batch 40: Options_screen_cram_data, TeamMessagesBeforeRace, Team_name_strings_table, etc."
         },
         {
           "id": "LABEL-003",

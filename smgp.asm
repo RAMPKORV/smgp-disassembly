@@ -44,11 +44,14 @@
 ;    Vblank_counter so the main loop can sync to 50/60 Hz.
 StartOfRom:
 Vectors:
-loc_0:
+;Initial_sp
+Initial_sp:
 	dc.l	$00FF0100  ; Initial stack pointer value ($00FF0100 = top of 68K work RAM)
-loc_4:
+;Reset_vector
+Reset_vector:
 	dc.l	EntryPoint ; Reset vector: first instruction executed on power-on
-loc_8:
+;Bus_error_vector
+Bus_error_vector:
 	dc.l	ErrorTrap1 ; Bus error        — NOP + infinite branch
 	dc.l	ErrorTrap1 ; Address error    — NOP + infinite branch
 	dc.l	ErrorTrap2 ; Illegal instruction — NOP + infinite branch
@@ -144,7 +147,8 @@ Header:
 	dc.b "Super Monaco GP                                 " ; Domestic (Japan) title (48 bytes)
 	dc.b "Super Monaco GP                                 " ; International title (48 bytes)
 	dc.b "GM     4026-01" ; Product code (GM = game, 4026-01 = part/revision number)
-loc_18E:
+;Rom_checksum
+Rom_checksum:
 	dc.w	$65B5 ; Checksum: sum of all ROM words from $0200 to end of ROM
 	dc.b	'J               ' ; I/O device support ('J' = standard 3-button joystick/joypad)
 	dc.l StartOfRom ; ROM start address ($00000000)
@@ -229,7 +233,7 @@ Return_from_exception:
 ;       count, adjusted for DBF semantics).  Uses a two-level DBF loop to
 ;       handle the >$10000 iteration count: D0.high holds the outer loop count,
 ;       D2.low the inner.  Compare result against the stored checksum word at
-;       loc_18E ($018E in ROM).  If mismatch → jump to bad-ROM handler at
+;       Rom_checksum ($018E in ROM).  If mismatch → jump to bad-ROM handler at
 ;       Bad_rom_handler (fills plane A with tile $000E, then infinite-loops = red/dark
 ;       screen, emulator refuses to boot).
 ;
@@ -360,7 +364,7 @@ EntryPoint_Checksum_loop:
 	ADD.w	(A0)+, D1           ; sum each ROM word into D1 (16-bit, discards carry)
 	DBF	D2, EntryPoint_Checksum_loop         ; inner loop: $10000 words max per outer iteration
 	DBF	D0, EntryPoint_Checksum_loop         ; outer loop: handles ROMs larger than $10000 words
-	CMP.w	loc_18E.w, D1       ; compare checksum with stored value at ROM header $018E
+	CMP.w	Rom_checksum.w, D1       ; compare checksum with stored value at ROM header $018E
 	BNE.w	Bad_rom_handler             ; mismatch → bad ROM handler (blue screen, infinite loop)
 	; ---- First-boot only: init default lap times, detect language, set sentinel ----
 	JSR	Initialize_default_lap_times ; copy ROM default BCD lap records to RAM
@@ -471,22 +475,23 @@ Install_hblank_handler:
 	LEA	Hblank_handler_stub_src(PC), A0
 	LEA	Hblank_handler_stub.w, A1
 	MOVE.w	#$0014, D0
-loc_3FE:
+;loc_3FE
+Install_hblank_handler_Loop:
 	MOVE.w	(A0)+, (A1)+
-	DBF	D0, loc_3FE
+	DBF	D0, Install_hblank_handler_Loop
 	RTS
 ;loc_406:
 Hblank_handler_stub_src:
 	dc.w	$0C39, $00DE, $00C0, $0008, $6608, $33FC, $8AFF, $00C0, $0004, $23FC, $4002, $0010, $00C0, $0004, $33F8, $9D40, $00C0, $0000, $5478, $FFF0, $4E73
 ;loc_430:
 Load_startup_graphics:
-	LEA	loc_570CA, A0
+	LEA	Road_tiles_startup, A0
 	MOVE.l	#$78000003, VDP_control_port
 	JSR	Decompress_to_vdp
-	LEA	loc_58062, A0
+	LEA	Startup_screen_tiles_b, A0
 	LEA	$00FF4940, A4
 	JSR	Decompress_to_ram
-	LEA	loc_3CEB0, A0
+	LEA	Startup_tileset_data, A0
 	LEA	$00FF0100, A4
 	JMP	Decompress_to_ram
 ;loc_46A:
@@ -512,9 +517,10 @@ Load_z80_driver:
 	LEA	Z80_data, A5
 	LEA	$00A00000, A6
 	MOVE.w	#$1C0F, D0
-loc_484:
+;loc_484
+Load_z80_driver_Loop:
 	MOVE.b	(A5)+, (A6)+
-	DBF	D0, loc_484
+	DBF	D0, Load_z80_driver_Loop
 	BSR.b	Reset_z80
 	MOVE.w	#0, Z80_bus_request
 	JMP	Halt_audio_sequence
@@ -531,9 +537,10 @@ Reset_z80:
 ; assertion and the data copy that follows in Load_z80_driver.
 	MOVE.w	#0, Z80_reset
 	MOVEQ	#$0000000D, D0
-loc_4A4:
+;loc_4A4
+Reset_z80_Loop:
 	NOP
-	DBF	D0, loc_4A4
+	DBF	D0, Reset_z80_Loop
 	MOVE.w	#$0100, Z80_reset
 	RTS
 ;Boot_init_data
@@ -1984,7 +1991,7 @@ Update_flag_anim_phase2:
 	MOVEQ	#0, D5
 	JMP	Queue_tilemap_draw
 	MOVE.w	#$0120, $18(A0)
-	MOVE.l	#loc_12820, $4(A0)
+	MOVE.l	#Sprite_frame_data_12820, $4(A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0108, $16(A0)
 	BTST.b	#5, Frame_counter.w
@@ -2005,18 +2012,18 @@ Load_race_hud_graphics:
 ; display to VRAM.
 ;
 ; Steps:
-;  1. Decompress asset list at loc_1E50 (12 entries: road tiles, car sprite,
+;  1. Decompress asset list at Race_hud_full_asset_list (12 entries: road tiles, car sprite,
 ;     HUD background, digit font, minimap tiles, etc.) to their VRAM addresses.
 ;  2. Load the current track's road tileset into VRAM at $5940 and $7000.
 ;  3. Decompress the car machine tilemap to $FFFFEA00 and build the car
 ;     tilemap priority-flip buffers via Build_car_tilemap_buffers.
 ;  4. If Track_index == $0C (Monaco), fill $0100 words of VRAM at $4840
 ;     with $DDDD (special track tile fill).
-;  5. If Warm_up mode: load warm-up HUD tileset from loc_56C6C.
-;     Else if Practice mode: load practice HUD tileset from loc_56B4C.
+;  5. If Warm_up mode: load warm-up HUD tileset from Hud_tiles_warmup.
+;     Else if Practice mode: load practice HUD tileset from Hud_tiles_practice.
 ;     Else if normal arcade race (Track_index_arcade_mode == 0): load normal
-;     HUD tileset from loc_56A1C.  Championship race skips this step.
-	LEA	loc_1E50(PC), A1
+;     HUD tileset from Hud_tiles_normal.  Championship race skips this step.
+	LEA	Race_hud_full_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
 	JSR	Load_track_data_pointer
 	MOVEA.l	(A1)+, A0
@@ -2042,19 +2049,19 @@ Load_hud_gfx_monaco_fill_loop:
 Load_hud_gfx_mode_check:
 	TST.w	Warm_up.w
 	BEQ.b	Load_hud_gfx_practice_check
-	LEA	loc_56C6C, A0
+	LEA	Hud_tiles_warmup, A0
 	BRA.b	Load_hud_gfx_decomp
 ;loc_1118
 Load_hud_gfx_practice_check:
 	TST.w	Practice_mode.w
 	BEQ.b	Load_hud_gfx_arcade_check
-	LEA	loc_56B4C, A0
+	LEA	Hud_tiles_practice, A0
 	BRA.b	Load_hud_gfx_decomp
 ;loc_1126
 Load_hud_gfx_arcade_check:
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	Load_hud_gfx_done
-	LEA	loc_56A1C, A0
+	LEA	Hud_tiles_normal, A0
 ;loc_1132
 Load_hud_gfx_decomp:
 	MOVE.l	#$52400002, VDP_control_port
@@ -2067,11 +2074,11 @@ Initialize_race_hud:
 ; Build the initial race HUD layout in VRAM and the palette buffer.
 ;
 ; Called once at race start (after Load_race_hud_graphics).  Performs:
-;  1. Copy HUD palette entries from stream at loc_21FA to $FFFFE980 palette buffer.
+;  1. Copy HUD palette entries from stream at Race_hud_palette_init_data to $FFFFE980 palette buffer.
 ;  2. Initialize sprite objects via Initialize_hud_objects.
-;  3. Draw HUD tilemap list (background panels, border tiles) from loc_1E9A
+;  3. Draw HUD tilemap list (background panels, border tiles) from Race_hud_tilemap_list
 ;     to plane B using 32-cell row stride.
-;  4. Decompress minimap track background tilemap (loc_5860A) into VRAM at
+;  4. Decompress minimap track background tilemap (Race_minimap_bg_tilemap) into VRAM at
 ;     $62C4 (or $6370 for world championship), 9×10 cells.
 ;  5. Fill 64 words at $4000 and $5F80 with the blank tile index ($073F/$873F)
 ;     to clear the road plane rows before the first frame.
@@ -2085,12 +2092,12 @@ Initialize_race_hud:
 ; 10. Call Render_speed to show initial speed (0 km/h).
 ; 11. Draw shift indicator tilemap (manual/auto/semi, 8 or 6 tiles wide).
 ; 12. If championship, normal race, or practice: draw lap time table / timer.
-	LEA	loc_21FA(PC), A6
+	LEA	Race_hud_palette_init_data(PC), A6
 	JSR	Copy_word_run_from_stream
 	JSR	Initialize_hud_objects(PC)
-	LEA	loc_1E9A(PC), A1
+	LEA	Race_hud_tilemap_list(PC), A1
 	JSR	Draw_tilemap_list_to_vdp_32_cell_rows
-	LEA	loc_5860A, A0
+	LEA	Race_minimap_bg_tilemap, A0
 	MOVE.w	#$8000, D0
 	MOVE.w	#$076F, D1
 	MOVE.l	#$62C40003, D7
@@ -2152,12 +2159,12 @@ Init_hud_minimap_champ:
 	MOVE.l	#$63800003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
-	LEA	loc_584AA, A6
+	LEA	Shift_indicator_tilemap_manual, A6
 	TST.w	Shift_type.w
 	BEQ.b	Init_hud_draw_shift
 	MOVE.l	#$63820003, D7
 	MOVEQ	#5, D6
-	LEA	loc_584CA, A6
+	LEA	Shift_indicator_tilemap_gear1, A6
 	CMPI.w	#1, Shift_type.w
 	BEQ.b	Init_hud_draw_shift
 	MOVEQ	#2, D5
@@ -2174,7 +2181,7 @@ Init_hud_draw_laptime:
 	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
-	LEA	loc_1EB4(PC), A1
+	LEA	Hud_best_lap_tilemap_list(PC), A1
 	JMP	Draw_packed_tilemap_list
 ;loc_1296
 Init_hud_draw_laptime_rival:
@@ -2187,7 +2194,7 @@ Init_hud_draw_laptime_rival:
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
 	JSR	Render_placement_display_body(PC)
-	LEA	loc_1EE2(PC), A1
+	LEA	Hud_rival_lap_tilemap_list(PC), A1
 	JMP	Draw_packed_tilemap_list
 ;loc_12D2
 Init_hud_champ_branch:
@@ -2197,7 +2204,7 @@ Init_hud_champ_branch:
 	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
-	LEA	loc_2002(PC), A1
+	LEA	Hud_champ_warmup_list(PC), A1
 	JSR	Draw_packed_tilemap_list
 	MOVE.w	Title_menu_cursor.w, D0
 	ADD.w	D0, D0
@@ -2222,10 +2229,10 @@ Init_hud_champ_race_check:
 	ADDQ.w	#4, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
-	LEA	loc_2024(PC), A6
+	LEA	Hud_position_rival_labels(PC), A6
 	TST.w	Has_rival_flag.w
 	BNE.b	Init_hud_rival_present
-	LEA	loc_2044(PC), A6
+	LEA	Hud_your_position_label(PC), A6
 ;loc_1366
 Init_hud_rival_present:
 	JSR	Draw_packed_tilemap_to_vdp
@@ -2239,7 +2246,7 @@ Init_hud_player_ordinal:
 	MOVE.w	Player_grid_position.w, D1
 	MOVE.l	#$625C0003, D7
 	JSR	Draw_placement_ordinal_to_vdp
-	LEA	loc_1F08(PC), A1
+	LEA	Hud_champ_lap_tilemap_list(PC), A1
 	JMP	Draw_packed_tilemap_list
 ;loc_139C
 Draw_lap_number_and_times:
@@ -2462,7 +2469,7 @@ Copy_digits_shared_body:
 	MOVE.w	D0, D1
 	ADDQ.w	#1, D1
 	ADD.w	D1, D1
-	LEA	loc_585D2, A2
+	LEA	Hud_lap_number_tile_header, A2
 ;loc_1556
 Copy_digits_loop:
 	MOVE.w	(A1), D3
@@ -2668,7 +2675,7 @@ Flush_dma_crash_check:
 	LEA	$00FF5980, A6
 	SUBQ.w	#1, D0
 	BEQ.b	Flush_dma_crash_style_b
-	LEA	loc_2086(PC), A6
+	LEA	Hud_rpm_crash_tiles(PC), A6
 ;loc_1766
 Flush_dma_crash_style_b:
 	MOVE.l	#$664E0003, D7
@@ -2682,10 +2689,10 @@ Flush_dma_crash_done:
 Update_car_palette_dma:
 	MOVE.w	$FFFFFCA2.w, D0
 	BEQ.b	Update_hud_overtake_check
-	LEA	loc_12BF1, A0
+	LEA	Car_livery_palette_1_dma, A0
 	SUBQ.w	#1, D0
 	BEQ.b	Update_car_palette_send
-	LEA	loc_12BF5, A0
+	LEA	Car_livery_palette_2_dma, A0
 ;loc_178E
 Update_car_palette_send:
 	MOVE.w	#$9700, D7
@@ -2706,7 +2713,7 @@ Update_hud_overtake_check:
 	BEQ.w	Update_overtake_done
 	MOVE.w	Current_lap.w, D0
 	JSR	Wrap_index_mod10(PC)
-	LEA	loc_212A(PC), A0
+	LEA	Rival_placement_palette_cmds(PC), A0
 	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$94009340, D5
 	MOVE.l	#$7F000083, Vdp_dma_setup.w
@@ -2718,7 +2725,7 @@ Update_hud_overtake_check:
 	LEA	$00FF5980, A6
 	CMPI.w	#2, Overtake_event_flag.w
 	BEQ.b	Update_overtake_style_b
-	LEA	loc_2182(PC), A6
+	LEA	Overtake_tile_row(PC), A6
 ;loc_1810
 Update_overtake_style_b:
 	MOVE.l	#$625A0003, D7
@@ -2746,7 +2753,7 @@ Update_placement_anim_check:
 	BEQ.w	Update_placement_anim_b_check
 	MOVE.w	Current_placement.w, D0
 	JSR	Wrap_index_mod10(PC)
-	LEA	loc_212A(PC), A0
+	LEA	Rival_placement_palette_cmds(PC), A0
 	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$94009340, D5
 	MOVE.l	#$52400082, Vdp_dma_setup.w
@@ -2765,11 +2772,11 @@ Update_placement_lap_clamp:
 	ADD.w	D0, D0
 	LEA	Placement_tile_data(PC), A6
 	ADDA.w	D0, A6
-	LEA	loc_2192(PC), A4
-	LEA	loc_2102(PC), A3
+	LEA	Placement_tile_pair_a(PC), A4
+	LEA	Placement_tile_row_b(PC), A3
 	CMPI.w	#1, Placement_anim_state.w
 	BEQ.b	Update_placement_draw
-	LEA	loc_21A2(PC), A4
+	LEA	Placement_tile_pair_b(PC), A4
 	CMPI.w	#3, Placement_anim_state.w
 	BEQ.b	Update_placement_draw
 	LEA	$00FF5980, A6
@@ -2797,7 +2804,7 @@ Update_placement_anim_b_check:
 	BEQ.w	Update_placement_b_done
 	MOVE.w	Player_grid_position.w, D0
 	JSR	Wrap_index_mod10(PC)
-	LEA	loc_2156(PC), A0
+	LEA	Player_placement_palette_cmds(PC), A0
 	JSR	Load_palette_vdp_commands_from_table(PC)
 	MOVE.l	#$94009390, D5
 	MOVE.l	#$53400082, Vdp_dma_setup.w
@@ -2816,10 +2823,10 @@ Update_placement_b_clamp:
 	ADD.w	D0, D0
 	LEA	Placement_tile_data(PC), A6
 	ADDA.w	D0, A6
-	LEA	loc_21B2(PC), A4
+	LEA	Car_select_tile_row_a(PC), A4
 	CMPI.w	#1, Placement_anim_state_b.w
 	BEQ.b	Update_placement_b_draw
-	LEA	loc_21D6(PC), A4
+	LEA	Car_select_tile_row_b(PC), A4
 	CMPI.w	#3, Placement_anim_state_b.w
 	BEQ.b	Update_placement_b_draw
 	LEA	$00FF5980, A6
@@ -3328,12 +3335,13 @@ Copy_ai_scroll_data_to_objects_loop:
 	MOVE.w	$3E(A0), $12(A1)
 	DBF	D0, Copy_ai_scroll_data_to_objects_loop
 	RTS
-loc_1E50:
+;loc_1E50
+Race_hud_full_asset_list:
 	dc.b	$00, $0B ; 12 objects
 	dc.b	$00, $20
-	dc.l	loc_3ECAC
+	dc.l	Race_hud_tiles_f
 	dc.b	$4D, $00
-	dc.l	loc_54020
+	dc.l	Race_hud_car_tiles
 	dc.b	$7A, $00
 	dc.l	Car_sprite_data_53F50
 	dc.b	$7F, $80
@@ -3341,115 +3349,140 @@ loc_1E50:
 	dc.b	$83, $40
 	dc.l	Car_sprite_data_53C28
 	dc.b	$86, $40
-	dc.l	loc_56D3A
+	dc.l	Race_hud_tiles_c
 	dc.b	$90, $A0
-	dc.l	loc_3C8C0
+	dc.l	Race_hud_tiles_g
 	dc.b	$95, $80
-	dc.l	loc_58624
+	dc.l	Race_hud_tiles_a
 	dc.b	$9F, $20
-	dc.l	loc_548D8
+	dc.l	Race_hud_car_tiles_b
 	dc.b	$E7, $00
-	dc.l	loc_56D64
+	dc.l	Race_hud_tiles_d
 	dc.b	$EB, $80
-	dc.l	loc_56DD0
+	dc.l	Race_hud_tiles_e
 	dc.b	$EE, $00
-	dc.l	loc_587B2
-loc_1E9A:
+	dc.l	Race_hud_tiles_b
+;Race_hud_tilemap_list
+Race_hud_tilemap_list:
 	dc.b	$00, $02
 	dc.l	$E0BC0305
-	dc.l	loc_205A
+	dc.l	Hud_panel_tile_row
 	dc.l	$E64E1102
-	dc.l	loc_2086
+	dc.l	Hud_rpm_crash_tiles
 	dc.l	$E6780201
-	dc.l	loc_585C6
-loc_1EB4:
+	dc.l	Hud_gear_tile_strip
+;Hud_best_lap_tilemap_list
+Hud_best_lap_tilemap_list:
 	dc.b	$00, $01
-	dc.l	loc_1EBE
-	dc.l	loc_1ECC
-loc_1EBE:
+	dc.l	Hud_best_lap_label
+	dc.l	Hud_best_lap_timer_tilemap
+;Hud_best_lap_label
+Hud_best_lap_label:
 	dc.b	$E1, $06, $FB, $C7, $C0
 	txt "BEST", $FA
 	txt "LAP", $FF
-loc_1ECC:
+;Hud_best_lap_timer_tilemap
+Hud_best_lap_timer_tilemap:
 	dc.b	$E3, $1A, $FB, $C4, $AC, $06, $1A, $06, $06, $1B, $06, $06, $FE, $07, $FA, $07, $07, $FA, $07, $07, $FF, $00
-loc_1EE2:
+;Hud_rival_lap_tilemap_list
+Hud_rival_lap_tilemap_list:
 	dc.b	$00, $08
-	dc.l	loc_1F22
-	dc.l	loc_1F34
-	dc.l	loc_1F42
-	dc.l	loc_1F56
-	dc.l	loc_1F70
-	dc.l	loc_1FCE
-	dc.l	loc_1FD8
-	dc.l	loc_1FE2
-	dc.l	loc_1FE6
-loc_1F08:
+	dc.l	Hud_lap_digit_row
+	dc.l	Hud_best_lap_top
+	dc.l	Hud_laps_3_label
+	dc.l	Hud_laptime_label
+	dc.l	Hud_3lap_timer_rows
+	dc.l	Hud_lap_label
+	dc.l	Hud_countdown_tilemap
+	dc.l	Hud_countdown_digit
+	dc.l	Hud_3lap_time_grid_a
+;Hud_champ_lap_tilemap_list
+Hud_champ_lap_tilemap_list:
 	dc.b	$00, $05
-	dc.l	loc_1F34
-	dc.l	loc_1F4C
-	dc.l	loc_1F62
-	dc.l	loc_1FA0
-	dc.l	loc_1FCE
-	dc.l	loc_1FF4
-loc_1F22:
+	dc.l	Hud_best_lap_top
+	dc.l	Hud_laps_5_label
+	dc.l	Hud_laptime_label_b
+	dc.l	Hud_5lap_timer_rows
+	dc.l	Hud_lap_label
+	dc.l	Hud_3lap_time_grid_b
+;Hud_lap_digit_row
+Hud_lap_digit_row:
 	dc.b	$E0, $62, $FB, $A7, $70, $00, $01, $02, $03, $04, $FE, $05, $06, $07, $08, $09, $FF, $00
-loc_1F34:
+;Hud_best_lap_top
+Hud_best_lap_top:
 	dc.b	$E0, $C4, $FB, $C7, $C0
 	txt "BEST", $FA
 	txt "LAP", $FF
-loc_1F42:
+;Hud_laps_3_label
+Hud_laps_3_label:
 	dc.b	$E1, $44, $03, $FA
 	txt "LAPS", $FF, $00
-loc_1F4C:
+;Hud_laps_5_label
+Hud_laps_5_label:
 	dc.b	$E1, $44, $05, $FA
 	txt "LAPS", $FF, $00
-loc_1F56:
+;Hud_laptime_label
+Hud_laptime_label:
 	dc.b	$E0, $EC
 	txt "LAP", $FA
 	txt "TIME", $FF, $00
-loc_1F62:
+;Hud_laptime_label_b
+Hud_laptime_label_b:
 	dc.b	$E0, $6C, $FB, $A7, $C0
 	txt "LAP", $FA
 	txt "TIME", $FF
-loc_1F70:
+;Hud_3lap_timer_rows
+Hud_3lap_timer_rows:
 	dc.b	$E0, $6E, $FB, $C4, $AC, $06, $1A, $06, $06, $1B, $06, $06, $FE, $07, $FA, $07, $07, $FA, $07, $07, $FD, $FB, $87, $C0, $00, $26, $00, $00, $27, $00, $00, $FE
 	dc.b	$00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FF
-loc_1FA0:
+;Hud_5lap_timer_rows
+Hud_5lap_timer_rows:
 	dc.b	$E0, $AE, $FB, $87, $C0, $00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FE, $00, $26, $00
 	dc.b	$00, $27, $00, $00, $FE, $00, $26, $00, $00, $27, $00, $00, $FF, $00
-loc_1FCE:
+;Hud_lap_label
+Hud_lap_label:
 	dc.b	$E2, $72, $FB, $A7, $C0
 	txt "LAP", $FF, $00
-loc_1FD8:
+;Hud_countdown_tilemap
+Hud_countdown_tilemap:
 	dc.b	$E2, $F2, $FB, $C7, $C0, $0D, $29, $19, $29, $FF
-loc_1FE2:
+;Hud_countdown_digit
+Hud_countdown_digit:
 	dc.b	$E2, $DE, $30, $FF
-loc_1FE6:
+;Hud_3lap_time_grid_a
+Hud_3lap_time_grid_a:
 	dc.b	$E2, $78, $FB, $C4, $AC, $08, $1C, $0C, $FE, $09, $1D, $0D, $FF, $00
-loc_1FF4:
+;Hud_3lap_time_grid_b
+Hud_3lap_time_grid_b:
 	dc.b	$E2, $78, $FB, $C4, $AC, $08, $1C, $10, $FE, $09, $1D, $11, $FF, $00
-loc_2002:
+;Hud_champ_warmup_list
+Hud_champ_warmup_list:
 	dc.b	$00, $02
-	dc.l	loc_1EBE
-	dc.l	loc_1ECC
-	dc.l	loc_2010
-loc_2010:
+	dc.l	Hud_best_lap_label
+	dc.l	Hud_best_lap_timer_tilemap
+	dc.l	Hud_champ_lap_timer
+;Hud_champ_lap_timer
+Hud_champ_lap_timer:
 	dc.b	$E2, $72, $FB, $A7, $C0
 	txt "LAP"
 	dc.b $FB, $C4, $AC, $08, $1C, $FE, $FA, $FA, $FA, $09, $1D, $FF
-loc_2024:
+;Hud_position_rival_labels
+Hud_position_rival_labels:
 	dc.b	$E2, $44, $FB, $A7, $C0
 	txt "POSITION", $FE, $FA
 	txt "YOU", $2B
 	txt "RIVAL"
 	dc.b	$28, $FA, $FA, $FA, $FA, $FA, $2B, $FF
-loc_2044:
+;Hud_your_position_label
+Hud_your_position_label:
 	dc.b	$E2, $46, $FB, $A7, $C0
 	txt	"YOUR", $FE, $FA
 	txt "POSITION", $28, $FF, $00
-loc_205A:
+;Hud_panel_tile_row
+Hud_panel_tile_row:
 	dc.w	$0000, $0000, $873B, $875C, $875D, $873B, $873B, $875C, $875E, $873B, $873B, $875C, $875E, $873B, $873B, $875C, $875E, $873B, $873B, $875C, $875E, $873B
-loc_2086:
+;Hud_rpm_crash_tiles
+Hud_rpm_crash_tiles:
 	dc.b	$84, $6D, $84, $70, $84, $73, $84, $76, $00, $00, $00, $00, $84, $89, $84, $8C, $84, $8F, $8C, $8F, $8C, $8C, $8C, $89, $00, $00, $00, $00, $8C, $82, $8C, $7F
 	dc.b	$8C, $7C, $8C, $79, $84, $6E, $84, $71, $84, $74, $84, $77, $84, $85, $84, $87, $84, $8A, $84, $8D, $84, $90, $8C, $90, $8C, $8D, $8C, $8A, $8C, $87, $8C, $85
 	dc.b	$8C, $83, $8C, $80, $8C, $7D, $8C, $7A, $84, $6F, $84, $72, $84, $75, $84, $78, $84, $86, $84, $88, $84, $8B, $84, $8E, $84, $91, $8C, $91, $8C, $8E, $8C, $8B
@@ -3457,9 +3490,11 @@ loc_2086:
 ;loc_20F2
 Placement_tile_data:
 	dc.w	$A7DC, $A7DD, $A7D7, $A7CD, $A7DB, $A7CD, $A7DD, $A7D1
-loc_2102:
+;Placement_tile_row_b
+Placement_tile_row_b:
 	dc.w	$A7D9, $A7D8, $A7DC, $A7D2, $A7DD, $A7D2, $A7D8, $A7D7, $0000, $0000, $0000, $0000, $0000, $0000, $A7D5, $A7D2, $A7D6, $A7D2, $A7DD, $A7E8
-loc_212A:
+;Rival_placement_palette_cmds
+Rival_placement_palette_cmds:
 	dc.b	$00
 	dc.b	$7F
 	dc.b	$A4
@@ -3504,7 +3539,8 @@ loc_212A:
 	dc.b	$7F
 	dc.b	$AC
 	dc.b	$C0
-loc_2156:
+;Player_placement_palette_cmds
+Player_placement_palette_cmds:
 	dc.b	$00, $7F, $A7, $20, $00
 	dc.b	$7F
 	dc.b	$A7
@@ -3533,17 +3569,23 @@ loc_2156:
 	dc.b	$7F
 	dc.b	$AC
 	dc.b	$C0
-loc_2182:
+;Overtake_tile_row
+Overtake_tile_row:
 	dc.w	$87F8, $87F9, $87FC, $87FD, $87FA, $87FB, $87FE, $87FF
-loc_2192:
+;Placement_tile_pair_a
+Placement_tile_pair_a:
 	dc.w	$8492, $8493, $8496, $8497, $8494, $8495, $8498, $8499
-loc_21A2:
+;Placement_tile_pair_b
+Placement_tile_pair_b:
 	dc.w	$A492, $A493, $A496, $A497, $A494, $A495, $A498, $A499
-loc_21B2:
+;Car_select_tile_row_a
+Car_select_tile_row_a:
 	dc.w	$0000, $849A, $849B, $84A3, $84A4, $84A5, $0000, $849D, $849E, $84A6, $84A7, $84A8, $0000, $84A0, $84A1, $84A9, $84AA, $84AB
-loc_21D6:
+;Car_select_tile_row_b
+Car_select_tile_row_b:
 	dc.w	$0000, $A49A, $A49B, $A4A3, $A4A4, $A4A5, $0000, $A49D, $A49E, $A4A6, $A4A7, $A4A8, $0000, $A4A0, $A4A1, $A4A9, $A4AA, $A4AB
-loc_21FA:
+;Race_hud_palette_init_data
+Race_hud_palette_init_data:
 	dc.b	$02, $29, $00, $00, $0E, $EE, $0A, $AA, $02, $22, $06, $66, $04, $4E, $00, $08, $0E, $EE, $08, $88, $0C, $00, $02, $2E, $00, $00, $04, $44, $00, $0E, $00, $CE
 	dc.b	$00, $00, $00, $00, $02, $2E, $0E, $EE, $02, $22, $06, $66, $00, $0E, $00, $08, $00, $EE, $00, $88, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $AE, $0E, $EE, $02, $22, $06, $66, $02, $A0, $00, $40, $02, $A0, $00, $40, $04, $44
@@ -3691,7 +3733,7 @@ Attract_screen_logo_Upload:
 	RTS
 ;loc_237C
 Attract_screen_logo_Load_bg:
-	LEA	loc_59020, A0
+	LEA	Attract_screen_logo_tilemap, A0
 	MOVE.w	#$0384, D0
 	MOVE.l	#$6C200003, D7
 	MOVEQ	#8, D6
@@ -3711,18 +3753,18 @@ Race_preview_screen_init:
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
 	MOVE.l	#$40000000, VDP_control_port
-	LEA	loc_59034, A0
+	LEA	Attract_screen_logo_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_58EBC, A0
+	LEA	Attract_screen_bg_tilemap, A0
 	MOVE.w	#$4000, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_58F86, A0
+	LEA	Attract_screen_overlay_tilemap, A0
 	MOVE.w	#$2384, D0
 	JSR	Decompress_tilemap_to_buffer
-	LEA	loc_58E5A, A6
+	LEA	Attract_screen_palette_data, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$0095, Screen_timer.w
 	MOVEQ	#0, D0
@@ -3877,7 +3919,7 @@ Startup_screen_init:
 	MOVE.w	#$8B03, VDP_control_port
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
-	LEA	loc_542B8, A0
+	LEA	Startup_screen_tiles, A0
 	LEA	Tilemap_work_buf.w, A4
 	JSR	Decompress_to_ram
 	MOVE.w	#$0187, D2
@@ -4270,31 +4312,31 @@ Title_menu_Init_screen:
 	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$40000000, VDP_control_port
-	LEA	loc_5EA52, A0
+	LEA	Title_screen_tiles_a, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$41A00001, VDP_control_port
-	LEA	loc_60826, A0
+	LEA	Title_screen_tiles_c, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_5E862, A0
+	LEA	Title_screen_main_tilemap, A0
 	MOVE.w	#$6000, D0
 	MOVE.l	#$40000003, D7
 	MOVE.w	#$0027, D6
 	MOVE.w	#$001B, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_5E97E, A0
+	LEA	Title_screen_overlay_tilemap, A0
 	MOVE.w	#$E000, D0
 	MOVE.l	#$428E0003, D7
 	MOVE.w	#$000F, D6
 	MOVE.w	#$0014, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_5E790, A6
+	LEA	Title_screen_palette_data, A6
 	JSR	Copy_word_run_from_stream
 	CMPI.w	#2, Title_menu_state.w
 	BNE.w	Title_menu_Track_preview_done
 	MOVE.l	#$59800001, VDP_control_port
-	LEA	loc_3216A, A0
+	LEA	Title_sign_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_32120, A0
+	LEA	Title_sign_tilemap, A0
 	MOVE.w	#$E2CC, D0
 	MOVE.l	#$43100003, D7
 	MOVE.w	#9, D6
@@ -4305,13 +4347,13 @@ Title_menu_Init_screen:
 	MOVE.w	#$000A, D6
 	MOVE.w	#3, D5
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
-	LEA	loc_308BE, A1
+	LEA	Round_sign_mapping_table, A1
 	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.l	#$4E600001, VDP_control_port
 	JSR	Decompress_to_vdp
-	LEA	loc_3087E, A1
+	LEA	Round_sign_tile_table, A1
 	MOVE.w	Track_index.w, D0
 	LSL.w	#2, D0
 	MOVEA.l	(A1,D0.w), A0
@@ -4325,7 +4367,7 @@ Title_menu_Init_screen:
 	MOVE.w	#$000D, D6
 	MOVE.w	#8, D5
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
-	LEA	loc_5E810, A6
+	LEA	Title_screen_preview_palette_data, A6
 	JSR	Copy_word_run_from_stream
 ;loc_2ACE
 Title_menu_Track_preview_done:
@@ -4335,7 +4377,7 @@ Title_menu_Track_preview_done:
 	MOVE.l	#$00001032, $FFFFBD40.w
 ;loc_2AE6
 Title_menu_Cursor_skip:
-	LEA	loc_5E830, A0
+	LEA	Title_screen_bg_tilemap, A0
 	MOVE.w	#$C000, D0
 	MOVE.l	#$60AE0003, D7
 	MOVE.w	#$000C, D6
@@ -4452,7 +4494,7 @@ Title_anim_car_pal_f:
 Title_anim_car_obj_data:
 	dc.b	$00, $07, $E0, $0F, $02, $0D, $FF, $B0, $E0, $0F, $02, $1D, $FF, $D0, $E0, $0F, $02, $2D, $FF, $F0, $E0, $0F, $02, $3D, $00, $10, $E0, $0F, $02, $4D, $00, $30
 	dc.b	$D0, $0D, $02, $5D, $FF, $E8, $D0, $0D, $02, $65, $00, $08, $D0, $09, $02, $6D, $00, $38
-	MOVE.l	#loc_127D0, $4(A0)
+	MOVE.l	#Sprite_frame_data_127D0, $4(A0)
 	MOVE.w	#$0148, $16(A0)
 	MOVE.w	#$0130, $18(A0)
 	MOVE.w	#$00A1, $E(A0)
@@ -4959,14 +5001,14 @@ Options_screen_init_Body:
 	MOVE.w	#$9011, VDP_control_port
 	LEA	Options_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_621CC, A0
+	LEA	Options_bg_tilemap, A0
 	MOVE.w	#$6580, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.w	#$2000, D0
-	LEA	loc_60E8E, A0
+	LEA	Options_main_tilemap, A0
 	JSR	Decompress_tilemap_to_buffer
 	LEA	Options_tilemap_list(PC), A1
 	JSR	Draw_tilemap_list_to_vdp_64_cell_rows
@@ -4978,7 +5020,7 @@ Options_screen_init_Body:
 Options_screen_init_Champ_layout:
 	JSR	Draw_tilemap_list_to_vdp_64_cell_rows
 	MOVE.w	#$2000, D0
-	LEA	loc_60DC6, A0
+	LEA	Options_shift_tilemap_a, A0
 	JSR	Decompress_tilemap_to_buffer
 	MOVE.w	Control_type.w, D0
 	LSL.w	#2, D0
@@ -4988,7 +5030,7 @@ Options_screen_init_Champ_layout:
 	MOVE.l	#$66860003, D7
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
-	LEA	loc_584AA, A6
+	LEA	Shift_indicator_tilemap_manual, A6
 	MOVE.w	#$FD89, D1
 	MOVE.l	#$00800000, D3
 	JSR	Write_tilemap_rows_to_vdp
@@ -5002,7 +5044,7 @@ Options_screen_init_Champ_layout:
 	MOVEA.l	(A7)+, A6
 	JSR	Write_tilemap_rows_to_vdp
 	MOVEQ	#0, D0
-	LEA	loc_60E4E, A0
+	LEA	Options_shift_tilemap_b, A0
 	JSR	Decompress_tilemap_to_buffer
 	LEA	Options_palette_data, A6
 	JSR	Copy_word_run_from_stream
@@ -5028,13 +5070,13 @@ Options_palette_data:
 Options_asset_list:
 	dc.b	$00, $03
 	dc.b	$B0, $00
-	dc.l	loc_62098
+	dc.l	Options_bg_tiles
 	dc.b	$00, $00
-	dc.l	loc_60EDC
+	dc.l	Options_tiles
 	dc.b	$95, $80
-	dc.l	loc_58624
+	dc.l	Race_hud_tiles_a
 	dc.b	$9F, $20
-	dc.l	loc_587B2
+	dc.l	Race_hud_tiles_b
 ;loc_34C6
 Options_tilemap_list:
 	dc.b	$00, $05
@@ -5076,7 +5118,7 @@ Options_shift_display_table:
 	dc.l	Options_shift_display_7speed
 ;loc_353C
 Options_shift_display_man:
-	dc.l	loc_2E784
+	dc.l	Options_shift_display_tiles
 	dc.l	$0908FFFF
 	dc.l	$EA00E79E
 	dc.l	$0908FFFF
@@ -5093,7 +5135,7 @@ Options_shift_display_4speed:
 	dc.l	$FFFFEEEC
 ;loc_3570
 Options_shift_display_7speed:
-	dc.l	loc_2E784
+	dc.l	Options_shift_display_tiles
 	dc.l	$0908FFFF
 	dc.l	$EAB4E79E
 	dc.l	$0908FFFF
@@ -5115,7 +5157,7 @@ Options_cursor_x_positions:
 ;loc_35B6 - Options_cursor_obj_init (inline, falls through after dc.w table)
 Options_cursor_obj_init:
 	MOVE.l	#Options_cursor_obj_frame, (A0)
-	MOVE.l	#loc_12912, $4(A0)
+	MOVE.l	#Sprite_frame_data_12912, $4(A0)
 	MOVE.w	#$0140, $16(A0)
 	MOVE.w	Shift_type.w, D0
 	ADD.w	D0, D0
@@ -6097,15 +6139,15 @@ Pause_tilemap_b:
 Race_hud_asset_list:
 	dc.b	$00, $04
 	dc.b	$00, $20
-	dc.l	loc_3ECAC
+	dc.l	Race_hud_tiles_f
 	dc.b	$4D, $00
-	dc.l	loc_54020
+	dc.l	Race_hud_car_tiles
 	dc.b	$9F, $20
-	dc.l	loc_548D8
+	dc.l	Race_hud_car_tiles_b
 	dc.b	$E7, $00
-	dc.l	loc_56D64
+	dc.l	Race_hud_tiles_d
 	dc.b	$EB, $80
-	dc.l	loc_56DD0
+	dc.l	Race_hud_tiles_e
 ;loc_4126
 Rival_grid_base_table:
 	dc.b	$00, $00, $00, $01, $01, $02, $02, $02, $04, $04, $06, $06, $06, $09, $09, $09
@@ -6189,9 +6231,9 @@ Race_finish_results_init:
 	JSR	Initialize_h40_vdp_state
 	MOVE.w	Current_lap.w, $FFFFFF3C.w
 	MOVE.l	#$70000002, VDP_control_port
-	LEA	loc_622A0, A0
+	LEA	Race_results_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_62310, A0
+	LEA	Race_results_tilemap, A0
 	MOVE.w	#$E580, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
@@ -6365,19 +6407,19 @@ Pre_race_display_frame_Rts:
 	MOVE.w	#$9209, VDP_control_port
 	LEA	Pre_race_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_62310, A0
+	LEA	Race_results_tilemap, A0
 	MOVE.w	#$E580, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000001B, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_58058, A0
+	LEA	Championship_screen_tilemap, A0
 	MOVE.w	#$E001, D0
 	MOVE.l	#$63140003, D7
 	MOVEQ	#$00000014, D6
 	MOVEQ	#1, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_6250E, A0
+	LEA	Championship_final_tilemap, A0
 	MOVE.w	#$8080, D0
 	MOVE.l	#$658A0003, D7
 	MOVEQ	#$0000001E, D6
@@ -6428,13 +6470,13 @@ Pre_race_intro_palette_strip_a:
 Pre_race_asset_list:
 	dc.b	$00, $03
 	dc.b	$B0, $00
-	dc.l	loc_622A0
+	dc.l	Race_results_tiles
 	dc.b	$00, $20
-	dc.l	loc_57DDE
+	dc.l	Pre_race_screen_tiles
 	dc.b	$10, $00
-	dc.l	loc_6263A
+	dc.l	Championship_final_tiles
 	dc.b	$86, $40
-	dc.l	loc_56D3A
+	dc.l	Race_hud_tiles_c
 ;loc_4694
 Pre_race_text_ptr_table:
 	dc.l	Pre_race_text_results_header
@@ -6688,7 +6730,7 @@ Pre_race_screen_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
-	LEA	loc_57DCC, A0
+	LEA	Pre_race_screen_tilemap, A0
 	MOVE.w	#$A030, D0
 	MOVE.l	#$608E0003, D7
 	MOVEQ	#$00000019, D6
@@ -6730,7 +6772,7 @@ Pre_race_screen_init_Clamp_row:
 
 ;loc_4A2C
 Pre_race_init_road_vdp:
-	LEA	loc_570CA, A0
+	LEA	Road_tiles_startup, A0
 	LEA	Curve_data, A4
 	JSR	Decompress_to_ram
 	MOVEQ	#0, D1
@@ -6897,7 +6939,7 @@ Pre_race_screen_championship_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
-	LEA	loc_57DCC, A0
+	LEA	Pre_race_screen_tilemap, A0
 	MOVE.w	#$A030, D0
 	MOVE.l	#$610E0003, D7
 	MOVEQ	#$00000019, D6
@@ -6944,7 +6986,7 @@ Initialize_race_track_scroll_tables_Loop:
 	JSR	Copy_word_run_from_stream
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$6194, D0
-	LEA	loc_2EF7A, A0
+	LEA	Car_select_tilemap, A0
 	JMP	Decompress_tilemap_to_buffer
 ;Update_car_selection_screen
 Update_car_selection_screen:
@@ -7290,7 +7332,7 @@ Car_intro_object_Spin_Body:
 	MOVE.w	(A1,D1.w), $18(A0)
 	LEA	Ai_screen_x_to_angle_table, A1
 	MOVE.b	(A1,D0.w), D0
-	LEA	loc_2F068, A1
+	LEA	Car_intro_sprite_frame_table, A1
 	MOVE.l	(A1,D0.w), $4(A0)
 	JMP	Queue_object_for_sprite_buffer
 ;loc_4FCE
@@ -7542,15 +7584,15 @@ Lineup_header_tilemap:
 Championship_driver_asset_list:
 	dc.b	$00, $05
 	dc.b	$32, $80
-	dc.l	loc_2BE36
+	dc.l	Championship_driver_tiles_2
 	dc.b	$20, $00
-	dc.l	loc_2B4D4
+	dc.l	Championship_driver_tiles
 	dc.b	$00, $20
-	dc.l	loc_58C0C
+	dc.l	Championship_driver_screen_tiles
 	dc.b	$06, $00
-	dc.l	loc_57C16
+	dc.l	Championship_screen_tiles
 	dc.b	$95, $80
-	dc.l	loc_58624
+	dc.l	Race_hud_tiles_a
 	dc.b	$0B, $E0
 	dc.l	$00056E36
 ;loc_52A8
@@ -7720,7 +7762,7 @@ Championship_start_init:
 Championship_start_init_Clear_loop:
 	MOVE.l	#0, VDP_data_port
 	DBF	D0, Championship_start_init_Clear_loop
-	LEA	loc_32660, A0
+	LEA	Championship_start_tilemap, A0
 	MOVE.w	#$0082, D0
 	MOVE.l	#$40000003, D7
 	MOVE.w	#$001F, D6
@@ -7731,16 +7773,16 @@ Championship_start_init_Clear_loop:
 	MOVE.w	#$001F, D6
 	MOVE.w	#9, D5
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
-	LEA	loc_3260C, A0
+	LEA	Championship_start_curve_data, A0
 	LEA	Curve_data, A4
 	JSR	Decompress_to_ram
 	MOVE.l	#$46400000, VDP_control_port
 	LEA	Race_hud_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$50400000, VDP_control_port
-	LEA	loc_3275A, A0
+	LEA	Championship_start_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_325D8, A6
+	LEA	Championship_start_text_tilemap, A6
 	JSR	Draw_packed_tilemap_to_vdp
 	BSR.w	Load_track_preview_data
 	MOVE.w	#$E486, D7
@@ -7759,7 +7801,7 @@ Championship_start_init_Clear_loop:
 Championship_start_init_Fill_loop:
 	MOVE.l	#$FFFFFFFF, VDP_data_port
 	DBF	D0, Championship_start_init_Fill_loop
-	LEA	loc_325E6, A6
+	LEA	Championship_start_palette_stream, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$0014, Screen_timer.w
 	MOVE.w	#7, Screen_scroll.w
@@ -7861,7 +7903,7 @@ Load_track_preview_data:
 	MOVE.w	#8, D5
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	CLR.l	D0
-	LEA	loc_32228, A6
+	LEA	Track_preview_tilemap_data, A6
 	MOVE.w	Track_preview_index.w, D0
 	MULS.w	#$003B, D0
 	ADDA.l	D0, A6
@@ -8014,7 +8056,7 @@ Update_shift_Gear_changed:
 Update_shift_Display_gear:
 	MOVE.w	Player_shift.w, D0
 	LSL.w	#2, D0
-	LEA	loc_5848E, A1
+	LEA	Shift_indicator_tilemap_table, A1
 	MOVEA.l	(A1,D0.w), A6
 	JSR	Queue_tilemap_draw
 ;loc_5AAE
@@ -8919,7 +8961,7 @@ Initialize_ui_tilemap_buffers:
 ; Steps:
 ;  1. Fill $FFFFD900 with $0700 words of $04F9 (blank tile pattern) to clear
 ;     the UI scratch area.
-;  2. Decompress the packed UI tilemap from ROM (loc_54724) into the scratch
+;  2. Decompress the packed UI tilemap from ROM (Ui_tilemap_source) into the scratch
 ;     area via Decompress_tilemap_to_buffer.
 ;  3. Copy multiple 2D rectangular sub-regions from the decompressed tilemap
 ;     into their permanent layout RAM slots using Copy_2d_rect_words.
@@ -8935,7 +8977,7 @@ Initialize_ui_tilemap_buffers:
 Initialize_ui_tilemap_buffers_Clear_loop:
 	MOVE.w	D0, (A0)+
 	DBF	D1, Initialize_ui_tilemap_buffers_Clear_loop
-	LEA	loc_54724, A0
+	LEA	Ui_tilemap_source, A0
 	JSR	Decompress_tilemap_to_buffer
 	MOVEQ	#7, D6
 	MOVEQ	#4, D5
@@ -11115,7 +11157,7 @@ Crash_car_frame_2:
 Crash_car_frame_3:
 	dc.w	$0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $A7DD, $A7D8, $0000, $A7DB, $A7D2, $A7DF, $A7CA, $A7D5, $0000, $0000
 	MOVE.l	#Crash_obj_phase1, (A0)
-	MOVE.l	#loc_129AE, $4(A0)
+	MOVE.l	#Sprite_frame_data_129AE, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$0178, $16(A0)
 	MOVE.w	#$0130, $18(A0)
@@ -11139,7 +11181,7 @@ Crash_obj_phase1_sprite:
 	JSR	Queue_object_for_sprite_buffer
 	BRA.w	Update_gap_to_rival_Update_pos
 	MOVE.l	#Crash_obj_phase2, (A0)
-	MOVE.l	#loc_129AE, $4(A0)
+	MOVE.l	#Sprite_frame_data_129AE, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$0160, $16(A0)
 	MOVE.w	#$0100, $18(A0)
@@ -11206,7 +11248,7 @@ Crash_obj_Retire:
 	MOVE.l	#Retire_car_obj_init_high, D1
 	MOVE.l	#Slide_car_obj_init_from_top, D3
 Crash_obj_Retire_palette:
-	LEA	loc_12A3D, A1
+	LEA	Crash_retire_palette_bytes, A1
 	JSR	Write_3_palette_vdp_bytes(PC)
 	JSR	Alloc_aux_object_slot
 	BCS.b	Crash_obj_Retire_done
@@ -11372,7 +11414,7 @@ Update_gap_to_rival_Palette_done:
 	ADD.w	D2, D1
 	MOVE.w	$A(A0), D0
 	ADD.w	D1, D0
-	LEA	loc_3CE09, A1
+	LEA	Crash_collision_palette_table, A1
 	ADDA.w	D0, A1
 	LEA	Collision_palette_buf.w, A2
 	JSR	Write_3_palette_vdp_bytes(PC)
@@ -11387,7 +11429,7 @@ Crash_obj_sync_player:
 	LEA	Player_obj.w, A3
 	MOVE.w	$16(A3), $16(A0)
 	MOVE.w	$18(A3), $18(A0)
-	LEA	loc_3CD45, A1
+	LEA	Crash_sync_gauge_palette_table, A1
 	LEA	$FFFFFCD8.w, A2
 	MOVE.w	$28(A3), D0
 	BRA.b	Crash_obj_gauge_write
@@ -11410,7 +11452,7 @@ Crash_obj_rpm_div50:             ; else
 	DIVS.w	#50, D0              ; ...
 	SUBQ.w	#7, D0               ; D0 = D0/50-7
 Crash_obj_gauge_apply:
-	LEA	loc_3C9FB, A1
+	LEA	Crash_rpm_gauge_palette_table, A1
 	LEA	$FFFFFCD2.w, A2
 Crash_obj_gauge_write:
 	MOVE.w	$28(A0), D1
@@ -11448,7 +11490,7 @@ Retire_car_obj_init_high:
 ;loc_7E38
 Retire_car_obj_init_common:
 	MOVE.l	#Retire_car_obj_anim, (A0)
-	MOVE.l	#loc_12652, $4(A0)
+	MOVE.l	#Sprite_frame_data_12652, $4(A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0170, $16(A0)
 	MOVE.w	#$000F, $30(A0)
@@ -11485,7 +11527,7 @@ Retire_car_obj_flash:
 	ANDI.w	#7, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_12A41, A1
+	LEA	Retire_flash_palette_table, A1
 	ADDA.w	D0, A1
 	LEA	$FFFFFCEA.w, A2
 	JSR	Write_3_palette_vdp_bytes(PC)
@@ -11710,7 +11752,7 @@ Compute_curve_speed_factor_Lookup:
 	ADD.w	D3, D3
 	LSL.w	#5, D1
 	ADD.w	D3, D1
-	LEA	loc_6F340, A1
+	LEA	Curve_speed_factor_table, A1
 	MOVE.w	(A1,D1.w), D0
 ;loc_8140
 Compute_curve_speed_factor_Rts:
@@ -13885,7 +13927,7 @@ Compute_ai_screen_x:
 	MOVE.w	(A1,D1.w), D1
 	ADDI.w	#$0180, D1
 	ADD.w	D3, D3
-	LEA	loc_6EB1C, A1
+	LEA	Ai_screen_x_scale_table, A1
 	MOVE.w	(A1,D3.w), D2
 	MOVE.w	$12(A0), D3
 	SMI	D6
@@ -13982,7 +14024,7 @@ Compute_rival_screen_x:
 	MOVE.w	(A1,D0.w), D1
 	ADDI.w	#$0180, D1
 	ADD.w	D3, D3
-	LEA	loc_6EB1C, A1
+	LEA	Ai_screen_x_scale_table, A1
 	MOVE.w	(A1,D3.w), D2
 	MOVE.w	$12(A0), D3
 	MOVE.w	D3, D5
@@ -14467,8 +14509,7 @@ Ai_screen_x_to_angle_table:
 	dc.b	$08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $08, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $0C, $10, $10, $10
 	dc.b	$10, $10, $10, $10, $10, $10, $10, $10, $10, $10, $14, $14, $14, $14, $14, $14, $14, $14, $14, $18, $18, $18, $18, $18, $18, $18, $1C, $1C, $1C, $1C, $1C, $20
 	dc.b	$20, $20
-loc_9CCA:
-;Nearby_rival_car_obj_done: ; JMP Clear_object_slot — terminates this ghost car object
+;loc_9CCA
 Nearby_rival_car_obj_done:
 	JMP	Clear_object_slot
 ;Nearby_rival_car_obj_init_fast: ; init variant 1 — faster ghost, $2C=1, $2E=6
@@ -14630,7 +14671,7 @@ Race_grid_obj_Moving:
 	MOVE.w	#1, $36(A0)
 ;loc_9E86
 Race_grid_obj_Draw:
-	LEA	loc_9EA4-1(PC), A1
+	LEA	Race_grid_obj_palette_word-1(PC), A1
 	LEA	$FFFFFCF6.w, A2
 	JSR	Write_3_palette_vdp_bytes
 	TST.w	$22(A0)
@@ -14641,7 +14682,7 @@ Race_grid_obj_Return:
 	RTS
 	dc.w	$007F
 ;loc_9EA4 — palette color word written by Write_3_palette_vdp_bytes above
-loc_9EA4:
+Race_grid_obj_palette_word:
 	dc.w	$AD80
 ;Wrap_ai_track_position
 Wrap_ai_track_position:
@@ -14774,7 +14815,7 @@ Ai_car_obj_Move:
 	JSR	Wrap_ai_track_position(PC)
 	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
-	BEQ.w	loc_A066
+	BEQ.w	Ai_car_obj_Move_Rts
 	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BCS.b	Ai_car_obj_Move_no_decr
@@ -14810,7 +14851,7 @@ Ai_car_obj_Oscillate:
 	JSR	Wrap_ai_track_position(PC)
 	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
-	BEQ.b	loc_A066
+	BEQ.b	Ai_car_obj_Move_Rts
 	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
@@ -14826,7 +14867,8 @@ Ai_car_obj_Oscillate:
 	MOVEA.l	(A1,D1.w), A1
 	MOVEA.l	$1E(A0), A2
 	JSR	Copy_sprite_frame_data(PC)
-loc_A066:
+;loc_A066
+Ai_car_obj_Move_Rts:
 	RTS
 ;Copy_sprite_frame_data
 Copy_sprite_frame_data:
@@ -14946,7 +14988,7 @@ Flagkeeper_car_obj_guard:
 ;loc_A17C
 Flagkeeper_car_obj_init:
 	MOVE.l	#Flagkeeper_car_obj, (A0)
-	MOVE.l	#loc_108FC, $8(A0)
+	MOVE.l	#Flagkeeper_car_sprite_frames, $8(A0)
 	MOVE.w	#4, $1A(A0)
 	MOVE.b	#1, $24(A0)
 	LEA	Palette_buffer.w, A1
@@ -15279,7 +15321,7 @@ Queue_gear_diagram_draw:
 Queue_gear_diagram_draw_Dispatch:
 	JMP	Queue_tilemap_draw
 	MOVE.l	#Countdown_lights_Wait, (A0)
-	MOVE.l	#loc_126EC, $4(A0)
+	MOVE.l	#Sprite_frame_data_126EC, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$00FD, $16(A0)
 	MOVE.w	#$0084, $18(A0)
@@ -15317,7 +15359,7 @@ Queue_countdown_lights:
 	JMP	Queue_object_for_sprite_buffer
 ;loc_A76A
 Countdown_lights_Tick_frame:
-	MOVE.l	#loc_12730, $4(A0)
+	MOVE.l	#Sprite_frame_data_12730, $4(A0)
 	MOVE.w	$2C(A0), D0
 	CMPI.w	#4, D0
 	BCS.b	Countdown_lights_Tick_clamp
@@ -15336,7 +15378,7 @@ Countdown_lights_Slide_out:
 	BRA.b	Queue_countdown_lights
 ;loc_A79C
 Countdown_lights_Slide_frame:
-	MOVE.l	#loc_12774, $4(A0)
+	MOVE.l	#Sprite_frame_data_12774, $4(A0)
 	MOVE.w	$2C(A0), D0
 	CMPI.w	#4, D0
 	BCS.b	Countdown_lights_Slide_clamp
@@ -15356,7 +15398,7 @@ Countdown_lights_Finish_check:
 	JMP	Clear_object_slot
 ;loc_A7D2
 Countdown_lights_Flash:
-	MOVE.l	#loc_126EC, $4(A0)
+	MOVE.l	#Sprite_frame_data_126EC, $4(A0)
 	SUBQ.w	#1, $2C(A0)
 	BNE.b	Queue_countdown_lights
 	MOVE.w	#$000A, $2C(A0)
@@ -15503,7 +15545,7 @@ Background_ai_car_c_obj_init_done:
 	MOVE.l	#Background_ai_car_c_obj, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	#2, $24(A0)
-	MOVE.l	#loc_6E9D8, $30(A0)
+	MOVE.l	#Ai_angle_table_b, $30(A0)
 	MOVE.w	D0, $34(A0)
 ;loc_A980
 Background_ai_car_c_obj:
@@ -15516,7 +15558,7 @@ Background_ai_car_c_obj:
 ;loc_A99A
 Background_ai_car_d_obj_init:
 	MOVE.l	#Background_ai_car_d_obj, (A0)
-	MOVE.l	#loc_108D8, $8(A0)
+	MOVE.l	#Background_ai_car_d_sprite_frames, $8(A0)
 	MOVE.l	#$00FF5980, $30(A0)
 ;loc_A9B0
 Background_ai_car_d_obj:
@@ -15670,7 +15712,7 @@ Update_ai_car_screen_x_Offscreen:
 	MOVEQ	#0, D7
 	MOVE.w	#$FFFF, $E(A0)
 	RTS
-loc_AB24:
+;loc_AB24
 Update_ai_car_screen_x_Behind:
 	NEG.w	D0
 	CMPI.w	#$0091, D0
@@ -15762,7 +15804,7 @@ Crash_car_obj_store_hud:
 ;loc_AC2E
 Crash_car_obj_behind:
 	MOVE.w	#2, $FFFF923A.w
-	MOVE.l	#loc_10920, $8(A0)
+	MOVE.l	#Crash_car_spin_behind_sprite_frames, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.b	Crash_car_obj_offscreen
@@ -15770,7 +15812,7 @@ Crash_car_obj_behind:
 Crash_car_obj_left:
 	TST.w	D1
 	BMI.b	Crash_car_obj_offscreen
-	MOVE.l	#loc_10944, $8(A0)
+	MOVE.l	#Crash_car_spin_left_sprite_frames, $8(A0)
 	CLR.w	$2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.b	Crash_car_obj_screen_right
@@ -15870,7 +15912,7 @@ Crash_car_obj2_depth_Rts:
 ;loc_AD3A
 Crash_car_obj2_behind:
 	CLR.w	$FFFF923A.w
-	MOVE.l	#loc_10944, $8(A0)
+	MOVE.l	#Crash_car_spin_left_sprite_frames, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.b	Crash_car_obj2_offscreen
@@ -15878,7 +15920,7 @@ Crash_car_obj2_behind:
 Crash_car_obj2_left:
 	TST.w	D1
 	BMI.b	Crash_car_obj2_offscreen
-	MOVE.l	#loc_10920, $8(A0)
+	MOVE.l	#Crash_car_spin_behind_sprite_frames, $8(A0)
 	CLR.w	$2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
 	BRA.w	Crash_car_obj2_screen_right
@@ -15970,8 +16012,8 @@ Crash_depth_obj_update:
 	BRA.w	Check_ai_lateral_bounds_wide
 ;Setup_ai_object_state_alt
 Setup_ai_object_state_alt:
-; Like Setup_ai_object_state but uses the alternate sprite-angle table loc_6E9D8.
-	MOVE.l	#loc_6E9D8, $30(A0)
+; Like Setup_ai_object_state but uses the alternate sprite-angle table Ai_angle_table_b.
+	MOVE.l	#Ai_angle_table_b, $30(A0)
 	BRA.b	Setup_ai_object_state_common
 ;Setup_ai_object_state
 Setup_ai_object_state:
@@ -16886,7 +16928,7 @@ Championship_podium_load_or_fade_Palette_loop:
 Championship_podium_load_or_fade_Wait:
 	SUBQ.l	#1, D0
 	BNE.b	Championship_podium_load_or_fade_Wait
-	BSR.w	loc_12DFC
+	BSR.w	Advance_rival_promotion_state
 	LEA	$FFFFF6F0.w, A6
 	LEA	Championship_podium_text_jp, A1
 	LEA	Team_name_display_strings, A2
@@ -17135,7 +17177,7 @@ Race_finish_init:
 	BSR.w	Initialize_results_screen
 	JSR	Finish_race_shared_setup(PC)
 	MOVE.l	#$67000003, VDP_control_port
-	LEA	loc_56DEA, A0
+	LEA	Finish_screen_tiles, A0
 	JSR	Decompress_to_vdp
 	LEA	Finish_screen_tilemap_with_rival(PC), A6
 	TST.w	Has_rival_flag.w
@@ -17207,7 +17249,7 @@ Championship_next_race_init:
 	TST.w	Track_index_arcade_mode.w
 	BNE.w	Championship_next_race_init_MidChamp
 	BSR.w	Initialize_results_screen
-	JSR	loc_12BF8
+	JSR	Assign_initial_rival_team
 	MOVE.l	#$6B800001, VDP_control_port
 	LEA	Podium_car_tiles, A0
 	JSR	Decompress_to_vdp
@@ -17246,7 +17288,7 @@ Championship_next_race_init_Play:
 Championship_next_race_init_MidChamp:
 	JSR	Halt_audio_sequence
 	BSR.w	Initialize_results_screen
-	JSR	loc_12D6C
+	JSR	Update_player_grid_position
 	CLR.l	D0
 	CLR.l	D1
 	CLR.l	D2
@@ -17278,7 +17320,7 @@ Championship_next_race_init_MidChamp_Objects_loop:
 	DBF	D0, Championship_next_race_init_MidChamp_Objects_loop
 	MOVE.l	#Race_result_frame_3, Frame_callback.w
 	MOVE.w	#$0800, $FFFFE9C6.w
-	BSR.w	loc_12E60
+	BSR.w	Initialize_standings_order_buffer
 	JSR	Initialize_minimap_display_buffers(PC)
 	JSR	Draw_track_name_and_championship_standings(PC)
 	BTST.b	#5, Player_team.w
@@ -17898,7 +17940,7 @@ Load_driver_name_text_pointer:
 	RTS
 ;Load_car_spec_text_pointer
 Load_car_spec_text_pointer:
-	LEA	loc_19114, A1
+	LEA	Car_spec_text_table, A1
 	MULS.w	#$0012, D0
 	ADDA.l	D0, A1
 	MOVEA.l	(A1)+, A2
@@ -18434,7 +18476,7 @@ Driver_standings_frame_Scroll:
 	ADDQ.w	#2, Screen_scroll.w
 	CMPI.w	#$001A, Screen_scroll.w
 	BEQ.b	Driver_standings_frame_Scroll_Done
-	LEA	loc_16E18, A1
+	LEA	Driver_standings_hscroll_offsets, A1
 	MOVE.w	Menu_cursor.w, D0
 	MOVE.w	(A1,D0.w), D2
 	LEA	$FFFFE9A0.w, A1
@@ -18443,12 +18485,12 @@ Driver_standings_frame_Scroll:
 	RTS
 ;loc_CC86
 Driver_standings_frame_Scroll_Done:
-	LEA	loc_16E68, A1
+	LEA	Driver_standings_scroll_done_dispatch, A1
 	SUBQ.w	#4, Screen_timer.w
 	BCS.w	Driver_standings_frame_Next_state
 	MOVE.w	Screen_timer.w, D0
 	MOVE.l	(A1,D0.w), D1
-	LEA	loc_16DE4, A1
+	LEA	Driver_standings_aux_object_ptrs, A1
 	MOVE.w	Menu_cursor.w, D0
 	ADD.w	D0, D0
 	MOVEA.l	(A1,D0.w), A2
@@ -18490,7 +18532,7 @@ Driver_standings_init:
 	JSR	Clear_main_object_pool
 	LEA	Driver_standings_tilemap_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_16DAC, A1
+	LEA	Driver_standings_decomp_records, A1
 	MOVE.w	#3, D1
 ;loc_CD06
 Driver_standings_init_Decomp_loop:
@@ -18512,13 +18554,13 @@ Driver_standings_init_Objects_loop:
 	MOVE.l	#Queue_object_for_sprite_buffer, (A1)
 	MOVE.w	#$0158, $18(A1)
 	MOVE.w	#$0110, $16(A1)
-	MOVE.l	#loc_16F76, $4(A1)
+	MOVE.l	#Driver_standings_default_sprite, $4(A1)
 	LEA	$40(A1), A1
 	DBF	D0, Driver_standings_init_Objects_loop
 	MOVE.l	#$00001032, Main_object_pool.w
-	LEA	loc_16D64, A1
+	LEA	Driver_standings_packed_tilemap_list, A1
 	JSR	Draw_packed_tilemap_list
-	LEA	loc_16E32, A6
+	LEA	Driver_standings_palette_stream, A6
 	JSR	Copy_word_run_from_stream
 	LEA	$FFFFE9A0.w, A1
 	MOVE.w	#$000E, D0
@@ -18543,9 +18585,9 @@ Driver_standings_init_Hscroll_loop:
 Driver_standings_tilemap_list:
 	dc.b	$00, $01
 	dc.b	$00, $20
-	dc.l	loc_1707C
+	dc.l	Driver_standings_tilemap_compressed_5
 	dc.b	$2C, $E0
-	dc.l	loc_1891A
+	dc.l	Driver_portrait_tiles_compressed
 ;$0000CDE2
 ; Team_select_frame — per-frame handler for the team (car) selection screen.
 ; Updates sprites and dispatches through a 5-state sub-machine ($FFFFFC1E index):
@@ -18600,7 +18642,7 @@ Team_select_phase0_rival_loop:
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$50, D0
 	BEQ.b	Team_select_phase0_rival_done
-	LEA	loc_18D40, A1
+	LEA	Team_message_tilemap_table, A1
 	ADDA.l	#$00000010, A1
 	BSR.w	Load_team_message_tiles
 	CMPI.w	#4, $FFFFFC1E.w
@@ -18614,7 +18656,7 @@ Team_select_phase0_advance:
 Team_select_phase0_rts:
 	RTS
 Team_select_phase1:
-	LEA	loc_18D40, A1
+	LEA	Team_message_tilemap_table, A1
 Load_team_message_tiles:
 	TST.w	English_flag.w
 	BEQ.b	Load_team_message_tiles_team_a
@@ -18647,13 +18689,13 @@ Load_team_message_tiles_loop:
 	MOVE.b	(A1,D0.w), D1
 	ANDI.b	#$50, D1
 	BEQ.b	Load_team_message_tiles_scroll
-	LEA	loc_18D18, A1
+	LEA	Team_message_result_text_jp, A1
 	LEA	$FFFFF6F0.w, A2
 	ADDA.l	#$0000008C, A2
 	MOVE.w	#3, D1
 	TST.w	English_flag.w
 	BEQ.b	Load_team_message_tiles_jp_name
-	LEA	loc_18D28, A1
+	LEA	Team_message_result_text_en, A1
 	ADDA.l	#8, A2
 	MOVE.w	#7, D1
 Load_team_message_tiles_jp_name:
@@ -18798,14 +18840,14 @@ Advance_road_marker_sequence_a:
 Advance_road_marker_sequence_a_rts:
 	RTS
 Advance_road_marker_sequence_a_next:
-	LEA	loc_19108, A1
+	LEA	Car_road_marker_vdp_cmds, A1
 	MOVE.w	$FFFFB892.w, D0
 	LSL.w	#2, D0
 	MOVE.l	(A1,D0.w), $FFFFB8CE.w
 	CLR.l	D0
 	MOVE.b	Temp_distance.w, D0
 	MULS.w	#$0012, D0
-	LEA	loc_19114, A1
+	LEA	Car_spec_text_table, A1
 	ADDA.l	D0, A1
 	MOVE.w	$FFFFB892.w, D0
 	MULS.w	#6, D0
@@ -18821,7 +18863,7 @@ Advance_road_marker_sequence_b:
 ; Decrements $FFFFB90E frame counter; when it reaches 0 resets it to 6 and
 ; calls Step_road_marker_tile to step the marker sprite at $FFFFB94E/$FFFFB952.
 ; When the sequence index ($FFFFB956) equals the end index ($FFFFB916),
-; reloads the marker pointer from loc_193B6 and the step table from Driver_info_table
+; reloads the marker pointer from Driver_road_marker_vdp_cmds and the step table from Driver_info_table
 ; using Race_frame_counter as the sequence selector.
 	SUBQ.b	#1, $FFFFB90E.w
 	BNE.b	Advance_road_marker_sequence_b_rts
@@ -18836,7 +18878,7 @@ Advance_road_marker_sequence_b:
 Advance_road_marker_sequence_b_rts:
 	RTS
 Advance_road_marker_sequence_b_next:
-	LEA	loc_193B6, A1
+	LEA	Driver_road_marker_vdp_cmds, A1
 	MOVE.w	$FFFFB912.w, D0
 	LSL.w	#2, D0
 	MOVE.l	(A1,D0.w), $FFFFB94E.w
@@ -18873,7 +18915,7 @@ Step_road_marker_tile_done:
 
 ;Load_rival_dialogue_pointer
 Load_rival_dialogue_pointer:
-	LEA	loc_18C00, A1
+	LEA	Rival_dialogue_tile_index_table, A1
 	TST.w	English_flag.w
 	BEQ.b	Load_rival_dialogue_pointer_Jp
 	ADDA.l	#8, A1
@@ -18917,7 +18959,7 @@ Load_rival_dialogue_pointer_Open:
 	MOVE.w	Screen_subcounter.w, D0
 	ANDI.w	#$FFF8, D0
 	LSR.w	#1, D0
-	LEA	loc_2023E, A1
+	LEA	Car_width_vdp_cmd_table, A1
 	MOVE.l	(A1,D0.w), D1
 	MOVE.l	D1, $FFFFB844.w
 ;loc_D2A2
@@ -18972,7 +19014,7 @@ Team_select_screen_init_Setup:
 	MOVE.l	#$6B800001, VDP_control_port
 	LEA	Podium_car_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_1E3DC, A0
+	LEA	Car_stats_deco_tiles, A0
 	MOVE.l	#$50000000, VDP_control_port
 	JSR	Decompress_to_vdp
 	CLR.l	D0
@@ -18983,7 +19025,7 @@ Team_select_screen_init_Setup:
 	MOVE.l	#$40200000, VDP_control_port
 	JSR	Decompress_to_vdp
 	CLR.l	D0
-	LEA	loc_204DA, A1
+	LEA	Car_stat_tiles_table, A1
 	LEA	TeamMachineScreenStats, A2
 	CLR.l	D0
 	MOVE.b	Temp_distance.w, D0
@@ -19007,7 +19049,7 @@ Team_select_screen_init_Setup:
 	MOVE.w	#7, D6
 	MOVE.w	#7, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_203B8, A1
+	LEA	Car_stat_row_tilemap_table, A1
 	LEA	TeamMachineScreenStats, A2
 	CLR.w	D0
 	MOVE.b	Temp_distance.w, D0
@@ -19021,15 +19063,15 @@ Team_select_screen_init_Setup:
 	MOVE.w	#$000A, D6
 	MOVE.w	#$000C, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_1E3D4, A0
+	LEA	Car_stats_bar_tilemap, A0
 	MOVE.w	#$4080, D0
 	MOVE.l	#$4D160003, D7
 	MOVE.w	#$000F, D6
 	MOVE.w	#0, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_190AC, A1
+	LEA	Car_stats_screen_tilemap_list, A1
 	JSR	Draw_packed_tilemap_list
-	LEA	loc_1E268, A0
+	LEA	Team_select_scrollbar_tilemap, A0
 	MOVE.w	#$6080, D0
 	JSR	Decompress_tilemap_to_buffer
 	CLR.l	D0
@@ -19052,7 +19094,7 @@ Team_select_screen_init_Show_rival:
 	LEA	VDP_data_port, A5
 	JSR	Render_packed_digits_to_vdp
 	CLR.l	D0
-	LEA	loc_21B7C, A1
+	LEA	Team_name_tilemap_table, A1
 	MOVE.b	Temp_distance.w, D0
 	LSL.b	#2, D0
 	MOVEA.l	(A1,D0.w), A6
@@ -19060,7 +19102,7 @@ Team_select_screen_init_Show_rival:
 	CLR.l	D0
 	MOVE.b	$FFFFFC19.w, D0
 	LSL.l	#5, D0
-	LEA	loc_19664, A6
+	LEA	Driver_portrait_palette_streams, A6
 	ADDA.l	D0, A6
 	JSR	Copy_word_run_from_stream
 	BTST.b	#7, Player_team.w
@@ -19077,7 +19119,7 @@ Team_select_screen_init_Show_rival:
 	MOVE.w	(A1)+, $FFFFE99C.w
 ;loc_D50A
 Team_select_screen_init_Scrollbar:
-	LEA	loc_19624, A6
+	LEA	Car_select_bg_vdp_stream, A6
 	JSR	Copy_word_run_from_stream
 	CLR.l	D0
 	MOVE.b	Temp_distance.w, D0
@@ -19320,7 +19362,7 @@ Championship_standings_init_Strip_upper_loop:
 ;loc_D8A2
 Championship_standings_init_Load_assets:
 	MOVE.l	#$40200000, VDP_control_port
-	LEA	loc_21F7E, A0
+	LEA	Championship_standings_compressed_tilemap, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$63A00001, VDP_control_port
 	LEA	Race_common_tiles, A0
@@ -19331,7 +19373,7 @@ Championship_standings_init_Load_assets:
 	MOVE.l	#$7A000001, VDP_control_port
 	LEA	Race_hud_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_21D08, A1
+	LEA	Championship_standings_tilemap_descriptors, A1
 	MOVE.w	#2, D1
 ;loc_D904
 Championship_standings_init_Tilemaps_loop:
@@ -19368,7 +19410,7 @@ Championship_standings_init_Intro_loop:
 	MOVEM.w	(A7)+, D1
 	DBF	D1, Championship_standings_init_Intro_loop
 	CLR.l	D0
-	LEA	loc_21B7C, A1
+	LEA	Team_name_tilemap_table, A1
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	LSL.b	#2, D0
@@ -19380,7 +19422,7 @@ Championship_standings_init_Intro_loop:
 	JSR	Render_text_to_tilemap
 	MOVE.l	#$62920003, D7
 	JSR	Draw_message_panel_narrow
-	LEA	loc_20F2E, A6
+	LEA	Team_intro_vdp_word_run, A6
 	JSR	Copy_word_run_from_stream
 	CLR.l	D0
 	MOVE.b	Player_team.w, D0
@@ -19430,9 +19472,9 @@ Game_over_confirm_frame_Rts:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	MOVE.l	#$40200000, VDP_control_port
-	LEA	loc_23E88, A0
+	LEA	Game_over_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_23DE0, A0
+	LEA	Game_over_tilemap, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$41280003, D7
 	MOVEQ	#$00000010, D6
@@ -19440,7 +19482,7 @@ Game_over_confirm_frame_Rts:
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	Game_over_screen_asset_list(PC), A1
 	JSR	Draw_packed_tilemap_list
-	LEA	loc_23DBE, A6
+	LEA	Game_over_palette_stream, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$021C, Screen_timer.w
 	MOVE.l	#Game_over_confirm_frame, Frame_callback.w
@@ -19531,28 +19573,28 @@ Race_finish_credits_init:
 Race_finish_credits_init_Assets:
 	LEA	Race_finish_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_258AC, A0
+	LEA	Race_finish_layout_tilemap, A0
 	MOVE.w	#$2001, D0
 	MOVE.l	#$41060003, D7
 	MOVEQ	#$00000010, D6
 	MOVEQ	#$00000017, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.w	#$C001, D0
-	LEA	loc_259D6, A0
+	LEA	Race_finish_buf_tilemap_3, A0
 	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFECA4.w, A5
 	JSR	Copy_ea00_block_to_a5(PC)
-	LEA	loc_2597E, A0
+	LEA	Race_finish_buf_tilemap_2, A0
 	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFEB52.w, A5
 	JSR	Copy_ea00_block_to_a5(PC)
 	LEA	$FFFFEDF6.w, A5
 	JSR	Copy_ea00_block_to_a5(PC)
-	LEA	loc_2595E, A0
+	LEA	Race_finish_buf_tilemap_1, A0
 	JSR	Decompress_tilemap_to_buffer
 	MOVE.w	#3, D0
 	LEA	Aux_object_pool.w, A1
-	LEA	loc_257C8, A2
+	LEA	Race_finish_object_init_data, A2
 ;loc_DC66
 Race_finish_credits_init_Objects_loop:
 	MOVE.l	#Queue_object_for_sprite_buffer, (A1)
@@ -19590,7 +19632,7 @@ Race_finish_credits_init_Normal:
 ;loc_DCF2
 Race_finish_credits_init_Set_callback:
 	MOVE.l	D0, Saved_frame_callback.w
-	LEA	loc_257E8, A6
+	LEA	Race_finish_palette_stream, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#1, Screen_scroll.w
 	MOVE.w	#$0168, Screen_timer.w
@@ -19667,9 +19709,9 @@ Accumulate_bcd_race_time_Rts:
 Race_finish_asset_list:
 	dc.b	$00, $01
 	dc.b	$00, $20
-	dc.l	loc_25A16
+	dc.l	Race_finish_tiles
 	dc.b	$2D, $E0
-	dc.l	loc_27894
+	dc.l	Race_finish_tiles_2
 ;loc_DDDA
 Race_finish_tilemap_list:
 	dc.b	$00, $01
@@ -19763,26 +19805,26 @@ Credits_sequence_init:
 	JSR	Clear_main_object_pool
 	LEA	Credits_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_28000, A0
+	LEA	Credits_tilemap_1, A0
 	MOVE.w	#$421B, D0
 	MOVE.l	#$40000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000D, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_2808C, A0
+	LEA	Credits_tilemap_2, A0
 	MOVE.w	#$421B, D0
 	MOVE.l	#$4C000003, D7
 	MOVEQ	#$00000015, D6
 	MOVEQ	#3, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_280AA, A0
+	LEA	Credits_tilemap_3, A0
 	MOVE.w	#$E001, D0
 	MOVE.l	#$66000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000F, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	BSR.w	Credits_car_setup
-	LEA	loc_27F30, A6
+	LEA	Credits_palette_stream, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.l	#Credits_object_anim_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
@@ -19800,7 +19842,7 @@ Credits_car_setup:
 	MOVE.w	#$000E, $00FF5AC2
 	LEA	Aux_object_pool.w, A1
 	LEA	Credits_car_frame_table, A2
-	LEA	loc_27F90, A3
+	LEA	Credits_car_sprite_table, A3
 	LEA	$FFFFE982.w, A4
 	MOVE.w	#2, D0
 	MOVE.w	#$0010, D1
@@ -19840,11 +19882,11 @@ Credits_car_frame_table:
 Credits_asset_list:
 	dc.b	$00, $02
 	dc.b	$00, $20
-	dc.l	loc_281EE
+	dc.l	Credits_tiles
 	dc.b	$43, $60
-	dc.l	loc_2A1F2
+	dc.l	Credits_tiles_2
 	dc.b	$63, $20
-	dc.l	loc_2AB1C
+	dc.l	Credits_tiles_3
 ;$0000E088
 Endgame_car_anim_frame:
 	JSR	Wait_for_vblank
@@ -19891,19 +19933,19 @@ Arcade_car_spec_result_init:
 Arcade_car_spec_continue:
 	LEA	Arcade_car_spec_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
-	LEA	loc_2F220, A0
+	LEA	Arcade_car_spec_tilemap_3, A0
 	MOVE.w	#$2001, D0
 	MOVE.l	#$41000003, D7
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000A, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_2F1EC, A0
+	LEA	Arcade_car_spec_tilemap_1, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$62080003, D7
 	MOVEQ	#$00000014, D6
 	MOVEQ	#8, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_2F20A, A0
+	LEA	Arcade_car_spec_tilemap_2, A0
 	MOVE.w	#$4001, D0
 	MOVE.l	#$64380003, D7
 	MOVEQ	#7, D6
@@ -19931,7 +19973,7 @@ Arcade_car_spec_obj_loop:
 	JSR	Draw_car_stat_rows(PC)
 	MOVE.w	#$EC30, Screen_timer.w
 	JSR	Draw_bcd_value_display(PC)
-	LEA	loc_2F134, A6
+	LEA	Arcade_car_spec_palette_stream, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$010E, D0
 	MOVEQ	#4, D1
@@ -19961,7 +20003,7 @@ Arcade_car_spec_setup_cbs:
 
 ;Draw_car_selection_screen
 Draw_car_selection_screen:
-	LEA	loc_21B2, A6
+	LEA	Car_select_tile_row_a, A6
 	MOVE.w	Screen_timer.w, D7
 	JSR	Tile_index_to_vdp_command
 	MOVEQ	#5, D6
@@ -19969,7 +20011,7 @@ Draw_car_selection_screen:
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	MOVE.w	Player_grid_position.w, D0
 	JSR	Wrap_index_mod10
-	LEA	loc_2156, A0
+	LEA	Player_placement_palette_cmds, A0
 	JSR	Load_palette_vdp_commands_from_table
 	MOVE.l	#$94009390, D5
 	MOVE.l	#$53400082, Vdp_dma_setup.w
@@ -20028,9 +20070,9 @@ Draw_bcd_value_display:
 Arcade_car_spec_asset_list:
 	dc.b	$00, $01
 	dc.b	$00, $20
-	dc.l	loc_2F2D0
+	dc.l	Arcade_car_spec_tiles
 	dc.b	$1C, $A0
-	dc.l	loc_3049A
+	dc.l	Arcade_car_spec_tiles_b
 ;loc_E334
 Arcade_car_spec_car_positions:
 	dc.b	$00, $BD, $00, $CC, $00, $02, $F1, $B4, $01, $26, $00, $BF, $00, $02, $F1, $C2, $01, $8A, $00, $CB, $00, $02, $F1, $D0, $00, $E7, $00, $B0, $00, $02, $F1, $E4
@@ -20109,7 +20151,7 @@ Championship_team_select_scroll_logo:
 	BNE.b	Championship_team_select_logo_Rts
 	MOVE.w	#$0014, Screen_subcounter.w
 	LEA	$FFFFE9E0.w, A1
-	LEA	loc_33850, A2
+	LEA	Championship_team_select_logo_vdp_data, A2
 	MOVE.w	Screen_data_ptr.w, D0
 	ADDA.l	D0, A2
 	MOVE.w	#7, D0
@@ -20131,25 +20173,25 @@ Championship_team_select_init_objs:
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0120, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#loc_33910, $4(A1)
+	MOVE.l	#Team_select_car_sprite_frame_a, $4(A1)
 	LEA	$40(A1), A1
 	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0128, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#loc_33978, $4(A1)
+	MOVE.l	#Team_select_car_sprite_frame_b, $4(A1)
 	LEA	$40(A1), A1
 	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$00F4, $18(A1)
 	MOVE.w	#$0148, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#loc_339CE, $4(A1)
+	MOVE.l	#Team_select_car_sprite_frame_c, $4(A1)
 	LEA	$40(A1), A1
 	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$014C, $18(A1)
 	MOVE.w	#$0148, $16(A1)
 	MOVE.w	#1, $E(A1)
-	MOVE.l	#loc_33A3C, $4(A1)
+	MOVE.l	#Team_select_car_sprite_frame_d, $4(A1)
 	BSR.w	Championship_team_select_scroll_reset
 ;loc_E4DA:
 Championship_team_select_substate_Rts:
@@ -20262,15 +20304,15 @@ Championship_driver_select_init:
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.l	#$40200000, VDP_control_port
-	LEA	loc_37ACC, A0
+	LEA	Championship_driver_select_tiles_b, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$68C00000, VDP_control_port
-	LEA	loc_33AFE, A0
+	LEA	Championship_driver_select_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$7D000001, VDP_control_port
 	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_33AAA, A0
+	LEA	Championship_driver_select_tilemap, A0
 	MOVE.w	#$6146, D0
 	MOVE.l	#$60000003, D7
 	MOVE.w	#$0027, D6
@@ -20300,7 +20342,7 @@ Championship_driver_select_not_leader:
 Championship_driver_select_continue:
 	JSR	Clear_driver_points
 	JSR	Initialize_drivers_and_teams
-	LEA	loc_337EE, A6
+	LEA	Championship_driver_select_cram_data, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$0014, Screen_subcounter.w
 	MOVE.w	#$000A, Temp_x_pos.w
@@ -20496,17 +20538,17 @@ Championship_standings_2_init:
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.l	#$40200000, VDP_control_port
-	LEA	loc_39396, A0
+	LEA	Championship_standings_tiles_b, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_391F0, A0
+	LEA	Championship_standings_tiles, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$40000003, D7
 	MOVE.w	#$0027, D6
 	MOVE.w	#$001B, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_39160, A1
+	LEA	Championship_standings_tilemap_list, A1
 	JSR	Draw_packed_tilemap_list
-	LEA	loc_39376, A6
+	LEA	Championship_standings_vdp_word_run, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00CE, $FFFFE984.w
 	MOVE.w	#$000C, $FFFFE9A4.w
@@ -20633,7 +20675,7 @@ Options_control_type_inc:
 Options_redraw_control_type:
 	MOVE.w	Control_type.w, D0
 	ASL.w	#2, D0
-	LEA	loc_32D08, A4
+	LEA	Control_layout_table, A4
 	MOVEA.l	(A4,D0.w), A1
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_list
@@ -20650,7 +20692,7 @@ Options_redraw_easy:
 	ANDI.w	#1, Easy_flag.w
 	MOVE.w	Easy_flag.w, D0
 	ASL.w	#2, D0
-	LEA	loc_32F24, A1
+	LEA	Options_jp_text_table, A1
 	MOVEA.l	(A1,D0.w), A6
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
@@ -20665,7 +20707,7 @@ Options_language_input:
 ;loc_EBB4
 Options_redraw_language:
 	ANDI.w	#1, English_flag.w
-	LEA	loc_32F44, A2
+	LEA	Options_en_text_table, A2
 	CLR.w	D0
 	TST.w	English_flag.w
 	BEQ.b	Options_language_Jp
@@ -20697,7 +20739,7 @@ Options_music_inc:
 Options_redraw_music_select:
 	MOVE.w	Temp_x_pos.w, D0
 	ASL.w	#2, D0
-	LEA	loc_32F68, A1
+	LEA	Race_quotes_table, A1
 	MOVEA.l	(A1,D0.w), A6
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
@@ -20740,7 +20782,7 @@ Options_redraw_units:
 	RTS
 ;loc_EC98
 Options_units_play_sfx:
-	LEA	loc_330F8, A1
+	LEA	Race_quote_index_table, A1
 	MOVE.w	Temp_distance.w, D0
 	CLR.w	D1
 	MOVE.b	(A1,D0.w), D1
@@ -20767,7 +20809,7 @@ Options_transmission_inc:
 Options_redraw_transmission:
 	MOVE.w	Anim_delay.w, D0
 	ASL.w	#2, D0
-	LEA	loc_3310A, A1
+	LEA	Championship_intro_text_table, A1
 	MOVEA.l	(A1,D0.w), A6
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
@@ -20776,7 +20818,7 @@ Options_redraw_transmission:
 ;loc_ED00
 Options_transmission_play_sfx:
 	JSR	Wait_for_vblank
-	LEA	loc_331BE, A1
+	LEA	Championship_intro_sequence, A1
 	MOVE.w	Anim_delay.w, D0
 	CLR.w	D1
 	MOVE.b	(A1,D0.w), D1
@@ -20826,18 +20868,18 @@ Options_screen_champ_init:
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	MOVE.l	#$40200000, VDP_control_port
-	LEA	loc_332A4, A0
+	LEA	Options_screen_champ_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$7E800000, VDP_control_port
 	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_33254, A0
+	LEA	Options_screen_champ_tilemap, A0
 	MOVE.w	#$6001, D0
 	MOVE.l	#$47840003, D7
 	MOVE.w	#$0022, D6
 	MOVE.w	#$000A, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	LEA	loc_331C4, A6
+	LEA	Championship_intro_text_block, A6
 	JSR	Draw_packed_tilemap_to_vdp
 	BSR.w	Options_redraw_control_type
 	BSR.w	Options_redraw_easy
@@ -20845,7 +20887,7 @@ Options_screen_champ_init:
 	BSR.w	Options_redraw_music_select
 	BSR.w	Options_redraw_units
 	BSR.w	Options_redraw_transmission
-	LEA	loc_33232, A6
+	LEA	Options_screen_cram_data, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.w	#$00EE, $FFFFE984.w
 	MOVE.w	#$0EEE, $FFFFE9A4.w
@@ -21212,9 +21254,9 @@ Save_name_entry_init:
 	BSR.w	Endgame_init_clear_vdp
 	MOVE.l	#$40020010, VDP_control_port
 	MOVE.w	#$0048, VDP_data_port
-	LEA	loc_39E80, A6
+	LEA	Name_entry_tilemap_a, A6
 	JSR	Draw_packed_tilemap_to_vdp
-	LEA	loc_39EB4, A6
+	LEA	Name_entry_tilemap_b, A6
 	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.l	#Team_select_driver_frame, Frame_callback.w
 	ANDI	#$F8FF, SR
@@ -21229,9 +21271,9 @@ Endgame_sequence_init:
 	MOVE.w	#1, $FFFFB84E.w
 	MOVE.l	#$00039EEC, $FFFFB844.w
 	BSR.w	Endgame_init_draw_race_nums
-	LEA	loc_39E68, A6
+	LEA	Endgame_tilemap_a, A6
 	JSR	Draw_packed_tilemap_to_vdp
-	LEA	loc_39E4E, A6
+	LEA	Endgame_tilemap_b, A6
 	JSR	Draw_packed_tilemap_to_vdp
 	MOVE.l	#Name_entry_frame_2, Frame_callback.w
 	ANDI	#$F8FF, SR
@@ -21249,10 +21291,10 @@ Endgame_init_clear_vdp:
 	MOVE.w	#$9011, VDP_control_port
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.l	#$40200000, VDP_control_port
-	LEA	loc_39EF4, A0
+	LEA	Endgame_tiles_a, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$41400000, VDP_control_port
-	LEA	loc_39F68, A0
+	LEA	Endgame_tiles_b, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$4C800000, VDP_control_port
 	LEA	Race_common_tiles, A0
@@ -21597,10 +21639,10 @@ Post_race_driver_target_points:
 Load_font_tiles_to_work_buffer:
 	LEA	$FFFFF6F0.w, A1
 	MOVE.w	#$0083, D0
-	LEA	loc_18C10, A2
+	LEA	Rival_dialogue_blank_tilemap, A2
 	TST.w	English_flag.w
 	BEQ.b	Load_font_tiles_Loop
-	LEA	loc_18C94, A2
+	LEA	Rival_dialogue_blink_tilemap, A2
 ;loc_F770
 Load_font_tiles_Loop:
 	CLR.w	D1
@@ -21784,382 +21826,382 @@ Load_track_data_pointer_Champ:
 ;loc_F872:
 Track_data:
 ; San Marino
-	dc.l	loc_55032 ; San Marino tiles used for minimap
-	dc.l	loc_68F4A ; San Marino tiles used for background
-	dc.l	loc_68DC6 ; San Marino background tile mapping
-	dc.l	loc_5519A ; San Marino tile mapping for minimap
+	dc.l	Minimap_tiles_San_Marino ; San Marino tiles used for minimap
+	dc.l	Track_bg_tiles_San_Marino ; San Marino tiles used for background
+	dc.l	Track_bg_tilemap_San_Marino ; San Marino background tile mapping
+	dc.l	Minimap_map_San_Marino ; San Marino tile mapping for minimap
 	dc.l	San_Marino_bg_palette ; San Marino background palette
 	dc.l	San_Marino_sideline_style ; San Marino sideline style
 	dc.l	San_Marino_road_style ; San Marino road style data
 	dc.l	San_Marino_finish_line_style ; San Marino finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7040 ; track length
-	dc.l	loc_7173C ; San Marino signs data
-	dc.l	loc_717A6 ; San Marino tileset for signs
-	dc.l	loc_71660 ; San Marino map for minimap position
-	dc.l	loc_7152E ; San Marino curve data
-	dc.l	loc_715EA ; San Marino slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_7163C ; San Marino physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	San_Marino_sign_data ; San Marino signs data
+	dc.l	San_Marino_sign_tileset ; San Marino tileset for signs
+	dc.l	San_Marino_minimap_pos ; San Marino map for minimap position
+	dc.l	San_Marino_curve_data ; San Marino curve data
+	dc.l	San_Marino_slope_data ; San Marino slope data (visual; decoded to Visual_slope_data)
+	dc.l	San_Marino_phys_slope_data ; San Marino physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	Track_lap_time_records ; San Marino BCD lap-time record pointer (base = $FFFFFD00, +$08 per track)
 	dc.l	San_Marino_lap_targets ; San Marino per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B (both 43)
 ; Brazil
-	dc.l	loc_5683C ; Brazil tiles used for minimap
-	dc.l	loc_679D8 ; Brazil tiles used used for background
-	dc.l	loc_676FE ; Brazil background tile mapping
-	dc.l	loc_569EE ; Brazil tile mapping for minimap
+	dc.l	Minimap_tiles_Brazil ; Brazil tiles used for minimap
+	dc.l	Track_bg_tiles_Brazil ; Brazil tiles used for background
+	dc.l	Track_bg_tilemap_Brazil ; Brazil background tile mapping
+	dc.l	Minimap_map_Brazil ; Brazil tile mapping for minimap
 	dc.l	Brazil_bg_palette ; Brazil background palette
 	dc.l	Brazil_sideline_style ; Brazil sideline style
 	dc.l	Brazil_road_style ; Brazil road style data
 	dc.l	Brazil_finish_line_style ; Brazil finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6976 ; track length
-	dc.l	loc_739AA ; Brazil signs data
-	dc.l	loc_73A30 ; Brazil tileset for signs
-	dc.l	loc_738CF ; Brazil map for minimap position
-	dc.l	loc_73830 ; Brazil curve data
-	dc.l	loc_73894 ; Brazil slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_738BA ; Brazil physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Brazil_sign_data ; Brazil signs data
+	dc.l	Brazil_sign_tileset ; Brazil tileset for signs
+	dc.l	Brazil_minimap_pos ; Brazil map for minimap position
+	dc.l	Brazil_curve_data ; Brazil curve data
+	dc.l	Brazil_slope_data ; Brazil slope data (visual; decoded to Visual_slope_data)
+	dc.l	Brazil_phys_slope_data ; Brazil physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD08 ; Brazil BCD lap-time record pointer (Track_lap_time_records + $08)
 	dc.l	Brazil_lap_targets ; Brazil per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; France
-	dc.l	loc_55516 ; France tiles used for minimap
-	dc.l	loc_6ACB6 ; France tiles used used for background
-	dc.l	loc_6AB3E ; France background tile mapping
-	dc.l	loc_5566C ; France tile mapping for minimap
+	dc.l	Minimap_tiles_France ; France tiles used for minimap
+	dc.l	Track_bg_tiles_France ; France tiles used for background
+	dc.l	Track_bg_tilemap_France ; France background tile mapping
+	dc.l	Minimap_map_France ; France tile mapping for minimap
 	dc.l	France_bg_palette ; France background palette
 	dc.l	France_sideline_style ; France sideline style
 	dc.l	France_road_style ; France road style data
 	dc.l	France_finish_line_style ; France finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6144 ; track length
-	dc.l	loc_71DBA ; France signs data
-	dc.l	loc_71E20 ; France tileset for signs
-	dc.l	loc_71CFA ; France map for minimap position
-	dc.l	loc_71C26 ; France curve data
-	dc.l	loc_71CAC ; France slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_71CE2 ; France physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	France_sign_data ; France signs data
+	dc.l	France_sign_tileset ; France tileset for signs
+	dc.l	France_minimap_pos ; France map for minimap position
+	dc.l	France_curve_data ; France curve data
+	dc.l	France_slope_data ; France slope data (visual; decoded to Visual_slope_data)
+	dc.l	France_phys_slope_data ; France physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD10 ; France BCD lap-time record pointer (Track_lap_time_records + $10)
 	dc.l	France_lap_targets ; France per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Hungary
-	dc.l	loc_559D0 ; Hungary tiles used for minimap
-	dc.l	loc_6A16E ; Hungary tiles used used for background
-	dc.l	loc_6A002 ; Hungary background tile mapping
-	dc.l	loc_55B6E ; Hungary tile mapping for minimap
+	dc.l	Minimap_tiles_Hungary ; Hungary tiles used for minimap
+	dc.l	Track_bg_tiles_Hungary ; Hungary tiles used for background
+	dc.l	Track_bg_tilemap_Hungary ; Hungary background tile mapping
+	dc.l	Minimap_map_Hungary ; Hungary tile mapping for minimap
 	dc.l	Hungary_bg_palette ; Hungary background palette
 	dc.l	Hungary_sideline_style ; Hungary sideline style
 	dc.l	Hungary_road_style ; Hungary road style data
 	dc.l	Hungary_finish_line_style ; Hungary finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6464 ; track length
-	dc.l	loc_723F0 ; Hungary signs data
-	dc.l	loc_7245A ; Hungary tileset for signs
-	dc.l	loc_72326 ; Hungary map for minimap position
-	dc.l	loc_72242 ; Hungary curve data
-	dc.l	loc_722CA ; Hungary slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_72308 ; Hungary physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Hungary_sign_data ; Hungary signs data
+	dc.l	Hungary_sign_tileset ; Hungary tileset for signs
+	dc.l	Hungary_minimap_pos ; Hungary map for minimap position
+	dc.l	Hungary_curve_data ; Hungary curve data
+	dc.l	Hungary_slope_data ; Hungary slope data (visual; decoded to Visual_slope_data)
+	dc.l	Hungary_phys_slope_data ; Hungary physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD18 ; Hungary BCD lap-time record pointer (Track_lap_time_records + $18)
 	dc.l	Hungary_lap_targets ; Hungary per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002c002e ; steering divisors: straight=$002C, curve=$002E (slightly less sensitive on curves)
 ; West Germany
-	dc.l	loc_5583E ; West Germany tiles used for minimap
-	dc.l	loc_65D64 ; West Germany tiles used used for background
-	dc.l	loc_65B18 ; West Germany background tile mapping
-	dc.l	loc_559A8 ; West Germany tile mapping for minimap
+	dc.l	Minimap_tiles_West_Germany ; West Germany tiles used for minimap
+	dc.l	Track_bg_tiles_West_Germany ; West Germany tiles used for background
+	dc.l	Track_bg_tilemap_West_Germany ; West Germany background tile mapping
+	dc.l	Minimap_map_West_Germany ; West Germany tile mapping for minimap
 	dc.l	West_Germany_bg_palette ; West Germany background palette
 	dc.l	West_Germany_sideline_style ; West Germany sideline style
 	dc.l	West_Germany_road_style ; West Germany road style data
 	dc.l	West_Germany_finish_line_style ; West Germany finish line style
 	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7488 ; track length
-	dc.l	loc_721B6 ; West Germany signs data
-	dc.l	loc_7222C ; West Germany tileset for signs
-	dc.l	loc_720CB ; West Germany map for minimap position
-	dc.l	loc_71FFC ; West Germany curve data
-	dc.l	loc_72090 ; West Germany slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_720B6 ; West Germany physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	West_Germany_sign_data ; West Germany signs data
+	dc.l	West_Germany_sign_tileset ; West Germany tileset for signs
+	dc.l	West_Germany_minimap_pos ; West Germany map for minimap position
+	dc.l	West_Germany_curve_data ; West Germany curve data
+	dc.l	West_Germany_slope_data ; West Germany slope data (visual; decoded to Visual_slope_data)
+	dc.l	West_Germany_phys_slope_data ; West Germany physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD20 ; West Germany BCD lap-time record pointer (Track_lap_time_records + $20)
 	dc.l	West_Germany_lap_targets ; West Germany per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; USA
-	dc.l	loc_5627E ; USA tiles used for minimap
-	dc.l	loc_6C048 ; USA tiles used used for background
-	dc.l	loc_6BEC0 ; USA background tile mapping
-	dc.l	loc_5638C ; USA tile mapping for minimap
+	dc.l	Minimap_tiles_USA ; USA tiles used for minimap
+	dc.l	Track_bg_tiles_Usa ; USA tiles used for background
+	dc.l	Track_bg_tilemap_Usa ; USA background tile mapping
+	dc.l	Minimap_map_USA ; USA tile mapping for minimap
 	dc.l	Usa_bg_palette ; USA background palette
 	dc.l	Usa_sideline_style ; USA sideline style
 	dc.l	Usa_road_style ; USA road style data
 	dc.l	Usa_finish_line_style ; USA finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7168 ; track length
-	dc.l	loc_72F8C ; USA signs data
-	dc.l	loc_7300E ; USA tileset for signs
-	dc.l	loc_72EAB ; USA map for minimap position
-	dc.l	loc_72E0C ; USA curve data
-	dc.l	loc_72E88 ; USA slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_72E9C ; USA physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Usa_sign_data ; USA signs data
+	dc.l	Usa_sign_tileset ; USA tileset for signs
+	dc.l	Usa_minimap_pos ; USA map for minimap position
+	dc.l	Usa_curve_data ; USA curve data
+	dc.l	Usa_slope_data ; USA slope data (visual; decoded to Visual_slope_data)
+	dc.l	Usa_phys_slope_data ; USA physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD28 ; USA BCD lap-time record pointer (Track_lap_time_records + $28)
 	dc.l	Canada_lap_targets ; USA per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Canada
-	dc.l	loc_5655C ; Canada tiles used for minimap
-	dc.l	loc_6841A ; Canada tiles used used for background
-	dc.l	loc_68240 ; Canada background tile mapping
-	dc.l	loc_5669E ; Canada tile mapping for minimap
+	dc.l	Minimap_tiles_Canada ; Canada tiles used for minimap
+	dc.l	Track_bg_tiles_Canada ; Canada tiles used for background
+	dc.l	Track_bg_tilemap_Canada ; Canada background tile mapping
+	dc.l	Minimap_map_Canada ; Canada tile mapping for minimap
 	dc.l	Canada_bg_palette ; Canada background palette
 	dc.l	Canada_sideline_style ; Canada sideline style
 	dc.l	Canada_road_style ; Canada road style data
 	dc.l	Canada_finish_line_style ; Canada finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6720 ; track length
-	dc.l	loc_73546 ; Canada signs data
-	dc.l	loc_735BC ; Canada tileset for signs
-	dc.l	loc_73474 ; Canada map for minimap position
-	dc.l	loc_73314 ; Canada curve data
-	dc.l	loc_73404 ; Canada slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_73450 ; Canada physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Canada_sign_data ; Canada signs data
+	dc.l	Canada_sign_tileset ; Canada tileset for signs
+	dc.l	Canada_minimap_pos ; Canada map for minimap position
+	dc.l	Canada_curve_data ; Canada curve data
+	dc.l	Canada_slope_data ; Canada slope data (visual; decoded to Visual_slope_data)
+	dc.l	Canada_phys_slope_data ; Canada physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD30 ; Canada BCD lap-time record pointer (Track_lap_time_records + $30)
 	dc.l	Great_Britain_lap_targets; Canada per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Great Britain
-	dc.l	loc_5568C  ; Great Britain tiles used for minimap
-	dc.l	loc_66FDE  ; Great Britain tiles used used for background
-	dc.l	loc_66E62  ; Great Britain background tile mapping
-	dc.l	loc_55812  ; Great Britain tile mapping for minimap
+	dc.l	Minimap_tiles_Great_Britain  ; Great Britain tiles used for minimap
+	dc.l	Track_bg_tiles_Great_Britain  ; Great Britain tiles used for background
+	dc.l	Track_bg_tilemap_Great_Britain  ; Great Britain background tile mapping
+	dc.l	Minimap_map_Great_Britain  ; Great Britain tile mapping for minimap
 	dc.l	Great_Britain_bg_palette  ; Great Britain background palette
 	dc.l	Great_Britain_sideline_style ; Great Britain sideline style
 	dc.l	Great_Britain_road_style  ; Great Britain road style data
 	dc.l	Great_Britain_finish_line_style  ; Great Britain finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6912 ; track length
-	dc.l	loc_71F98 ; Great Britain signs data
-	dc.l	loc_71FEA  ; Great Britain tileset for signs
-	dc.l	loc_71EC0  ; Great Britain map for minimap position
-	dc.l	loc_71E36  ; Great Britain curve data
-	dc.l	loc_71E8C ; Great Britain slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_71EAE; Great Britain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Great_Britain_sign_data ; Great Britain signs data
+	dc.l	Great_Britain_sign_tileset ; Great Britain tileset for signs
+	dc.l	Great_Britain_minimap_pos ; Great Britain map for minimap position
+	dc.l	Great_Britain_curve_data ; Great Britain curve data
+	dc.l	Great_Britain_slope_data ; Great Britain slope data (visual; decoded to Visual_slope_data)
+	dc.l	Great_Britain_phys_slope_data ; Great Britain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD38 ; Great Britain BCD lap-time record pointer (Track_lap_time_records + $38)
 	dc.l	Italy_lap_targets; Great Britain per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Italy
-	dc.l	loc_566BC ; Italy tiles used for minimap
-	dc.l	loc_651F0 ; Italy tiles used used for background
-	dc.l	loc_65090 ; Italy background tile mapping
-	dc.l	loc_5681A ; Italy tile mapping for minimap
+	dc.l	Minimap_tiles_Italy ; Italy tiles used for minimap
+	dc.l	Track_bg_tiles_Italy ; Italy tiles used for background
+	dc.l	Track_bg_tilemap_Italy ; Italy background tile mapping
+	dc.l	Minimap_map_Italy ; Italy tile mapping for minimap
 	dc.l	Italy_bg_palette-2 ; Italy background palette
 	dc.l	Italy_sideline_style ; Italy sideline style
 	dc.l	Italy_road_style ; Italy road style data
 	dc.l	Italy_finish_line_style ; Italy finish line style
 	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7616 ; track length
-	dc.l	loc_737A0 ; Italy signs data
-	dc.l	loc_73816 ; Italy tileset for signs
-	dc.l	loc_736B2 ; Italy map for minimap position
-	dc.l	loc_735D6 ; Italy curve data
-	dc.l	loc_7365C ; Italy slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_73694 ; Italy physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Italy_sign_data ; Italy signs data
+	dc.l	Italy_sign_tileset ; Italy tileset for signs
+	dc.l	Italy_minimap_pos ; Italy map for minimap position
+	dc.l	Italy_curve_data ; Italy curve data
+	dc.l	Italy_slope_data ; Italy slope data (visual; decoded to Visual_slope_data)
+	dc.l	Italy_phys_slope_data ; Italy physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD40 ; Italy BCD lap-time record pointer (Track_lap_time_records + $40)
 	dc.l	Spain_lap_targets ; Italy per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Portugal
-	dc.l	loc_55D3A ; Portugal tiles used for minimap
-	dc.l	loc_6D3A2 ; Portugal tiles used used for background
-	dc.l	loc_6D1AE ; Portugal background tile mapping
-	dc.l	loc_55ED2 ; Portugal tile mapping for minimap
+	dc.l	Minimap_tiles_Portugal ; Portugal tiles used for minimap
+	dc.l	Track_bg_tiles_Portugal ; Portugal tiles used for background
+	dc.l	Track_bg_tilemap_Portugal ; Portugal background tile mapping
+	dc.l	Minimap_map_Portugal ; Portugal tile mapping for minimap
 	dc.l	Portugal_bg_palette ; Portugal background palette
 	dc.l	Portugal_sideline_style ; Portugal sideline style
 	dc.l	Portugal_road_style ; Portugal road style data
 	dc.l	Portugal_finish_line_style ; Portugal finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6592 ; track length
-	dc.l	loc_72922 ; Portugal signs data
-	dc.l	loc_72980 ; Portugal tileset for signs
-	dc.l	loc_72854 ; Portugal map for minimap position
-	dc.l	loc_72784 ; Portugal curve data
-	dc.l	loc_72806 ; Portugal slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_7283C ; Portugal physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Portugal_sign_data ; Portugal signs data
+	dc.l	Portugal_sign_tileset ; Portugal tileset for signs
+	dc.l	Portugal_minimap_pos ; Portugal map for minimap position
+	dc.l	Portugal_curve_data ; Portugal curve data
+	dc.l	Portugal_slope_data ; Portugal slope data (visual; decoded to Visual_slope_data)
+	dc.l	Portugal_phys_slope_data ; Portugal physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD48 ; Portugal BCD lap-time record pointer (Track_lap_time_records + $48)
 	dc.l	Mexico_lap_targets ; Portugal per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Spain
-	dc.l	loc_55EF2 ; Spain tiles used for minimap
-	dc.l	loc_66488 ; Spain tiles used used for background
-	dc.l	loc_6630E ; Spain background tile mapping
-	dc.l	loc_560BC ; Spain tile mapping for minimap
+	dc.l	Minimap_tiles_Spain ; Spain tiles used for minimap
+	dc.l	Track_bg_tiles_Spain ; Spain tiles used for background
+	dc.l	Track_bg_tilemap_Spain ; Spain background tile mapping
+	dc.l	Minimap_map_Spain ; Spain tile mapping for minimap
 	dc.l	Spain_bg_palette ; Spain background palette
 	dc.l	Spain_sideline_style ; Spain sideline style
 	dc.l	Spain_road_style ; Spain road style data
 	dc.l	Spain_finish_line_style ; Spain finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6784 ; track length
-	dc.l	loc_72B7A ; Spain signs data
-	dc.l	loc_72BEC ; Spain tileset for signs
-	dc.l	loc_72AA5 ; Spain map for minimap position
-	dc.l	loc_7299A ; Spain curve data
-	dc.l	loc_72A3C ; Spain slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_72A84 ; Spain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Spain_sign_data ; Spain signs data
+	dc.l	Spain_sign_tileset ; Spain tileset for signs
+	dc.l	Spain_minimap_pos ; Spain map for minimap position
+	dc.l	Spain_curve_data ; Spain curve data
+	dc.l	Spain_slope_data ; Spain slope data (visual; decoded to Visual_slope_data)
+	dc.l	Spain_phys_slope_data ; Spain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD50 ; Spain BCD lap-time record pointer (Track_lap_time_records + $50)
 	dc.l	Japan_lap_targets ; Spain per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Mexico
-	dc.l	loc_553B6 ; Mexico tiles used for minimap
-	dc.l	loc_6C9E6 ; Mexico tiles used used for background
-	dc.l	loc_6C908 ; Mexico background tile mapping
-	dc.l	loc_554E8 ; Mexico tile mapping for minimap
+	dc.l	Minimap_tiles_Mexico ; Mexico tiles used for minimap
+	dc.l	Track_bg_tiles_Mexico ; Mexico tiles used for background
+	dc.l	Track_bg_tilemap_Mexico ; Mexico background tile mapping
+	dc.l	Minimap_map_Mexico ; Mexico tile mapping for minimap
 	dc.l	Mexico_bg_palette ; Mexico background palette
 	dc.l	Mexico_sideline_style ; Mexico sideline style
 	dc.l	Mexico_road_style ; Mexico road style data
 	dc.l	Mexico_finish_line_style ; Mexico finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6848 ; track length
-	dc.l	loc_71BBA ; Mexico signs data
-	dc.l	loc_71C14 ; Mexico tileset for signs
-	dc.l	loc_71AE3 ; Mexico map for minimap position
-	dc.l	loc_71A38 ; Mexico curve data
-	dc.l	loc_71AC0 ; Mexico slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_71AD4 ; Mexico physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Mexico_sign_data ; Mexico signs data
+	dc.l	Mexico_sign_tileset ; Mexico tileset for signs
+	dc.l	Mexico_minimap_pos ; Mexico map for minimap position
+	dc.l	Mexico_curve_data ; Mexico curve data
+	dc.l	Mexico_slope_data ; Mexico slope data (visual; decoded to Visual_slope_data)
+	dc.l	Mexico_phys_slope_data ; Mexico physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD58 ; Mexico BCD lap-time record pointer (Track_lap_time_records + $58)
 	dc.l	Australia_lap_targets ; Mexico per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Japan
-	dc.l	loc_563B6 ; Japan tiles used for minimap
-	dc.l	loc_649FC ; Japan tiles used used for background
-	dc.l	loc_64884 ; Japan background tile mapping
-	dc.l	loc_56542 ; Japan tile mapping for minimap
+	dc.l	Minimap_tiles_Japan ; Japan tiles used for minimap
+	dc.l	Track_bg_tiles_Japan ; Japan tiles used for background
+	dc.l	Track_bg_tilemap_Japan ; Japan background tile mapping
+	dc.l	Minimap_map_Japan ; Japan tile mapping for minimap
 	dc.l	Japan_bg_palette ; Japan background palette
 	dc.l	Japan_sideline_style ; Japan sideline style
 	dc.l	Japan_road_style ; Japan road style data
 	dc.l	Japan_finish_line_style ; Japan finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7552 ; track length
-	dc.l	loc_73264 ; Japan signs data
-	dc.l	loc_732F6 ; Japan tileset for signs
-	dc.l	loc_73178 ; Japan map for minimap position
-	dc.l	loc_7301C ; Japan curve data
-	dc.l	loc_730E6 ; Japan slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_7314E ; Japan physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Japan_sign_data ; Japan signs data
+	dc.l	Japan_sign_tileset ; Japan tileset for signs
+	dc.l	Japan_minimap_pos ; Japan map for minimap position
+	dc.l	Japan_curve_data ; Japan curve data
+	dc.l	Japan_slope_data ; Japan slope data (visual; decoded to Visual_slope_data)
+	dc.l	Japan_phys_slope_data ; Japan physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD60 ; Japan BCD lap-time record pointer (Track_lap_time_records + $60)
 	dc.l	Portugal_lap_targets ; Japan per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Belgium
-	dc.l	loc_55B8A ; Belgium tiles used for minimap
-	dc.l	loc_6B708 ; Belgium tiles used used for background
-	dc.l	loc_6B51A ; Belgium background tile mapping
-	dc.l	loc_55D18 ; Belgium tile mapping for minimap
+	dc.l	Minimap_tiles_Belgium ; Belgium tiles used for minimap
+	dc.l	Track_bg_tiles_Belgium ; Belgium tiles used for background
+	dc.l	Track_bg_tilemap_Belgium ; Belgium background tile mapping
+	dc.l	Minimap_map_Belgium ; Belgium tile mapping for minimap
 	dc.l	Belgium_bg_palette ; Belgium background palette
 	dc.l	Belgium_sideline_style ; Belgium sideline style
 	dc.l	Belgium_road_style ; Belgium road style data
 	dc.l	Belgium_finish_line_style ; Belgium finish line style
 	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7744 ; track length
-	dc.l	loc_726D0 ; Belgium signs data
-	dc.l	loc_72766 ; Belgium tileset for signs
-	dc.l	loc_725DD ; Belgium map for minimap position
-	dc.l	loc_72480 ; Belgium curve data
-	dc.l	loc_72578 ; Belgium slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_725BC ; Belgium physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Belgium_sign_data ; Belgium signs data
+	dc.l	Belgium_sign_tileset ; Belgium tileset for signs
+	dc.l	Belgium_minimap_pos ; Belgium map for minimap position
+	dc.l	Belgium_curve_data ; Belgium curve data
+	dc.l	Belgium_slope_data ; Belgium slope data (visual; decoded to Visual_slope_data)
+	dc.l	Belgium_phys_slope_data ; Belgium physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD68 ; Belgium BCD lap-time record pointer (Track_lap_time_records + $68)
 	dc.l	Belgium_lap_targets ; Belgium per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Australia
-	dc.l	loc_560D4 ; Australia tiles used for minimap
-	dc.l	loc_69758 ; Australia tiles used used for background
-	dc.l	loc_695FE ; Australia background tile mapping
-	dc.l	loc_56258 ; Australia tile mapping for minimap
+	dc.l	Minimap_tiles_Australia ; Australia tiles used for minimap
+	dc.l	Track_bg_tiles_Australia ; Australia tiles used for background
+	dc.l	Track_bg_tilemap_Australia ; Australia background tile mapping
+	dc.l	Minimap_map_Australia ; Australia tile mapping for minimap
 	dc.l	Australia_bg_palette ; Australia background palette
 	dc.l	Australia_sideline_style ; Australia sideline style
 	dc.l	Australia_road_style ; Australia road style data
 	dc.l	Australia_finish_line_style ; Australia finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6080 ; track length
-	dc.l	loc_72D78 ; Australia signs data
-	dc.l	loc_72DEA ; Australia tileset for signs
-	dc.l	loc_72CBA ; Australia map for minimap position
-	dc.l	loc_72C02 ; Australia curve data
-	dc.l	loc_72C86 ; Australia slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_72CA8 ; Australia physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Australia_sign_data ; Australia signs data
+	dc.l	Australia_sign_tileset ; Australia tileset for signs
+	dc.l	Australia_minimap_pos ; Australia map for minimap position
+	dc.l	Australia_curve_data ; Australia curve data
+	dc.l	Australia_slope_data ; Australia slope data (visual; decoded to Visual_slope_data)
+	dc.l	Australia_phys_slope_data ; Australia physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD70 ; Australia BCD lap-time record pointer (Track_lap_time_records + $70)
 	dc.l	Usa_lap_targets ; Australia per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco
-	dc.l	loc_551B4 ; Monaco tiles used for minimap
-	dc.l	loc_6DCF8 ; Monaco tiles used used for background
-	dc.l	loc_6DA8A ; Monaco background tile mapping
-	dc.l	loc_5539C ; Monaco tile mapping for minimap
+	dc.l	Minimap_tiles_Monaco ; Monaco tiles used for minimap
+	dc.l	Track_bg_tiles_Monaco ; Monaco tiles used for background
+	dc.l	Track_bg_tilemap_Monaco ; Monaco background tile mapping
+	dc.l	Minimap_map_Monaco ; Monaco tile mapping for minimap
 	dc.l	Monaco_bg_palette ; Monaco background palette
 	dc.l	Monaco_sideline_style ; Monaco sideline style
 	dc.l	Monaco_road_style ; Monaco road style data
 	dc.l	Monaco_finish_line_style ; Monaco finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6144 ; track length
-	dc.l	loc_719AC ; Monaco signs data
-	dc.l	loc_71A1E ; Monaco tileset for signs
-	dc.l	loc_718EB ; Monaco map for minimap position
-	dc.l	loc_717C8 ; Monaco curve data
-	dc.l	loc_718AE ; Monaco slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_718D6 ; Monaco physical slope data (decoded to Physical_slope_data; hill RPM modifier)
+	dc.l	Monaco_sign_data ; Monaco signs data
+	dc.l	Monaco_sign_tileset ; Monaco tileset for signs
+	dc.l	Monaco_minimap_pos ; Monaco map for minimap position
+	dc.l	Monaco_curve_data ; Monaco curve data
+	dc.l	Monaco_slope_data ; Monaco slope data (visual; decoded to Visual_slope_data)
+	dc.l	Monaco_phys_slope_data ; Monaco physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD78 ; Monaco BCD lap-time record pointer (Track_lap_time_records + $78)
 	dc.l	Monaco_lap_targets ; Monaco per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco (Arcade preliminary)
-	dc.l	loc_54CB2 ; Monaco (Arcade preliminary) tiles used for minimap
-	dc.l	loc_63ECA ; Monaco (Arcade preliminary) tiles used used for background
-	dc.l	loc_63910 ; Monaco (Arcade preliminary) background tile mapping
-	dc.l	loc_54E6A ; Monaco (Arcade preliminary) tile mapping for minimap
+	dc.l	Minimap_tiles_Monaco_prelim ; Monaco (Arcade preliminary) tiles used for minimap
+	dc.l	Track_bg_tiles_Monaco_arcade ; Monaco (Arcade preliminary) tiles used for background
+	dc.l	Track_bg_tilemap_Monaco_arcade ; Monaco (Arcade preliminary) background tile mapping
+	dc.l	Minimap_map_Monaco_prelim ; Monaco (Arcade preliminary) tile mapping for minimap
 	dc.l	Monaco_arcade_bg_palette ; Monaco (Arcade preliminary) background palette
 	dc.l	Monaco_arcade_sideline_style-2 ; Monaco (Arcade preliminary) sideline style
 	dc.l	Monaco_arcade_road_style ; Monaco (Arcade preliminary) road style data
 	dc.l	Monaco_arcade_finish_line_style ; Monaco (Arcade preliminary) finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	3392 ; track length
-	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
-	dc.l	loc_73B54 ; Monaco (Arcade preliminary) tileset for signs
-	dc.l	loc_73ABC ; Monaco (Arcade preliminary) map for minimap position
-	dc.l	loc_73A4A ; Monaco (Arcade preliminary) curve data
-	dc.l	loc_73A8A ; Monaco (Arcade preliminary) slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_73AAC ; Monaco (Arcade preliminary) physical slope data (decoded to Physical_slope_data)
+	dc.l	Monaco_arcade_prelim_sign_data ; Monaco (Arcade preliminary) signs data
+	dc.l	Monaco_arcade_prelim_sign_tileset ; Monaco (Arcade preliminary) tileset for signs
+	dc.l	Monaco_arcade_prelim_minimap_pos ; Monaco (Arcade preliminary) map for minimap position
+	dc.l	Monaco_arcade_prelim_curve_data ; Monaco (Arcade preliminary) curve data
+	dc.l	Monaco_arcade_prelim_slope_data ; Monaco (Arcade preliminary) slope data (visual; decoded to Visual_slope_data)
+	dc.l	Monaco_arcade_prelim_phys_slope_data ; Monaco (Arcade preliminary) physical slope data (decoded to Physical_slope_data)
 	dc.l	$FFFFFD80 ; Monaco (Arcade preliminary) BCD lap-time record pointer (Track_lap_time_records + $80)
 	dc.l	Monaco_arcade_lap_targets ; Monaco (Arcade preliminary) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco (Arcade main)
-	dc.l	loc_54E88 ; Monaco (Arcade main) tiles used for minimap
-	dc.l	loc_63ECA ; Monaco (Arcade main) tiles used used for background
-	dc.l	loc_63910 ; Monaco (Arcade main) background tile mapping
-	dc.l	loc_55012 ; Monaco (Arcade main) tile mapping for minimap
+	dc.l	Minimap_tiles_Monaco_arcade ; Monaco (Arcade main) tiles used for minimap
+	dc.l	Track_bg_tiles_Monaco_arcade ; Monaco (Arcade main) tiles used for background
+	dc.l	Track_bg_tilemap_Monaco_arcade ; Monaco (Arcade main) background tile mapping
+	dc.l	Minimap_map_Monaco_arcade ; Monaco (Arcade main) tile mapping for minimap
 	dc.l	Monaco_arcade_bg_palette  ; Monaco (Arcade main) background palette
 	dc.l	Monaco_arcade_sideline_style-2 ; Monaco (Arcade main) sideline style
 	dc.l	Monaco_arcade_road_style ; Monaco (Arcade main) road style data
 	dc.l	Monaco_arcade_finish_line_style ; Monaco (Arcade main) finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7616 ; track length
-	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
-	dc.l	loc_73DEA ; Monaco (Arcade main) tileset for signs
-	dc.l	loc_73C8D  ; Monaco (Arcade main) map for minimap position
-	dc.l	loc_73B5E ; Monaco (Arcade main) curve data
-	dc.l	loc_73C16 ; Monaco (Arcade main) slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_73C66 ; Monaco (Arcade main) physical slope data (decoded to Physical_slope_data)
+	dc.l	Monaco_arcade_sign_data ; Monaco (Arcade main) signs data
+	dc.l	Monaco_arcade_sign_tileset ; Monaco (Arcade main) tileset for signs
+	dc.l	Monaco_arcade_minimap_pos  ; Monaco (Arcade main) map for minimap position
+	dc.l	Monaco_arcade_curve_data ; Monaco (Arcade main) curve data
+	dc.l	Monaco_arcade_slope_data ; Monaco (Arcade main) slope data (visual; decoded to Visual_slope_data)
+	dc.l	Monaco_arcade_phys_slope_data ; Monaco (Arcade main) physical slope data (decoded to Physical_slope_data)
 	dc.l	$FFFFFD88 ; Monaco (Arcade main) BCD lap-time record pointer (Track_lap_time_records + $88)
 	dc.l	Monaco_arcade_lap_targets ; Monaco (Arcade main) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco (Arcade Wet Condition)
-	dc.l	loc_54E88 ; Monaco (Arcade Wet Condition) tiles used for minimap
-	dc.l	loc_63ECA ; Monaco (Arcade Wet Condition) tiles used used for background
-	dc.l	loc_63C10 ; Monaco (Arcade Wet Condition) background tile mapping
-	dc.l	loc_55012 ; Monaco (Arcade Wet Condition) tile mapping for minimap
+	dc.l	Minimap_tiles_Monaco_arcade ; Monaco (Arcade Wet Condition) tiles used for minimap
+	dc.l	Track_bg_tiles_Monaco_arcade ; Monaco (Arcade Wet Condition) tiles used for background
+	dc.l	Track_bg_tilemap_Monaco_arcade_wet ; Monaco (Arcade Wet Condition) background tile mapping
+	dc.l	Minimap_map_Monaco_arcade ; Monaco (Arcade Wet Condition) tile mapping for minimap
 	dc.l	Monaco_arcade_wet_bg_palette ; Monaco (Arcade Wet Condition) background palette
 	dc.l	Monaco_arcade_wet_sideline_style ; Monaco (Arcade Wet Condition) sideline style
 	dc.l	Monaco_arcade_wet_road_style ; Monaco (Arcade Wet Condition) road style data
 	dc.l	Monaco_arcade_wet_finish_line_style ; Monaco (Arcade Wet Condition) finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7616 ; track length
-	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
-	dc.l	loc_73DEA  ; Monaco (Arcade Wet Condition) tileset for signs
-	dc.l	loc_73C8D ; Monaco (Arcade Wet Condition) map for minimap position
-	dc.l	loc_73B5E ; Monaco (Arcade Wet Condition) curve data
-	dc.l	loc_73C16 ; Monaco (Arcade Wet Condition) slope data (visual; decoded to Visual_slope_data)
-	dc.l	loc_73C66 ; Monaco (Arcade Wet Condition) physical slope data (decoded to Physical_slope_data)
+	dc.l	Monaco_arcade_sign_data ; Monaco (Arcade Wet Condition) signs data
+	dc.l	Monaco_arcade_sign_tileset  ; Monaco (Arcade Wet Condition) tileset for signs
+	dc.l	Monaco_arcade_minimap_pos ; Monaco (Arcade Wet Condition) map for minimap position
+	dc.l	Monaco_arcade_curve_data ; Monaco (Arcade Wet Condition) curve data
+	dc.l	Monaco_arcade_slope_data ; Monaco (Arcade Wet Condition) slope data (visual; decoded to Visual_slope_data)
+	dc.l	Monaco_arcade_phys_slope_data ; Monaco (Arcade Wet Condition) physical slope data (decoded to Physical_slope_data)
 	dc.l	$FFFFFD88 ; Monaco (Arcade Wet Condition) BCD lap-time record pointer (shares Monaco Arcade main)
 	dc.l	Monaco_arcade_lap_targets ; Monaco (Arcade Wet Condition) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002f0038 ; steering divisors: straight=$002F (47), curve=$0038 (56) — wet tyres, reduced sensitivity
@@ -22510,112 +22552,112 @@ Monaco_arcade_lap_targets:
 	dc.b	$00
 ;Rival_sprite_frames_depth0
 Rival_sprite_frames_depth0:
-	dc.l	loc_10B7C
-	dc.l	loc_10B6E
-	dc.l	loc_10B60
-	dc.l	loc_10B46
-	dc.l	loc_10B2C
-	dc.l	loc_10B12
-	dc.l	loc_10AF8
-	dc.l	loc_10AD2
-	dc.l	loc_10AAC
+	dc.l	Sprite_frame_data_10B7C
+	dc.l	Sprite_frame_data_10B6E
+	dc.l	Sprite_frame_data_10B60
+	dc.l	Sprite_frame_data_10B46
+	dc.l	Sprite_frame_data_10B2C
+	dc.l	Sprite_frame_data_10B12
+	dc.l	Sprite_frame_data_10AF8
+	dc.l	Sprite_frame_data_10AD2
+	dc.l	Sprite_frame_data_10AAC
 ;Rival_sprite_frames_depth_m4
 Rival_sprite_frames_depth_m4:
-	dc.l	loc_10C30
-	dc.l	loc_10C28
-	dc.l	loc_10C20
-	dc.l	loc_10C18
-	dc.l	loc_10C10
-	dc.l	loc_10BFC
-	dc.l	loc_10BDC
-	dc.l	loc_10BBC
-	dc.l	loc_10B84
+	dc.l	Sprite_frame_data_10C30
+	dc.l	Sprite_frame_data_10C28
+	dc.l	Sprite_frame_data_10C20
+	dc.l	Sprite_frame_data_10C18
+	dc.l	Sprite_frame_data_10C10
+	dc.l	Sprite_frame_data_10BFC
+	dc.l	Sprite_frame_data_10BDC
+	dc.l	Sprite_frame_data_10BBC
+	dc.l	Sprite_frame_data_10B84
 ;Rival_sprite_frames_depth_p4
 Rival_sprite_frames_depth_p4:
-	dc.l	loc_10DB0
-	dc.l	loc_10DA8
-	dc.l	loc_10DA0
-	dc.l	loc_10D98
-	dc.l	loc_10D90
-	dc.l	loc_10D7C
-	dc.l	loc_10D5C
-	dc.l	loc_10D3C
-	dc.l	loc_10D04
+	dc.l	Sprite_frame_data_10DB0
+	dc.l	Sprite_frame_data_10DA8
+	dc.l	Sprite_frame_data_10DA0
+	dc.l	Sprite_frame_data_10D98
+	dc.l	Sprite_frame_data_10D90
+	dc.l	Sprite_frame_data_10D7C
+	dc.l	Sprite_frame_data_10D5C
+	dc.l	Sprite_frame_data_10D3C
+	dc.l	Sprite_frame_data_10D04
 ;Rival_sprite_frames_depth_m8
 Rival_sprite_frames_depth_m8:
-	dc.l	loc_10CFC
-	dc.l	loc_10CF4
-	dc.l	loc_10CEC
-	dc.l	loc_10CDE
-	dc.l	loc_10CD0
-	dc.l	loc_10CBC
-	dc.l	loc_10CA2
-	dc.l	loc_10C76
-	dc.l	loc_10C38
+	dc.l	Sprite_frame_data_10CFC
+	dc.l	Sprite_frame_data_10CF4
+	dc.l	Sprite_frame_data_10CEC
+	dc.l	Sprite_frame_data_10CDE
+	dc.l	Sprite_frame_data_10CD0
+	dc.l	Sprite_frame_data_10CBC
+	dc.l	Sprite_frame_data_10CA2
+	dc.l	Sprite_frame_data_10C76
+	dc.l	Sprite_frame_data_10C38
 ;Rival_sprite_frames_depth_p8
 Rival_sprite_frames_depth_p8:
-	dc.l	loc_10E7C
-	dc.l	loc_10E74
-	dc.l	loc_10E6C
-	dc.l	loc_10E5E
-	dc.l	loc_10E50
-	dc.l	loc_10E3C
-	dc.l	loc_10E22
-	dc.l	loc_10DF6
-	dc.l	loc_10DB8
+	dc.l	Sprite_frame_data_10E7C
+	dc.l	Sprite_frame_data_10E74
+	dc.l	Sprite_frame_data_10E6C
+	dc.l	Sprite_frame_data_10E5E
+	dc.l	Sprite_frame_data_10E50
+	dc.l	Sprite_frame_data_10E3C
+	dc.l	Sprite_frame_data_10E22
+	dc.l	Sprite_frame_data_10DF6
+	dc.l	Sprite_frame_data_10DB8
 ;Ai_sprite_frames_depth_p4
 Ai_sprite_frames_depth_p4:
-	dc.l	loc_10E84
-	dc.l	loc_10E8C
-	dc.l	loc_10E9A
-	dc.l	loc_10EA8
-	dc.l	loc_10EC2
-	dc.l	loc_10ED0
+	dc.l	Sprite_frame_data_10E84
+	dc.l	Sprite_frame_data_10E8C
+	dc.l	Sprite_frame_data_10E9A
+	dc.l	Sprite_frame_data_10EA8
+	dc.l	Sprite_frame_data_10EC2
+	dc.l	Sprite_frame_data_10ED0
 ;Ai_sprite_frames_depth_p8
 Ai_sprite_frames_depth_p8:
-	dc.l	loc_10EEA
-	dc.l	loc_10EF2
-	dc.l	loc_10EFA
-	dc.l	loc_10F02
-	dc.l	loc_10F10
-	dc.l	loc_10F18
+	dc.l	Sprite_frame_data_10EEA
+	dc.l	Sprite_frame_data_10EF2
+	dc.l	Sprite_frame_data_10EFA
+	dc.l	Sprite_frame_data_10F02
+	dc.l	Sprite_frame_data_10F10
+	dc.l	Sprite_frame_data_10F18
 ;Ai_sprite_frames_depth0
 Ai_sprite_frames_depth0:
-	dc.l	loc_10F2C
-	dc.l	loc_10F34
-	dc.l	loc_10F3C
-	dc.l	loc_10F44
-	dc.l	loc_10F52
-	dc.l	loc_10F5A
+	dc.l	Sprite_frame_data_10F2C
+	dc.l	Sprite_frame_data_10F34
+	dc.l	Sprite_frame_data_10F3C
+	dc.l	Sprite_frame_data_10F44
+	dc.l	Sprite_frame_data_10F52
+	dc.l	Sprite_frame_data_10F5A
 ;Ai_sprite_frames_depth_p12
 Ai_sprite_frames_depth_p12:
-	dc.l	loc_10F6E
-	dc.l	loc_10F76
-	dc.l	loc_10F7E
-	dc.l	loc_10F86
-	dc.l	loc_10F94
-	dc.l	loc_10FA2
+	dc.l	Sprite_frame_data_10F6E
+	dc.l	Sprite_frame_data_10F76
+	dc.l	Sprite_frame_data_10F7E
+	dc.l	Sprite_frame_data_10F86
+	dc.l	Sprite_frame_data_10F94
+	dc.l	Sprite_frame_data_10FA2
 ;Rival_sprite_frames_depth_p12
 Rival_sprite_frames_depth_p12:
-	dc.l	loc_10FB6
-	dc.l	loc_10FBE
-	dc.l	loc_10FC6
-	dc.l	loc_10FCE
-	dc.l	loc_10FDC
-	dc.l	loc_10FEA
+	dc.l	Sprite_frame_data_10FB6
+	dc.l	Sprite_frame_data_10FBE
+	dc.l	Sprite_frame_data_10FC6
+	dc.l	Sprite_frame_data_10FCE
+	dc.l	Sprite_frame_data_10FDC
+	dc.l	Sprite_frame_data_10FEA
 ;Player_car_sprite_frames
 Player_car_sprite_frames:
 	dc.l	Sprite_frame_data_112F2
 	dc.l	Sprite_frame_data_112F2
 	dc.l	Sprite_frame_data_112F2
 	dc.l	Sprite_frame_data_112F2
-	dc.l	loc_112FA
-	dc.l	loc_11308
-	dc.l	loc_11316
-	dc.l	loc_11324
-	dc.l	loc_1133E
-	dc.l	loc_11364
-	dc.l	loc_1136C
+	dc.l	Sprite_frame_data_112FA
+	dc.l	Sprite_frame_data_11308
+	dc.l	Sprite_frame_data_11316
+	dc.l	Sprite_frame_data_11324
+	dc.l	Sprite_frame_data_1133E
+	dc.l	Sprite_frame_data_11364
+	dc.l	Sprite_frame_data_1136C
 	dc.l	Sprite_frame_data_11374
 	dc.l	Sprite_frame_data_1137C
 	dc.l	Sprite_frame_data_11384
@@ -22623,7 +22665,7 @@ Player_car_sprite_frames:
 	dc.l	Sprite_frame_data_113A0
 	dc.l	Sprite_frame_data_113A8
 	dc.l	Sprite_frame_data_113C2
-	dc.l	loc_1136C
+	dc.l	Sprite_frame_data_1136C
 	dc.l	Sprite_frame_data_11374
 	dc.l	Sprite_frame_data_1137C
 	dc.l	Sprite_frame_data_11384
@@ -22643,268 +22685,272 @@ Player_car_sprite_frames:
 	dc.l	Sprite_frame_data_113C2
 ;Player_car_sprite_frames_crash
 Player_car_sprite_frames_crash:
-	dc.l	loc_1266C
-	dc.l	loc_12686
+	dc.l	Sprite_frame_data_1266C
+	dc.l	Sprite_frame_data_12686
 ;Player_car_sprite_frames_normal
 Player_car_sprite_frames_normal:
-	dc.l	loc_126AC
-	dc.l	loc_126C6
-	dc.l	loc_10FFE
-	dc.l	loc_11006
-	dc.l	loc_1100E
-	dc.l	loc_11016
-	dc.l	loc_1101E
-	dc.l	loc_11026
-	dc.l	loc_11040
-	dc.l	loc_1105A
-	dc.l	loc_11080
-	dc.l	loc_110BE
-	dc.l	loc_110C6
-	dc.l	loc_110CE
-	dc.l	loc_110D6
-	dc.l	loc_110DE
-	dc.l	loc_110E6
-	dc.l	loc_11100
-	dc.l	loc_1111A
-	dc.l	loc_11140
-	dc.l	loc_1117E
-	dc.l	loc_11186
-	dc.l	loc_1118E
-	dc.l	loc_11196
-	dc.l	loc_1119E
-	dc.l	loc_111A6
-	dc.l	loc_111BA
-	dc.l	loc_111D4
-	dc.l	loc_111FA
-	dc.l	loc_11238
-	dc.l	loc_11240
-	dc.l	loc_11248
-	dc.l	loc_11250
-	dc.l	loc_11258
-	dc.l	loc_11260
-	dc.l	loc_11274
-	dc.l	loc_1128E
-	dc.l	loc_112B4
-	dc.l	loc_113DC
-	dc.l	loc_113E4
-	dc.l	loc_113EC
-	dc.l	loc_113F4
-	dc.l	loc_113FC
-	dc.l	loc_11404
-	dc.l	loc_11412
-	dc.l	loc_11420
-	dc.l	loc_11452
-	dc.l	loc_11478
-	dc.l	loc_11480
-	dc.l	loc_11488
-	dc.l	loc_11490
-	dc.l	loc_11498
-	dc.l	loc_114A0
-	dc.l	loc_114AE
-	dc.l	loc_114BC
-	dc.l	loc_114EE
-	dc.l	loc_11514
-	dc.l	loc_1151C
-	dc.l	loc_11524
-	dc.l	loc_1152C
-	dc.l	loc_11534
-	dc.l	loc_1153C
-	dc.l	loc_11550
-	dc.l	loc_1156A
-	dc.l	loc_11584
-	dc.l	loc_115AA
-	dc.l	loc_115B2
-	dc.l	loc_115BA
-	dc.l	loc_115C2
-	dc.l	loc_115CA
-	dc.l	loc_115D2
-	dc.l	loc_115E6
-	dc.l	loc_11600
-	dc.l	loc_1161A
-	dc.l	loc_11640
-	dc.l	loc_11648
-	dc.l	loc_11650
-	dc.l	loc_11658
-	dc.l	loc_11660
-	dc.l	loc_11668
-	dc.l	loc_11670
-	dc.l	loc_11678
-	dc.l	loc_11692
-	dc.l	loc_116B8
-	dc.l	loc_116C0
-	dc.l	loc_116C8
-	dc.l	loc_116D0
-	dc.l	loc_116D8
-	dc.l	loc_116E0
-	dc.l	loc_116E8
-	dc.l	loc_116F0
-	dc.l	loc_1170A
-	dc.l	loc_11730
-	dc.l	loc_11738
-	dc.l	loc_11740
-	dc.l	loc_11748
-	dc.l	loc_11750
-	dc.l	loc_1175E
-	dc.l	loc_1176C
-	dc.l	loc_11780
-	dc.l	loc_117AC
-	dc.l	loc_117F6
-	dc.l	loc_117FE
-	dc.l	loc_11806
-	dc.l	loc_1180E
-	dc.l	loc_11816
-	dc.l	loc_11824
-	dc.l	loc_11832
-	dc.l	loc_11846
-	dc.l	loc_11872
-	dc.l	loc_118BC
-	dc.l	loc_118C4
-	dc.l	loc_118CC
-	dc.l	loc_118D4
-	dc.l	loc_118DC
-	dc.l	loc_118E4
-	dc.l	loc_118EC
-	dc.l	loc_118FA
-	dc.l	loc_11914
-	dc.l	loc_1193A
-	dc.l	loc_11942
-	dc.l	loc_1194A
-	dc.l	loc_11952
-	dc.l	loc_1195A
-	dc.l	loc_11962
-	dc.l	loc_1196A
-	dc.l	loc_11978
-	dc.l	loc_11992
-	dc.l	loc_119B8
-	dc.l	loc_119C0
-	dc.l	loc_119C8
-	dc.l	loc_119D0
-	dc.l	loc_119D8
-	dc.l	loc_119E0
-	dc.l	loc_119FA
-	dc.l	loc_11A14
-	dc.l	loc_11A34
-	dc.l	loc_11A72
-	dc.l	loc_11A7A
-	dc.l	loc_11A82
-	dc.l	loc_11A8A
-	dc.l	loc_11A92
-	dc.l	loc_11A9A
-	dc.l	loc_11AB4
-	dc.l	loc_11ACE
-	dc.l	loc_11AEE
-	dc.l	loc_11C22
-	dc.l	loc_11C2A
-	dc.l	loc_11C32
-	dc.l	loc_11C3A
-	dc.l	loc_11C42
-	dc.l	loc_11C50
-	dc.l	loc_11C5E
-	dc.l	loc_11C78
-	dc.l	loc_11C92
-	dc.l	loc_11CDC
-	dc.l	loc_11CE4
-	dc.l	loc_11CEC
-	dc.l	loc_11CF4
-	dc.l	loc_11CFC
-	dc.l	loc_11D0A
-	dc.l	loc_11D18
-	dc.l	loc_11D32
-	dc.l	loc_11D4C
-loc_108D8:
-	dc.l	loc_11D96
-	dc.l	loc_11DA4
-	dc.l	loc_11DAC
-	dc.l	loc_11DB4
-	dc.l	loc_11DC2
-	dc.l	loc_11DD0
-	dc.l	loc_11DE4
-	dc.l	loc_11E0A
-	dc.l	loc_11E30
-loc_108FC:
-	dc.l	loc_11B2C
-	dc.l	loc_11B34
-	dc.l	loc_11B3C
-	dc.l	loc_11B4A
-	dc.l	loc_11B52
-	dc.l	loc_11B66
-	dc.l	loc_11B80
-	dc.l	loc_11BA0
-	dc.l	loc_11BC6
-loc_10920:
-	dc.l	loc_11E7A
-	dc.l	loc_11E82
-	dc.l	loc_11E90
-	dc.l	loc_11E9E
-	dc.l	loc_11EAC
-	dc.l	loc_11EBA
-	dc.l	loc_11EC8
-	dc.l	loc_11EEE
-	dc.l	loc_11F20
-loc_10944:
-	dc.l	loc_11F7C
-	dc.l	loc_11F84
-	dc.l	loc_11F92
-	dc.l	loc_11FA0
-	dc.l	loc_11FAE
-	dc.l	loc_11FBC
-	dc.l	loc_11FCA
-	dc.l	loc_11FF0
-	dc.l	loc_12022
-	dc.l	loc_1207E
-	dc.l	loc_12086
-	dc.l	loc_12094
-	dc.l	loc_120A2
-	dc.l	loc_120B0
-	dc.l	loc_120BE
-	dc.l	loc_120CC
-	dc.l	loc_120F2
-	dc.l	loc_12124
-	dc.l	loc_12180
-	dc.l	loc_12188
-	dc.l	loc_12196
-	dc.l	loc_121A4
-	dc.l	loc_121B2
-	dc.l	loc_121C0
-	dc.l	loc_121CE
-	dc.l	loc_121F4
-	dc.l	loc_12226
-	dc.l	loc_12282
-	dc.l	loc_12282
-	dc.l	loc_12290
-	dc.l	loc_1229E
-	dc.l	loc_122AC
-	dc.l	loc_122C6
-	dc.l	loc_122E0
-	dc.l	loc_12306
-	dc.l	loc_12338
-	dc.l	loc_12376
-	dc.l	loc_12376
-	dc.l	loc_12384
-	dc.l	loc_12392
-	dc.l	loc_123A0
-	dc.l	loc_123BA
-	dc.l	loc_123D4
-	dc.l	loc_123FA
-	dc.l	loc_1242C
-	dc.l	loc_1246A
-	dc.l	loc_1246A
-	dc.l	loc_12478
-	dc.l	loc_12486
-	dc.l	loc_12494
-	dc.l	loc_124AE
-	dc.l	loc_124C8
-	dc.l	loc_124EE
-	dc.l	loc_12520
-	dc.l	loc_1255E
-	dc.l	loc_1255E
-	dc.l	loc_1256C
-	dc.l	loc_1257A
-	dc.l	loc_12588
-	dc.l	loc_125A2
-	dc.l	loc_125BC
-	dc.l	loc_125E2
-	dc.l	loc_12614
+	dc.l	Sprite_frame_data_126AC
+	dc.l	Sprite_frame_data_126C6
+	dc.l	Sprite_frame_data_10FFE
+	dc.l	Sprite_frame_data_11006
+	dc.l	Sprite_frame_data_1100E
+	dc.l	Sprite_frame_data_11016
+	dc.l	Sprite_frame_data_1101E
+	dc.l	Sprite_frame_data_11026
+	dc.l	Sprite_frame_data_11040
+	dc.l	Sprite_frame_data_1105A
+	dc.l	Sprite_frame_data_11080
+	dc.l	Sprite_frame_data_110BE
+	dc.l	Sprite_frame_data_110C6
+	dc.l	Sprite_frame_data_110CE
+	dc.l	Sprite_frame_data_110D6
+	dc.l	Sprite_frame_data_110DE
+	dc.l	Sprite_frame_data_110E6
+	dc.l	Sprite_frame_data_11100
+	dc.l	Sprite_frame_data_1111A
+	dc.l	Sprite_frame_data_11140
+	dc.l	Sprite_frame_data_1117E
+	dc.l	Sprite_frame_data_11186
+	dc.l	Sprite_frame_data_1118E
+	dc.l	Sprite_frame_data_11196
+	dc.l	Sprite_frame_data_1119E
+	dc.l	Sprite_frame_data_111A6
+	dc.l	Sprite_frame_data_111BA
+	dc.l	Sprite_frame_data_111D4
+	dc.l	Sprite_frame_data_111FA
+	dc.l	Sprite_frame_data_11238
+	dc.l	Sprite_frame_data_11240
+	dc.l	Sprite_frame_data_11248
+	dc.l	Sprite_frame_data_11250
+	dc.l	Sprite_frame_data_11258
+	dc.l	Sprite_frame_data_11260
+	dc.l	Sprite_frame_data_11274
+	dc.l	Sprite_frame_data_1128E
+	dc.l	Sprite_frame_data_112B4
+	dc.l	Sprite_frame_data_113DC
+	dc.l	Sprite_frame_data_113E4
+	dc.l	Sprite_frame_data_113EC
+	dc.l	Sprite_frame_data_113F4
+	dc.l	Sprite_frame_data_113FC
+	dc.l	Sprite_frame_data_11404
+	dc.l	Sprite_frame_data_11412
+	dc.l	Sprite_frame_data_11420
+	dc.l	Sprite_frame_data_11452
+	dc.l	Sprite_frame_data_11478
+	dc.l	Sprite_frame_data_11480
+	dc.l	Sprite_frame_data_11488
+	dc.l	Sprite_frame_data_11490
+	dc.l	Sprite_frame_data_11498
+	dc.l	Sprite_frame_data_114A0
+	dc.l	Sprite_frame_data_114AE
+	dc.l	Sprite_frame_data_114BC
+	dc.l	Sprite_frame_data_114EE
+	dc.l	Sprite_frame_data_11514
+	dc.l	Sprite_frame_data_1151C
+	dc.l	Sprite_frame_data_11524
+	dc.l	Sprite_frame_data_1152C
+	dc.l	Sprite_frame_data_11534
+	dc.l	Sprite_frame_data_1153C
+	dc.l	Sprite_frame_data_11550
+	dc.l	Sprite_frame_data_1156A
+	dc.l	Sprite_frame_data_11584
+	dc.l	Sprite_frame_data_115AA
+	dc.l	Sprite_frame_data_115B2
+	dc.l	Sprite_frame_data_115BA
+	dc.l	Sprite_frame_data_115C2
+	dc.l	Sprite_frame_data_115CA
+	dc.l	Sprite_frame_data_115D2
+	dc.l	Sprite_frame_data_115E6
+	dc.l	Sprite_frame_data_11600
+	dc.l	Sprite_frame_data_1161A
+	dc.l	Sprite_frame_data_11640
+	dc.l	Sprite_frame_data_11648
+	dc.l	Sprite_frame_data_11650
+	dc.l	Sprite_frame_data_11658
+	dc.l	Sprite_frame_data_11660
+	dc.l	Sprite_frame_data_11668
+	dc.l	Sprite_frame_data_11670
+	dc.l	Sprite_frame_data_11678
+	dc.l	Sprite_frame_data_11692
+	dc.l	Sprite_frame_data_116B8
+	dc.l	Sprite_frame_data_116C0
+	dc.l	Sprite_frame_data_116C8
+	dc.l	Sprite_frame_data_116D0
+	dc.l	Sprite_frame_data_116D8
+	dc.l	Sprite_frame_data_116E0
+	dc.l	Sprite_frame_data_116E8
+	dc.l	Sprite_frame_data_116F0
+	dc.l	Sprite_frame_data_1170A
+	dc.l	Sprite_frame_data_11730
+	dc.l	Sprite_frame_data_11738
+	dc.l	Sprite_frame_data_11740
+	dc.l	Sprite_frame_data_11748
+	dc.l	Sprite_frame_data_11750
+	dc.l	Sprite_frame_data_1175E
+	dc.l	Sprite_frame_data_1176C
+	dc.l	Sprite_frame_data_11780
+	dc.l	Sprite_frame_data_117AC
+	dc.l	Sprite_frame_data_117F6
+	dc.l	Sprite_frame_data_117FE
+	dc.l	Sprite_frame_data_11806
+	dc.l	Sprite_frame_data_1180E
+	dc.l	Sprite_frame_data_11816
+	dc.l	Sprite_frame_data_11824
+	dc.l	Sprite_frame_data_11832
+	dc.l	Sprite_frame_data_11846
+	dc.l	Sprite_frame_data_11872
+	dc.l	Sprite_frame_data_118BC
+	dc.l	Sprite_frame_data_118C4
+	dc.l	Sprite_frame_data_118CC
+	dc.l	Sprite_frame_data_118D4
+	dc.l	Sprite_frame_data_118DC
+	dc.l	Sprite_frame_data_118E4
+	dc.l	Sprite_frame_data_118EC
+	dc.l	Sprite_frame_data_118FA
+	dc.l	Sprite_frame_data_11914
+	dc.l	Sprite_frame_data_1193A
+	dc.l	Sprite_frame_data_11942
+	dc.l	Sprite_frame_data_1194A
+	dc.l	Sprite_frame_data_11952
+	dc.l	Sprite_frame_data_1195A
+	dc.l	Sprite_frame_data_11962
+	dc.l	Sprite_frame_data_1196A
+	dc.l	Sprite_frame_data_11978
+	dc.l	Sprite_frame_data_11992
+	dc.l	Sprite_frame_data_119B8
+	dc.l	Sprite_frame_data_119C0
+	dc.l	Sprite_frame_data_119C8
+	dc.l	Sprite_frame_data_119D0
+	dc.l	Sprite_frame_data_119D8
+	dc.l	Sprite_frame_data_119E0
+	dc.l	Sprite_frame_data_119FA
+	dc.l	Sprite_frame_data_11A14
+	dc.l	Sprite_frame_data_11A34
+	dc.l	Sprite_frame_data_11A72
+	dc.l	Sprite_frame_data_11A7A
+	dc.l	Sprite_frame_data_11A82
+	dc.l	Sprite_frame_data_11A8A
+	dc.l	Sprite_frame_data_11A92
+	dc.l	Sprite_frame_data_11A9A
+	dc.l	Sprite_frame_data_11AB4
+	dc.l	Sprite_frame_data_11ACE
+	dc.l	Sprite_frame_data_11AEE
+	dc.l	Sprite_frame_data_11C22
+	dc.l	Sprite_frame_data_11C2A
+	dc.l	Sprite_frame_data_11C32
+	dc.l	Sprite_frame_data_11C3A
+	dc.l	Sprite_frame_data_11C42
+	dc.l	Sprite_frame_data_11C50
+	dc.l	Sprite_frame_data_11C5E
+	dc.l	Sprite_frame_data_11C78
+	dc.l	Sprite_frame_data_11C92
+	dc.l	Sprite_frame_data_11CDC
+	dc.l	Sprite_frame_data_11CE4
+	dc.l	Sprite_frame_data_11CEC
+	dc.l	Sprite_frame_data_11CF4
+	dc.l	Sprite_frame_data_11CFC
+	dc.l	Sprite_frame_data_11D0A
+	dc.l	Sprite_frame_data_11D18
+	dc.l	Sprite_frame_data_11D32
+	dc.l	Sprite_frame_data_11D4C
+;loc_108D8
+Background_ai_car_d_sprite_frames:
+	dc.l	Sprite_frame_data_11D96
+	dc.l	Sprite_frame_data_11DA4
+	dc.l	Sprite_frame_data_11DAC
+	dc.l	Sprite_frame_data_11DB4
+	dc.l	Sprite_frame_data_11DC2
+	dc.l	Sprite_frame_data_11DD0
+	dc.l	Sprite_frame_data_11DE4
+	dc.l	Sprite_frame_data_11E0A
+	dc.l	Sprite_frame_data_11E30
+;loc_108FC
+Flagkeeper_car_sprite_frames:
+	dc.l	Sprite_frame_data_11B2C
+	dc.l	Sprite_frame_data_11B34
+	dc.l	Sprite_frame_data_11B3C
+	dc.l	Sprite_frame_data_11B4A
+	dc.l	Sprite_frame_data_11B52
+	dc.l	Sprite_frame_data_11B66
+	dc.l	Sprite_frame_data_11B80
+	dc.l	Sprite_frame_data_11BA0
+	dc.l	Sprite_frame_data_11BC6
+;loc_10920
+Crash_car_spin_behind_sprite_frames:
+	dc.l	Sprite_frame_data_11E7A
+	dc.l	Sprite_frame_data_11E82
+	dc.l	Sprite_frame_data_11E90
+	dc.l	Sprite_frame_data_11E9E
+	dc.l	Sprite_frame_data_11EAC
+	dc.l	Sprite_frame_data_11EBA
+	dc.l	Sprite_frame_data_11EC8
+	dc.l	Sprite_frame_data_11EEE
+	dc.l	Sprite_frame_data_11F20
+;loc_10944
+Crash_car_spin_left_sprite_frames:
+	dc.l	Sprite_frame_data_11F7C
+	dc.l	Sprite_frame_data_11F84
+	dc.l	Sprite_frame_data_11F92
+	dc.l	Sprite_frame_data_11FA0
+	dc.l	Sprite_frame_data_11FAE
+	dc.l	Sprite_frame_data_11FBC
+	dc.l	Sprite_frame_data_11FCA
+	dc.l	Sprite_frame_data_11FF0
+	dc.l	Sprite_frame_data_12022
+	dc.l	Sprite_frame_data_1207E
+	dc.l	Sprite_frame_data_12086
+	dc.l	Sprite_frame_data_12094
+	dc.l	Sprite_frame_data_120A2
+	dc.l	Sprite_frame_data_120B0
+	dc.l	Sprite_frame_data_120BE
+	dc.l	Sprite_frame_data_120CC
+	dc.l	Sprite_frame_data_120F2
+	dc.l	Sprite_frame_data_12124
+	dc.l	Sprite_frame_data_12180
+	dc.l	Sprite_frame_data_12188
+	dc.l	Sprite_frame_data_12196
+	dc.l	Sprite_frame_data_121A4
+	dc.l	Sprite_frame_data_121B2
+	dc.l	Sprite_frame_data_121C0
+	dc.l	Sprite_frame_data_121CE
+	dc.l	Sprite_frame_data_121F4
+	dc.l	Sprite_frame_data_12226
+	dc.l	Sprite_frame_data_12282
+	dc.l	Sprite_frame_data_12282
+	dc.l	Sprite_frame_data_12290
+	dc.l	Sprite_frame_data_1229E
+	dc.l	Sprite_frame_data_122AC
+	dc.l	Sprite_frame_data_122C6
+	dc.l	Sprite_frame_data_122E0
+	dc.l	Sprite_frame_data_12306
+	dc.l	Sprite_frame_data_12338
+	dc.l	Sprite_frame_data_12376
+	dc.l	Sprite_frame_data_12376
+	dc.l	Sprite_frame_data_12384
+	dc.l	Sprite_frame_data_12392
+	dc.l	Sprite_frame_data_123A0
+	dc.l	Sprite_frame_data_123BA
+	dc.l	Sprite_frame_data_123D4
+	dc.l	Sprite_frame_data_123FA
+	dc.l	Sprite_frame_data_1242C
+	dc.l	Sprite_frame_data_1246A
+	dc.l	Sprite_frame_data_1246A
+	dc.l	Sprite_frame_data_12478
+	dc.l	Sprite_frame_data_12486
+	dc.l	Sprite_frame_data_12494
+	dc.l	Sprite_frame_data_124AE
+	dc.l	Sprite_frame_data_124C8
+	dc.l	Sprite_frame_data_124EE
+	dc.l	Sprite_frame_data_12520
+	dc.l	Sprite_frame_data_1255E
+	dc.l	Sprite_frame_data_1255E
+	dc.l	Sprite_frame_data_1256C
+	dc.l	Sprite_frame_data_1257A
+	dc.l	Sprite_frame_data_12588
+	dc.l	Sprite_frame_data_125A2
+	dc.l	Sprite_frame_data_125BC
+	dc.l	Sprite_frame_data_125E2
+	dc.l	Sprite_frame_data_12614
 	dc.l	0
 	dc.l	0
 	dc.l	Sprite_frame_data_12986
@@ -22932,304 +22978,304 @@ loc_10944:
 	dc.l	Sprite_frame_data_12996
 	dc.l	Sprite_frame_data_1299E
 	dc.l	Sprite_frame_data_1299E
-loc_10AAC:
+Sprite_frame_data_10AAC:
 	dc.b	$00, $05, $C8, $0E, $00, $01, $FF, $E0, $E0, $0B, $00, $0D, $FF, $C8
 	dc.b	$E0, $0F, $00, $19, $FF, $E0, $C8, $0E, $08, $01, $00, $00, $E0, $0B
 	dc.b	$08, $0D, $00, $20, $E0, $0F, $08, $19, $00, $00
-loc_10AD2:
+Sprite_frame_data_10AD2:
 	dc.b	$00, $05, $D8, $09, $00, $29, $FF, $E8, $E8, $06, $00, $2F, $FF, $D8
 	dc.b	$E8, $0A, $00, $35, $FF, $E8, $D8, $09, $08, $29, $FF, $FF, $E8, $06
 	dc.b	$08, $2F, $00, $17, $E8, $0A, $08, $35, $FF, $FF
-loc_10AF8:
+Sprite_frame_data_10AF8:
 	dc.b	$00, $03, $E0, $05, $00, $3E, $FF, $F0, $F0, $0D, $00, $42, $FF, $E0
 	dc.b	$E0, $05, $08, $3E, $FF, $FF, $F0, $0D, $08, $42, $FF, $FF
-loc_10B12:
+Sprite_frame_data_10B12:
 	dc.b	$00, $03, $E8, $04, $00, $4A, $FF, $F0, $F0, $09, $00, $4C, $FF, $E8
 	dc.b	$E8, $04, $08, $4A, $00, $00, $F0, $09, $08, $4C, $00, $00
-loc_10B2C:
+Sprite_frame_data_10B2C:
 	dc.b	$00, $03, $F0, $00, $00, $52, $FF, $F8, $F8, $04, $00, $53, $FF, $F0
 	dc.b	$F0, $00, $08, $52, $00, $00, $F8, $04, $08, $53, $00, $00
-loc_10B46:
+Sprite_frame_data_10B46:
 	dc.b  $00, $03
 	dc.b	$F0, $00, $00, $55, $FF, $F8, $F8, $04, $00, $56, $FF, $F0, $F0, $00
 	dc.b	$08, $55, $FF, $FF, $F8, $04, $08, $56, $FF, $FF
-loc_10B60:
+Sprite_frame_data_10B60:
 	dc.b	$00, $01, $F8, $00, $00, $58, $FF, $F8, $F8, $00, $08, $58, $FF, $FF
-loc_10B6E:
+Sprite_frame_data_10B6E:
 	dc.b	$00, $01, $F8, $00, $00, $59, $FF, $F8, $F8, $00, $08, $59, $00, $00
-loc_10B7C
+Sprite_frame_data_10B7C
 	dc.b	$00, $00, $F8, $00, $00, $5A, $FF, $FC
-loc_10B84:
+Sprite_frame_data_10B84:
 	dc.b	$00, $08, $D8, $08, $00, $5B, $FF, $CC, $C8, $0E, $00, $5E, $FF, $E4
 	dc.b	$C8, $0E, $00, $6A, $00, $04, $C8, $01, $00, $76, $00, $24, $D8, $08
 	dc.b	$00, $78, $00, $24, $E0, $0F, $00, $7B, $FF, $C4, $E0, $0F, $00, $8B
 	dc.b	$FF, $E4, $E0, $0F, $00, $9B, $00, $04, $E0, $0B, $00, $AB, $00, $24
-loc_10BBC:
+Sprite_frame_data_10BBC:
 	dc.b	$00, $04, $D8, $0D, $00, $B7, $FF, $EC, $D8, $05, $00, $BF, $00, $0C
 	dc.b	$E8, $0E, $00, $C3, $FF, $D4, $E8, $0E, $00, $CF, $FF, $F4, $E8, $0A
 	dc.b	$00, $DB, $00, $14
-loc_10BDC:
+Sprite_frame_data_10BDC:
 	dc.b	$00, $04, $E0, $0C, $00, $E4, $FF, $F0, $E0, $00, $00, $E8, $00, $10
 	dc.b	$E8, $08, $00, $E9, $FF, $E8, $F0, $0D, $00, $EC, $FF, $E0, $E8, $0E
 	dc.b	$00, $F4, $00, $00
-loc_10BFC:
+Sprite_frame_data_10BFC:
 	dc.b	$00, $02, $E8, $08, $01, $00, $FF, $F8, $F0, $05, $01, $03, $FF, $E8
 	dc.b	$F0, $0D, $01, $07, $FF, $F8
-loc_10C10:
+Sprite_frame_data_10C10:
 	dc.b	$00, $00, $F0, $0D, $01, $0F, $FF, $F0
-loc_10C18:
+Sprite_frame_data_10C18:
 	dc.b	$00, $00, $F0, $09, $01, $17, $FF, $F4
-loc_10C20:
+Sprite_frame_data_10C20:
 	dc.b	$00, $00, $F8, $04, $01, $1D, $FF, $F8
-loc_10C28:
+Sprite_frame_data_10C28:
 	dc.b	$00, $00, $F8, $04, $01, $1F, $FF, $F8
-loc_10C30:
+Sprite_frame_data_10C30:
 	dc.b	$00, $00, $F8, $00, $01, $21, $FF, $FC
-loc_10C38:
+Sprite_frame_data_10C38:
 	dc.b	$00, $09, $C8, $05, $01, $22, $FF, $E8, $D8, $0C, $01, $26, $FF, $D8
 	dc.b	$C8, $0E, $01, $2A, $FF, $F8, $C8, $0E, $01, $36, $00, $18, $D8, $00
 	dc.b	$01, $42, $00, $38, $D8, $0B, $01, $43, $FF, $B8, $E0, $0F, $01, $4F
 	dc.b	$FF, $D0, $E0, $0F, $01, $5F, $FF, $F0, $E0, $0F, $01, $6F, $00, $10
 	dc.b	$E0, $0B, $01, $7F, $00, $30
-loc_10C76:
+Sprite_frame_data_10C76:
 	dc.b	$00, $06, $E0, $04, $01, $8B, $FF, $E4, $D8, $09, $01, $8D, $FF, $F4
 	dc.b	$D8, $0D, $01, $93, $00, $0C, $E8, $0E, $01, $9B, $FF, $CC, $E8, $0E
 	dc.b	$01, $A7, $FF, $EC, $E8, $0E, $01, $B3, $00, $0C, $E8, $02, $01, $BF
 	dc.b	$00, $2C
-loc_10CA2:
+Sprite_frame_data_10CA2:
 	dc.b	$00, $03, $E8, $0A, $01, $C2, $FF, $DC, $E0, $0F, $01, $CB, $FF, $F4
 	dc.b	$E0, $00, $01, $DB, $00, $14, $E8, $06, $01, $DC, $00, $14
-loc_10CBC:
+Sprite_frame_data_10CBC:
 	dc.b	$00, $02, $E8, $0C, $01, $E2, $FF, $F4, $F0, $0D, $01, $E6, $FF, $E4
 	dc.b	$F0, $09, $01, $EE, $00, $04
-loc_10CD0:
+Sprite_frame_data_10CD0:
 	dc.b	$00, $01, $F0, $0D, $01, $F4, $FF, $EC, $F0, $01, $01, $FC, $00, $0C
-loc_10CDE:
+Sprite_frame_data_10CDE:
 	dc.b	$00, $01, $F0, $08, $01, $FE, $FF, $F8, $F8, $0C, $02, $01, $FF, $F0
-loc_10CEC:
+Sprite_frame_data_10CEC:
 	dc.b	$00, $00, $F8, $08, $02, $05, $FF, $F4
-loc_10CF4:
+Sprite_frame_data_10CF4:
 	dc.b	$00, $00, $F8, $04, $02, $08, $FF, $F8
-loc_10CFC:
+Sprite_frame_data_10CFC:
 	dc.b	$00, $00, $F8, $04, $02, $0A, $FF, $F8
-loc_10D04:
+Sprite_frame_data_10D04:
 	dc.b	$00, $08, $D8, $08, $08, $5B, $00, $1C, $C8, $0E, $08, $5E, $FF, $FC
 	dc.b	$C8, $0E, $08, $6A, $FF, $DC, $C8, $01, $08, $76, $FF, $D4, $D8, $08
 	dc.b	$08, $78, $FF, $C4, $E0, $0F, $08, $7B, $00, $1C, $E0, $0F, $08, $8B
 	dc.b	$FF, $FC, $E0, $0F, $08, $9B, $FF, $DC, $E0, $0B, $08, $AB, $FF, $C4
-loc_10D3C:
+Sprite_frame_data_10D3C:
 	dc.b	$00, $04, $D8, $0D, $08, $B7, $FF, $F4, $D8, $05, $08, $BF, $FF, $E4
 	dc.b	$E8, $0E, $08, $C3, $00, $0C, $E8, $0E, $08, $CF, $FF, $EC, $E8, $0A
 	dc.b	$08, $DB, $FF, $D4
-loc_10D5C:
+Sprite_frame_data_10D5C:
 	dc.b	$00, $04, $E0, $0C, $08, $E4, $FF, $F0, $E0, $00, $08, $E8, $FF, $E8
 	dc.b	$E8, $08, $08, $E9, $00, $00, $F0, $0D, $08, $EC, $00, $00, $E8, $0E
 	dc.b	$08, $F4, $FF, $E0
-loc_10D7C:
+Sprite_frame_data_10D7C:
 	dc.b	$00, $02, $E8, $08, $09, $00, $FF, $F0, $F0, $05, $09, $03, $00, $08
 	dc.b	$F0, $0D, $09, $07, $FF, $E8
-loc_10D90:
+Sprite_frame_data_10D90:
 	dc.b	$00, $00, $F0, $0D, $09, $0F, $FF, $F0
-loc_10D98:
+Sprite_frame_data_10D98:
 	dc.b	$00, $00, $F0, $09, $09, $17, $FF, $F4
-loc_10DA0:
+Sprite_frame_data_10DA0:
 	dc.b	$00, $00, $F8, $04, $09, $1D, $FF, $F8
-loc_10DA8:
+Sprite_frame_data_10DA8:
 	dc.b	$00, $00, $F8, $04, $09, $1F, $FF, $F8
-loc_10DB0:
+Sprite_frame_data_10DB0:
 	dc.b	$00, $00, $F8, $00, $09, $21, $FF, $FC
-loc_10DB8:
+Sprite_frame_data_10DB8:
 	dc.b	$00, $09, $C8, $05, $09, $22, $00, $08, $D8, $0C, $09, $26, $00, $08
 	dc.b	$C8, $0E, $09, $2A, $FF, $E8, $C8, $0E, $09, $36, $FF, $C8, $D8, $00
 	dc.b	$09, $42, $FF, $C0, $D8, $0B, $09, $43, $00, $30, $E0, $0F, $09, $4F
 	dc.b	$00, $10, $E0, $0F, $09, $5F, $FF, $F0, $E0, $0F, $09, $6F, $FF, $D0
 	dc.b	$E0, $0B, $09, $7F, $FF, $B8
-loc_10DF6:
+Sprite_frame_data_10DF6:
 	dc.b	$00, $06, $E0, $04, $09, $8B, $00, $0C, $D8, $09, $09, $8D, $FF, $F4
 	dc.b	$D8, $0D, $09, $93, $FF, $D4, $E8, $0E, $09, $9B, $00, $14, $E8, $0E
 	dc.b	$09, $A7, $FF, $F4, $E8, $0E, $09, $B3, $FF, $D4, $E8, $02, $09, $BF
 	dc.b	$FF, $CC
-loc_10E22:
+Sprite_frame_data_10E22:
 	dc.b	$00, $03, $E8, $0A, $09, $C2, $00, $0C, $E0, $0F, $09, $CB, $FF, $EC
 	dc.b	$E0, $00, $09, $DB, $FF, $E4, $E8, $06, $09, $DC, $FF, $DC
-loc_10E3C:
+Sprite_frame_data_10E3C:
 	dc.b	$00, $02, $E8, $0C, $09, $E2, $FF, $EC, $F0, $0D, $09, $E6, $FF, $FC
 	dc.b	$F0, $09, $09, $EE, $FF, $E4
-loc_10E50:
+Sprite_frame_data_10E50:
 	dc.b	$00, $01, $F0, $0D, $09, $F4, $FF, $F4, $F0, $01, $09, $FC, $FF, $EC
-loc_10E5E:
+Sprite_frame_data_10E5E:
 	dc.b	$00, $01, $F0, $08, $09, $FE, $FF, $F0, $F8, $0C, $0A, $01, $FF, $F0
-loc_10E6C:
+Sprite_frame_data_10E6C:
 	dc.b	$00, $00, $F8, $08, $0A, $05, $FF, $F4
-loc_10E74:
+Sprite_frame_data_10E74:
 	dc.b	$00, $00, $F8, $04, $0A, $08, $FF, $F8
-loc_10E7C:
+Sprite_frame_data_10E7C:
 	dc.b	$00, $00, $F8, $04, $0A, $0A, $FF, $F8
-loc_10E84:
+Sprite_frame_data_10E84:
 	dc.b	$00, $00, $F8, $00, $02, $67, $FF, $FC
-loc_10E8C:
+Sprite_frame_data_10E8C:
 	dc.b	$00, $01, $F8, $00, $02, $66, $FF, $F8, $F8, $00, $0A, $66, $FF, $FF
-loc_10E9A:
+Sprite_frame_data_10E9A:
 	dc.b	$00, $01, $F8, $00, $02, $65, $FF, $F8, $F8, $00, $0A, $65, $FF, $FF
-loc_10EA8:
+Sprite_frame_data_10EA8:
 	dc.b	$00, $03, $F0, $00, $02, $62, $FF, $F8, $F8, $04, $02, $63, $FF, $F0
 	dc.b	$F0, $00, $0A, $62, $FF, $FF, $F8, $04, $0A, $63, $FF, $FF
-loc_10EC2:
+Sprite_frame_data_10EC2:
 	dc.b	$00, $01, $F0, $05, $02, $5E, $FF, $F0, $F0, $05, $0A, $5E, $00, $00
-loc_10ED0:
+Sprite_frame_data_10ED0:
 	dc.b	$00, $03, $E8, $04, $02, $56, $FF, $F0, $F0, $09, $02, $58, $FF, $E8
 	dc.b	$E8, $04, $0A, $56, $00, $00, $F0, $09, $0A, $58, $00, $00
-loc_10EEA:
+Sprite_frame_data_10EEA:
 	dc.b	$00, $00, $F8, $00, $02, $55, $FF, $FC
-loc_10EF2:
+Sprite_frame_data_10EF2:
 	dc.b	$00, $00, $F8, $04, $02, $53, $FF, $F8
-loc_10EFA:
+Sprite_frame_data_10EFA:
 	dc.b	$00, $00, $F8, $04, $02, $51, $FF, $F8
-loc_10F02:
+Sprite_frame_data_10F02:
 	dc.b	$00, $01, $F0, $04, $02, $4C, $FF, $FC, $F8, $08, $02, $4E, $FF, $F4
-loc_10F10:
+Sprite_frame_data_10F10:
 	dc.b	$00, $00, $F0, $0D, $02, $44, $FF, $F0
-loc_10F18:
+Sprite_frame_data_10F18:
 	dc.b	$00, $02, $E8, $08, $02, $35, $FF, $F8, $F0, $0D, $02, $38, $FF, $E8
 	dc.b	$F0, $05, $02, $40, $00, $08
-loc_10F2C:
+Sprite_frame_data_10F2C:
 	dc.b	$00, $00, $F8, $00, $0A, $55, $FF, $FC
-loc_10F34:
+Sprite_frame_data_10F34:
 	dc.b	$00, $00, $F8, $04, $0A, $53, $FF, $F8
-loc_10F3C:
+Sprite_frame_data_10F3C:
 	dc.b	$00, $00, $F8, $04, $0A, $51, $FF, $F8
-loc_10F44:
+Sprite_frame_data_10F44:
 	dc.b	$00, $01, $F0, $04, $0A, $4C, $FF, $F4, $F8, $08, $0A, $4E, $FF, $F4
-loc_10F52:
+Sprite_frame_data_10F52:
 	dc.b	$00, $00, $F0, $0D, $0A, $44, $FF, $F0
-loc_10F5A:
+Sprite_frame_data_10F5A:
 	dc.b	$00, $02, $E8, $08, $0A, $35, $FF, $F0, $F0, $0D, $0A, $38, $FF, $F8
 	dc.b	$F0, $05, $0A, $40, $FF, $E8
-loc_10F6E:
+Sprite_frame_data_10F6E:
 	dc.b	$00, $00, $F8, $04, $02, $33, $FF, $F8
-loc_10F76:
+Sprite_frame_data_10F76:
 	dc.b	$00, $00, $F8, $04, $02, $31, $FF, $F8
-loc_10F7E:
+Sprite_frame_data_10F7E:
 	dc.b	$00, $00, $F8, $08, $02, $2E, $FF, $F4
-loc_10F86:
+Sprite_frame_data_10F86:
 	dc.b	$00, $01, $F0, $08, $02, $27, $FF, $F8, $F8, $0C, $02, $2A, $FF, $F0
-loc_10F94:
+Sprite_frame_data_10F94:
 	dc.b	$00, $01, $F0, $0D, $02, $1D, $FF, $EC, $F0, $01, $02, $25, $00, $0C
-loc_10FA2:
+Sprite_frame_data_10FA2:
 	dc.b	$00, $02, $E8, $08, $02, $0C, $FF, $FC, $F0, $0D, $02, $0F, $FF, $E4
 	dc.b	$F0, $09, $02, $17, $00, $04
-loc_10FB6:
+Sprite_frame_data_10FB6:
 	dc.b	$00, $00, $F8, $04, $0A, $33, $FF, $F8
-loc_10FBE:
+Sprite_frame_data_10FBE:
 	dc.b	$00, $00, $F8, $04, $0A, $31, $FF, $F8
-loc_10FC6:
+Sprite_frame_data_10FC6:
 	dc.b	$00, $00, $F8, $08, $0A, $2E, $FF, $F4
-loc_10FCE:
+Sprite_frame_data_10FCE:
 	dc.b	$00, $01, $F0, $08, $0A, $27, $FF, $F0, $F8, $0C, $0A, $2A, $FF, $F0
-loc_10FDC:
+Sprite_frame_data_10FDC:
 	dc.b	$00, $01, $F0, $0D, $0A, $1D, $FF, $F4, $F0, $01, $0A, $25, $FF, $EC
-loc_10FEA:
+Sprite_frame_data_10FEA:
 	dc.b	$00, $02, $E8, $08, $0A, $0C, $FF, $EC, $F0, $0D, $0A, $0F, $FF, $FC
 	dc.b	$F0, $09, $0A, $17, $FF, $E4
-loc_10FFE:
+Sprite_frame_data_10FFE:
 	dc.b	$00, $00, $F9, $00, $02, $CC, $FF, $FD
-loc_11006:
+Sprite_frame_data_11006:
 	dc.b	$00, $00, $F6, $01, $02, $CA, $FF, $FB
-loc_1100E:
+Sprite_frame_data_1100E:
 	dc.b	$00, $00, $F2, $01, $02, $C8, $FF, $F9
-loc_11016:
+Sprite_frame_data_11016:
 	dc.b	$00, $00, $EC, $06, $02, $C2, $FF, $F5
-loc_1101E:
+Sprite_frame_data_1101E:
 	dc.b	$00, $00, $E3, $07, $02, $BA, $FF, $F0
-loc_11026:
+Sprite_frame_data_11026:
 	dc.b	$00, $03, $F4, $01, $02, $DD, $FF, $EA, $F4, $01, $02, $DD, $FF, $FB
 	dc.b	$E6, $09, $12, $B4, $FF, $E9, $D6, $09, $02, $B4, $FF, $E9
-loc_11040:
+Sprite_frame_data_11040:
 	dc.b	$00, $03, $F0, $01, $02, $DB, $FF, $E1, $F0, $01, $02, $DB, $FF, $F8
 	dc.b	$DC, $0E, $12, $A8, $FF, $E0, $C4, $0E, $02, $A8, $FF, $E0
-loc_1105A:
+Sprite_frame_data_1105A:
 	dc.b	$00, $05, $E8, $06, $02, $D5, $FF, $D2, $E8, $06, $02, $D5, $FF, $F5
 	dc.b	$CC, $0B, $12, $90, $FF, $D2, $CC, $0B, $12, $9C, $FF, $EA, $AC, $0B
 	dc.b	$02, $90, $FF, $D2, $AC, $0B, $02, $9C, $FF, $EA
-loc_11080:
+Sprite_frame_data_11080:
 	dc.b	$00, $09, $E0, $07, $02, $CD, $FF, $BF, $E0, $07, $02, $CD, $FF, $F0
 	dc.b	$B8, $0D, $12, $80, $FF, $C0, $B8, $0D, $12, $88, $FF, $E0, $C8, $0E
 	dc.b	$12, $68, $FF, $C0, $C8, $0E, $12, $74, $FF, $E0, $90, $0E, $02, $68
 	dc.b	$FF, $C0, $90, $0E, $02, $74, $FF, $E0, $A8, $0D, $02, $80, $FF, $C0
 	dc.b	$A8, $0D, $02, $88, $FF, $E0
-loc_110BE:
+Sprite_frame_data_110BE:
 	dc.b	$00, $00, $F9, $00, $0A, $CC, $FF, $FB
-loc_110C6:
+Sprite_frame_data_110C6:
 	dc.b	$00, $00, $F6, $01, $0A, $CA, $FF, $FD
-loc_110CE:
+Sprite_frame_data_110CE:
 	dc.b	$00, $00, $F2, $01, $0A, $C8, $FF, $FF
-loc_110D6:
+Sprite_frame_data_110D6:
 	dc.b	$00, $00, $EC, $06, $0A, $C2, $FF, $FB
-loc_110DE:
+Sprite_frame_data_110DE:
 	dc.b	$00, $00, $E3, $07, $0A, $BA, $00, $00
-loc_110E6:
+Sprite_frame_data_110E6:
 	dc.b	$00, $03, $F4, $01, $0A, $DD, $00, $0E, $F4, $01, $0A, $DD, $FF, $FD
 	dc.b	$E6, $09, $1A, $B4, $FF, $FF, $D6, $09, $0A, $B4, $FF, $FF
-loc_11100:
+Sprite_frame_data_11100:
 	dc.b	$00, $03, $F0, $01, $0A, $DB, $00, $17, $F0, $01, $0A, $DB, $00, $00
 	dc.b	$DC, $0E, $1A, $A8, $00, $00, $C4, $0E, $0A, $A8, $00, $00
-loc_1111A:
+Sprite_frame_data_1111A:
 	dc.b	$00, $05, $E8, $06, $0A, $D5, $00, $1E, $E8, $06, $0A, $D5, $FF, $FB
 	dc.b	$CC, $0B, $1A, $90, $00, $16, $CC, $0B, $1A, $9C, $FF, $FE, $AC, $0B
 	dc.b	$0A, $90, $00, $16, $AC, $0B, $0A, $9C, $FF, $FE
-loc_11140:
+Sprite_frame_data_11140:
 	dc.b	$00, $09, $E0, $07, $0A, $CD, $00, $31, $E0, $07, $0A, $CD, $00, $00
 	dc.b	$B8, $0D, $1A, $80, $00, $20, $B8, $0D, $1A, $88, $00, $00, $C8, $0E
 	dc.b	$1A, $68, $00, $20, $C8, $0E, $1A, $74, $00, $00, $90, $0E, $0A, $68
 	dc.b	$00, $20, $90, $0E, $0A, $74, $00, $00, $A8, $0D, $0A, $80, $00, $20
 	dc.b	$A8, $0D, $0A, $88, $00, $00
-loc_1117E:
+Sprite_frame_data_1117E:
 	dc.b	$00, $00, $F9, $00, $03, $B2, $FF, $FD
-loc_11186:
+Sprite_frame_data_11186:
 	dc.b	$00, $00, $F6, $01, $03, $B0, $FF, $FB
-loc_1118E:
+Sprite_frame_data_1118E:
 	dc.b	$00, $00, $F2, $01, $03, $AE, $FF, $F9
-loc_11196:
+Sprite_frame_data_11196:
 	dc.b	$00, $00, $EC, $06, $03, $A8, $FF, $F5
-loc_1119E:
+Sprite_frame_data_1119E:
 	dc.b	$00, $00, $E3, $07, $03, $A0, $FF, $F0
-loc_111A6:
+Sprite_frame_data_111A6:
 	dc.b	$00, $02, $F4, $01, $02, $DD, $FF, $EA, $F4, $01, $02, $DD, $FF, $FB
 	dc.b	$D6, $0B, $03, $94, $FF, $E9
-loc_111BA:
+Sprite_frame_data_111BA:
 	dc.b	$00, $03, $F0, $01, $02, $DB, $FF, $E1, $F0, $01, $02, $DB, $FF, $F8
 	dc.b	$C8, $0E, $03, $80, $FF, $E0, $E0, $0D, $03, $8C, $FF, $E0
-loc_111D4:
+Sprite_frame_data_111D4:
 	dc.b	$00, $05, $E8, $06, $02, $D5, $FF, $D2, $E8, $06, $02, $D5, $FF, $F5
 	dc.b	$B0, $06, $04, $32, $FF, $D2, $B0, $0E, $03, $5C, $FF, $E2, $C8, $0B
 	dc.b	$03, $68, $FF, $D2, $C8, $0B, $03, $74, $FF, $EA
-loc_111FA:
+Sprite_frame_data_111FA:
 	dc.b	$00, $09, $E0, $07, $02, $CD, $FF, $BF, $E0, $07, $02, $CD, $FF, $F0
 	dc.b	$90, $0B, $04, $32, $FF, $C0, $90, $0B, $03, $2A, $FF, $D8, $90, $07
 	dc.b	$03, $36, $FF, $F0, $B0, $0A, $03, $3E, $FF, $C0, $B0, $0A, $03, $47
 	dc.b	$FF, $D8, $B0, $06, $04, $32, $FF, $F0, $C8, $0E, $03, $50, $FF, $C0
 	dc.b	$C8, $0E, $04, $32, $FF, $E0
-loc_11238:
+Sprite_frame_data_11238:
 	dc.b	$00, $00, $F9, $00, $0B, $B2, $FF, $FB
-loc_11240:
+Sprite_frame_data_11240:
 	dc.b	$00, $00, $F6, $01, $0B, $B0, $FF, $FD
-loc_11248:
+Sprite_frame_data_11248:
 	dc.b	$00, $00, $F2, $01, $0B, $AE, $FF, $FF
-loc_11250:
+Sprite_frame_data_11250:
 	dc.b	$00, $00, $EC, $06, $0B, $A8, $FF, $FB
-loc_11258:
+Sprite_frame_data_11258:
 	dc.b	$00, $00, $E3, $07, $0B, $A0, $00, $00
-loc_11260:
+Sprite_frame_data_11260:
 	dc.b	$00, $02, $F4, $01, $0A, $DD, $00, $0E, $F4, $01, $0A, $DD, $FF, $FD
 	dc.b	$D6, $0B, $0B, $94, $FF, $FF
-loc_11274:
+Sprite_frame_data_11274:
 	dc.b	$00, $03, $F0, $01, $0A, $DB, $00, $17, $F0, $01, $0A, $DB, $00, $00
 	dc.b	$C8, $0E, $0B, $80, $00, $00, $E0, $0D, $0B, $8C, $00, $00
-loc_1128E:
+Sprite_frame_data_1128E:
 	dc.b	$00, $05, $E8, $06, $0A, $D5, $00, $1E, $E8, $06, $0A, $D5, $FF, $FB
 	dc.b	$B0, $06, $04, $32, $00, $1E, $B0, $0E, $0B, $5C, $FF, $FE, $C8, $0B
 	dc.b	$0B, $68, $00, $16, $C8, $0B, $0B, $74, $FF, $FE
-loc_112B4:
+Sprite_frame_data_112B4:
 	dc.b	$00, $09, $E0, $07, $0A, $CD, $00, $31, $E0, $07, $0A, $CD, $00, $00
 	dc.b	$90, $0B, $04, $32, $00, $28, $90, $0B, $0B, $2A, $00, $10, $90, $07
 	dc.b	$0B, $36, $00, $00, $B0, $0A, $0B, $3E, $00, $28, $B0, $0A, $0B, $47
@@ -23238,22 +23284,22 @@ loc_112B4:
 ;loc_112F2
 Sprite_frame_data_112F2:
 	dc.b	$00, $00, $F8, $00, $03, $FB, $FF, $FC
-loc_112FA:
+Sprite_frame_data_112FA:
 	dc.b	$00, $01, $F0, $01, $03, $F9, $FF, $F8, $F0, $01, $0B, $F9, $00, $00
-loc_11308:
+Sprite_frame_data_11308:
 	dc.b	$00, $01, $E8, $02, $03, $F6, $FF, $F8, $E8, $02, $0B, $F6, $00, $00
-loc_11316:
+Sprite_frame_data_11316:
 	dc.b	$00, $01, $E0, $07, $03, $EE, $FF, $F0, $E0, $07, $0B, $EE, $00, $00
-loc_11324:
+Sprite_frame_data_11324:
 	dc.b	$00, $03, $D8, $07, $03, $E4, $FF, $F0, $F8, $04, $03, $EC, $FF, $F0
 	dc.b	$D8, $07, $0B, $E4, $00, $00, $F8, $04, $0B, $EC, $00, $00
-loc_1133E:
+Sprite_frame_data_1133E:
 	dc.b	$00, $05, $C8, $04, $03, $D0, $FF, $F0, $D0, $0B, $03, $D2, $FF, $E8
 	dc.b	$F0, $09, $03, $DE, $FF, $E8, $C8, $04, $0B, $D0, $00, $00, $D0, $0B
 	dc.b	$0B, $D2, $00, $00, $F0, $09, $0B, $DE, $00, $00
-loc_11364:
+Sprite_frame_data_11364:
 	dc.b	$00, $00, $FC, $00, $04, $19, $FF, $FC
-loc_1136C:
+Sprite_frame_data_1136C:
 	dc.b	$00, $00, $FC, $00, $04, $18, $FF, $FC
 ;loc_11374
 Sprite_frame_data_11374:
@@ -23278,311 +23324,311 @@ Sprite_frame_data_113A8:
 Sprite_frame_data_113C2:
 	dc.b	$00, $03, $E7, $0A, $03, $FC, $FF, $E8, $E7, $0A, $0B, $FC, $00, $00
 	dc.b	$FF, $0A, $13, $FC, $FF, $E8, $FF, $0A, $1B, $FC, $00, $00
-loc_113DC:
+Sprite_frame_data_113DC:
 	dc.b	$00, $00, $F8, $00, $03, $29, $FF, $F9
-loc_113E4:
+Sprite_frame_data_113E4:
 	dc.b	$00, $00, $F8, $00, $03, $28, $FF, $F8
-loc_113EC:
+Sprite_frame_data_113EC:
 	dc.b	$00, $00, $F8, $04, $03, $26, $FF, $F2
-loc_113F4:
+Sprite_frame_data_113F4:
 	dc.b	$00, $00, $F8, $08, $03, $23, $FF, $EC
-loc_113FC:
+Sprite_frame_data_113FC:
 	dc.b	$00, $00, $F0, $09, $03, $1D, $FF, $E8
-loc_11404:
+Sprite_frame_data_11404:
 	dc.b	$00, $01, $F0, $05, $0B, $19, $FF, $E0, $F0, $05, $03, $19, $FF, $F0
-loc_11412:
+Sprite_frame_data_11412:
 	dc.b	$00, $01, $E8, $0A, $0B, $10, $FF, $D0, $E8, $0A, $03, $10, $FF, $E8
-loc_11420:
+Sprite_frame_data_11420:
 	dc.b	$00, $07, $D8, $0A, $0A, $F7, $FF, $C6, $D8, $06, $0B, $00, $FF, $B6
 	dc.b	$F0, $09, $0B, $06, $FF, $C6, $F0, $05, $0B, $0C, $FF, $B6, $D8, $0A
 	dc.b	$02, $F7, $FF, $DE, $D8, $06, $03, $00, $FF, $F6, $F0, $09, $03, $06
 	dc.b	$FF, $DE, $F0, $05, $03, $0C, $FF, $F6
-loc_11452:
+Sprite_frame_data_11452:
 	dc.b	$00, $05, $D0, $0E, $02, $DF, $FF, $A1, $D0, $0E, $02, $EB, $FF, $C1
 	dc.b	$D0, $0E, $02, $DF, $FF, $E1, $E8, $0E, $02, $DF, $FF, $A1, $E8, $0E
 	dc.b	$02, $EB, $FF, $C1, $E8, $0E, $02, $DF, $FF, $E1
-loc_11478:
+Sprite_frame_data_11478:
 	dc.b	$00, $00, $F8, $00, $03, $29, $FF, $FE
-loc_11480:
+Sprite_frame_data_11480:
 	dc.b	$00, $00, $F8, $00, $03, $28, $00, $00
-loc_11488:
+Sprite_frame_data_11488:
 	dc.b	$00, $00, $F8, $04, $03, $26, $FF, $FE
-loc_11490:
+Sprite_frame_data_11490:
 	dc.b	$00, $00, $F8, $08, $03, $23, $FF, $FD
-loc_11498:
+Sprite_frame_data_11498:
 	dc.b	$00, $00, $F0, $09, $03, $1D, $00, $00
-loc_114A0:
+Sprite_frame_data_114A0:
 	dc.b	$00, $01, $F0, $05, $0B, $19, $00, $00, $F0, $05, $03, $19, $00, $10
-loc_114AE:
+Sprite_frame_data_114AE:
 	dc.b	$00, $01, $E8, $0A, $0B, $10, $00, $00, $E8, $0A, $03, $10, $00, $18
-loc_114BC:
+Sprite_frame_data_114BC:
 	dc.b	$00, $07, $D8, $0A, $0A, $F7, $00, $0A, $D8, $06, $0B, $00, $FF, $FA
 	dc.b	$F0, $09, $0B, $06, $00, $0A, $F0, $05, $0B, $0C, $FF, $FA, $D8, $0A
 	dc.b	$02, $F7, $00, $22, $D8, $06, $03, $00, $00, $3A, $F0, $09, $03, $06
 	dc.b	$00, $22, $F0, $05, $03, $0C, $00, $3A
-loc_114EE:
+Sprite_frame_data_114EE:
 	dc.b	$00, $05, $D0, $0E, $02, $DF, $00, $00, $D0, $0E, $02, $EB, $00, $20
 	dc.b	$D0, $0E, $02, $DF, $00, $40, $E8, $0E, $02, $DF, $00, $00, $E8, $0E
 	dc.b	$02, $EB, $00, $20, $E8, $0E, $02, $DF, $00, $40
-loc_11514:
+Sprite_frame_data_11514:
 	dc.b	$00, $00, $F8, $00, $03, $89, $FF, $FA
-loc_1151C:
+Sprite_frame_data_1151C:
 	dc.b	$00, $00, $F8, $00, $03, $88, $FF, $F9
-loc_11524:
+Sprite_frame_data_11524:
 	dc.b	$00, $00, $F8, $00, $03, $87, $FF, $F8
-loc_1152C:
+Sprite_frame_data_1152C:
 	dc.b	$00, $00, $F0, $05, $03, $83, $FF, $F2
-loc_11534:
+Sprite_frame_data_11534:
 	dc.b	$00, $00, $F0, $05, $03, $7F, $FF, $F0
-loc_1153C:
+Sprite_frame_data_1153C:
 	dc.b	$00, $02, $E8, $09, $03, $79, $FF, $E8, $F4, $01, $02, $DD, $FF, $E9
 	dc.b	$F4, $01, $02, $DD, $FF, $FB
-loc_11550:
+Sprite_frame_data_11550:
 	dc.b	$00, $03, $DC, $0A, $03, $6A, $FF, $DB, $DC, $06, $03, $73, $FF, $F3
 	dc.b	$F0, $01, $02, $DB, $FF, $DF, $F0, $01, $02, $DB, $FF, $F8
-loc_1156A:
+Sprite_frame_data_1156A:
 	dc.b	$00, $03, $D0, $0B, $03, $52, $FF, $D0, $D0, $0B, $03, $5E, $FF, $E8
 	dc.b	$E8, $06, $02, $D5, $FF, $D0, $E8, $06, $02, $D5, $FF, $F5
-loc_11584:
+Sprite_frame_data_11584:
 	dc.b	$00, $05, $C0, $0E, $03, $2A, $FF, $C1, $C0, $0E, $03, $36, $FF, $E1
 	dc.b	$D8, $0D, $03, $42, $FF, $C1, $D8, $0D, $03, $4A, $FF, $E1, $E0, $07
 	dc.b	$02, $CD, $FF, $C0, $E0, $07, $02, $CD, $FF, $F0
-loc_115AA:
+Sprite_frame_data_115AA:
 	dc.b	$00, $00, $F8, $00, $03, $89, $FF, $FD
-loc_115B2:
+Sprite_frame_data_115B2:
 	dc.b	$00, $00, $F8, $00, $03, $88, $FF, $FE
-loc_115BA:
+Sprite_frame_data_115BA:
 	dc.b	$00, $00, $F8, $00, $03, $87, $00, $00
-loc_115C2:
+Sprite_frame_data_115C2:
 	dc.b	$00, $00, $F0, $05, $03, $83, $FF, $FD
-loc_115CA:
+Sprite_frame_data_115CA:
 	dc.b	$00, $00, $F0, $05, $03, $7F, $00, $00
-loc_115D2:
+Sprite_frame_data_115D2:
 	dc.b	$00, $02, $E8, $09, $03, $79, $00, $00, $F4, $01, $02, $DD, $00, $01
 	dc.b	$F4, $01, $02, $DD, $00, $13
-loc_115E6:
+Sprite_frame_data_115E6:
 	dc.b	$00, $03, $DC, $0A, $03, $6A, $FF, $FD, $DC, $06, $03, $73, $00, $15
 	dc.b	$F0, $01, $02, $DB, $00, $01, $F0, $01, $02, $DB, $00, $1A
-loc_11600:
+Sprite_frame_data_11600:
 	dc.b	$00, $03, $D0, $0B, $03, $52, $00, $00, $D0, $0B, $03, $5E, $00, $18
 	dc.b	$E8, $06, $02, $D5, $00, $00, $E8, $06, $02, $D5, $00, $25
-loc_1161A:
+Sprite_frame_data_1161A:
 	dc.b	$00, $05, $C0, $0E, $03, $2A, $00, $00, $C0, $0E, $03, $36, $00, $20
 	dc.b	$D8, $0D, $03, $42, $00, $00, $D8, $0D, $03, $4A, $00, $20, $E0, $07
 	dc.b	$02, $CD, $FF, $FF, $E0, $07, $02, $CD, $00, $2F
-loc_11640:
+Sprite_frame_data_11640:
 	dc.b	$00, $00, $FE, $00, $03, $81, $FF, $FA
-loc_11648:
+Sprite_frame_data_11648:
 	dc.b	$00, $00, $FD, $00, $03, $80, $FF, $FA
-loc_11650:
+Sprite_frame_data_11650:
 	dc.b	$00, $00, $FB, $00, $03, $7F, $FF, $F8
-loc_11658:
+Sprite_frame_data_11658:
 	dc.b	$00, $00, $F7, $04, $03, $7D, $FF, $F3
-loc_11660:
+Sprite_frame_data_11660:
 	dc.b	$00, $00, $F2, $05, $03, $79, $FF, $F0
-loc_11668:
+Sprite_frame_data_11668:
 	dc.b	$00, $00, $EC, $0A, $03, $70, $FF, $E8
-loc_11670:
+Sprite_frame_data_11670:
 	dc.b	$00, $00, $E4, $0F, $03, $60, $FF, $E0
-loc_11678:
+Sprite_frame_data_11678:
 	dc.b	$00, $03, $D8, $0A, $03, $4B, $FF, $D1, $D8, $0A, $0B, $4B, $FF, $E9
 	dc.b	$F0, $09, $03, $54, $FF, $D1, $F0, $09, $03, $5A, $FF, $E9
-loc_11692:
+Sprite_frame_data_11692:
 	dc.b	$00, $05, $C8, $0F, $03, $2A, $FF, $C0, $C8, $0F, $0B, $2A, $FF, $E0
 	dc.b	$E8, $0D, $03, $3A, $FF, $C0, $E8, $0D, $03, $42, $FF, $E0, $F8, $00
 	dc.b	$03, $4A, $FF, $C0, $F8, $00, $0B, $4A, $FF, $F8
-loc_116B8:
+Sprite_frame_data_116B8:
 	dc.b	$00, $00, $FE, $00, $03, $81, $FF, $FE
-loc_116C0:
+Sprite_frame_data_116C0:
 	dc.b	$00, $00, $FD, $00, $03, $80, $FF, $FF
-loc_116C8:
+Sprite_frame_data_116C8:
 	dc.b	$00, $00, $FB, $00, $03, $7F, $00, $00
-loc_116D0:
+Sprite_frame_data_116D0:
 	dc.b	$00, $00, $F7, $04, $03, $7D, $FF, $FE
-loc_116D8:
+Sprite_frame_data_116D8:
 	dc.b	$00, $00, $F2, $05, $03, $79, $00, $00
-loc_116E0:
+Sprite_frame_data_116E0:
 	dc.b	$00, $00, $EC, $0A, $03, $70, $00, $00
-loc_116E8:
+Sprite_frame_data_116E8:
 	dc.b	$00, $00, $E4, $0F, $03, $60, $00, $00
-loc_116F0:
+Sprite_frame_data_116F0:
 	dc.b	$00, $03, $D8, $0A, $03, $4B, $FF, $FF, $D8, $0A, $0B, $4B, $00, $17
 	dc.b	$F0, $09, $03, $54, $FF, $FF, $F0, $09, $03, $5A, $00, $17
-loc_1170A:
+Sprite_frame_data_1170A:
 	dc.b	$00, $05, $C8, $0F, $03, $2A, $00, $00, $C8, $0F, $0B, $2A, $00, $20
 	dc.b	$E8, $0D, $03, $3A, $00, $00, $E8, $0D, $03, $42, $00, $20, $F8, $00
 	dc.b	$03, $4A, $00, $00, $F8, $00, $0B, $4A, $00, $38
-loc_11730:
+Sprite_frame_data_11730:
 	dc.b	$00, $00, $F8, $00, $03, $CC, $FF, $FB
-loc_11738:
+Sprite_frame_data_11738:
 	dc.b	$00, $00, $F0, $01, $03, $CA, $FF, $F9
-loc_11740:
+Sprite_frame_data_11740:
 	dc.b	$00, $00, $E8, $02, $03, $C7, $FF, $F9
-loc_11748:
+Sprite_frame_data_11748:
 	dc.b	$00, $00, $E0, $03, $03, $C3, $FF, $F8
-loc_11750:
+Sprite_frame_data_11750:
 	dc.b	$00, $01, $D0, $06, $03, $B7, $FF, $F1, $E8, $06, $03, $BD, $FF, $F1
-loc_1175E:
+Sprite_frame_data_1175E:
 	dc.b	$00, $01, $E0, $0B, $03, $A3, $FF, $EA, $C0, $07, $03, $AF, $FF, $F2
-loc_1176C:
+Sprite_frame_data_1176C:
 	dc.b	$00, $02, $A8, $0B, $03, $82, $FF, $E8, $C8, $0B, $03, $8E, $FF, $E8
 	dc.b	$E8, $0A, $03, $9A, $FF, $E8
-loc_11780:
+Sprite_frame_data_11780:
 	dc.b	$00, $06, $E0, $0B, $03, $43, $FF, $DB, $E0, $07, $03, $4F, $FF, $F3
 	dc.b	$C0, $0B, $03, $57, $FF, $DB, $C0, $07, $03, $63, $FF, $F3, $A8, $0E
 	dc.b	$03, $6B, $FF, $E3, $90, $0A, $03, $77, $FF, $E3, $88, $04, $03, $80
 	dc.b	$FF, $EB
-loc_117AC:
+Sprite_frame_data_117AC:
 	dc.b	$00, $0B, $F9, $08, $02, $DF, $FF, $D0, $F9, $08, $02, $E2, $FF, $E8
 	dc.b	$F1, $04, $02, $E5, $FF, $E0, $D1, $0B, $02, $E7, $FF, $D0, $D1, $0B
 	dc.b	$02, $F3, $FF, $E8, $B1, $0B, $02, $FF, $FF, $D0, $B1, $0B, $03, $0B
 	dc.b	$FF, $E8, $91, $0B, $03, $17, $FF, $D8, $91, $07, $03, $23, $FF, $F0
 	dc.b	$79, $0A, $03, $2B, $FF, $D8, $79, $06, $03, $34, $FF, $F0, $61, $0A
 	dc.b	$03, $3A, $FF, $E0
-loc_117F6:
+Sprite_frame_data_117F6:
 	dc.b	$00, $00, $F8, $00, $03, $CC, $FF, $FE
-loc_117FE:
+Sprite_frame_data_117FE:
 	dc.b	$00, $00, $F0, $01, $03, $CA, $FF, $FE
-loc_11806:
+Sprite_frame_data_11806:
 	dc.b	$00, $00, $E8, $02, $03, $C7, $FF, $FF
-loc_1180E:
+Sprite_frame_data_1180E:
 	dc.b	$00, $00, $E0, $03, $03, $C3, $00, $00
-loc_11816:
+Sprite_frame_data_11816:
 	dc.b	$00, $01, $D0, $06, $03, $B7, $FF, $FE, $E8, $06, $03, $BD, $FF, $FE
-loc_11824:
+Sprite_frame_data_11824:
 	dc.b	$00, $01, $E0, $0B, $03, $A3, $FF, $FD, $C0, $07, $03, $AF, $00, $05
-loc_11832:
+Sprite_frame_data_11832:
 	dc.b	$00, $02, $A8, $0B, $03, $82, $00, $00, $C8, $0B, $03, $8E, $00, $00
 	dc.b	$E8, $0A, $03, $9A, $00, $00
-loc_11846:
+Sprite_frame_data_11846:
 	dc.b	$00, $06, $E0, $0B, $03, $43, $FF, $FE, $E0, $07, $03, $4F, $00, $16
 	dc.b	$C0, $0B, $03, $57, $FF, $FE, $C0, $07, $03, $63, $00, $16, $A8, $0E
 	dc.b	$03, $6B, $00, $06, $90, $0A, $03, $77, $00, $06, $88, $04, $03, $80
 	dc.b	$00, $0E
-loc_11872:
+Sprite_frame_data_11872:
 	dc.b	$00, $0B, $F9, $08, $02, $DF, $00, $00, $F9, $08, $02, $E2, $00, $18
 	dc.b	$F1, $04, $02, $E5, $00, $10, $D1, $0B, $02, $E7, $00, $00, $D1, $0B
 	dc.b	$02, $F3, $00, $18, $B1, $0B, $02, $FF, $00, $00, $B1, $0B, $03, $0B
 	dc.b	$00, $18, $91, $0B, $03, $17, $00, $08, $91, $07, $03, $23, $00, $20
 	dc.b	$79, $0A, $03, $2B, $00, $08, $79, $06, $03, $34, $00, $20, $61, $0A
 	dc.b	$03, $3A, $00, $10
-loc_118BC:
+Sprite_frame_data_118BC:
 	dc.b	$00, $00, $FC, $00, $03, $7A, $FF, $FD
-loc_118C4:
+Sprite_frame_data_118C4:
 	dc.b	$00, $00, $F9, $00, $03, $79, $FF, $FB
-loc_118CC:
+Sprite_frame_data_118CC:
 	dc.b	$00, $00, $F6, $01, $03, $77, $FF, $F9
-loc_118D4:
+Sprite_frame_data_118D4:
 	dc.b	$00, $00, $F2, $05, $03, $73, $FF, $F6
-loc_118DC:
+Sprite_frame_data_118DC:
 	dc.b	$00, $00, $EC, $06, $03, $6D, $FF, $F2
-loc_118E4:
+Sprite_frame_data_118E4:
 	dc.b	$00, $00, $E3, $0B, $03, $61, $FF, $EC
-loc_118EC:
+Sprite_frame_data_118EC:
 	dc.b	$00, $01, $D8, $0E, $03, $4D, $FF, $E4, $F0, $0D, $03, $59, $FF, $E4
-loc_118FA:
+Sprite_frame_data_118FA:
 	dc.b	$00, $03, $C8, $0B, $03, $2A, $FF, $D8, $C8, $07, $03, $36, $FF, $F0
 	dc.b	$E8, $0A, $03, $3E, $FF, $D8, $E8, $06, $03, $47, $FF, $F0
-loc_11914:
+Sprite_frame_data_11914:
 	dc.b	$00, $05, $B1, $0F, $03, $7B, $FF, $C8, $B1, $0B, $03, $8B, $FF, $E8
 	dc.b	$D1, $0E, $03, $97, $FF, $C8, $D1, $0A, $03, $A3, $FF, $E8, $E9, $0E
 	dc.b	$03, $AC, $FF, $C8, $E9, $0A, $03, $B8, $FF, $E8
-loc_1193A:
+Sprite_frame_data_1193A:
 	dc.b	$00, $00, $FC, $00, $03, $7A, $00, $00
-loc_11942:
+Sprite_frame_data_11942:
 	dc.b	$00, $00, $F9, $00, $03, $79, $00, $00
-loc_1194A:
+Sprite_frame_data_1194A:
 	dc.b	$00, $00, $F6, $01, $03, $77, $00, $00
-loc_11952:
+Sprite_frame_data_11952:
 	dc.b	$00, $00, $F2, $05, $03, $73, $00, $00
-loc_1195A:
+Sprite_frame_data_1195A:
 	dc.b	$00, $00, $EC, $06, $03, $6D, $00, $00
-loc_11962:
+Sprite_frame_data_11962:
 	dc.b	$00, $00, $E3, $0B, $03, $61, $00, $00
-loc_1196A:
+Sprite_frame_data_1196A:
 	dc.b	$00, $01, $D8, $0E, $03, $4D, $00, $00, $F0, $0D, $03, $59, $00, $00
-loc_11978:
+Sprite_frame_data_11978:
 	dc.b	$00, $03, $C8, $0B, $03, $2A, $00, $00, $C8, $07, $03, $36, $00, $18
 	dc.b	$E8, $0A, $03, $3E, $00, $00, $E8, $06, $03, $47, $00, $18
-loc_11992:
+Sprite_frame_data_11992:
 	dc.b	$00, $05, $B1, $0F, $03, $7B, $00, $00, $B1, $0B, $03, $8B, $00, $20
 	dc.b	$D1, $0E, $03, $97, $00, $00, $D1, $0A, $03, $A3, $00, $20, $E9, $0E
 	dc.b	$03, $AC, $00, $00, $E9, $0A, $03, $B8, $00, $20
-loc_119B8:
+Sprite_frame_data_119B8:
 	dc.b	$00, $00, $F8, $00, $03, $3C, $FF, $F9
-loc_119C0:
+Sprite_frame_data_119C0:
 	dc.b	$00, $00, $F8, $04, $03, $3A, $FF, $F3
-loc_119C8:
+Sprite_frame_data_119C8:
 	dc.b	$00, $00, $F8, $04, $03, $38, $FF, $F1
-loc_119D0:
+Sprite_frame_data_119D0:
 	dc.b	$00, $00, $F0, $09, $03, $32, $FF, $EA
-loc_119D8:
+Sprite_frame_data_119D8:
 	dc.b	$00, $00, $F0, $0D, $03, $2A, $FF, $E2
-loc_119E0:
+Sprite_frame_data_119E0:
 	dc.b	$00, $03, $E8, $09, $03, $BB, $FF, $D9, $E8, $05, $03, $C1, $FF, $F1
 	dc.b	$F4, $01, $02, $DD, $FF, $DB, $F4, $01, $02, $DD, $FF, $FB
-loc_119FA:
+Sprite_frame_data_119FA:
 	dc.b	$00, $03, $DC, $0E, $03, $A6, $FF, $CA, $DC, $0A, $03, $B2, $FF, $EA
 	dc.b	$F0, $01, $02, $DB, $FF, $CC, $F0, $01, $02, $DB, $FF, $F8
-loc_11A14:
+Sprite_frame_data_11A14:
 	dc.b	$00, $04, $CE, $0F, $03, $7E, $FF, $B3, $CE, $0B, $03, $8E, $FF, $D3
 	dc.b	$CE, $0B, $03, $9A, $FF, $EB, $E8, $06, $02, $D5, $FF, $B6, $E8, $06
 	dc.b	$02, $D5, $FF, $F5
-loc_11A34:
+Sprite_frame_data_11A34:
 	dc.b	$00, $09, $C0, $0E, $03, $3D, $FF, $98, $C0, $0A, $03, $49, $FF, $B8
 	dc.b	$C0, $0A, $03, $52, $FF, $D0, $C0, $0A, $03, $5B, $FF, $E8, $D8, $0D
 	dc.b	$03, $64, $FF, $98, $D8, $09, $03, $6C, $FF, $B8, $D8, $09, $03, $72
 	dc.b	$FF, $D0, $D8, $09, $03, $78, $FF, $E8, $E0, $07, $02, $CD, $FF, $97
 	dc.b	$E0, $07, $02, $CD, $FF, $F0
-loc_11A72:
+Sprite_frame_data_11A72:
 	dc.b	$00, $00, $F8, $00, $03, $3C, $00, $00
-loc_11A7A:
+Sprite_frame_data_11A7A:
 	dc.b	$00, $00, $F8, $04, $03, $3A, $FF, $FD
-loc_11A82:
+Sprite_frame_data_11A82:
 	dc.b	$00, $00, $F8, $04, $03, $38, $FF, $FF
-loc_11A8A:
+Sprite_frame_data_11A8A:
 	dc.b	$00, $00, $F0, $09, $03, $32, $FF, $FE
-loc_11A92:
+Sprite_frame_data_11A92:
 	dc.b	$00, $00, $F0, $0D, $03, $2A, $FF, $FE
-loc_11A9A:
+Sprite_frame_data_11A9A:
 	dc.b	$00, $03, $E8, $09, $03, $BB, $FF, $FF, $E8, $05, $03, $C1, $00, $17
 	dc.b	$F4, $01, $02, $DD, $00, $01, $F4, $01, $02, $DD, $00, $21
-loc_11AB4:
+Sprite_frame_data_11AB4:
 	dc.b	$00, $03, $DC, $0E, $03, $A6, $FF, $FF, $DC, $0A, $03, $B2, $00, $1F
 	dc.b	$F0, $01, $02, $DB, $00, $01, $F0, $01, $02, $DB, $00, $2D
-loc_11ACE:
+Sprite_frame_data_11ACE:
 	dc.b	$00, $04, $CE, $0F, $03, $7E, $FF, $FD, $CE, $0B, $03, $8E, $00, $1D
 	dc.b	$CE, $0B, $03, $9A, $00, $35, $E8, $06, $02, $D5, $00, $00, $E8, $06
 	dc.b	$02, $D5, $00, $3F
-loc_11AEE:
+Sprite_frame_data_11AEE:
 	dc.b	$00, $09, $C0, $0E, $03, $3D, $00, $00, $C0, $0A, $03, $49, $00, $20
 	dc.b	$C0, $0A, $03, $52, $00, $38, $C0, $0A, $03, $5B, $00, $50, $D8, $0D
 	dc.b	$03, $64, $00, $00, $D8, $09, $03, $6C, $00, $20, $D8, $09, $03, $72
 	dc.b	$00, $38, $D8, $09, $03, $78, $00, $50, $E0, $07, $02, $CD, $FF, $FF
 	dc.b	$E0, $07, $02, $CD, $00, $58
-loc_11B2C:
+Sprite_frame_data_11B2C:
 	dc.b	$00, $00, $F8, $00, $03, $AE, $00, $00
-loc_11B34:
+Sprite_frame_data_11B34:
 	dc.b	$00, $00, $F8, $00, $03, $AF, $00, $00
-loc_11B3C:
+Sprite_frame_data_11B3C:
 	dc.b	$00, $01, $F0, $04, $03, $4C, $00, $00, $F8, $00, $03, $4E, $00, $00
-loc_11B4A:
+Sprite_frame_data_11B4A:
 	dc.b	$00, $00, $F0, $01, $03, $6D, $00, $00
-loc_11B52:
+Sprite_frame_data_11B52:
 	dc.b	$00, $02, $E0, $05, $03, $A7, $00, $00, $F0, $00, $03, $AB, $00, $00
 	dc.b	$F8, $04, $03, $AC, $00, $00
-loc_11B66:
+Sprite_frame_data_11B66:
 	dc.b	$00, $03, $E0, $07, $03, $2A, $00, $00, $E0, $04, $03, $32, $00, $10
 	dc.b	$E8, $00, $03, $34, $00, $18, $F8, $00, $03, $35, $00, $10
-loc_11B80:
+Sprite_frame_data_11B80:
 	dc.b	$00, $04, $D0, $00, $03, $36, $00, $08, $D0, $04, $03, $37, $00, $28
 	dc.b	$D8, $0D, $03, $39, $00, $00, $D8, $04, $03, $41, $00, $20, $E8, $0A
 	dc.b	$03, $43, $00, $00
-loc_11BA0:
+Sprite_frame_data_11BA0:
 	dc.b	$00, $05, $C0, $00, $03, $4F, $00, $08, $C8, $08, $03, $50, $00, $00
 	dc.b	$D0, $0F, $03, $53, $00, $00, $D0, $02, $03, $63, $00, $20, $F0, $08
 	dc.b	$03, $66, $00, $00, $F8, $0C, $03, $69, $00, $00
-loc_11BC6:
+Sprite_frame_data_11BC6:
 	dc.b	$00, $0E, $88, $04, $03, $6F, $00, $18, $90, $08, $03, $71, $00, $18
 	dc.b	$98, $00, $03, $74, $00, $20, $98, $05, $03, $75, $00, $28, $A8, $00
 	dc.b	$03, $79, $00, $10, $A8, $08, $03, $7A, $00, $20, $B0, $0C, $03, $7D
@@ -23590,79 +23636,79 @@ loc_11BC6:
 	dc.b	$C8, $0F, $03, $88, $00, $00, $D8, $01, $03, $98, $00, $20, $E8, $06
 	dc.b	$03, $9A, $00, $00, $E8, $05, $03, $A0, $00, $18, $F0, $00, $03, $A4
 	dc.b	$00, $28, $F8, $04, $03, $A5, $00, $20
-loc_11C22:
+Sprite_frame_data_11C22:
 	dc.b	$00, $00, $F2, $01, $03, $58, $FF, $FC
-loc_11C2A:
+Sprite_frame_data_11C2A:
 	dc.b	$00, $00, $F1, $01, $03, $56, $FF, $FB
-loc_11C32:
+Sprite_frame_data_11C32:
 	dc.b	$00, $00, $E6, $03, $03, $52, $FF, $FA
-loc_11C3A:
+Sprite_frame_data_11C3A:
 	dc.b	$00, $00, $E2, $03, $03, $4E, $FF, $F9
-loc_11C42:
+Sprite_frame_data_11C42:
 	dc.b	$00, $01, $D4, $06, $03, $48, $FF, $F3, $EC, $06, $13, $48, $FF, $F3
-loc_11C50:
+Sprite_frame_data_11C50:
 	dc.b	$00, $01, $C5, $07, $03, $40, $FF, $F1, $E5, $07, $13, $40, $FF, $F1
-loc_11C5E:
+Sprite_frame_data_11C5E:
 	dc.b	$00, $03, $B4, $0A, $03, $31, $FF, $EA, $CC, $09, $03, $3A, $FF, $EA
 	dc.b	$DC, $09, $13, $3A, $FF, $EA, $EC, $0A, $13, $31, $FF, $EA
-loc_11C78:
+Sprite_frame_data_11C78:
 	dc.b	$00, $03, $95, $0F, $03, $15, $FF, $E1, $B5, $0E, $03, $25, $FF, $E1
 	dc.b	$CD, $0E, $13, $25, $FF, $E1, $E5, $0F, $13, $15, $FF, $E1
-loc_11C92:
+Sprite_frame_data_11C92:
 	dc.b	$00, $0B, $70, $0A, $02, $DF, $FF, $D4, $70, $0A, $02, $E8, $FF, $EC
 	dc.b	$88, $0A, $02, $F1, $FF, $D4, $88, $0A, $02, $FA, $FF, $EC, $A0, $0A
 	dc.b	$03, $03, $FF, $D4, $A0, $0A, $03, $0C, $FF, $EC, $B8, $0A, $13, $03
 	dc.b	$FF, $D4, $B8, $0A, $13, $0C, $FF, $EC, $D0, $0A, $12, $F1, $FF, $D4
 	dc.b	$D0, $0A, $12, $FA, $FF, $EC, $E8, $0A, $12, $DF, $FF, $D4, $E8, $0A
 	dc.b	$12, $E8, $FF, $EC
-loc_11CDC:
+Sprite_frame_data_11CDC:
 	dc.b	$00, $00, $F2, $01, $0B, $58, $FF, $FC
-loc_11CE4:
+Sprite_frame_data_11CE4:
 	dc.b	$00, $00, $F1, $01, $0B, $56, $FF, $FD
-loc_11CEC:
+Sprite_frame_data_11CEC:
 	dc.b	$00, $00, $E6, $03, $0B, $52, $FF, $FE
-loc_11CF4:
+Sprite_frame_data_11CF4:
 	dc.b	$00, $00, $E2, $03, $0B, $4E, $FF, $FF
-loc_11CFC:
+Sprite_frame_data_11CFC:
 	dc.b	$00, $01, $D4, $06, $0B, $48, $FF, $FD, $EC, $06, $1B, $48, $FF, $FD
-loc_11D0A:
+Sprite_frame_data_11D0A:
 	dc.b	$00, $01, $C5, $07, $0B, $40, $FF, $FF, $E5, $07, $1B, $40, $FF, $FF
-loc_11D18:
+Sprite_frame_data_11D18:
 	dc.b	$00, $03, $B4, $0A, $0B, $31, $FF, $FE, $CC, $09, $0B, $3A, $FF, $FE
 	dc.b	$DC, $09, $1B, $3A, $FF, $FE, $EC, $0A, $1B, $31, $FF, $FE
-loc_11D32:
+Sprite_frame_data_11D32:
 	dc.b	$00, $03, $95, $0F, $0B, $15, $FF, $FF, $B5, $0E, $0B, $25, $FF, $FF
 	dc.b	$CD, $0E, $1B, $25, $FF, $FF, $E5, $0F, $1B, $15, $FF, $FF
-loc_11D4C:
+Sprite_frame_data_11D4C:
 	dc.b	$00, $0B, $70, $0A, $0A, $DF, $00, $14, $70, $0A, $0A, $E8, $FF, $FC
 	dc.b	$88, $0A, $0A, $F1, $00, $14, $88, $0A, $0A, $FA, $FF, $FC, $A0, $0A
 	dc.b	$0B, $03, $00, $14, $A0, $0A, $0B, $0C, $FF, $FC, $B8, $0A, $1B, $03
 	dc.b	$00, $14, $B8, $0A, $1B, $0C, $FF, $FC, $D0, $0A, $1A, $F1, $00, $14
 	dc.b	$D0, $0A, $1A, $FA, $FF, $FC, $E8, $0A, $1A, $DF, $00, $14, $E8, $0A
 	dc.b	$1A, $E8, $FF, $FC
-loc_11D96:
+Sprite_frame_data_11D96:
 	dc.b	$00, $01, $FD, $00, $03, $84, $FF, $F8, $FD, $00, $0B, $84, $00, $00
-loc_11DA4:
+Sprite_frame_data_11DA4:
 	dc.b	$00, $00, $FD, $08, $03, $81, $FF, $F4
-loc_11DAC:
+Sprite_frame_data_11DAC:
 	dc.b	$00, $00, $FE, $0C, $03, $7D, $FF, $F0
-loc_11DB4:
+Sprite_frame_data_11DB4:
 	dc.b	$00, $01, $FE, $08, $03, $78, $FF, $EC, $FE, $04, $03, $7B
 	dc.b	$00, $04
-loc_11DC2:
+Sprite_frame_data_11DC2:
 	dc.b	$00, $01, $FF, $0C, $03, $85, $FF, $E0, $FF, $0C, $0B, $85, $FF, $FF
-loc_11DD0:
+Sprite_frame_data_11DD0:
 	dc.b	$00, $02, $FF, $08, $03, $75, $FF, $DC, $FF, $08, $03, $75, $FF, $F4
 	dc.b	$FF, $08, $03, $75, $00, $0C
-loc_11DE4:
+Sprite_frame_data_11DE4:
 	dc.b	$00, $05, $FF, $08, $03, $70, $FF, $C6, $FF, $04, $03, $73, $FF, $DE
 	dc.b	$FF, $08, $03, $70, $FF, $EC, $FF, $04, $03, $73, $00, $04, $FF, $08
 	dc.b	$03, $70, $00, $12, $FF, $04, $03, $73, $00, $2A
-loc_11E0A:
+Sprite_frame_data_11E0A:
 	dc.b	$00, $05, $FE, $08, $03, $6A, $FF, $B8, $FE, $08, $03, $6D, $FF, $D0
 	dc.b	$FE, $08, $03, $6A, $FF, $E8, $FE, $08, $03, $6D, $00, $00, $FE, $08
 	dc.b	$03, $6A, $00, $18, $FE, $08, $03, $6D, $00, $30
-loc_11E30:
+Sprite_frame_data_11E30:
 	dc.b	$00, $0B, $FC, $00, $03, $5A, $FF, $9A, $FC, $0D, $03, $5B, $FF, $A2
 	dc.b	$FC, $09
 	dc.b	$03, $63, $FF, $C2, $FC, $00, $03, $69, $FF, $DA, $FC, $00, $03, $5A
@@ -23670,28 +23716,28 @@ loc_11E30:
 	dc.b	$FC, $00, $03, $69, $00, $1D, $FC, $00, $03, $5A, $00, $20, $FC, $0D
 	dc.b	$03, $5B, $00, $28, $FC, $09, $03, $63, $00, $48, $FC, $00, $03, $69
 	dc.b	$00, $60
-loc_11E7A:
+Sprite_frame_data_11E7A:
 	dc.b	$00, $00, $F1, $01, $04, $42, $FF, $F8
-loc_11E82:
+Sprite_frame_data_11E82:
 	dc.b	$00, $01, $F1, $01, $04, $42, $FF, $F8, $F1, $01, $04, $42, $FF, $F6
-loc_11E90:
+Sprite_frame_data_11E90:
 	dc.b	$00, $01, $E9, $02, $04, $42, $FF, $F8, $E9, $02, $04, $42, $FF, $F3
-loc_11E9E:
+Sprite_frame_data_11E9E:
 	dc.b	$00, $01, $E1, $07, $04, $42, $FF, $F0, $E1, $03, $04, $42, $FF, $ED
-loc_11EAC:
+Sprite_frame_data_11EAC:
 	dc.b	$00, $01, $E1, $0B, $04, $42, $FF, $E8, $D5, $09, $04, $42, $FF, $E8
-loc_11EBA:
+Sprite_frame_data_11EBA:
 	dc.b	$00, $01, $E1, $0F, $04, $42, $FF, $E0, $C5, $0F, $04, $42, $FF, $E0
-loc_11EC8:
+Sprite_frame_data_11EC8:
 	dc.b	$00, $05, $E1, $0F, $04, $42, $FF, $E0, $E1, $07, $04, $42, $FF, $D0
 	dc.b	$C1, $0F, $04, $42, $FF, $E0, $C1, $07, $04, $42, $FF, $D0, $A9, $0E
 	dc.b	$04, $42, $FF, $E0, $A9, $06, $04, $42, $FF, $D0
-loc_11EEE:
+Sprite_frame_data_11EEE:
 	dc.b	$00, $07, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$C1, $0F, $04, $42, $FF, $E0, $C1, $0F, $04, $42, $FF, $C0, $A1, $0F
 	dc.b	$04, $42, $FF, $E0, $A1, $0F, $04, $42, $FF, $C0, $89, $0E, $04, $42
 	dc.b	$FF, $E0, $89, $0E, $04, $42, $FF, $C0
-loc_11F20:
+Sprite_frame_data_11F20:
 	dc.b	$00, $0E, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$E1, $0F, $04, $42, $FF, $A0, $C1, $0F, $04, $42, $FF, $E0, $C1, $0F
 	dc.b	$04, $42, $FF, $C0, $C1, $0F, $04, $42, $FF, $A0, $A1, $0F, $04, $42
@@ -23699,28 +23745,28 @@ loc_11F20:
 	dc.b	$81, $0F, $04, $42, $FF, $E0, $81, $0F, $04, $42, $FF, $C0, $81, $0F
 	dc.b	$04, $42, $FF, $A0, $61, $0F, $04, $42, $FF, $E0, $61, $0F, $04, $42
 	dc.b	$FF, $C0, $61, $0F, $04, $42, $FF, $A0
-loc_11F7C:
+Sprite_frame_data_11F7C:
 	dc.b	$00, $00, $F1, $01, $04, $32, $FF, $F8
-loc_11F84:
+Sprite_frame_data_11F84:
 	dc.b	$00, $01, $F1, $01, $04, $32, $FF, $F8, $F1, $01, $04, $32, $FF, $F6
-loc_11F92:
+Sprite_frame_data_11F92:
 	dc.b	$00, $01, $E9, $02, $04, $32, $FF, $F8, $E9, $02, $04, $32, $FF, $F3
-loc_11FA0:
+Sprite_frame_data_11FA0:
 	dc.b	$00, $01, $E1, $07, $04, $32, $FF, $F0, $E1, $03, $04, $32, $FF, $ED
-loc_11FAE:
+Sprite_frame_data_11FAE:
 	dc.b	$00, $01, $E1, $0B, $04, $32, $FF, $E8, $D5, $09, $04, $32, $FF, $E8
-loc_11FBC:
+Sprite_frame_data_11FBC:
 	dc.b	$00, $01, $E1, $0F, $04, $32, $FF, $E0, $C5, $0F, $04, $32, $FF, $E0
-loc_11FCA:
+Sprite_frame_data_11FCA:
 	dc.b	$00, $05, $E1, $0F, $04, $32, $FF, $E0, $E1, $07, $04, $32, $FF, $D0
 	dc.b	$C1, $0F, $04, $32, $FF, $E0, $C1, $07, $04, $32, $FF, $D0, $A9, $0E
 	dc.b	$04, $32, $FF, $E0, $A9, $06, $04, $32, $FF, $D0
-loc_11FF0:
+Sprite_frame_data_11FF0:
 	dc.b	$00, $07, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$C1, $0F, $04, $32, $FF, $E0, $C1, $0F, $04, $32, $FF, $C0, $A1, $0F
 	dc.b	$04, $32, $FF, $E0, $A1, $0F, $04, $32, $FF, $C0, $89, $0E, $04, $32
 	dc.b	$FF, $E0, $89, $0E, $04, $32, $FF, $C0
-loc_12022:
+Sprite_frame_data_12022:
 	dc.b	$00, $0E, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$E1, $0F, $04, $32, $FF, $A0, $C1, $0F, $04, $32, $FF, $E0, $C1, $0F
 	dc.b	$04, $32, $FF, $C0, $C1, $0F, $04, $32, $FF, $A0, $A1, $0F, $04, $32
@@ -23728,28 +23774,28 @@ loc_12022:
 	dc.b	$81, $0F, $04, $32, $FF, $E0, $81, $0F, $04, $32, $FF, $C0, $81, $0F
 	dc.b	$04, $32, $FF, $A0, $61, $0F, $04, $32, $FF, $E0, $61, $0F, $04, $32
 	dc.b	$FF, $C0, $61, $0F, $04, $32, $FF, $A0
-loc_1207E:
+Sprite_frame_data_1207E:
 	dc.b	$00, $00, $F1, $01, $04, $42, $00, $00
-loc_12086:
+Sprite_frame_data_12086:
 	dc.b	$00, $01, $F1, $01, $04, $42, $00, $02, $F1, $01, $04, $42, $00, $00
-loc_12094:
+Sprite_frame_data_12094:
 	dc.b	$00, $01, $E9, $02, $04, $42, $00, $05, $E9, $02, $04, $42, $00, $00
-loc_120A2:
+Sprite_frame_data_120A2:
 	dc.b	$00, $01, $E1, $07, $04, $42, $00, $00, $E1, $03, $04, $42, $00, $0B
-loc_120B0:
+Sprite_frame_data_120B0:
 	dc.b	$00, $01, $E1, $0B, $04, $42, $00, $00, $D5, $09, $04, $42, $00, $00
-loc_120BE:
+Sprite_frame_data_120BE:
 	dc.b	$00, $01, $E1, $0F, $04, $42, $00, $00, $C5, $0F, $04, $42, $00, $00
-loc_120CC:
+Sprite_frame_data_120CC:
 	dc.b	$00, $05, $E1, $0F, $04, $42, $00, $00, $E1, $07, $04, $42, $00, $20
 	dc.b	$C1, $0F, $04, $42, $00, $00, $C1, $07, $04, $42, $00, $20, $A9, $0E
 	dc.b	$04, $42, $00, $00, $A9, $06, $04, $42, $00, $20
-loc_120F2:
+Sprite_frame_data_120F2:
 	dc.b	$00, $07, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$C1, $0F, $04, $42, $00, $00, $C1, $0F, $04, $42, $00, $20, $A1, $0F
 	dc.b	$04, $42, $00, $00, $A1, $0F, $04, $42, $00, $20, $89, $0E, $04, $42
 	dc.b	$00, $00, $89, $0E, $04, $42, $00, $20
-loc_12124:
+Sprite_frame_data_12124:
 	dc.b	$00, $0E, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$E1, $0F, $04, $42, $00, $40, $C1, $0F, $04, $42, $00, $00, $C1, $0F
 	dc.b	$04, $42, $00, $20, $C1, $0F, $04, $42, $00, $40, $A1, $0F, $04, $42
@@ -23757,28 +23803,28 @@ loc_12124:
 	dc.b	$81, $0F, $04, $42, $00, $00, $81, $0F, $04, $42, $00, $20, $81, $0F
 	dc.b	$04, $42, $00, $40, $61, $0F, $04, $42, $00, $00, $61, $0F, $04, $42
 	dc.b	$00, $20, $61, $0F, $04, $42, $00, $40
-loc_12180:
+Sprite_frame_data_12180:
 	dc.b	$00, $00, $F1, $01, $04, $32, $00, $00
-loc_12188:
+Sprite_frame_data_12188:
 	dc.b	$00, $01, $F1, $01, $04, $32, $00, $02, $F1, $01, $04, $32, $00, $00
-loc_12196:
+Sprite_frame_data_12196:
 	dc.b	$00, $01, $E9, $02, $04, $32, $00, $05, $E9, $02, $04, $32, $00, $00
-loc_121A4:
+Sprite_frame_data_121A4:
 	dc.b	$00, $01, $E1, $07, $04, $32, $00, $00, $E1, $03, $04, $32, $00, $0B
-loc_121B2:
+Sprite_frame_data_121B2:
 	dc.b	$00, $01, $E1, $0B, $04, $32, $00, $00, $D5, $09, $04, $32, $00, $00
-loc_121C0:
+Sprite_frame_data_121C0:
 	dc.b	$00, $01, $E1, $0F, $04, $32, $00, $00, $C5, $0F, $04, $32, $00, $00
-loc_121CE:
+Sprite_frame_data_121CE:
 	dc.b	$00, $05, $E1, $0F, $04, $32, $00, $00, $E1, $07, $04, $32, $00, $20
 	dc.b	$C1, $0F, $04, $32, $00, $00, $C1, $07, $04, $32, $00, $20, $A9, $0E
 	dc.b	$04, $32, $00, $00, $A9, $06, $04, $32, $00, $20
-loc_121F4:
+Sprite_frame_data_121F4:
 	dc.b	$00, $07, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$C1, $0F, $04, $32, $00, $00, $C1, $0F, $04, $32, $00, $20, $A1, $0F
 	dc.b	$04, $32, $00, $00, $A1, $0F, $04, $32, $00, $20, $89, $0E, $04, $32
 	dc.b	$00, $00, $89, $0E, $04, $32, $00, $20
-loc_12226:
+Sprite_frame_data_12226:
 	dc.b	$00, $0E, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$E1, $0F, $04, $32, $00, $40, $C1, $0F, $04, $32, $00, $00, $C1, $0F
 	dc.b	$04, $32, $00, $20, $C1, $0F, $04, $32, $00, $40, $A1, $0F, $04, $32
@@ -23786,148 +23832,148 @@ loc_12226:
 	dc.b	$81, $0F, $04, $32, $00, $00, $81, $0F, $04, $32, $00, $20, $81, $0F
 	dc.b	$04, $32, $00, $40, $61, $0F, $04, $32, $00, $00, $61, $0F, $04, $32
 	dc.b	$00, $20, $61, $0F, $04, $32, $00, $40
-loc_12282:
+Sprite_frame_data_12282:
 	dc.b	$00, $01, $F1, $0D, $04, $42, $FF, $E0, $F1, $0D, $04, $42, $FF, $C0
-loc_12290:
+Sprite_frame_data_12290:
 	dc.b	$00, $01, $E9, $0E, $04, $42, $FF, $E0, $E9, $0E, $04, $42, $FF, $C0
-loc_1229E:
+Sprite_frame_data_1229E:
 	dc.b	$00, $01, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
-loc_122AC:
+Sprite_frame_data_122AC:
 	dc.b	$00, $03, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$D5, $0D, $04, $42, $FF, $E0, $D5, $0D, $04, $42, $FF, $C0
-loc_122C6:
+Sprite_frame_data_122C6:
 	dc.b	$00, $03, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$C5, $0F, $04, $42, $FF, $E0, $C5, $0F, $04, $42, $FF, $C0
-loc_122E0:
+Sprite_frame_data_122E0:
 	dc.b	$00, $05, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$C1, $0F, $04, $42, $FF, $E0, $C1, $0F, $04, $42, $FF, $C0, $A9, $0E
 	dc.b	$04, $42, $FF, $E0, $A9, $0E, $04, $42, $FF, $C0
-loc_12306:
+Sprite_frame_data_12306:
 	dc.b	$00, $07, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$C1, $0F, $04, $42, $FF, $E0, $C1, $0F, $04, $42, $FF, $C0, $A1, $0F
 	dc.b	$04, $42, $FF, $E0, $A1, $0F, $04, $42, $FF, $C0, $89, $0E, $04, $42
 	dc.b	$FF, $E0, $89, $0E, $04, $42, $FF, $C0
-loc_12338:
+Sprite_frame_data_12338:
 	dc.b	$00, $09, $E1, $0F, $04, $42, $FF, $E0, $E1, $0F, $04, $42, $FF, $C0
 	dc.b	$C1, $0F, $04, $42, $FF, $E0, $C1, $0F, $04, $42, $FF, $C0, $A1, $0F
 	dc.b	$04, $42, $FF, $E0, $A1, $0F, $04, $42, $FF, $C0, $81, $0F, $04, $42
 	dc.b	$FF, $E0, $81, $0F, $04, $42, $FF, $C0, $61, $0F, $04, $42, $FF, $E0
 	dc.b	$61, $0F, $04, $42, $FF, $C0
-loc_12376:
+Sprite_frame_data_12376:
 	dc.b	$00, $01, $F1, $0D, $04, $32, $FF, $E0, $F1, $0D, $04, $32, $FF, $C0
-loc_12384:
+Sprite_frame_data_12384:
 	dc.b	$00, $01, $E9, $0E, $04, $32, $FF, $E0, $E9, $0E, $04, $32, $FF, $C0
-loc_12392:
+Sprite_frame_data_12392:
 	dc.b	$00, $01, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
-loc_123A0:
+Sprite_frame_data_123A0:
 	dc.b	$00, $03, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$D5, $0D, $04, $32, $FF, $E0, $D5, $0D, $04, $32, $FF, $C0
-loc_123BA:
+Sprite_frame_data_123BA:
 	dc.b	$00, $03, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$C5, $0F, $04, $32, $FF, $E0, $C5, $0F, $04, $32, $FF, $C0
-loc_123D4:
+Sprite_frame_data_123D4:
 	dc.b	$00, $05, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$C1, $0F, $04, $32, $FF, $E0, $C1, $0F, $04, $32, $FF, $C0, $A9, $0E
 	dc.b	$04, $32, $FF, $E0, $A9, $0E, $04, $32, $FF, $C0
-loc_123FA:
+Sprite_frame_data_123FA:
 	dc.b	$00, $07, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$C1, $0F, $04, $32, $FF, $E0, $C1, $0F, $04, $32, $FF, $C0, $A1, $0F
 	dc.b	$04, $32, $FF, $E0, $A1, $0F, $04, $32, $FF, $C0, $89, $0E, $04, $32
 	dc.b	$FF, $E0, $89, $0E, $04, $32, $FF, $C0
-loc_1242C:
+Sprite_frame_data_1242C:
 	dc.b	$00, $09, $E1, $0F, $04, $32, $FF, $E0, $E1, $0F, $04, $32, $FF, $C0
 	dc.b	$C1, $0F, $04, $32, $FF, $E0, $C1, $0F, $04, $32, $FF, $C0, $A1, $0F
 	dc.b	$04, $32, $FF, $E0, $A1, $0F, $04, $32, $FF, $C0, $81, $0F, $04, $32
 	dc.b	$FF, $E0, $81, $0F, $04, $32, $FF, $C0, $61, $0F, $04, $32, $FF, $E0
 	dc.b	$61, $0F, $04, $32, $FF, $C0
-loc_1246A:
+Sprite_frame_data_1246A:
 	dc.b	$00, $01, $F1, $0D, $04, $42, $00, $00, $F1, $0D, $04, $42, $00, $20
-loc_12478:
+Sprite_frame_data_12478:
 	dc.b	$00, $01, $E9, $0E, $04, $42, $00, $00, $E9, $0E, $04, $42, $00, $20
-loc_12486:
+Sprite_frame_data_12486:
 	dc.b	$00, $01, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
-loc_12494:
+Sprite_frame_data_12494:
 	dc.b	$00, $03, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$D5, $0D, $04, $42, $00, $00, $D5, $0D, $04, $42, $00, $20
-loc_124AE:
+Sprite_frame_data_124AE:
 	dc.b	$00, $03, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$C5, $0F, $04, $42, $00, $00, $C5, $0F, $04, $42, $00, $20
-loc_124C8:
+Sprite_frame_data_124C8:
 	dc.b	$00, $05, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$C1, $0F, $04, $42, $00, $00, $C1, $0F, $04, $42, $00, $20, $A9, $0E
 	dc.b	$04, $42, $00, $00, $A9, $0E, $04, $42, $00, $20
-loc_124EE:
+Sprite_frame_data_124EE:
 	dc.b	$00, $07, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$C1, $0F, $04, $42, $00, $00, $C1, $0F, $04, $42, $00, $20, $A1, $0F
 	dc.b	$04, $42, $00, $00, $A1, $0F, $04, $42, $00, $20, $89, $0E, $04, $42
 	dc.b	$00, $00, $89, $0E, $04, $42, $00, $20
-loc_12520:
+Sprite_frame_data_12520:
 	dc.b	$00, $09, $E1, $0F, $04, $42, $00, $00, $E1, $0F, $04, $42, $00, $20
 	dc.b	$C1, $0F, $04, $42, $00, $00, $C1, $0F, $04, $42, $00, $20, $A1, $0F
 	dc.b	$04, $42, $00, $00, $A1, $0F, $04, $42, $00, $20, $81, $0F, $04, $42
 	dc.b	$00, $00, $81, $0F, $04, $42, $00, $20, $61, $0F, $04, $42, $00, $00
 	dc.b	$61, $0F, $04, $42, $00, $20
-loc_1255E:
+Sprite_frame_data_1255E:
 	dc.b	$00, $01, $F1, $0D, $04, $32, $00, $00, $F1, $0D, $04, $32, $00, $20
-loc_1256C:
+Sprite_frame_data_1256C:
 	dc.b	$00, $01, $E9, $0E, $04, $32, $00, $00, $E9, $0E, $04, $32, $00, $20
-loc_1257A
+Sprite_frame_data_1257A
 	dc.b	$00, $01, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
-loc_12588:
+Sprite_frame_data_12588:
 	dc.b	$00, $03, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$D5, $0D, $04, $32, $00, $00, $D5, $0D, $04, $32, $00, $20
-loc_125A2:
+Sprite_frame_data_125A2:
 	dc.b	$00, $03, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$C5, $0F, $04, $32, $00, $00, $C5, $0F, $04, $32, $00, $20
-loc_125BC:
+Sprite_frame_data_125BC:
 	dc.b	$00, $05, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$C1, $0F, $04, $32, $00, $00, $C1, $0F, $04, $32, $00, $20, $A9, $0E
 	dc.b	$04, $32, $00, $00, $A9, $0E, $04, $32, $00, $20
-loc_125E2:
+Sprite_frame_data_125E2:
 	dc.b	$00, $07, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$C1, $0F, $04, $32, $00, $00, $C1, $0F, $04, $32, $00, $20, $A1, $0F
 	dc.b	$04, $32, $00, $00, $A1, $0F, $04, $32, $00, $20, $89, $0E, $04, $32
 	dc.b	$00, $00, $89, $0E, $04, $32, $00, $20
-loc_12614:
+Sprite_frame_data_12614:
 	dc.b	$00, $09, $E1, $0F, $04, $32, $00, $00, $E1, $0F, $04, $32, $00, $20
 	dc.b	$C1, $0F, $04, $32, $00, $00, $C1, $0F, $04, $32, $00, $20, $A1, $0F
 	dc.b	$04, $32, $00, $00, $A1, $0F, $04, $32, $00, $20, $81, $0F, $04, $32
 	dc.b	$00, $00, $81, $0F, $04, $32, $00, $20, $61, $0F, $04, $32, $00, $00
 	dc.b	$61, $0F, $04, $32, $00, $20
-loc_12652:
+Sprite_frame_data_12652:
 	dc.b	$00, $03
 	dc.b	$D8, $0A, $04, $18, $FF, $EC
 	dc.b	$D8, $06, $04, $21, $00, $04, $F0, $09, $04, $27, $FF, $EC, $F0, $05
 	dc.b	$04, $2D, $00, $04
-loc_1266C:
+Sprite_frame_data_1266C:
 	dc.b	$00, $03, $D0, $00, $03, $D0, $FF, $E8, $D8, $04, $03, $D1, $FF, $E8
 	dc.b	$E0, $09, $03, $D3, $FF, $E8, $D8, $09, $03, $D9, $00, $00
-loc_12686:
+Sprite_frame_data_12686:
 	dc.b	$00, $05, $F8, $00, $03, $DF, $FF, $E8, $F0, $04, $03, $E0, $FF, $E8
 	dc.b	$E8, $0C, $03, $E2, $FF, $E8, $D0, $06, $03, $E6, $FF, $E8, $C8, $00
 	dc.b	$03, $EC, $FF, $F0, $C8, $0F, $03, $ED, $FF, $F8
-loc_126AC:
+Sprite_frame_data_126AC:
 	dc.b	$00, $03, $D0, $00, $0B, $D0, $00, $10, $D8, $04, $0B, $D1, $00, $08
 	dc.b	$E0, $09, $0B, $D3, $00, $00, $D8, $09, $0B, $D9, $FF, $E8
-loc_126C6:
+Sprite_frame_data_126C6:
 	dc.b	$00, $05, $F8, $00, $0B, $DF, $00, $10, $F0, $04, $0B, $E0, $00, $08
 	dc.b	$E8, $0C, $0B, $E2, $FF, $F8, $D0, $06, $0B, $E6, $00, $08, $C8, $00
 	dc.b	$0B, $EC, $00, $08, $C8, $0F, $0B, $ED, $FF, $E8
-loc_126EC:
+Sprite_frame_data_126EC:
 	dc.b	$00, $0A, $D8, $09
 	dc.b	$04, $1A, $00, $00, $D8, $09, $04, $1A, $00, $18, $D8, $09, $04, $1A
 	dc.b	$00, $30, $D8, $09, $04, $1A, $00, $48, $F0, $09, $04, $1A, $00, $00
 	dc.b	$F0, $09, $04, $1A, $00, $18, $F0, $09, $04, $1A, $00, $30, $F0, $09
 	dc.b	$04, $1A, $00, $48, $E8, $0C, $04, $26, $00, $00, $E8, $0C, $04, $2A
 	dc.b	$00, $20, $E8, $0C, $04, $2E, $00, $40
-loc_12730:
+Sprite_frame_data_12730:
 	dc.b	$00, $0A, $D8, $09, $04, $20
 	dc.b	$00, $00, $D8, $09, $04, $20, $00, $18, $D8, $09, $04, $1A, $00, $30
 	dc.b	$D8, $09, $04, $1A, $00, $48, $F0, $09, $04, $20, $00, $00, $F0, $09
 	dc.b	$04, $20, $00, $18, $F0, $09, $04, $1A, $00, $30, $F0, $09, $04, $1A
 	dc.b	$00, $48, $E8, $0C, $04, $26, $00, $00, $E8, $0C, $04, $2A, $00, $20
 	dc.b	$E8, $0C, $04, $2E, $00, $40
-loc_12774:
+Sprite_frame_data_12774:
 	dc.b	$00, $0A, $D8, $09, $04, $1A, $00, $00
 	dc.b	$D8, $09, $04, $1A, $00, $18, $D8, $09, $04, $20, $00, $30, $D8, $09
 	dc.b	$04, $20, $00, $48, $F0, $09, $04, $1A, $00, $00, $F0, $09, $04, $1A
@@ -23940,14 +23986,14 @@ Rival_car_anim_data_b:
 ;loc_127C8
 Rival_car_anim_data_a:
 	dc.b	$00, $00, $FD, $00, $87, $3A, $FF, $FD
-loc_127D0:
+Sprite_frame_data_127D0:
 	dc.b	$00, $0C, $F8, $00, $87, $EF, $00, $00, $F8, $00, $87, $DC, $00, $08
 	dc.b	$F8, $00, $87, $CE, $00, $10, $F8, $00, $87, $D0, $00, $18, $F8, $00
 	dc.b	$87, $CA, $00, $20, $F8, $00, $87, $C1, $00, $30, $F8, $00, $87, $C9
 	dc.b	$00, $38, $F8, $04, $87, $C8, $00, $40, $F8, $00, $87, $EA, $00, $50
 	dc.b	$F8, $00, $87, $C1, $00, $58, $F8, $00, $87, $C9, $00, $60, $F8, $00
 	dc.b	$87, $C9, $00, $68, $F8, $00, $87, $C0, $00, $70
-loc_12820:
+Sprite_frame_data_12820:
 	dc.b	$00, $0E, $F8, $00
 	dc.b	$87, $D9, $FF, $B8, $F8, $00, $87, $DB, $FF, $C0, $F8, $00, $87, $CE
 	dc.b	$FF, $C8, $F8, $00, $87, $DC, $FF, $D0, $F8, $00, $87, $DC, $FF, $D8
@@ -23966,7 +24012,7 @@ loc_12820:
 	dc.b	$24, $A0, $00, $00, $F0, $01, $24, $9E, $00, $10, $F0, $01, $24, $96
 	dc.b	$00, $18, $00, $03, $F0, $09, $04, $9E, $FF, $CC, $F0, $0D, $24, $92
 	dc.b	$FF, $E4, $F0, $05, $24, $9A, $00, $0C, $F0, $09, $0C, $9E, $00, $1C
-loc_12912:
+Sprite_frame_data_12912:
 	dc.b	$00, $12, $60, $03, $E0, $01, $00, $00, $80, $03, $E0, $05, $00, $00
 	dc.b	$A0, $03, $E0, $09, $00, $00, $C0, $03, $E0, $06, $00, $00, $E0, $03
 	dc.b	$E0, $0D, $00, $00, $60, $0C, $E0, $11, $00, $08, $60, $0C, $E0, $11
@@ -23991,7 +24037,8 @@ Sprite_frame_data_1299E:
 ;loc_129A6
 Sprite_frame_data_129A6:
 	dc.b	$00, $00, $F8, $01, $00, $00, $FF, $FC
-loc_129AE:
+;loc_129AE
+Sprite_frame_data_129AE:
 	dc.b	$00, $05, $E8, $0E, $04, $6D
 	dc.b	$FF, $B8, $F0, $05, $04, $85, $FF, $D8, $E8, $0A, $04, $89, $FF, $E8
 	dc.b	$E8, $0A, $0C, $89, $00, $00, $F0, $05, $0C, $85, $00, $18, $E8, $0E
@@ -24028,11 +24075,13 @@ Flagkeeper_tileset: ; flagkeeper tileset
 	dc.b	$00, $02, $07, $A4, $65, $40
 	dc.w	$0860
 	dc.b	$00
-loc_12A3D:
+;loc_12A3D
+Crash_retire_palette_bytes:
 	dc.b	$02, $1A
 	dc.b	$A4
 	dc.b	$00
-loc_12A41:
+;loc_12A41
+Retire_flash_palette_table:
 	dc.b	$02, $1B
 	dc.b	$64
 	dc.b	$00, $02, $1C
@@ -24154,65 +24203,83 @@ Car_sprite_ptr_table:
 	dc.l	Car_sprite_data_534A8
 	dc.l	Car_sprite_data_534A8
 	dc.b	$00
-loc_12BF1:
-	dc.b	$02, $9B
-	dc.b	$94
+;loc_12BF1
+Car_livery_palette_1_dma:
+	dc.b	$02, $9B        ; VDP register bytes: palette row 1 color 2 high byte, low byte
+	dc.b	$94             ; VDP register byte: palette row 1 color 2 mid byte
 	dc.b	$00
-loc_12BF5:
-	dc.b	$02, $9C
-	dc.b	$D4
-loc_12BF8:
+;loc_12BF5
+Car_livery_palette_2_dma:
+	dc.b	$02, $9C        ; VDP register bytes: palette row 1 color 2 high byte (year-2 livery)
+	dc.b	$D4             ; VDP register byte
+;loc_12BF8
+; Assign_initial_rival_team
+; Called from Championship_next_race_init (first race leg) to select the player's
+; initial rival. Three paths:
+;   bit 2 set in Player_state_flags  → rival pre-assigned (Bullets, team #8); clear bit 2, set bit 3
+;   player has no team (team# == 0) → choose rival from remaining unoccupied team slots
+;   player has a named team          → choose next higher team as rival
+Assign_initial_rival_team:
 	BTST.b	#2, Player_state_flags.w
-	BEQ.b	loc_12C20
+	BEQ.b	Assign_initial_rival_team_NoTeam
 	BCLR.b	#2, Player_state_flags.w
 	BSET.b	#3, Player_state_flags.w
 	MOVE.b	#8, Rival_team.w ; You get challenged by Bullets (Team #8)
 	BCLR.b	#4, Player_team.w
 	BSET.b	#5, Player_team.w
 	RTS
-loc_12C20:
+;loc_12C20
+Assign_initial_rival_team_NoTeam:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
-	BNE.w	loc_12CB0
+	BNE.w	Assign_initial_rival_team_HasTeam
 	BTST.b	#6, Rival_team.w
-	BEQ.b	loc_12C42
+	BEQ.b	Assign_initial_rival_team_PickSlot
 	BCLR.b	#4, Player_team.w
 	BSET.b	#5, Player_team.w
 	RTS
-loc_12C42:
+;loc_12C42
+Assign_initial_rival_team_PickSlot:
 	CLR.l	D0
 	LEA	Drivers_and_teams_map.w, A1
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	BTST.b	#4, Rival_team.w
-	BEQ.b	loc_12C60
+	BEQ.b	Assign_initial_rival_team_ClearSlot
 	BSET.b	#4, (A1,D0.w)
-	BRA.b	loc_12C66
-loc_12C60:
+	BRA.b	Assign_initial_rival_team_FindBest
+;loc_12C60
+Assign_initial_rival_team_ClearSlot:
 	BCLR.b	#4, (A1,D0.w)
-loc_12C66:
+;loc_12C66
+Assign_initial_rival_team_FindBest:
 	LEA	$FFFF9031.w, A2
 	MOVE.b	(A2)+, D0
 	MOVEQ	#$0000000E, D1
 	MOVEQ	#1, D2
 	MOVE.l	D2, D3
-loc_12C72:
+;loc_12C72
+Assign_initial_rival_team_FindBest_Loop:
 	CMP.b	(A2), D0
-	BCS.b	loc_12C84
-loc_12C76:
+	BCS.b	Assign_initial_rival_team_FindBest_Better
+;loc_12C76
+Assign_initial_rival_team_FindBest_Next:
 	ADDA.l	#1, A2
 	ADDQ.w	#1, D2
-	DBF	D1, loc_12C72
-	BRA.b	loc_12C8A
-loc_12C84:
+	DBF	D1, Assign_initial_rival_team_FindBest_Loop
+	BRA.b	Assign_initial_rival_team_Assign
+;loc_12C84
+Assign_initial_rival_team_FindBest_Better:
 	MOVE.b	(A2), D0
 	MOVE.l	D2, D3
-	BRA.b	loc_12C76
-loc_12C8A:
+	BRA.b	Assign_initial_rival_team_FindBest_Next
+;loc_12C8A
+Assign_initial_rival_team_Assign:
 	CMPI.l	#1, D3
-	BEQ.b	loc_12C94
+	BEQ.b	Assign_initial_rival_team_Assign_Set
 	ADDQ.l	#1, D3
-loc_12C94:
+;loc_12C94
+Assign_initial_rival_team_Assign_Set:
 	MOVE.b	(A1,D3.w), D1
 	ANDI.b	#$F0, D1
 	ADD.b	D3, D1
@@ -24220,10 +24287,11 @@ loc_12C94:
 	BCLR.b	#4, Player_team.w
 	BSET.b	#5, Player_team.w
 	RTS
-loc_12CB0:
+;loc_12CB0
+Assign_initial_rival_team_HasTeam:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
-	BNE.b	loc_12CF6
+	BNE.b	Assign_initial_rival_team_Promoted
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	CMPI.b	#$0F, D0
@@ -24240,13 +24308,14 @@ loc_12CB0:
 	BCLR.b	#4, Player_team.w
 	BSET.b	#5, Player_team.w
 	RTS
-loc_12CF6:
+;loc_12CF6
+Assign_initial_rival_team_Promoted:
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
-	BCC.b	loc_12D4E
+	BCC.b	Assign_initial_rival_team_RivalAhead
 	BTST.b	#7, Rival_team.w
 	BEQ.w	Clear_rival_promotion_flag
 	MOVE.b	Player_team.w, D0
@@ -24265,7 +24334,8 @@ loc_12CF6:
 	BCLR.b	#4, Player_team.w
 	BSET.b	#5, Player_team.w
 	RTS
-loc_12D4E:
+;loc_12D4E
+Assign_initial_rival_team_RivalAhead:
 	BTST.b	#6, Rival_team.w
 	BEQ.b	Clear_rival_promotion_flag
 	BCLR.b	#4, Player_team.w
@@ -24275,97 +24345,131 @@ Clear_rival_promotion_flag:
 	BCLR.b	#5, Player_team.w
 	RTS
 
-loc_12D6C:
+;loc_12D6C
+; Update_player_grid_position
+; Called from Championship_next_race_init_MidChamp.
+; If Player_grid_position is $FFFF (unset), advances Player_state_flags bits 0/1
+; to track whether the player has been placed on the grid yet.
+; Then updates rival promotion state based on current team standings and promotion flags.
+Update_player_grid_position:
 	CMPI.w	#$FFFF, Player_grid_position.w
-	BNE.b	loc_12D8A
+	BNE.b	Update_player_grid_position_Placed
 	BTST.b	#0, Player_state_flags.w
-	BNE.b	loc_12D84
+	BNE.b	Update_player_grid_position_Mark2
 	BSET.b	#0, Player_state_flags.w
-	BRA.b	loc_12D8A
-loc_12D84:
+	BRA.b	Update_player_grid_position_Placed
+;loc_12D84
+Update_player_grid_position_Mark2:
 	BSET.b	#1, Player_state_flags.w
-loc_12D8A:
+;loc_12D8A
+Update_player_grid_position_Placed:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
-	BEQ.b	loc_12DFA
-	MOVE.b	$FFFFFF35.w, D0
-	MOVE.b	$FFFFFF3B.w, D1
+	BEQ.b	Update_player_grid_position_Rts
+	MOVE.b	$FFFFFF35.w, D0 ; low byte of Player_grid_position
+	MOVE.b	$FFFFFF3B.w, D1 ; low byte of Rival_grid_position
 	CMP.b	D0, D1
-	BCC.w	loc_12DC6
+	BCC.w	Update_player_grid_position_RivalWins
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$CF, D0
 	MOVE.b	D0, Rival_team.w
 	BTST.b	#6, Rival_team.w
-	BNE.b	loc_12DBE
+	BNE.b	Update_player_grid_position_PromoteFull
 	BSET.b	#6, Rival_team.w
 	RTS
-loc_12DBE:
+;loc_12DBE
+Update_player_grid_position_PromoteFull:
 	BSET.b	#7, Rival_team.w
 	RTS
-loc_12DC6:
+;loc_12DC6
+Update_player_grid_position_RivalWins:
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$3F, D0
 	MOVE.b	D0, Rival_team.w
 	BTST.b	#4, Rival_team.w
-	BNE.b	loc_12DF2
-	MOVE.w	$FFFF9040.w, D1
+	BNE.b	Update_player_grid_position_SetBit5
+	MOVE.w	Promoted_teams_bitfield.w, D1
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	BTST.l	D0, D1
-	BNE.b	loc_12DFA
+	BNE.b	Update_player_grid_position_Rts
 	BSET.b	#4, Rival_team.w
 	RTS
-loc_12DF2:
+;loc_12DF2
+Update_player_grid_position_SetBit5:
 	BSET.b	#5, Rival_team.w
 	RTS
-loc_12DFA:
+;loc_12DFA
+Update_player_grid_position_Rts:
 	RTS
 
-loc_12DFC:
+;loc_12DFC
+; Advance_rival_promotion_state
+; Called from Championship_podium_load_or_fade to update the rival driver's
+; promotion state for the next championship race.
+; Checks whether the rival is eligible for promotion (bits in Rival_team).
+; If the rival team slot >= rival+4 is taken (bit set in Promoted_teams_bitfield),
+; pops the return address and sets Anim_delay instead (display-friendly skip path).
+Advance_rival_promotion_state:
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$A0, D0
-	BEQ.w	loc_12E54
+	BEQ.w	Advance_rival_promotion_state_Rts
 	BTST.b	#7, Rival_team.w
-	BEQ.b	loc_12E54
+	BEQ.b	Advance_rival_promotion_state_Rts
 	MOVE.b	Player_team.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
-	BCS.b	loc_12E54
+	BCS.b	Advance_rival_promotion_state_Rts
 	CLR.l	D1
 	LEA	Drivers_and_teams_map.w, A1
-	MOVE.w	$FFFF9040.w, D0
+	MOVE.w	Promoted_teams_bitfield.w, D0
 	MOVE.b	Rival_team.w, D1
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
-loc_12E36:
+;loc_12E36
+Advance_rival_promotion_state_Loop:
 	ADDQ.b	#1, D1
 	CMPI.b	#$10, D1
-	BCC.w	loc_12E56
+	BCC.w	Advance_rival_promotion_state_DelayAndRts
 	MOVE.b	Rival_team.w, D5
 	ANDI.b	#$0F, D5 ; isolate the rival's team number
 	ADDQ.b	#4, D5
 	CMP.b	D5, D1
-	BCC.w	loc_12E56
+	BCC.w	Advance_rival_promotion_state_DelayAndRts
 	BTST.l	D1, D0
-	BNE.b	loc_12E36
-loc_12E54:
+	BNE.b	Advance_rival_promotion_state_Loop
+;loc_12E54
+Advance_rival_promotion_state_Rts:
 	RTS
-loc_12E56:
+;loc_12E56
+Advance_rival_promotion_state_DelayAndRts:
 	MOVE.w	#$0024, Anim_delay.w
 	MOVE.l	(A7)+, D0
 	RTS
-loc_12E60:
-	LEA	$FFFF906E.w, A1
+;loc_12E60
+; Initialize_standings_order_buffer
+; Called from Championship_next_race_init_MidChamp to set up the standings
+; display order for the inter-race screen.  Fills Standings_team_order with
+; identity 0-15, then generates a random AI performance score for each
+; driver (using Ai_performance_factor_by_team and Ai_performance_table),
+; biases player/rival to 0 (top slot), offsets all scores by +2, and
+; bubble-sorts Standings_team_order ascending by Standings_perf_scores.
+; Finally rotates Standings_team_order so the player and rival appear at
+; the correct positions.
+Initialize_standings_order_buffer:
+	LEA	Standings_team_order.w, A1
 	MOVE.w	#$000F, D0
 	CLR.b	D1
-loc_12E6A:
+;loc_12E6A
+Initialize_standings_order_buffer_Fill_loop:
 	MOVE.b	D1, (A1)+
 	ADDQ.b	#1, D1
-	DBF	D0, loc_12E6A
-	LEA	$FFFF905E.w, A6
+	DBF	D0, Initialize_standings_order_buffer_Fill_loop
+	LEA	Standings_perf_scores.w, A6
 	MOVE.w	#$000F, D7
-loc_12E7A:
+;loc_12E7A
+Initialize_standings_order_buffer_Score_loop:
 	JSR	Prng
 	MOVE.b	D0, D1
 	ANDI.l	#7, D1
@@ -24376,74 +24480,82 @@ loc_12E7A:
 	MOVE.b	(A1,D7.w), D2
 	ANDI.b	#$0F, D2 ; isolate the team number
 	BTST.b	#6, Player_team.w
-	BEQ.b	loc_12EA4
+	BEQ.b	Initialize_standings_order_buffer_NoBonus
 	ADDQ.b	#1, D2
-loc_12EA4:
-	LEA	loc_132F0, A1
+;loc_12EA4
+Initialize_standings_order_buffer_NoBonus:
+	LEA	Ai_performance_factor_by_team, A1
 	MOVE.b	(A1,D7.w), D3
-	LEA	loc_13300, A1
+	LEA	Ai_performance_table, A1
 	LSL.l	#3, D2
 	ADDA.l	D2, A1
 	MOVE.b	(A1,D1.w), D4
 	MULS.w	D3, D4
 	MOVE.b	D4, (A6,D7.w)
-	DBF	D7, loc_12E7A
-	LEA	$FFFF905E.w, A1
+	DBF	D7, Initialize_standings_order_buffer_Score_loop
+	LEA	Standings_perf_scores.w, A1
 	MOVE.w	#$000F, D0
-loc_12ECE:
+;loc_12ECE
+Initialize_standings_order_buffer_Offset_loop:
 	ADDQ.b	#2, (A1)+
-	DBF	D0, loc_12ECE
+	DBF	D0, Initialize_standings_order_buffer_Offset_loop
 	CLR.l	D0
-	LEA	$FFFF905E.w, A1
+	LEA	Standings_perf_scores.w, A1
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	CLR.b	(A1,D0.w)
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
-	BEQ.b	loc_12EFC
+	BEQ.b	Initialize_standings_order_buffer_NoRival
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	CLR.b	(A1,D0.w)
-loc_12EFC:
+;loc_12EFC
+Initialize_standings_order_buffer_NoRival:
 	MOVEQ	#$0000000F, D0
-loc_12EFE:
+;loc_12EFE
+Initialize_standings_order_buffer_Sort_outer:
 	MOVEQ	#$0000000E, D1
-	LEA	$FFFF905E.w, A1
-	LEA	$FFFF906E.w, A2
-loc_12F08:
+	LEA	Standings_perf_scores.w, A1
+	LEA	Standings_team_order.w, A2
+;loc_12F08
+Initialize_standings_order_buffer_Sort_inner:
 	MOVE.b	(A1), D2
 	CMP.b	$1(A1), D2
-	BCC.b	loc_12F22
+	BCC.b	Initialize_standings_order_buffer_Sort_noswap
 	MOVE.b	$1(A1), (A1)
 	MOVE.b	D2, $1(A1)
 	MOVE.b	(A2), D2
 	MOVE.b	$1(A2), (A2)
 	MOVE.b	D2, $1(A2)
-loc_12F22:
+;loc_12F22
+Initialize_standings_order_buffer_Sort_noswap:
 	ADDQ.w	#1, A1
 	ADDQ.w	#1, A2
-	DBF	D1, loc_12F08
-	DBF	D0, loc_12EFE
+	DBF	D1, Initialize_standings_order_buffer_Sort_inner
+	DBF	D0, Initialize_standings_order_buffer_Sort_outer
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
-	BNE.b	loc_12F3E
+	BNE.b	Initialize_standings_order_buffer_HasRival
 	BSR.b	Rotate_standings_buffer
-	BRA.w	loc_12FB8
-loc_12F3E:
+	BRA.w	Accumulate_race_points
+;loc_12F3E
+Initialize_standings_order_buffer_HasRival:
 	MOVE.b	$FFFFFF35.w, D0
 	CMP.b	$FFFFFF3B.w, D0
-	BCS.b	loc_12F50
-	BSR.b	loc_12F88
+	BCS.b	Initialize_standings_order_buffer_RivalFirst
+	BSR.b	Rotate_standings_buffer_Rival
 	BSR.b	Rotate_standings_buffer
-	BRA.w	loc_12FB8
-loc_12F50:
+	BRA.w	Accumulate_race_points
+;loc_12F50
+Initialize_standings_order_buffer_RivalFirst:
 	BSR.b	Rotate_standings_buffer
-	BSR.b	loc_12F88
-	BRA.w	loc_12FB8
+	BSR.b	Rotate_standings_buffer_Rival
+	BRA.w	Accumulate_race_points
 ;Rotate_standings_buffer
 Rotate_standings_buffer:
 	CLR.l	D0
-	LEA	$FFFF906E.w, A1
+	LEA	Standings_team_order.w, A1
 	LEA	$FFFF907D.w, A2
 	LEA	$1(A2), A3
 	MOVE.b	$FFFFFF35.w, D0
@@ -24451,16 +24563,18 @@ Rotate_standings_buffer:
 	ADDA.l	D0, A1
 	MOVE.w	#$000F, D1
 	SUB.w	D0, D1
-loc_12F76:
+;loc_12F76
+Rotate_standings_buffer_Loop:
 	MOVE.b	-(A2), -(A3)
-	DBF	D1, loc_12F76
+	DBF	D1, Rotate_standings_buffer_Loop
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	D0, (A1)
 	RTS
-loc_12F88:
+;loc_12F88
+Rotate_standings_buffer_Rival:
 	CLR.l	D0
-	LEA	$FFFF906E.w, A1
+	LEA	Standings_team_order.w, A1
 	LEA	$FFFF907D.w, A2
 	LEA	$1(A2), A3
 	MOVE.b	$FFFFFF3B.w, D0
@@ -24468,61 +24582,69 @@ loc_12F88:
 	ADDA.l	D0, A1
 	MOVE.w	#$000F, D1
 	SUB.w	D0, D1
-loc_12FA6:
+;loc_12FA6
+Rotate_standings_buffer_Rival_Loop:
 	MOVE.b	-(A2), -(A3)
-	DBF	D1, loc_12FA6
+	DBF	D1, Rotate_standings_buffer_Rival_Loop
 	MOVE.b	Rival_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the rival's team number
 	MOVE.b	D0, (A1)
 	RTS
-loc_12FB8:
-	LEA	$FFFF907E.w, A1
+;loc_12FB8
+Accumulate_race_points:
+	LEA	Standings_points_buf.w, A1
 	MOVE.w	#$000F, D0
-loc_12FC0:
+;loc_12FC0
+Accumulate_race_points_Clear_loop:
 	CLR.b	(A1)+
-	DBF	D0, loc_12FC0
+	DBF	D0, Accumulate_race_points_Clear_loop
 	CLR.l	D2
 	LEA	PointsAwardedPerPlacement, A1
-	LEA	$FFFF906E.w, A2
-	LEA	$FFFF907E.w, A3
+	LEA	Standings_team_order.w, A2
+	LEA	Standings_points_buf.w, A3
 	MOVE.w	#5, D0
-loc_12FDA:
+;loc_12FDA
+Accumulate_race_points_Dist_loop:
 	MOVE.b	(A1,D0.w), D1
 	MOVE.b	(A2,D0.w), D2
 	MOVE.b	D1, (A3,D2.w)
-	DBF	D0, loc_12FDA
+	DBF	D0, Accumulate_race_points_Dist_loop
 	CLR.l	D2
 	CLR.l	D3
-	LEA	$FFFF907E.w, A1
+	LEA	Standings_points_buf.w, A1
 	LEA	Drivers_and_teams_map.w, A2
 	LEA	Driver_points_by_team.w, A3
 	MOVE.w	#$000F, D0
-loc_12FFE:
+;loc_12FFE
+Accumulate_race_points_Assign_loop:
 	MOVE.b	(A2,D3.w), D2
 	ANDI.b	#$0F, D2
 	MOVE.b	(A1,D2.w), D1
 	ADD.b	D1, (A3,D2.w)
 	ADDQ.w	#1, D3
-	DBF	D0, loc_12FFE
+	DBF	D0, Accumulate_race_points_Assign_loop
 	RTS
 ;Initialize_drivers_and_teams
 Initialize_drivers_and_teams:
 	LEA	Driver_points_by_team.w, A1
 	MOVE.w	#$000F, D0
-loc_1301E:
+;loc_1301E
+Initialize_drivers_and_teams_Clear_loop:
 	CLR.b	(A1)+
-	DBF	D0, loc_1301E
+	DBF	D0, Initialize_drivers_and_teams_Clear_loop
 	CLR.b	Rival_team.w
 	LEA	Player_team.w, A1
 	LEA	InitialDriversAndTeamMap, A2
 	BTST.b	#6, Player_team.w
-	BEQ.b	loc_13040
+	BEQ.b	Initialize_drivers_and_teams_UseMap
 	LEA	SecondYearDriversAndTeamsMap, A2
-loc_13040:
+;loc_13040
+Initialize_drivers_and_teams_UseMap:
 	MOVE.w	#$0010, D0
-loc_13044:
+;loc_13044
+Initialize_drivers_and_teams_Copy_loop:
 	MOVE.b	(A2)+, (A1)+
-	DBF	D0, loc_13044
+	DBF	D0, Initialize_drivers_and_teams_Copy_loop
 	RTS
 ;Load_team_machine_stats
 Load_team_machine_stats:
@@ -24549,7 +24671,7 @@ Load_team_machine_stats:
 	MOVE.b	$1(A1), $FFFF902B.w
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
-	LEA	loc_133A4(PC), A0
+	LEA	Team_engine_multiplier(PC), A0
 	MOVE.b	(A0,D0.w), D0
 	MOVE.w	D0, $FFFF915A.w
 	MOVE.w	D0, $FFFF9156.w
@@ -24558,18 +24680,20 @@ Load_team_machine_stats:
 	ADD.w	D1, D1
 	MOVE.w	D1, $FFFF9158.w
 	CMPI.w	#1, Track_index.w
-	BNE.b	loc_130DA
+	BNE.b	Load_team_machine_stats_NoFirst
 	ADD.w	D0, $FFFF9158.w
 	ADD.w	D0, $FFFF9158.w
-loc_130DA:
+;loc_130DA
+Load_team_machine_stats_NoFirst:
 	MOVE.w	D1, $FFFF9154.w
 	MOVE.w	D0, $FFFF9152.w
 	ADD.w	D0, $FFFF9152.w
 	ADD.w	D0, $FFFF9152.w
 	CMPI.w	#$000B, Track_index.w
-	BNE.b	loc_130F6
+	BNE.b	Load_team_machine_stats_NoLast
 	ADD.w	D0, $FFFF9152.w
-loc_130F6:
+;loc_130F6
+Load_team_machine_stats_NoLast:
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	MULU.w	#5, D0
@@ -24577,11 +24701,12 @@ loc_130F6:
 	ADDA.w	D0, A0
 	LEA	Team_car_acceleration.w, A1
 	MOVEQ	#4, D0
-loc_1310E:
+;loc_1310E
+Load_team_machine_stats_Char_loop:
 	MOVEQ	#0, D1
 	MOVE.b	(A0)+, D1
 	MOVE.w	D1, (A1)+ ; stores: Team_car_acceleration, Team_car_engine_data, Track_steering_index, Track_steering_index_b, Track_braking_index
-	DBF	D0, loc_1310E
+	DBF	D0, Load_team_machine_stats_Char_loop
 	MOVE.w	#$0014, $FFFF9166.w
 	MOVE.w	#$0014, $FFFF9168.w
 	MOVE.w	#$0014, $FFFF916A.w
@@ -24609,20 +24734,20 @@ Load_team_car_data_Rts:
 Save_player_state_to_buffer:
 	LEA	$FFFFFF80.w, A1
 	MOVE.w	#$003F, D7
-loc_13178:
+Save_player_state_clear_loop:
 	CLR.b	(A1)+
-	DBF	D7, loc_13178
+	DBF	D7, Save_player_state_clear_loop
 	LEA	$FFFFFF80.w, A1
 	LEA	Player_state_flags.w, A2
 	MOVE.w	#$0024, D7
-loc_1318A:
+Save_player_state_lo_loop:
 	MOVE.b	(A2)+, D0
 	ANDI.b	#$1F, D0
 	MOVE.b	D0, (A1)+
-	DBF	D7, loc_1318A
+	DBF	D7, Save_player_state_lo_loop
 	LEA	Player_state_flags.w, A2
 	MOVE.w	#$0012, D7
-loc_1319E:
+Save_player_state_hi_loop:
 	MOVE.b	(A2)+, D0
 	LSR.b	#5, D0
 	ANDI.b	#7, D0
@@ -24631,24 +24756,27 @@ loc_1319E:
 	ANDI.b	#$38, D1
 	ADD.b	D1, D0
 	MOVE.b	D0, (A1)+
-	DBF	D7, loc_1319E
+	DBF	D7, Save_player_state_hi_loop
 	MOVE.b	$FFFF9145.w, (A1)+
 	MOVE.l	Saved_frame_callback.w, D0
 	CMPI.l	#$0000D6E2, D0
-	BEQ.b	loc_131E8
+	BEQ.b	Save_mode_standings
 	CMPI.l	#Title_menu, D0
-	BEQ.b	loc_131E2
+	BEQ.b	Save_mode_title
 	CMPI.l	#Championship_mode_init, D0
-	BEQ.b	loc_131DC
+	BEQ.b	Save_mode_championship
 	MOVE.b	#4, (A1)+
 	BRA.b	Finalize_save_data_buffer
-loc_131DC:
+;loc_131DC
+Save_mode_championship:
 	MOVE.b	#3, (A1)+
 	BRA.b	Finalize_save_data_buffer
-loc_131E2:
+;loc_131E2
+Save_mode_title:
 	MOVE.b	#2, (A1)+
 	BRA.b	Finalize_save_data_buffer
-loc_131E8:
+;loc_131E8
+Save_mode_standings:
 	MOVE.b	#1, (A1)+
 ;loc_131EC:
 Finalize_save_data_buffer:
@@ -24669,21 +24797,21 @@ Finalize_save_data_buffer:
 Load_player_state_from_buffer:
 	LEA	Player_state_flags.w, A1
 	MOVE.w	#$0024, D7
-loc_13220:
+Load_player_state_clear_loop:
 	CLR.b	(A1)+
-	DBF	D7, loc_13220
+	DBF	D7, Load_player_state_clear_loop
 	CLR.w	Track_index.w
 	CLR.l	Saved_frame_callback.w
 	LEA	$FFFFFF80.w, A1
 	LEA	Player_state_flags.w, A2
 	MOVE.w	#$0024, D7
-loc_1323A:
+Load_player_state_copy_loop:
 	MOVE.b	(A1)+, D0
 	MOVE.b	D0, (A2)+
-	DBF	D7, loc_1323A
+	DBF	D7, Load_player_state_copy_loop
 	LEA	Player_state_flags.w, A2
 	MOVE.w	#$0012, D7
-loc_1324A:
+Load_player_state_hi_loop:
 	MOVE.b	(A1), D0
 	ANDI.b	#7, D0
 	LSL.b	#5, D0
@@ -24692,24 +24820,27 @@ loc_1324A:
 	ANDI.b	#$38, D0
 	LSL.b	#2, D0
 	ADD.b	D0, (A2)+
-	DBF	D7, loc_1324A
+	DBF	D7, Load_player_state_hi_loop
 	MOVE.b	(A1)+, $FFFF9145.w
 	MOVE.b	(A1)+, D0
 	CMPI.b	#1, D0
-	BEQ.b	loc_13298
+	BEQ.b	Load_mode_standings
 	CMPI.b	#2, D0
-	BEQ.b	loc_1328E
+	BEQ.b	Load_mode_title
 	CMPI.b	#3, D0
-	BEQ.b	loc_13284
+	BEQ.b	Load_mode_championship
 	MOVE.l	#0, Saved_frame_callback.w
 	BRA.b	Restore_saved_frame_callback
-loc_13284:
+;loc_13284
+Load_mode_championship:
 	MOVE.l	#Championship_mode_init, Saved_frame_callback.w
 	BRA.b	Restore_saved_frame_callback
-loc_1328E:
+;loc_1328E
+Load_mode_title:
 	MOVE.l	#Title_menu, Saved_frame_callback.w
 	BRA.b	Restore_saved_frame_callback
-loc_13298:
+;loc_13298
+Load_mode_standings:
 	MOVE.l	#Championship_standings_init, Saved_frame_callback.w
 ;loc_132A0:
 Restore_saved_frame_callback:
@@ -24720,7 +24851,7 @@ Compute_save_data_checksum:
 	MOVE.w	#$001C, D0
 	MOVE.b	#0, D1
 	MOVE.b	#0, D2
-loc_132B2:
+Compute_save_data_checksum_loop:
 	MOVE.b	D2, D3
 	MOVE.b	(A0), D4
 	EOR.b	D4, D3
@@ -24733,22 +24864,25 @@ loc_132B2:
 	ADDA.l	#1, A0
 	LSR.b	#1, D1
 	ROXR.b	#1, D2
-	BCC.b	loc_132E4
+	BCC.b	Compute_save_data_checksum_next
 	MOVE.b	D1, D3
 	EORI.b	#$88, D3
 	MOVE.b	D3, D1
 	MOVE.b	D2, D3
 	EORI.b	#$10, D3
 	MOVE.b	D3, D2
-loc_132E4:
-	DBF	D0, loc_132B2
+;loc_132E4
+Compute_save_data_checksum_next:
+	DBF	D0, Compute_save_data_checksum_loop
 	RTS
 ;loc_132EA:
 PointsAwardedPerPlacement:
 	dc.b 9, 6, 4, 3, 2, 1
-loc_132F0:
+;loc_132F0
+Ai_performance_factor_by_team:
 	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01
-loc_13300:
+;loc_13300
+Ai_performance_table:
 	dc.b	$06, $06, $06, $06, $09, $09, $09, $09, $01, $02, $03, $04, $06, $06, $09, $09, $01, $02, $02, $03, $04, $06, $06, $09, $01, $01, $02, $03, $03, $04, $06, $09
 	dc.b	$00, $01, $02, $02, $03, $04, $04, $06, $00, $00, $01, $01, $02, $03, $03, $09, $00, $00, $01, $01, $02, $02, $03
 	dc.b	$03
@@ -24770,7 +24904,8 @@ SecondYearDriversAndTeamsMap:
 	dc.b	$50
 	dc.b	$50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E
 	dc.b	$00
-loc_133A4:
+;loc_133A4
+Team_engine_multiplier:
 	dc.b	$01, $01, $01, $01, $02, $01, $02, $02, $02, $01, $02, $01, $02, $02, $02, $02
 ;loc_133B4:
 Team_car_characteristics:
@@ -24979,9 +25114,9 @@ Championship_final_init_clear_loop:
 	DBF	D0, Championship_final_init_clear_loop
 	BSR.w	Load_all_driver_portraits
 	MOVE.l	#$5C200002, VDP_control_port
-	LEA	loc_6263A, A0
+	LEA	Championship_final_tiles, A0
 	JSR	Decompress_to_vdp
-	LEA	loc_6250E, A0
+	LEA	Championship_final_tilemap, A0
 	MOVE.w	#$64E1, D0
 	JSR	Decompress_tilemap_to_buffer
 	LEA	$FFFFEED8.w, A1
@@ -24994,8 +25129,8 @@ Championship_final_init_copy_loop:
 	MOVE.b	#$64, Screen_timer.w
 	MOVE.b	#1, Screen_tick.w
 	MOVE.l	#Endgame_sequence_frame, Frame_callback.w
-	MOVE.l	#$000138CE, Vblank_callback.w
-	LEA	loc_13938, A1
+	MOVE.l	#Endgame_vblank_handler, Vblank_callback.w
+	LEA	Championship_final_star_data_table, A1
 	MOVE.w	#$000B, D0
 ;loc_13694
 Championship_final_init_obj_loop:
@@ -25018,9 +25153,9 @@ Championship_final_init_obj_loop:
 	ADDQ.w	#1, D1
 	MOVE.w	D1, $1A(A2)
 	DBF	D0, Championship_final_init_obj_loop
-	LEA	loc_19624, A6
+	LEA	Car_select_bg_vdp_stream, A6
 	JSR	Copy_word_run_from_stream
-	LEA	loc_1379A, A1
+	LEA	Championship_final_bg_palette, A1
 	LEA	$FFFFE9E2.w, A2
 	MOVE.w	#$000E, D0
 ;loc_136F4
@@ -25068,7 +25203,8 @@ Load_driver_portrait_loop:
 	JSR	Decompress_to_vdp
 	DBF	D0, Load_driver_portrait_loop
 	RTS
-loc_1379A:
+;loc_1379A
+Championship_final_bg_palette:
 	dc.w	$0200, $0400, $0420, $0620, $0642, $0842, $0864, $0A64, $0A86, $0C86, $0CA8, $0ECA, $0EEC, $0EA8, $0000
 ;loc_137B8
 Draw_endgame_portrait_tilemap_select:
@@ -25090,7 +25226,7 @@ Draw_endgame_portrait_tilemap_draw:
 ;loc_137EC:
 Update_endgame_portrait_animation:
 	BTST.b	#1, $FFFFFC06.w
-	BNE.b	loc_13826
+	BNE.b	Update_endgame_portrait_fade
 	BCLR.b	#2, $FFFFFC06.w
 	BSR.w	Load_endgame_portrait_tilemap
 	MOVE.w	#$20E1, D0
@@ -25100,11 +25236,13 @@ Update_endgame_portrait_animation:
 	BSR.w	Copy_endgame_portrait_palette_strip
 	ADDQ.b	#1, $FFFFFC01.w
 	CMPI.b	#$10, $FFFFFC01.w
-	BCS.b	loc_13824
+	BCS.b	Update_endgame_portrait_tick_a
 	CLR.b	$FFFFFC01.w
-loc_13824:
+;loc_13824
+Update_endgame_portrait_tick_a:
 	RTS
-loc_13826:
+;loc_13826
+Update_endgame_portrait_fade:
 	BCLR.b	#1, $FFFFFC06.w
 	BSR.w	Load_endgame_portrait_tilemap
 	MOVE.w	#$40E1, D0
@@ -25114,9 +25252,10 @@ loc_13826:
 	BSR.w	Copy_endgame_portrait_palette_strip
 	ADDQ.b	#1, $FFFFFC01.w
 	CMPI.b	#$10, $FFFFFC01.w
-	BCS.b	loc_13856
+	BCS.b	Update_endgame_portrait_tick_b
 	CLR.b	$FFFFFC01.w
-loc_13856:
+;loc_13856
+Update_endgame_portrait_tick_b:
 	RTS
 ;loc_13858:
 Load_endgame_portrait_tilemap:
@@ -25137,13 +25276,15 @@ Draw_endgame_portrait_tilemap:
 	JSR	Decompress_tilemap_to_buffer
 	LEA	Tilemap_work_buf.w, A6
 	CMPI.w	#$00F0, $FFFFBB56.w
-	BCC.b	loc_138A0
+	BCC.b	Draw_endgame_portrait_vdp
 	MOVE.w	#$0040, D0
-loc_13896:
+;loc_13896
+Draw_endgame_portrait_clear_loop:
 	CLR.w	(A6)+
-	DBF	D0, loc_13896
+	DBF	D0, Draw_endgame_portrait_clear_loop
 	LEA	Tilemap_work_buf.w, A6
-loc_138A0:
+;loc_138A0
+Draw_endgame_portrait_vdp:
 	ORI	#$0700, SR
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
@@ -25154,12 +25295,13 @@ Copy_endgame_portrait_palette_strip:
 	MOVE.b	$FFFFFC01.w, D0
 	LSL.l	#5, D0
 	ADDQ.l	#2, D0
-	LEA	loc_19664, A6
+	LEA	Driver_portrait_palette_streams, A6
 	ADDA.l	D0, A6
 	MOVE.w	#$000E, D0
-loc_138C6:
+;loc_138C6
+Copy_endgame_portrait_palette_loop:
 	MOVE.w	(A6)+, (A1)+
-	DBF	D0, loc_138C6
+	DBF	D0, Copy_endgame_portrait_palette_loop
 	RTS
 ;$000138CE
 Endgame_vblank_handler:
@@ -25167,10 +25309,11 @@ Endgame_vblank_handler:
 	JSR	Update_input_bitset
 	JSR	Upload_palette_buffer_to_cram
 	SUBQ.b	#1, Screen_tick.w
-	BNE.b	loc_138F2
+	BNE.b	Endgame_vblank_scroll
 	BSET.b	#0, $FFFFFC06.w
 	MOVE.b	#3, Screen_tick.w
-loc_138F2:
+;loc_138F2
+Endgame_vblank_scroll:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CE95A0, D6
 	MOVE.l	#$940193C0, D5
@@ -25183,76 +25326,90 @@ loc_138F2:
 	ADD.w	D0, D0
 	MOVE.w	D0, Screen_data_ptr.w
 	TST.w	Temp_x_pos.w
-	BEQ.w	loc_13930
+	BEQ.w	Endgame_vblank_objects
 	RTS
-loc_13930:
+;loc_13930
+Endgame_vblank_objects:
 	JSR	Update_objects_and_build_sprite_buffer
 	RTS
-loc_13938:
-	dc.l	loc_13968
-	dc.l	loc_13988
-	dc.l	loc_139EA
-	dc.l	loc_13A34
-	dc.l	loc_13A96
-	dc.l	loc_13AF2
-	dc.l	loc_13B78
-	dc.l	loc_13BF2
-	dc.l	loc_13C66
-	dc.l	loc_13CCE
-	dc.l	loc_13D54
-	dc.l	loc_13D5C
-loc_13968:
+;loc_13938
+Championship_final_star_data_table:
+	dc.l	Championship_final_star_frames_0
+	dc.l	Championship_final_star_frames_1
+	dc.l	Championship_final_star_frames_2
+	dc.l	Championship_final_star_frames_3
+	dc.l	Championship_final_star_frames_4
+	dc.l	Championship_final_star_frames_5
+	dc.l	Championship_final_star_frames_6
+	dc.l	Championship_final_star_frames_7
+	dc.l	Championship_final_star_frames_8
+	dc.l	Championship_final_star_frames_9
+	dc.l	Championship_final_star_frames_10
+	dc.l	Championship_final_star_frames_11
+;loc_13968
+Championship_final_star_frames_0:
 	dc.b	$00, $04, $EC, $00, $87, $DC, $FF, $F0, $EC, $00, $87, $DD, $FF, $F8, $EC, $00, $87, $CA, $00, $00, $EC, $00, $87, $CF, $00, $08, $EC, $00, $87, $CF, $00, $10
-loc_13988:
+;loc_13988
+Championship_final_star_frames_1:
 	dc.b	$00, $0F, $E0, $00, $87, $CD, $FF, $E4, $E0, $00, $87, $D2, $FF, $EC, $E0, $00, $87, $DB, $FF, $F4, $E0, $00, $87, $CE, $FF, $FC, $E0, $00, $87, $CC, $00, $04
 	dc.b	$E0, $00, $87, $DD, $00, $0C, $E0, $00, $87, $D8, $00, $14, $E0, $00, $87, $DB, $00, $1C, $F0, $00, $87, $E0, $FF, $E0, $F0, $00, $87, $D2, $FF, $E8, $F0, $00
 	dc.b	$87, $D5, $FF, $F0, $F0, $00, $87, $D5, $FF, $F8, $F0, $00, $87, $CC, $00, $08, $F0, $00, $87, $CA, $00, $10, $F0, $00, $87, $D7, $00, $18, $F0, $00, $87, $CE
 	dc.b	$00, $20
-loc_139EA:
+;loc_139EA
+Championship_final_star_frames_2:
 	dc.b	$00, $0B, $E0, $00, $87, $CD, $FF, $E4, $E0, $00, $87, $CE, $FF, $EC, $E0, $00, $87, $DC, $FF, $F4, $E0, $00, $87, $D2, $FF, $FC, $E0, $00, $87, $D0
 	dc.b	$00, $04, $E0, $00, $87, $D7, $00, $0C, $E0, $00, $87, $CE, $00, $14, $E0, $00, $87, $DB, $00, $1C, $F0, $00, $87, $D4, $FF, $F4, $F0, $00, $87, $CA, $FF, $FC
 	dc.b	$F0, $00, $87, $D4, $00, $04, $F0, $00, $87, $D2, $00, $0C
-loc_13A34:
+;loc_13A34
+Championship_final_star_frames_3:
 	dc.b	$00, $0F, $E0, $00, $87, $DC, $FF, $CC, $E0, $00, $87, $D8, $FF, $D4, $E0, $00, $87, $DE, $FF, $DC
 	dc.b	$E0, $00, $87, $D7, $FF, $E4, $E0, $00, $87, $CD, $FF, $EC, $E0, $00, $87, $CE, $FF, $FC, $E0, $00, $87, $CF, $00, $04, $E0, $00, $87, $CF, $00, $0C, $E0, $00
 	dc.b	$87, $CE, $00, $14, $E0, $00, $87, $CC, $00, $1C, $E0, $00, $87, $DD, $00, $24, $E0, $00, $87, $CB, $00, $34, $E0, $00, $87, $E2, $00, $3C, $F0, $00, $87, $D7
 	dc.b	$FF, $F8, $F0, $00, $87, $CA, $00, $00, $F0, $00, $87, $D8, $00, $08
-loc_13A96:
+;loc_13A96
+Championship_final_star_frames_4:
 	dc.b	$00, $0E, $E0, $00, $87, $D6, $FF, $CC, $E0, $00, $87, $DE, $FF, $D4, $E0, $00, $87, $DC
 	dc.b	$FF, $DC, $E0, $00, $87, $D2, $FF, $E4, $E0, $00, $87, $CC, $FF, $EC, $E0, $00, $87, $CC, $FF, $FC, $E0, $00, $87, $D8, $00, $04, $E0, $00, $87, $D6, $00, $0C
 	dc.b	$E0, $00, $87, $D9, $00, $14, $E0, $00, $87, $D8, $00, $1C, $E0, $00, $87, $DC, $00, $24, $E0, $00, $87, $CE, $00, $2C, $E0, $00, $87, $DB, $00, $34, $F0, $00
 	dc.b	$87, $CB, $FF, $FC, $F0, $00, $87, $D8, $00, $04
-loc_13AF2:
+;loc_13AF2
+Championship_final_star_frames_5:
 	dc.b	$00, $15, $DE, $00, $87, $D9, $FF, $DC, $DE, $00, $87, $DB, $FF, $E4, $DE, $00, $87, $D8, $FF, $EC, $DE, $00
 	dc.b	$87, $D0, $FF, $F4, $DE, $00, $87, $DB, $FF, $FC, $DE, $00, $87, $CA, $00, $04, $DE, $00, $87, $D6, $00, $0C, $DE, $00, $87, $D6, $00, $14, $DE, $00, $87, $CE
 	dc.b	$00, $1C, $DE, $00, $87, $DB, $00, $24, $ED, $00, $87, $D1, $FF, $E8, $ED, $00, $87, $CA, $FF, $F0, $ED, $00, $87, $D6, $FF, $F8, $ED, $00, $87, $DD, $00, $08
 	dc.b	$ED, $00, $87, $CA, $00, $10, $ED, $00, $87, $D4, $00, $18, $F8, $00, $87, $D6, $FF, $EC, $F8, $00, $87, $E9, $FF, $F4, $F8, $00, $87, $E0, $FF, $FC, $F8, $00
 	dc.b	$87, $CA, $00, $04, $F8, $00, $87, $D4, $00, $0C, $F8, $00, $87, $CA, $00, $14
-loc_13B78:
+;loc_13B78
+Championship_final_star_frames_6:
 	dc.b	$00, $14, $E0, $00, $87, $CE, $FF, $CC, $E0, $00, $87, $D7, $FF, $D4, $E0, $00
 	dc.b	$87, $D0, $FF, $DC, $E0, $00, $87, $D5, $FF, $E4, $E0, $00, $87, $D2, $FF, $EC, $E0, $00, $87, $DC, $FF, $F4, $E0, $00, $87, $D1, $FF, $FC, $E0, $00, $87, $CE
 	dc.b	$00, $0C, $E0, $00, $87, $CD, $00, $14, $E0, $00, $87, $D2, $00, $1C, $E0, $00, $87, $DD, $00, $24, $E0, $00, $87, $D8, $00, $2C, $E0, $00, $87, $DB, $00, $34
 	dc.b	$F0, $00, $87, $DC, $FF, $E4, $F0, $00, $87, $CA, $FF, $EC, $F0, $00, $87, $D4, $FF, $F4, $F0, $00, $87, $D2, $FF, $FC, $F0, $00, $87, $D7, $00, $0C, $F0, $00
 	dc.b	$87, $E2, $00, $14, $F0, $00, $87, $CA, $00, $1C
-loc_13BF2:
+;loc_13BF2
+Championship_final_star_frames_7:
 	dc.b	$00, $12, $E0, $00, $87, $CA, $FF, $BA, $E0, $00, $87, $DC, $FF, $C2, $E0, $00, $87, $DC, $FF, $CA, $E0, $00
 	dc.b	$87, $D2, $FF, $D2, $E0, $00, $87, $DC, $FF, $DA, $E0, $00, $87, $DD, $FF, $E2, $E0, $00, $87, $CA, $FF, $EA, $E0, $00, $87, $D7, $FF, $F2, $E0, $00, $87, $DD
 	dc.b	$FF, $FA, $E0, $00, $87, $CD, $00, $0D, $E0, $00, $87, $D2, $00, $15, $E0, $00, $87, $DB, $00, $1D, $E0, $00, $87, $CE, $00, $25, $E0, $00, $87, $CC, $00, $2D
 	dc.b	$E0, $00, $87, $DD, $00, $35, $E0, $00, $87, $D8, $00, $3D, $E0, $00, $87, $DB, $00, $45, $F0, $00, $87, $DC, $FF, $FC, $F0, $00, $87, $C2, $00, $04
-loc_13C66:
+;loc_13C66
+Championship_final_star_frames_8:
 	dc.b	$00, $10, $E0, $00, $87, $DD, $FF, $D8, $E0, $00, $87, $CE, $FF, $E0, $E0, $00, $87, $DC, $FF, $E8, $E0, $00, $87, $DD, $FF, $F0, $E0, $00, $87, $CD, $00, $00, $E0, $00
 	dc.b	$87, $DB, $00, $08, $E0, $00, $87, $D2, $00, $10, $E0, $00, $87, $DF, $00, $18, $E0, $00, $87, $CE, $00, $20, $E0, $00, $87, $DB, $00, $28, $F0, $00, $87, $D4
 	dc.b	$FF, $E8, $F0, $00, $87, $E2, $FF, $F0, $F0, $00, $87, $CA, $FF, $F8, $F0, $00, $87, $D6, $00, $00, $F0, $00, $87, $DE, $00, $08, $F0, $00, $87, $DB, $00, $10
 	dc.b	$F0, $00, $87, $CA, $00, $18
-loc_13CCE:
+;loc_13CCE
+Championship_final_star_frames_9:
 	dc.b	$00, $15, $E0, $00, $87, $DC, $FF, $C0, $E0, $00, $87, $D9, $FF, $C8, $E0, $00, $87, $CE, $FF, $D0, $E0, $00, $87, $CC, $FF, $D8
 	dc.b	$E0, $00, $87, $D2, $FF, $E0, $E0, $00, $87, $CA, $FF, $E8, $E0, $00, $87, $D5, $FF, $F0, $E0, $00, $87, $DD, $00, $00, $E0, $00, $87, $D1, $00, $08, $E0, $00
 	dc.b	$87, $CA, $00, $10, $E0, $00, $87, $D7, $00, $18, $E0, $00, $87, $D4, $00, $20, $E0, $00, $87, $DC, $00, $28, $E0, $00, $87, $DD, $00, $38, $E0, $00, $87, $D8
 	dc.b	$00, $40, $F0, $00, $87, $CB, $FF, $E8, $F0, $00, $87, $DB, $FF, $F0, $F0, $00, $87, $D8, $FF, $F8, $F0, $00, $87, $DC, $00, $00, $F0, $00, $87, $C4, $00, $08
 	dc.b	$F0, $00, $87, $C0, $00, $10, $F0, $00, $87, $C0, $00, $18
-loc_13D54:
+;loc_13D54
+Championship_final_star_frames_10:
 	dc.b	$00, $00, $F8, $00, $00, $00, $00, $00
-loc_13D5C:
+;loc_13D5C
+Championship_final_star_frames_11:
 	dc.b	$00, $0F, $DE, $00, $87, $D9, $FF, $E4, $DE, $00, $87, $DB
 	dc.b	$FF, $EC, $DE, $00, $87, $D8, $FF, $F4, $DE, $00, $87, $CD, $FF, $FC, $DE, $00, $87, $DE, $00, $04, $DE, $00, $87, $CC, $00, $0C, $DE, $00, $87, $CE, $00, $14
 	dc.b	$DE, $00, $87, $CD, $00, $1C, $EB, $00, $87, $CB, $FF, $FC, $EB, $00, $87, $E2, $00, $04, $F8, $00, $87, $D1, $FF, $E8, $F8, $00, $87, $CA, $FF, $F0, $F8, $00
@@ -25744,98 +25901,128 @@ Result_screen_tiles_b:
 	dc.b	$CF, $C7, $2A, $57, $C7, $29, $70, $95, $53, $80, $DE, $F1, $71, $7A, $BD, $7C, $4C, $EA, $35, $A8, $4A, $EA, $99, $3D, $53, $83, $84, $FD, $AA, $09, $D6, $CF
 	dc.b	$6C, $89, $24, $99, $7E, $6B, $CF, $0D, $F9, $AF, $3C, $65, $2C, $B8, $50, $57, $84, $AB, $40, $4B, $54, $DE, $A6, $55, $A0, $2D, $53, $40, $79, $63, $F8, $89
 	dc.b	$E2, $DF, $B5, $E0, $9C, $A7, $C8, $92, $F9, $5F, $22, $5E, $B2, $D9, $2B, $3C, $A1, $38, $55, $C7, $0A, $F8
-loc_16D3C:
+;loc_16D3C
+Driver_standings_tilemap_compressed_0:
 	dc.b	$F9, $A7, $04, $AE, $BF, $C5, $3C, $BF, $A3, $C1, $32, $A7, $8C, $AB, $C1, $05, $2B, $C2, $B2, $E0, $80, $92, $F9, $27, $0A, $CC, $6B, $C2, $5C, $2B, $2A, $CA
 	dc.b	$A9, $5B, $4B, $9B, $D4, $7B, $38, $00
-loc_16D64:
+;loc_16D64
+Driver_standings_packed_tilemap_list:
 	dc.b	$00, $03
-	dc.l	loc_16D76
-	dc.l	loc_16D88
-	dc.l	loc_16D98
-	dc.l	loc_16DA4
-loc_16D76:
+	dc.l	Driver_standings_packed_tilemap_0
+	dc.l	Driver_standings_packed_tilemap_1
+	dc.l	Driver_standings_packed_tilemap_2
+	dc.l	Driver_standings_packed_tilemap_3
+;loc_16D76
+Driver_standings_packed_tilemap_0:
 	dc.b	$E3, $06, $FB, $67, $C0, $03, $29, $05, $15, $FA, $17, $0A, $FA, $1F, $01, $00, $FF, $00
-loc_16D88:
+;loc_16D88
+Driver_standings_packed_tilemap_1:
 	dc.b	$E3, $94, $34, $1C, $10, $03, $02, $08, $04, $0E, $35, $FC, $FC, $0B, $22, $FF
-loc_16D98:
+;loc_16D98
+Driver_standings_packed_tilemap_2:
 	dc.b	$E5, $0C, $0D, $0E, $1F, $0E, $15, $18, $19, $0E, $0D, $FF
-loc_16DA4:
+;loc_16DA4
+Driver_standings_packed_tilemap_3:
 	dc.b	$E6, $12, $1C, $0E, $10, $0A, $FF, $00
-loc_16DAC:
-	dc.l	loc_16F7E
+;loc_16DAC
+Driver_standings_decomp_records:
+	dc.l	Driver_standings_tilemap_compressed_1
 	dc.b	$C0, $01, $47, $04, $00, $03, $00, $0F, $00, $0A
-	dc.l	loc_16F94
+	dc.l	Driver_standings_tilemap_compressed_2
 	dc.b	$40, $01, $66, $82, $00, $03, $00, $12, $00, $0C
-	dc.l	loc_16FE4
+	dc.l	Driver_standings_tilemap_compressed_3
 	dc.b	$60, $01, $62, $A8, $00, $03, $00, $11, $00, $15
-	dc.l	loc_17068
+	dc.l	Driver_standings_tilemap_compressed_4
 	dc.b	$60, $01, $61, $0E, $00, $03, $00, $18, $00, $01
-loc_16DE4:
+;loc_16DE4
+Driver_standings_aux_object_ptrs:
 	dc.l	$FFFFB8C4, $FFFFB8C4, $FFFFB8C4, $FFFFB8C4, $FFFFB884, $FFFFB884, $FFFFB884, $FFFFB884, $FFFFB844, $FFFFB844, $FFFFB844, $FFFFB844, $FFFFB844
-loc_16E18:
+;loc_16E18
+Driver_standings_hscroll_offsets:
 	dc.w	$022E, $022E, $022E, $022E, $00E0, $00E0, $00E0, $00E0, $00EE, $00EE, $00EE, $00EE, $00EE
-loc_16E32:
+;loc_16E32
+Driver_standings_palette_stream:
 	dc.w	$4219
 	dc.b	$00, $00, $02, $22, $04, $22, $04, $44, $06, $66, $02, $26, $08, $88, $04, $66, $0A, $88, $08, $AA, $0A, $AA, $04, $4B, $0C, $CC, $0E, $EE, $08, $66, $06, $60
 	dc.b	$00, $00, $00, $4E, $02, $2E, $00, $E0, $00, $EE, $04, $00, $00, $4E, $08, $22, $00, $00, $0E, $E0
-loc_16E68:
-	dc.l	loc_16EC4
-	dc.l	loc_16F5C
-	dc.l	loc_16F48
-	dc.l	loc_16F3A
-	dc.l	loc_16F32
-	dc.l	loc_16EB0
-	dc.l	loc_16F1E
-	dc.l	loc_16F10
-	dc.l	loc_16F08
-	dc.l	loc_16E9C
-	dc.l	loc_16EF4
-	dc.l	loc_16EE6
-	dc.l	loc_16EDE
-loc_16E9C:
+;loc_16E68
+Driver_standings_scroll_done_dispatch:
+	dc.l	Driver_standings_scroll_data_2
+	dc.l	Driver_standings_scroll_data_11
+	dc.l	Driver_standings_scroll_data_10
+	dc.l	Driver_standings_scroll_data_9
+	dc.l	Driver_standings_scroll_data_8
+	dc.l	Driver_standings_scroll_data_5
+	dc.l	Driver_standings_scroll_data_6
+	dc.l	Driver_standings_scroll_data_7
+	dc.l	Driver_standings_scroll_data_4
+	dc.l	Driver_standings_scroll_data_3
+	dc.l	Driver_standings_scroll_data_0
+	dc.l	Driver_standings_scroll_data_1
+	dc.l	Driver_standings_scroll_data_12
+;loc_16E9C
+Driver_standings_scroll_data_3:
 	dc.b	$00, $02, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $E1, $6F, $00, $0C, $D1, $0C, $E1, $7F, $00, $27
-loc_16EB0:
+;loc_16EB0
+Driver_standings_scroll_data_5:
 	dc.b	$00, $02, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $E1, $8B, $00, $0C, $C8, $0D, $E1, $9B, $00, $26
-loc_16EC4:
+;loc_16EC4
+Driver_standings_scroll_data_2:
 	dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $E1, $C4, $00, $31
-loc_16EDE:
+;loc_16EDE
+Driver_standings_scroll_data_12:
 	dc.b	$00, $00, $F0, $0D, $A1, $C8, $FF, $F0
-loc_16EE6:
+;loc_16EE6
+Driver_standings_scroll_data_1:
 	dc.b	$00, $01, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $A1, $D0, $00, $0C
-loc_16EF4:
+;loc_16EF4
+Driver_standings_scroll_data_0:
 	dc.b	$00, $02, $F0, $0D, $E1, $67, $FF, $F0, $D5, $0F, $E1, $6F, $00, $0C, $D1, $0C, $A1, $E0, $00, $27
-loc_16F08:
+;loc_16F08
+Driver_standings_scroll_data_4:
 	dc.b	$00, $00, $EA, $0D, $A1, $E4, $FF, $F0
-loc_16F10:
+;loc_16F10
+Driver_standings_scroll_data_7:
 	dc.b	$00, $01, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $A1, $EC, $00, $0C
-loc_16F1E:
+;loc_16F1E
+Driver_standings_scroll_data_6:
 	dc.b	$00, $02, $EA, $0D, $E1, $83, $FF, $F0, $CE, $0F, $E1, $8B, $00, $0C, $C8, $0D, $A1, $FC, $00, $26
-loc_16F32:
+;loc_16F32
+Driver_standings_scroll_data_8:
 	dc.b	$00, $00, $E4, $0E, $A2, $04, $FF, $F0
-loc_16F3A:
+;loc_16F3A
+Driver_standings_scroll_data_9:
 	dc.b	$00, $01, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $A2, $10, $00, $0B
-loc_16F48:
+;loc_16F48
+Driver_standings_scroll_data_10:
 	dc.b	$00, $02, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B, $B0, $0A, $A2, $1C, $00, $1C
-loc_16F5C:
+;loc_16F5C
+Driver_standings_scroll_data_11:
 	dc.b	$00, $03, $E4, $0E, $E1, $A3, $FF, $F0, $C8, $0B, $E1, $AF, $00, $0B
 	dc.b	$B0, $0A, $E1, $BB, $00, $1C, $B0, $05, $A2, $25, $00, $31
-loc_16F76:
+;loc_16F76
+Driver_standings_default_sprite:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00
-loc_16F7E:
+;loc_16F7E
+Driver_standings_tilemap_compressed_1:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $03, $11, $35, $13, $CF, $3C, $F3, $CF, $39, $03, $51, $35, $0F, $E0, $00
-loc_16F94:
+;loc_16F94
+Driver_standings_tilemap_compressed_2:
 	dc.b	$08, $00, $00, $A7, $00, $B8, $06, $7D, $40, $D1, $EB, $C4, $81, $54, $14, $0B, $70, $18, $0B, $8D, $A5, $50, $2E, $03, $CA, $D2, $AA, $E0, $07, $01, $E3, $69
 	dc.b	$54, $0B, $80, $F1, $B4, $AA, $05, $C8, $18, $A0, $71, $B4, $AA, $05, $D0, $38, $DA, $55, $02, $E4, $0C, $50, $38, $DA, $55, $02, $E0, $3C, $6D, $2A, $82, $68
 	dc.b	$2E, $36, $95, $44, $51, $E0, $02, $07, $18, $70, $2D, $01, $9F, $D2, $07, $F0
-loc_16FE4:
+;loc_16FE4
+Driver_standings_tilemap_compressed_3:
 	dc.b	$09, $00, $00, $EB, $00, $ED, $80, $00, $09, $D0, $E6, $BC, $42, $78, $1A, $2F, $09, $AF, $10, $28, $BC, $DE, $03, $8B, $D9, $E1, $39, $E2, $0F, $07, $A3, $C0
 	dc.b	$D1, $78, $4D, $78, $F2, $7B, $BC, $DE, $8F, $51, $7D, $D1, $78, $4D, $78, $D2, $79, $3C, $05, $27, $7C, $D7, $88, $14, $5E, $6F, $01, $49, $DF, $35, $E2, $05
 	dc.b	$17, $9A, $A3, $23, $C1, $FF, $49, $DF, $11, $E2, $34, $17, $88, $3C, $1E, $8B, $0A, $88, $14, $9D, $F1, $1E, $24, $C0, $79, $80, $F4, $00, $00, $33, $9E, $30
 	dc.b	$00, $01, $40, $00, $01, $00, $00, $04, $00, $00, $10, $24, $60, $40, $00, $01, $02, $46, $04, $09, $18, $10, $80, $00, $72, $00, $4B, $C0, $03, $40, $92, $81
 	dc.b	$C6, $4B, $37, $FE
-loc_17068:
+;loc_17068
+Driver_standings_tilemap_compressed_4:
 	dc.b	$09, $00, $01, $38, $00, $00, $1D, $08, $13, $B0, $E0, $4F, $87, $81, $41, $21, $03, $FF, $80, $00
-loc_1707C:
+;loc_1707C
+Driver_standings_tilemap_compressed_5:
 	dc.b	$81, $65, $80, $03, $00, $14, $05, $25, $12, $35, $13, $46, $31, $56, $30, $66, $32, $74, $02, $81, $04, $03, $15, $16, $27, $71, $38, $F1, $82, $04, $06, $16
 	dc.b	$35, $28, $F4, $83, $05, $10, $16, $36, $84, $05, $11, $17, $76, $85, $05, $0E, $17, $70, $86, $05, $0F, $17, $6E, $28, $EF, $87, $04, $04, $16, $34, $27, $72
 	dc.b	$88, $06, $33, $89, $07, $6F, $8A, $06, $2F, $18, $EA, $8B, $05, $15, $18, $EB, $28, $F2, $8C, $06, $2E, $18, $F0, $8D, $07, $73, $8E, $05, $14, $17, $74, $8F
@@ -26033,7 +26220,8 @@ loc_1707C:
 	dc.b	$44, $58, $BF, $45, $4F, $E3, $1A, $F7, $83, $2C, $1E, $98, $6E, $C8, $C9, $32, $79, $84, $DC, $A6, $FD, $05, $88, $26, $4F, $C8, $C8, $89, $37, $62, $9B, $88
 	dc.b	$88, $88, $B1, $4D, $D8, $A6, $E5, $D0, $88, $88, $88, $26, $E5, $47, $A7, $17, $E8, $44, $44, $4A, $FD, $27, $FE, $60, $7D, $E3, $71, $E2, $80, $F2, $7E, $08
 	dc.b	$44, $84, $13, $74, $F4, $78, $3E, $58, $A6, $EC, $2C, $44, $58, $FE, $DF, $72, $A6, $E4, $EF, $41, $6D, $D2, $35, $B1, $11, $61, $A6, $1F, $C6, $90
-loc_1891A:
+;loc_1891A
+Driver_portrait_tiles_compressed:
 	dc.b	$00, $C2, $80, $16, $36, $27, $6F, $36, $34, $45, $19, $53, $04, $65, $18, $71, $00, $81, $08, $F8, $82, $08, $F9, $83, $05, $17, $16, $35, $84, $05, $16, $17
 	dc.b	$78, $85, $04, $0A, $17, $7B, $86, $07, $70, $87, $06, $39, $88, $07, $79, $89, $07, $71, $8A, $07, $6E, $8B, $07, $74, $8C, $07, $75, $8D, $06, $3B, $8E, $07
 	dc.b	$7A, $FF, $00, $09, $AE, $DF, $B3, $00, $0F, $C0, $5F, $3A, $EF, $FD, $1E, $FD, $40, $1A, $6B, $9B, $CB, $E7, $5D, $35, $01, $BE, $F9, $D7, $37, $97, $97, $00
@@ -26058,63 +26246,77 @@ loc_1891A:
 	dc.b	$7A, $9E, $B1, $DC, $EF, $1D, $67, $50, $00, $00, $00, $00, $09, $C3, $15, $2B, $16, $96, $C5, $E5, $F1, $F3, $3E, $71, $F1, $3E, $03, $4E, $93, $74, $DD, $38
 	dc.b	$CE, $38, $F3, $3C, $CE, $71, $CC, $E0, $00, $1B, $7E, $77, $F3, $DB, $7E, $73, $3D, $00, $00, $00, $FC, $07, $E4, $5F, $92, $6A, $00, $01, $65, $94, $A7, $0C
 	dc.b	$70, $72, $E4, $1F, $80, $00
-loc_18C00:
+;loc_18C00
+Rival_dialogue_tile_index_table:
 	dc.b	$E3, $32, $E3, $3C, $E5, $38, $E5, $42
 	dc.w	$E32E
 	dc.w	$E33E
 	dc.w	$E52A
 	dc.b	$E5, $3A
-loc_18C10:
+;loc_18C10
+Rival_dialogue_blank_tilemap:
 	dc.b	$37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D
 	dc.b	$3D, $3D, $3D, $3E
-loc_18C94:
+;loc_18C94
+Rival_dialogue_blink_tilemap:
 	dc.b	$37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D
 	dc.b	$3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA
 	dc.b	$FA, $FA, $FA, $FA
-loc_18D18:
-	dc.l	loc_18D20
-	dc.l	loc_18D24
-loc_18D20:
+;loc_18D18
+Team_message_result_text_jp:
+	dc.l	Team_message_win_text_jp
+	dc.l	Team_message_lose_text_jp
+;loc_18D20
+Team_message_win_text_jp:
 	txt "WIN "
-loc_18D24:
+;loc_18D24
+Team_message_lose_text_jp:
 	txt "LOSE"
-loc_18D28:
-	dc.l	loc_18D30
-	dc.l	loc_18D38
-loc_18D30:
+;loc_18D28
+Team_message_result_text_en:
+	dc.l	Team_message_win_text_en
+	dc.l	Team_message_lose_text_en
+;loc_18D30
+Team_message_win_text_en:
 	txt "VICTORY."
-loc_18D38:
+;loc_18D38
+Team_message_lose_text_en:
 	txt "DEFEAT. "
-loc_18D40:
-	dc.l	loc_18D60
-	dc.l	loc_18DF4
-	dc.l	loc_18EC8
-	dc.l	loc_18FB4
-	dc.l	loc_18E68
+;loc_18D40
+Team_message_tilemap_table:
+	dc.l	Team_message_jp_rival_win_tilemap
+	dc.l	Team_message_jp_rival_lose_tilemap
+	dc.l	Team_message_en_rival_win_tilemap
+	dc.l	Team_message_en_rival_lose_tilemap
+	dc.l	Team_message_jp_player_win_tilemap
 	dc.l	0
-	dc.l	loc_1903E
+	dc.l	Team_message_en_player_win_tilemap
 	dc.l	0
-loc_18D60:
+;loc_18D60
+Team_message_jp_rival_win_tilemap:
 	dc.b	$E0, $B4, $0C, $0B, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $1B, $12, $1F, $0A, $15, $28, $32, $32, $32, $32, $32, $3B, $3A, $32
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $15, $0A, $1C, $1D, $32, $1B, $0A, $0C, $0E, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $32, $3B, $3A, $22, $18, $1E, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A
 	dc.b	$1B, $0A, $0C, $0E, $32, $0A, $10, $0A, $12, $17, $2E, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $22, $0E, $1C, $32
 	dc.b	$32, $17, $18, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $00
-loc_18DF4:
+;loc_18DF4
+Team_message_jp_rival_lose_tilemap:
 	dc.b	$E0, $AE, $0F, $07, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $1B, $12, $1F, $0A, $15, $28, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $1B, $0A, $0C, $0E, $32, $20, $12, $1D, $11, $32, $11
 	dc.b	$12, $16, $2E, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $22, $0E, $1C, $32, $32, $17, $18, $32, $32
 	dc.b	$32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E
-loc_18E68:
+;loc_18E68
+Team_message_jp_player_win_tilemap:
 	dc.b	$E0, $B4, $0C, $07, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $1B, $12, $1F, $0A, $15, $28, $32, $32, $32, $32, $32, $3B, $3A, $32
 	dc.b	$32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $15, $0A, $1C, $1D, $32, $1B, $0A, $0C, $0E, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $32, $32, $3B, $3A, $22, $18, $1E, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $00
-loc_18EC8:
+;loc_18EC8
+Team_message_en_rival_win_tilemap:
 	dc.b	$E0, $A4, $14, $0B, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $22, $18, $1E, $1B, $32, $15
 	dc.b	$0A, $1C, $1D, $32, $1B, $0A, $0C, $0E, $32, $20, $12, $1D, $11, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $3B, $3A, $11, $12, $16, $32, $20, $0A, $1C, $32, $0A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32
@@ -26123,185 +26325,211 @@ loc_18EC8:
 	dc.b	$1B, $12, $1F, $0A, $15, $2E, $32, $32, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$3B, $3A, $32, $32, $32, $22, $0E, $1C, $32, $32, $32, $32, $32, $17, $18, $32, $32, $32, $32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D
 	dc.b	$3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $00
-loc_18FB4:
+;loc_18FB4
+Team_message_en_rival_lose_tilemap:
 	dc.b	$E0, $A8, $12, $07, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $20, $12, $15, $15, $32, $22, $18, $1E
 	dc.b	$32, $17, $0A, $16, $0E, $32, $11, $12, $16, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3A, $0A, $1C
 	dc.b	$32, $22, $18, $1E, $1B, $32, $1B, $12, $1F, $0A, $15, $2E, $32, $32, $32, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $3B, $3A, $32, $32, $32, $22, $0E, $1C, $32, $32, $32, $32, $32, $17, $18, $32, $32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D
 	dc.b	$3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $00
-loc_1903E:
+;loc_1903E
+Team_message_en_player_win_tilemap:
 	dc.b	$E0, $A4, $14, $05, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $3A, $22, $18, $1E, $1B, $32, $15
 	dc.b	$0A, $1C, $1D, $32, $1B, $0A, $0C, $0E, $32, $20, $12, $1D, $11, $3B, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $32, $3B, $3A, $11, $12, $16, $32, $20, $0A, $1C, $32, $0A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D
 	dc.b	$3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $00
-loc_190AC:
+;loc_190AC
+Car_stats_screen_tilemap_list:
 	dc.b	$00, $01
-	dc.l	loc_190B6
-	dc.l	loc_190DC
-loc_190B6:
+	dc.l	Car_stats_labels_jp
+	dc.l	Car_stats_labels_en
+;loc_190B6
+Car_stats_labels_jp:
 	dc.b	$E3, $86, $FB, $47, $C0, $16, $0A, $0C, $11, $12, $17, $0E, $FC, $17, $0A, $16, $0E, $28, $FC, $0E, $17, $10, $12, $17, $0E, $28, $FC, $16, $0A, $21, $FA, $19
 	dc.b	$18, $20, $0E, $1B, $28, $FF
-loc_190DC:
+;loc_190DC
+Car_stats_labels_en:
 	dc.b	$E9, $16, $0D, $1B, $12, $1F, $0E, $1B, $FC, $17, $0A, $16, $0E, $28, $FC, $17, $0A, $1D, $12, $18, $17, $0A, $15, $12, $1D, $22, $28, $FC, $0D, $1B, $12, $1F
 	dc.b	$0E, $1B, $26, $1C, $FA, $19, $18, $12, $17, $1D, $28, $FF
-loc_19108:
+;loc_19108
+Car_road_marker_vdp_cmds:
 	dc.l	$64900003
 	dc.l	$65940003
 	dc.l	$669A0003
-loc_19114:
-	dc.l	loc_19234-1 ; Car 1 name
+;loc_19114
+Car_spec_text_table:
+	dc.l	Car_name_text_madonna-1 ; Car 1 name
 	dc.w	$000B       ; Car 1 name length
-	dc.l	loc_192E6-1 ; Car 1 engine
+	dc.l	Car_engine_text_palm-1 ; Car 1 engine
 	dc.w	$000C       ; Car 1 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 1 max power
 	dc.w	$0012       ; Car 1 max power length
-	dc.l	loc_19240-1 ; Car 2 name
+	dc.l	Car_name_text_firenze-1 ; Car 2 name
 	dc.w	$000B       ; Car 2 name length
-	dc.l	loc_192F2-1 ; Car 2 engine
+	dc.l	Car_engine_text_firenze-1 ; Car 2 engine
 	dc.w	$000E       ; Car 2 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 2 max power
 	dc.w	$0012       ; Car 2 max power length
-	dc.l	loc_1924C-1 ; Car 3 name
+	dc.l	Car_name_text_millions-1 ; Car 3 name
 	dc.w	$000C       ; Car 3 name length
-	dc.l	loc_19300-1 ; Car 3 engine
+	dc.l	Car_engine_text_dick-1 ; Car 3 engine
 	dc.w	$000B       ; Car 3 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 3 max power
 	dc.w	$0012       ; Car 3 max power length
-	dc.l	loc_19258-1 ; Car 4 name
+	dc.l	Car_name_text_bestowal-1 ; Car 4 name
 	dc.w	$000C       ; Car 4 name length
 	dc.l	Car_engine_text_vapor-1 ; Car 4 engine
 	dc.w	$000D       ; Car 4 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 4 max power
 	dc.w	$0012       ; Car 4 max power length
-	dc.l	loc_19264-1 ; Car 5 name
+	dc.l	Car_name_text_blanche-1 ; Car 5 name
 	dc.w	$000B       ; Car 5 name length
-	dc.l	loc_1931A-1 ; Car 5 engine
+	dc.l	Car_engine_text_delta-1 ; Car 5 engine
 	dc.w	$000D       ; Car 5 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 5 max power
 	dc.w	$0012       ; Car 5 max power length
-	dc.l	loc_19270-1 ; Car 6 name
+	dc.l	Car_name_text_tyrant-1 ; Car 6 name
 	dc.w	$000A       ; Car 6 name length
 	dc.l	Car_engine_text_lizzie-1 ; Car 6 engine
 	dc.w	$000C       ; Car 6 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 6 max power
 	dc.w	$0012       ; Car 6 max power length
-	dc.l	loc_1927A-1 ; Car 7 name
+	dc.l	Car_name_text_losel-1 ; Car 7 name
 	dc.w	$0009       ; Car 7 name length
 	dc.l	Car_engine_text_vapor-1 ; Car 7 engine
 	dc.w	$000D       ; Car 7 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 7 max power
 	dc.w	$0012       ; Car 7 max power length
-	dc.l	loc_19284-1 ; Car 8 name
+	dc.l	Car_name_text_may-1 ; Car 8 name
 	dc.w	$0007       ; Car 8 name length
-	dc.l	loc_19334-1 ; Car 8 engine
+	dc.l	Car_engine_text_lorry-1 ; Car 8 engine
 	dc.w	$000B       ; Car 8 engine length
 	dc.l	Car_max_power_text_a-1 ; Car 8 max power
 	dc.w	$0012       ; Car 8 max power length
-	dc.l	loc_1928C-1 ; Car 9 name
+	dc.l	Car_name_text_bullets-1 ; Car 9 name
 	dc.w	$000B       ; Car 9 name length
 	dc.l	Car_engine_text_lizzie-1 ; Car 9 engine
 	dc.w	$000C       ; Car 9 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 9 max power
 	dc.w	$0012       ; Car 9 max power length
-	dc.l	loc_19298-1 ; Car 10 name
+	dc.l	Car_name_text_dardan-1 ; Car 10 name
 	dc.w	$000A       ; Car 10 name length
 	dc.l	Car_engine_text_vapor-1 ; Car 10 engine
 	dc.w	$000D       ; Car 10 engine length
 	dc.l	Car_max_power_text_b-1 ; Car 10 max power
 	dc.w	$0012       ; Car 10 max power length
-	dc.l	loc_192A2-1 ; Car 11 name
+	dc.l	Car_name_text_linden-1 ; Car 11 name
 	dc.w	$000C       ; Car 11 name length
-	dc.l	loc_19334-1 ; Car 11 engine
+	dc.l	Car_engine_text_lorry-1 ; Car 11 engine
 	dc.w	$000B       ; Car 11 engine length
-	dc.l	loc_19392-1 ; Car 11 max power
+	dc.l	Car_max_power_text_d-1 ; Car 11 max power
 	dc.w	$0012       ; Car 11 max power length
-	dc.l	loc_192AE-1 ; Car 12 name
+	dc.l	Car_name_text_minarae-1 ; Car 12 name
 	dc.w	$000B       ; Car 12 name length
-	dc.l	loc_19340-1 ; Car 12 engine
+	dc.l	Car_engine_text_sega-1 ; Car 12 engine
 	dc.w	$000E       ; Car 12 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 12 max power
 	dc.w	$0012       ; Car 12 max power length
-	dc.l	loc_192BA-1 ; Car 13 name
+	dc.l	Car_name_text_rigel-1 ; Car 13 name
 	dc.w	$000A       ; Car 13 name length
-	dc.l	loc_19334-1 ; Car 13 engine
+	dc.l	Car_engine_text_lorry-1 ; Car 13 engine
 	dc.w	$000B       ; Car 13 engine length
-	dc.l	loc_19392-1 ; Car 13 max power
+	dc.l	Car_max_power_text_d-1 ; Car 13 max power
 	dc.w	$0012       ; Car 13 max power length
-	dc.l	loc_192C4-1 ; Car 14 name
+	dc.l	Car_name_text_comet-1 ; Car 14 name
 	dc.w	$0009       ; Car 14 name length
 	dc.l	Car_engine_text_lizzie-1 ; Car 14 engine
 	dc.w	$000C       ; Car 14 engine length
-	dc.l	loc_193A4-1 ; Car 14 max power
+	dc.l	Car_max_power_text_e-1 ; Car 14 max power
 	dc.w	$0012       ; Car 14 max power length
-	dc.l	loc_192CE-1 ; Car 15 name
+	dc.l	Car_name_text_orchis-1 ; Car 15 name
 	dc.w	$000A       ; Car 15 name length
-	dc.l	loc_1934E-1 ; Car 15 engine
+	dc.l	Car_engine_text_misfire-1 ; Car 15 engine
 	dc.w	$000D       ; Car 15 engine length
 	dc.l	Car_max_power_text_c-1 ; Car 15 max power
 	dc.w	$0012       ; Car 15 max power length
-	dc.l	loc_192D8-1 ; Car 16 name
+	dc.l	Car_name_text_zeroforce-1 ; Car 16 name
 	dc.w	$000D       ; Car 16 name length
-	dc.l	loc_19334-1 ; Car 16 engine
+	dc.l	Car_engine_text_lorry-1 ; Car 16 engine
 	dc.w	$000B       ; Car 16 engine length
-	dc.l	loc_193A4-1 ; Car 16 max power
+	dc.l	Car_max_power_text_e-1 ; Car 16 max power
 	dc.w	$0012       ; Car 16 max power length
-loc_19234:
+;loc_19234
+Car_name_text_madonna:
 	txt "MADONNA", $FF
 	txt "456", $00
-loc_19240:
+;loc_19240
+Car_name_text_firenze:
 	txt "FIRENZE", $FF
 	txt "500", $00
-loc_1924C:
+;loc_1924C
+Car_name_text_millions:
 	txt "MILLIONS", $FF
 	txt "189"
-loc_19258:
+;loc_19258
+Car_name_text_bestowal:
 	txt "BESTOWAL", $FF
 	txt "167"
-loc_19264:
+;loc_19264
+Car_name_text_blanche:
 	txt "BLANCHE", $FF
 	txt "582", $00
-loc_19270:
+;loc_19270
+Car_name_text_tyrant:
 	txt "TYRANT", $FF
 	txt "548"
-loc_1927A:
+;loc_1927A
+Car_name_text_losel:
 	txt "LOSEL", $FF
 	txt "125", $00
-loc_19284:
+;loc_19284
+Car_name_text_may:
 	txt "MAY", $FF
 	txt "555", $00
-loc_1928C:
+;loc_1928C
+Car_name_text_bullets:
 	txt "BULLETS", $FF
 	txt "560", $00
-loc_19298:
+;loc_19298
+Car_name_text_dardan:
 	txt "DARDAN", $FF
 	txt "700"
-loc_192A2:
+;loc_192A2
+Car_name_text_linden:
 	txt "LINDEN", $FF
 	txt "LN198"
-loc_192AE:
+;loc_192AE
+Car_name_text_minarae:
 	txt "MINARAE", $FF
 	txt "594", $00
-loc_192BA:
+;loc_192BA
+Car_name_text_rigel:
 	txt "RIGEL", $FF
 	txt "3000"
-loc_192C4:
+;loc_192C4
+Car_name_text_comet:
 	txt "COMET", $FF
 	txt "323", $00
-loc_192CE:
+;loc_192CE
+Car_name_text_orchis:
 	txt "ORCHIS", $FF
 	txt "056"
-loc_192D8:
+;loc_192D8
+Car_name_text_zeroforce:
 	txt "ZEROFORCE", $FF
 	txt "231", $00
-loc_192E6:
+;loc_192E6
+Car_engine_text_palm:
 	txt "PALM", $FF
 	txt "190", $FF
 	txt "V10"
-loc_192F2:
+;loc_192F2
+Car_engine_text_firenze:
 	txt "FIRENZE", $FF
 	txt "99", $FF
 	txt "V12"
-loc_19300:
+;loc_19300
+Car_engine_text_dick:
 	txt "DICK", $FF
 	txt "MD", $FF
 	txt "V10", $00
@@ -26310,7 +26538,8 @@ Car_engine_text_vapor:
 	txt "VAPOR", $FF
 	txt "DNPQ", $FF
 	txt "V8", 0
-loc_1931A:
+;loc_1931A
+Car_engine_text_delta:
 	txt "DELTA", $FF
 	txt "103", $FF
 	txt "V10", $00
@@ -26319,15 +26548,18 @@ Car_engine_text_lizzie:
 	txt "LIZZIE", $FF
 	txt "24", $FF
 	txt "V8"
-loc_19334
+;loc_19334
+Car_engine_text_lorry:
 	txt "LORRY", $FF
 	txt "32", $FF
 	txt "V8", $00
-loc_19340:
+;loc_19340
+Car_engine_text_sega:
 	txt "SEGA", $FF
 	txt "SG1000", $FF
 	txt "V8"
-loc_1934E:
+;loc_1934E
+Car_engine_text_misfire:
 	txt "MISFIRE", $FF
 	txt "50", $FF
 	txt "V8", $00
@@ -26343,129 +26575,166 @@ Car_max_power_text_b:
 Car_max_power_text_c:
 	txt "640,690,790", $FF
 	txt "PS/RPM"
-loc_19392:
+;loc_19392
+Car_max_power_text_d:
 	txt "610,660,760", $FF
 	txt "PS/RPM"
-loc_193A4:
+;loc_193A4
+Car_max_power_text_e:
 	txt "580,630,730", $FF
 	txt "PS/RPM"
-loc_193B6:
+;loc_193B6
+Driver_road_marker_vdp_cmds:
 	dc.l	$6A200003
 	dc.l	$6B2E0003
 ;loc_193BE
 Driver_info_table:
-	dc.l	loc_19496-1 ; Driver 0 name
+	dc.l	Driver_name_text_ceara-1 ; Driver 0 name
 	dc.w	$0007       ; Driver 0 name length
-	dc.l	loc_19526-1 ; Driver 0 country
+	dc.l	Driver_country_text_brazil_a-1 ; Driver 0 country
 	dc.w	$0006       ; Driver 0 country length
-	dc.l	loc_1949E-1 ; Driver 1 name
+	dc.l	Driver_name_text_asselin-1 ; Driver 1 name
 	dc.w	$0009       ; Driver 1 name length
-	dc.l	loc_1952C-1 ; Driver 1 country
+	dc.l	Driver_country_text_france_a-1 ; Driver 1 country
 	dc.w	$0006       ; Driver 1 country length
-	dc.l	loc_194A8-1 ; Driver 2 name
+	dc.l	Driver_name_text_elssler-1 ; Driver 2 name
 	dc.w	$0009       ; Driver 2 name length
-	dc.l	loc_19532-1 ; Driver 2 country
+	dc.l	Driver_country_text_austria-1 ; Driver 2 country
 	dc.w	$0007       ; Driver 2 country length
-	dc.l	loc_194B2-1 ; Driver 3 name
+	dc.l	Driver_name_text_alberti-1 ; Driver 3 name
 	dc.w	$0009       ; Driver 3 name length
-	dc.l	loc_1953A-1 ; Driver 3 country
+	dc.l	Driver_country_text_italy_a-1 ; Driver 3 country
 	dc.w	$0005       ; Driver 3 country length
-	dc.l	loc_194BC-1 ; Driver 4 name
+	dc.l	Driver_name_text_picos-1 ; Driver 4 name
 	dc.w	$0007       ; Driver 4 name length
-	dc.l	loc_19540-1 ; Driver 4 country
+	dc.l	Driver_country_text_brazil_b-1 ; Driver 4 country
 	dc.w	$0006       ; Driver 4 country length
-	dc.l	loc_194C4-1 ; Driver 5 name
+	dc.l	Driver_name_text_herbin-1 ; Driver 5 name
 	dc.w	$0008       ; Driver 5 name length
-	dc.l	loc_19546-1 ; Driver 5 country
+	dc.l	Driver_country_text_france_b-1 ; Driver 5 country
 	dc.w	$0006       ; Driver 5 country length
-	dc.l	loc_194CC-1 ; Driver 6 name
+	dc.l	Driver_name_text_hamano-1 ; Driver 6 name
 	dc.w	$0008       ; Driver 6 name length
-	dc.l	loc_1954C-1 ; Driver 6 country
+	dc.l	Driver_country_text_japan-1 ; Driver 6 country
 	dc.w	$0005       ; Driver 6 country length
-	dc.l	loc_194D4-1 ; Driver 7 name
+	dc.l	Driver_name_text_pacheco-1 ; Driver 7 name
 	dc.w	$0009       ; Driver 7 name length
-	dc.l	loc_19552-1 ; Driver 7 country
+	dc.l	Driver_country_text_spain-1 ; Driver 7 country
 	dc.w	$0005       ; Driver 7 country length
-	dc.l	loc_194DE-1 ; Driver 8 name
+	dc.l	Driver_name_text_turner-1 ; Driver 8 name
 	dc.w	$0008       ; Driver 8 name length
-	dc.l	loc_19558-1 ; Driver 8 country
+	dc.l	Driver_country_text_gb_a-1 ; Driver 8 country
 	dc.w	$000D       ; Driver 8 country length
-	dc.l	loc_194E6-1 ; Driver 9 name
+	dc.l	Driver_name_text_miller-1 ; Driver 9 name
 	dc.w	$0008       ; Driver 9 name length
-	dc.l	loc_19566-1 ; Driver 9 country
+	dc.l	Driver_country_text_usa-1 ; Driver 9 country
 	dc.w	$0006       ; Driver 9 country length
-	dc.l	loc_194EE-1 ; Driver 10 name
+	dc.l	Driver_name_text_bellini-1 ; Driver 10 name
 	dc.w	$0009       ; Driver 10 name length
-	dc.l	loc_1956C-1 ; Driver 10 country
+	dc.l	Driver_country_text_italy_b-1 ; Driver 10 country
 	dc.w	$0005       ; Driver 10 country length
-	dc.l	loc_194F8-1 ; Driver 11 name
+	dc.l	Driver_name_text_moreau-1 ; Driver 11 name
 	dc.w	$0008       ; Driver 11 name length
-	dc.l	loc_19572-1 ; Driver 11 country
+	dc.l	Driver_country_text_france_c-1 ; Driver 11 country
 	dc.w	$0006       ; Driver 11 country length
-	dc.l	loc_19500-1 ; Driver 12 name
+	dc.l	Driver_name_text_cotman-1 ; Driver 12 name
 	dc.w	$0008       ; Driver 12 name length
-	dc.l	loc_19578-1 ; Driver 12 country
+	dc.l	Driver_country_text_gb_b-1 ; Driver 12 country
 	dc.w	$000D       ; Driver 12 country length
-	dc.l	loc_19508-1 ; Driver 13 name
+	dc.l	Driver_name_text_tornio-1 ; Driver 13 name
 	dc.w	$0008       ; Driver 13 name length
-	dc.l	loc_19586-1 ; Driver 13 country
+	dc.l	Driver_country_text_finland-1 ; Driver 13 country
 	dc.w	$0007       ; Driver 13 country length
-	dc.l	loc_19510-1 ; Driver 14 name
+	dc.l	Driver_name_text_tegner-1 ; Driver 14 name
 	dc.w	$0008       ; Driver 14 name length
-	dc.l	loc_1958E-1 ; Driver 14 country
+	dc.l	Driver_country_text_sweden-1 ; Driver 14 country
 	dc.w	$0006       ; Driver 14 country length
-	dc.l	loc_19518-1 ; Driver 15 name
+	dc.l	Driver_name_text_klinger-1 ; Driver 15 name
 	dc.w	$0009       ; Driver 15 name length
-	dc.l	loc_19594-1 ; Driver 15 country
+	dc.l	Driver_country_text_w_germany-1 ; Driver 15 country
 	dc.w	$000C       ; Driver 15 country length
-	dc.l	loc_19522-1 ; Driver 16 name
+	dc.l	Driver_name_text_you-1 ; Driver 16 name
 	dc.w	$0003       ; Driver 16 name length
-	dc.l	loc_195A0-1 ; Driver 16 country
+	dc.l	Driver_country_text_your_country-1 ; Driver 16 country
 	dc.w	$000C       ; Driver 16 country length
-	dc.l	loc_19522-1 ; Your name
+	dc.l	Driver_name_text_you-1 ; Your name
 	dc.w	$000F       ; Your name length
-	dc.l	loc_195A0-1 ; Your country
+	dc.l	Driver_country_text_your_country-1 ; Your country
 	dc.w	$0005       ; Your country length
-loc_19496:  txt "G.CEARA", $00
-loc_1949E:  txt "A.ASSELIN", $00
-loc_194A8:  txt "F.ELSSLER", $00
-loc_194B2:  txt "G.ALBERTI", $00
-loc_194BC:  txt "A.PICOS", $00
-loc_194C4:  txt "J.HERBIN"
-loc_194CC:  txt "M.HAMANO"
-loc_194D4:  txt "E.PACHECO", $00
-loc_194DE:  txt "G.TURNER"
-loc_194E6:  txt "B.MILLER"
-loc_194EE:  txt "E.BELLINI", $00
-loc_194F8:  txt "M.MOREAU"
-loc_19500:  txt "R.COTMAN"
-loc_19508:  txt "E.TORNIO"
-loc_19510:  txt "C.TEGNER"
-loc_19518:  txt "P.KLINGER", $00
-loc_19522:  txt "YOU", $00
-loc_19526:  txt "BRAZIL"
-loc_1952C:  txt "FRANCE"
-loc_19532:  txt "AUSTRIA", $00
-loc_1953A:  txt "ITALY", $00
-loc_19540:  txt "BRAZIL"
-loc_19546:  txt "FRANCE"
-loc_1954C:  txt "JAPAN", $00
-loc_19552:  txt "SPAIN", $00
-loc_19558:
+;loc_19496
+Driver_name_text_ceara:     txt "G.CEARA", $00
+;loc_1949E
+Driver_name_text_asselin:   txt "A.ASSELIN", $00
+;loc_194A8
+Driver_name_text_elssler:   txt "F.ELSSLER", $00
+;loc_194B2
+Driver_name_text_alberti:   txt "G.ALBERTI", $00
+;loc_194BC
+Driver_name_text_picos:     txt "A.PICOS", $00
+;loc_194C4
+Driver_name_text_herbin:    txt "J.HERBIN"
+;loc_194CC
+Driver_name_text_hamano:    txt "M.HAMANO"
+;loc_194D4
+Driver_name_text_pacheco:   txt "E.PACHECO", $00
+;loc_194DE
+Driver_name_text_turner:    txt "G.TURNER"
+;loc_194E6
+Driver_name_text_miller:    txt "B.MILLER"
+;loc_194EE
+Driver_name_text_bellini:   txt "E.BELLINI", $00
+;loc_194F8
+Driver_name_text_moreau:    txt "M.MOREAU"
+;loc_19500
+Driver_name_text_cotman:    txt "R.COTMAN"
+;loc_19508
+Driver_name_text_tornio:    txt "E.TORNIO"
+;loc_19510
+Driver_name_text_tegner:    txt "C.TEGNER"
+;loc_19518
+Driver_name_text_klinger:   txt "P.KLINGER", $00
+;loc_19522
+Driver_name_text_you:       txt "YOU", $00
+;loc_19526
+Driver_country_text_brazil_a:   txt "BRAZIL"
+;loc_1952C
+Driver_country_text_france_a:   txt "FRANCE"
+;loc_19532
+Driver_country_text_austria:    txt "AUSTRIA", $00
+;loc_1953A
+Driver_country_text_italy_a:    txt "ITALY", $00
+;loc_19540
+Driver_country_text_brazil_b:   txt "BRAZIL"
+;loc_19546
+Driver_country_text_france_b:   txt "FRANCE"
+;loc_1954C
+Driver_country_text_japan:      txt "JAPAN", $00
+;loc_19552
+Driver_country_text_spain:      txt "SPAIN", $00
+;loc_19558
+Driver_country_text_gb_a:
 	txt "GREAT", $FF
 	txt "BRITAIN", $00
-loc_19566:  txt "U.S.A."
-loc_1956C:  txt "ITALY", $00
-loc_19572:  txt "FRANCE"
-loc_19578:
+;loc_19566
+Driver_country_text_usa:        txt "U.S.A."
+;loc_1956C
+Driver_country_text_italy_b:    txt "ITALY", $00
+;loc_19572
+Driver_country_text_france_c:   txt "FRANCE"
+;loc_19578
+Driver_country_text_gb_b:
 	txt "GREAT", $FF
 	txt "BRITAIN", $00
-loc_19586:  txt "FINLAND", $00
-loc_1958E:  txt "SWEDEN"
-loc_19594:
+;loc_19586
+Driver_country_text_finland:    txt "FINLAND", $00
+;loc_1958E
+Driver_country_text_sweden:     txt "SWEDEN"
+;loc_19594
+Driver_country_text_w_germany:
 	txt "WEST", $FF
 	txt "GERMANY"
-loc_195A0:
+;loc_195A0
+Driver_country_text_your_country:
 	txt "YOUR", $FF
 	txt "COUNTRY"
 ;loc_195AC:
@@ -26505,10 +26774,12 @@ TeamMachineScreenStats:
 	dc.b	$50, $1E, $3C, $3C, $14 ; Zeroforce bars
 	dc.b	$01, $03
 	dc.b	$FF, $FF, $FF, $FF, $FF, $04, $FF, $00
-loc_19624:
+;loc_19624
+Car_select_bg_vdp_stream:
 	dc.b	$42, $1E, $00, $00, $0E, $EE, $08, $00, $00, $22, $0C, $66, $00, $00, $00, $00, $00, $00, $00, $00, $00, $CC, $0C, $C0, $0A, $CC, $02, $43, $02, $44, $00, $00
 	dc.b	$02, $66, $00, $00, $00, $EE, $0E, $EE, $02, $22, $06, $66, $04, $4E, $00, $0A, $00, $EE, $00, $88, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-loc_19664:
+;loc_19664
+Driver_portrait_palette_streams:
 	dc.b	$02, $0E
 	dc.w	$0000, $0000, $068C, $0004, $0248, $0000, $0466, $0000, $000C, $0008, $08AC, $046A, $0024, $0000, $0244
 	dc.b	$02, $0E
@@ -26545,79 +26816,97 @@ loc_19664:
 	dc.b	$02, $0E, $00, $00, $00, $00, $06, $8C, $08, $88, $02, $48, $04, $44, $0C, $CC, $0A, $22, $00, $AC, $0E, $66, $08, $AC, $04, $6A, $00, $24, $08, $02, $02, $44
 ;loc_198A4:
 DriverPortraitTileMappings:
-	dc.l	loc_199B8 ; G. Ceara
-	dc.l	loc_19A12 ; A. Asslin
-	dc.l	loc_19A02 ; F. Elssler
-	dc.l	loc_19978 ; G. Alberti
-	dc.l	loc_198EC ; A. Picos
-	dc.l	loc_1999E ; J. Herbin
-	dc.l	loc_19900 ; M. Hamano
-	dc.l	loc_199EE ; E. Pacheco
-	dc.l	loc_19956 ; G. Turner
-	dc.l	loc_1998C ; B. Miller
-	dc.l	loc_19932 ; E. Bellini
-	dc.l	loc_19964 ; M. Moreau
-	dc.l	loc_199CC ; R. Cotman
-	dc.l	loc_199DE ; E. Tornio
-	dc.l	loc_19916 ; C. Tegner
-	dc.l	loc_19942 ; P. Klinger
-	dc.l	loc_19A22 ; You
-	dc.l	loc_19A22	; You
-loc_198EC:
+	dc.l	Driver_portrait_tilemap_Ceara ; G. Ceara
+	dc.l	Driver_portrait_tilemap_Asselin ; A. Asslin
+	dc.l	Driver_portrait_tilemap_Elssler ; F. Elssler
+	dc.l	Driver_portrait_tilemap_Alberti ; G. Alberti
+	dc.l	Driver_portrait_tilemap_Picos ; A. Picos
+	dc.l	Driver_portrait_tilemap_Herbin ; J. Herbin
+	dc.l	Driver_portrait_tilemap_Hamano ; M. Hamano
+	dc.l	Driver_portrait_tilemap_Pacheco ; E. Pacheco
+	dc.l	Driver_portrait_tilemap_Turner ; G. Turner
+	dc.l	Driver_portrait_tilemap_Miller ; B. Miller
+	dc.l	Driver_portrait_tilemap_Bellini ; E. Bellini
+	dc.l	Driver_portrait_tilemap_Moreau ; M. Moreau
+	dc.l	Driver_portrait_tilemap_Cotman ; R. Cotman
+	dc.l	Driver_portrait_tilemap_Tornio ; E. Tornio
+	dc.l	Driver_portrait_tilemap_Tegner ; C. Tegner
+	dc.l	Driver_portrait_tilemap_Klinger ; P. Klinger
+	dc.l	Driver_portrait_tilemap_Player ; You
+	dc.l	Driver_portrait_tilemap_Player	; You
+;loc_198EC
+Driver_portrait_tilemap_Picos:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $20, $D3, $0D, $21, $11, $15, $01, $90, $19, $01, $90, $1B, $F8
-loc_19900:
+;loc_19900
+Driver_portrait_tilemap_Hamano:
 	dc.b	$06, $00, $00, $00, $00, $00, $15, $11, $90, $02, $01, $02, $20, $32, $02, $A2, $2A, $23, $20, $3F, $F0, $00
-loc_19916:
+;loc_19916
+Driver_portrait_tilemap_Tegner:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $00, $60, $84, $02, $40, $40, $08, $08, $01, $00, $90, $70, $02, $01, $11, $12, $11, $21, $10, $3F, $F8
-loc_19932:
+;loc_19932
+Driver_portrait_tilemap_Bellini:
 	dc.b	$06, $00, $00, $00, $00, $00, $1D, $01, $90, $19, $01, $91, $11, $23, $C5, $FE
-loc_19942:
+;loc_19942
+Driver_portrait_tilemap_Klinger:
 	dc.b	$06, $00, $00, $00, $00, $00, $0A, $10, $40, $22, $2A, $22, $A2, $2A, $22, $A2, $2A, $07, $FF, $00
-loc_19956:
+;loc_19956
+Driver_portrait_tilemap_Turner:
 	dc.b	$06, $00, $00, $00, $00, $07, $39, $03, $C6, $40, $F1, $FF, $80, $00
-loc_19964:
+;loc_19964
+Driver_portrait_tilemap_Moreau:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $00, $D2, $11, $21, $51, $15, $11, $52, $11, $03, $FF, $80, $00
-loc_19978:
+;loc_19978
+Driver_portrait_tilemap_Alberti:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $00, $93, $11, $21, $12, $11, $21, $13, $11, $03, $FF, $80, $00
-loc_1998C:
+;loc_1998C
+Driver_portrait_tilemap_Miller:
 	dc.b	$06, $00, $00, $00, $00, $00, $15, $21, $51, $15, $11, $51, $15, $01, $51, $3F, $F8, $00
-loc_1999E:
+;loc_1999E
+Driver_portrait_tilemap_Herbin:
 	dc.b	$06, $00, $00, $00, $00, $05, $0A, $00, $41, $20, $04, $00, $83, $44, $08, $01, $06, $88, $A8, $8A, $88, $A8, $8A, $88, $A8, $FF
-loc_199B8:
+;loc_199B8
+Driver_portrait_tilemap_Ceara:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $01, $11, $15, $11, $51, $15, $11, $51, $11, $13, $FF, $80, $00
-loc_199CC:
+;loc_199CC
+Driver_portrait_tilemap_Cotman:
 	dc.b	$06, $00, $00, $00, $00, $07, $22, $00, $42, $20, $32, $03, $20, $32, $02, $A2, $7F, $F0
-loc_199DE:
+;loc_199DE
+Driver_portrait_tilemap_Tornio:
 	dc.b	$06, $00, $00, $00, $00, $00, $15, $21, $50, $19, $11, $51, $15, $13, $C6, $FE
-loc_199EE:
+;loc_199EE
+Driver_portrait_tilemap_Pacheco:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $00, $D2, $15, $11, $51, $15, $11, $51, $15, $13, $BF, $80, $00
-loc_19A02:
+;loc_19A02
+Driver_portrait_tilemap_Elssler:
 	dc.b	$06, $00, $00, $00, $00, $00, $19, $11, $90, $19, $01, $90, $19, $03, $C6, $FE
-loc_19A12:
+;loc_19A12
+Driver_portrait_tilemap_Asselin:
 	dc.b	$06, $00, $00, $00, $00, $06, $19, $01, $90, $19, $01, $51, $15, $13, $C7, $FE
-loc_19A22:
+;loc_19A22
+Driver_portrait_tilemap_Player:
 	dc.b	$06, $00, $00, $00, $00, $00, $15, $21, $51, $15, $11, $51, $15, $11, $50, $3C, $0F, $E0
 ;loc_19A34:
 DriverPortraitTiles:
-	dc.l	loc_1C3B6 ; G. Ceara
-	dc.l	loc_1D906 ; A. Asselin
-	dc.l	loc_1D450 ; F. Elssler
-	dc.l	loc_1B820 ; G. Alberti
-	dc.l	loc_19A7C ; A. Picos
-	dc.l	loc_1C048 ; J. Herbin
-	dc.l	loc_19E1E ; M. Hamano
-	dc.l	loc_1D0A0 ; E. Pacheco
-	dc.l	loc_1AE70 ; G. Turner
-	dc.l	loc_1BC28 ; B. Miller
-	dc.l	loc_1A670 ; E. Bellini
-	dc.l	loc_1B3EE ; M. Moreau
-	dc.l	loc_1C772 ; R. Cotman
-	dc.l	loc_1CC2A ; E. Tornio
-	dc.l	loc_1A2AE ; C. Tegner
-	dc.l	loc_1AA90 ; P. Klinger
-	dc.l	loc_1DE04 ; You
-	dc.l	loc_1DE04	; You
-loc_19A7C:
+	dc.l	Driver_portrait_tiles_Ceara ; G. Ceara
+	dc.l	Driver_portrait_tiles_Asselin ; A. Asselin
+	dc.l	Driver_portrait_tiles_Elssler ; F. Elssler
+	dc.l	Driver_portrait_tiles_Alberti ; G. Alberti
+	dc.l	Driver_portrait_tiles_Picos ; A. Picos
+	dc.l	Driver_portrait_tiles_Herbin ; J. Herbin
+	dc.l	Driver_portrait_tiles_Hamano ; M. Hamano
+	dc.l	Driver_portrait_tiles_Pacheco ; E. Pacheco
+	dc.l	Driver_portrait_tiles_Turner ; G. Turner
+	dc.l	Driver_portrait_tiles_Miller ; B. Miller
+	dc.l	Driver_portrait_tiles_Bellini ; E. Bellini
+	dc.l	Driver_portrait_tiles_Moreau ; M. Moreau
+	dc.l	Driver_portrait_tiles_Cotman ; R. Cotman
+	dc.l	Driver_portrait_tiles_Tornio ; E. Tornio
+	dc.l	Driver_portrait_tiles_Tegner ; C. Tegner
+	dc.l	Driver_portrait_tiles_Klinger ; P. Klinger
+	dc.l	Driver_portrait_tiles_Player ; You
+	dc.l	Driver_portrait_tiles_Player	; You
+;loc_19A7C
+Driver_portrait_tiles_Picos:
 	dc.b	$80, $30, $80, $03, $00, $14, $04, $25, $13, $35, $14, $45, $16, $55, $12, $66, $34, $74, $06, $81, $06, $35, $82, $06, $36, $83, $06, $32, $17, $6F, $27, $6E
 	dc.b	$84, $05, $15, $85, $07, $73, $86, $04, $05, $17, $74, $38, $F7, $58, $F3, $68, $F2, $87, $06, $38, $88, $04, $02, $15, $17, $27, $75, $37, $77, $89, $04, $07
 	dc.b	$17, $76, $8A, $07, $78, $8C, $04, $03, $15, $18, $28, $F6, $8D, $06, $33, $8E, $05, $11, $17, $72, $8F, $05, $10, $17, $7A, $FF, $FF, $8B, $33, $33, $33, $27
@@ -26648,7 +26937,8 @@ loc_19A7C:
 	dc.b	$3A, $7E, $A4, $7E, $F3, $4C, $4B, $12, $C4, $BD, $A5, $89, $62, $C6, $0E, $9B, $4B, $69, $54, $2D, $2A, $95, $92, $E8, $BA, $2D, $AB, $6E, $CB, $AE, $D3, $71
 	dc.b	$0D, $F4, $79, $BC, $B2, $83, $51, $E0, $CC, $21, $FC, $EE, $0B, $88, $B7, $2B, $2F, $31, $1A, $43, $25, $61, $16, $8A, $40, $2C, $E2, $2F, $FC, $E6, $66, $66
 	dc.b	$66, $00
-loc_19E1E:
+;loc_19E1E
+Driver_portrait_tiles_Hamano:
 	dc.b	$80, $35, $80, $03, $00, $14, $04, $25, $0F, $35, $14, $46, $34, $56, $2E, $67, $76, $74, $08, $81, $06, $32, $18, $F2, $82, $05, $18, $17, $6E, $83, $07, $6F
 	dc.b	$84, $06, $2F, $18, $F5, $85, $05, $0E, $16, $36, $27, $77, $86, $05, $15, $18, $F6, $87, $06, $38, $88, $03, $01, $16, $33, $27, $75, $37, $78, $89, $05, $0B
 	dc.b	$17, $72, $8A, $07, $73, $8B, $05, $16, $18, $F7, $8C, $04, $06, $16, $35, $28, $F4, $8D, $05, $13, $18, $F3, $8E, $05, $0A, $17, $74, $8F, $05, $12, $FF, $FF
@@ -26686,7 +26976,8 @@ loc_19E1E:
 	dc.b	$17, $D2, $BD, $A7, $50, $5F, $54, $AB, $69, $BA, $CF, $56, $F4, $98, $5E, $95, $D2, $B3, $16, $5D, $74, $B5, $54, $92, $9D, $85, $69, $29, $D8, $66, $F5, $E3
 	dc.b	$DC, $1F, $2A, $8C, $5A, $99, $0C, $AD, $4F, $D0, $EF, $0B, $4F, $D8, $D7, $27, $FE, $86, $6A, $7F, $E8, $45, $5F, $FA, $1C, $53, $F6, $23, $F4, $DC, $57, $8A
 	dc.b	$F4, $85, $5C, $B0, $AD, $32, $5D, $DE, $41, $54, $F2, $5E, $9E, $57, $00, $00
-loc_1A2AE:
+;loc_1A2AE
+Driver_portrait_tiles_Tegner:
 	dc.b	$80, $2B, $80, $03, $00, $14, $06, $25, $12, $35, $16, $46, $36, $57, $79, $67, $78, $74, $08, $81, $05, $15, $17, $77, $82, $06, $39, $83, $04, $05, $16, $38
 	dc.b	$84, $06, $33, $17, $7A, $86, $05, $17, $87, $06, $37, $18, $F7, $88, $04, $04, $16, $35, $89, $04, $07, $16, $3A, $8A, $07, $76, $8B, $05, $18, $8C, $05, $14
 	dc.b	$18, $F6, $8D, $06, $34, $8E, $05, $13, $8F, $03, $01, $16, $32, $FF, $FF, $94, $44, $44, $44, $47, $9E, $36, $5F, $2B, $E5, $63, $CA, $C6, $DC, $44, $44, $44
@@ -26718,7 +27009,8 @@ loc_1A2AE:
 	dc.b	$36, $4C, $9F, $41, $8C, $9E, $B9, $FE, $6D, $7F, $3B, $E9, $02, $8F, $D3, $85, $6C, $81, $B1, $4A, $02, $AC, $70, $A4, $1C, $64, $A4, $7E, $7B, $06, $53, $65
 	dc.b	$40, $67, $6C, $2E, $D5, $5C, $37, $E5, $A5, $81, $7E, $AE, $2A, $A6, $F5, $D2, $FD, $EC, $B2, $C8, $64, $C6, $70, $26, $26, $0D, $95, $8B, $16, $9D, $94, $B4
 	dc.b	$C1, $98
-loc_1A670:
+;loc_1A670
+Driver_portrait_tiles_Bellini:
 	dc.b	$80, $38, $80, $03, $00, $14, $05, $25, $14, $35, $17, $46, $32, $56, $35, $66, $37, $74, $04, $81, $04, $07, $17, $76, $82, $05, $18, $16, $3A, $83, $08, $F7
 	dc.b	$84, $06, $33, $86, $05, $15, $18, $F6, $87, $07, $77, $88, $03, $01, $15, $16, $27, $79, $89, $04, $06, $16, $34, $8A, $07, $72, $8C, $04, $08, $17, $78, $8D
 	dc.b	$06, $36, $8E, $05, $12, $17, $73, $27, $7A, $8F, $05, $13, $16, $38, $FF, $FF, $FA, $22, $22, $22, $22, $26, $F2, $44, $4D, $64, $BF, $CE, $59, $22, $22, $22
@@ -26752,7 +27044,8 @@ loc_1A670:
 	dc.b	$A4, $C7, $EB, $F9, $BA, $E0, $74, $38, $5E, $87, $57, $E8, $61, $C6, $07, $E8, $95, $E5, $B0, $C0, $C7, $01, $FF, $5F, $B7, $EF, $FB, $2F, $6E, $7D, $97, $FF
 	dc.b	$FF, $A2, $18, $1D, $0C, $0C, $65, $85, $E8, $74, $BD, $0E, $87, $43, $A1, $B7, $FB, $E9, $FB, $F5, $E3, $03, $14, $C2, $E3, $2C, $0C, $6F, $D6, $5D, $70, $BF
 	dc.b	$9D, $E1, $10, $7E, $86, $EE, $1E, $EE, $1C, $3A, $FE, $87, $27, $BB, $E5, $FA, $15, $71, $FA, $1A, $38, $7A, $7E, $86, $EE, $AF, $77, $40, $FA, $BA, $22, $6E
-loc_1AA90:
+;loc_1AA90
+Driver_portrait_tiles_Klinger:
 	dc.b	$80, $32, $80, $03, $00, $14, $05, $25, $13, $35, $14, $46, $37, $56, $2F, $66, $38, $74, $06, $81, $04, $08, $17, $77, $82, $06, $32, $83, $07, $73, $84, $05
 	dc.b	$15, $17, $7A, $86, $06, $33, $87, $06, $30, $88, $03, $01, $17, $76, $89, $05, $12, $17, $72, $8A, $07, $79, $8B, $06, $2E, $8C, $04, $04, $15, $16, $26, $31
 	dc.b	$36, $3A, $8D, $06, $34, $18, $F6, $8E, $06, $35, $18, $F7, $8F, $04, $07, $16, $36, $27, $78, $FF, $FF, $F3, $33, $33, $33, $70, $F7, $BD, $EF, $7B, $B5, $EE
@@ -26784,7 +27077,8 @@ loc_1AA90:
 	dc.b	$20, $42, $E2, $FD, $C4, $62, $11, $74, $B6, $0B, $D0, $C3, $9A, $04, $08, $2C, $31, $9E, $3B, $A0, $49, $E2, $10, $59, $7A, $5B, $7E, $9D, $30, $4F, $D5, $E1
 	dc.b	$70, $B8, $7E, $6C, $58, $62, $A8, $11, $52, $E4, $A2, $5D, $4B, $5C, $2E, $16, $FD, $D8, $4F, $DD, $D3, $F3, $6D, $BD, $C3, $F3, $7F, $93, $CB, $9F, $E6, $C1
 	dc.b	$BC, $AC, $08, $17, $71, $CD, $63, $7E, $F4, $E7, $0B, $E2, $8F, $37, $BB, $CC, $7F, $39, $7F, $56, $20, $5D, $4B, $BC, $DC, $D0, $D7, $37, $11, $76, $E0, $00
-loc_1AE70:
+;loc_1AE70
+Driver_portrait_tiles_Turner:
 	dc.b	$80, $3E, $80, $03, $00, $14, $05, $25, $13, $36, $2F, $46, $32, $56, $35, $67, $74, $75, $12, $81, $04, $08, $16, $36, $28, $F6, $82, $05, $18, $17, $72, $83
 	dc.b	$07, $77, $84, $05, $16, $18, $F2, $85, $08, $F3, $86, $05, $14, $87, $05, $15, $88, $03, $01, $17, $6F, $27, $73, $89, $04, $04, $17, $70, $8A, $05, $0E, $17
 	dc.b	$71, $8B, $06, $33, $18, $F7, $8C, $04, $06, $16, $2E, $27, $6E, $37, $7A, $8D, $07, $76, $8E, $06, $34, $17, $78, $8F, $05, $0F, $17, $75, $FF, $FE, $FD, $69
@@ -26829,7 +27123,8 @@ loc_1AE70:
 	dc.b	$34, $FF, $70, $2E, $04, $19, $DD, $32, $AC, $2E, $20, $83, $3B, $2F, $3F, $26, $FD, $23, $7E, $91, $A5, $93, $74, $B8, $35, $FF, $CC, $BF, $D5, $FE, $A6, $D6
 	dc.b	$8C, $69, $FA, $A0, $51, $E0, $CD, $8A, $3C, $6F, $C9, $F7, $B1, $41, $D6, $F2, $99, $30, $29, $93, $02, $8E, $FD, $96, $9F, $96, $39, $19, $4A, $41, $F2, $7E
 	dc.b	$A8, $1F, $97, $0E, $D9, $BB, $F3, $AE, $08, $21, $6A, $1E, $2C, $45, $44, $6B, $13, $41, $B0, $40, $F5, $41, $C2, $76, $1F, $A9, $CB, $80, $00, $00
-loc_1B3EE:
+;loc_1B3EE
+Driver_portrait_tiles_Moreau:
 	dc.b	$80, $31, $80, $03, $00, $14, $03, $25, $14, $36, $2F, $46, $31, $56, $32, $66, $36, $74, $07, $81, $06, $30, $82, $05, $12, $16, $37, $83, $07, $78, $84, $05
 	dc.b	$15, $85, $06, $33, $86, $05, $13, $18, $F2, $87, $05, $16, $17, $76, $88, $04, $02, $17, $74, $28, $F4, $89, $04, $04, $16, $38, $28, $F6, $8A, $06, $35, $8B
 	dc.b	$07, $73, $18, $F5, $8C, $04, $05, $17, $72, $28, $F7, $8D, $06, $2E, $18, $F3, $8E, $04, $06, $16, $34, $27, $77, $8F, $04, $08, $17, $75, $FF, $FF, $FB, $BB
@@ -26864,7 +27159,8 @@ loc_1B3EE:
 	dc.b	$FA, $76, $B3, $2E, $72, $CE, $42, $43, $7B, $FF, $65, $4F, $E1, $1C, $97, $F4, $43, $75, $90, $91, $F2, $DC, $F7, $65, $6E, $7F, $C2, $0A, $72, $D1, $64, $B9
 	dc.b	$C9, $44, $B4, $DD, $77, $60, $BA, $09, $30, $93, $05, $0D, $BB, $2B, $49, $A4, $A1, $77, $56, $0C, $24, $14, $73, $59, $0E, $47, $65, $39, $5E, $AD, $26, $E4
 	dc.b	$15, $96, $43, $90, $6D, $D6, $F9, $7E, $F2, $85, $55, $2A, $9D, $4D, $69, $54, $C9, $00
-loc_1B820:
+;loc_1B820
+Driver_portrait_tiles_Alberti:
 	dc.b	$80, $2D, $80, $03, $00, $14, $03, $25, $11, $35, $17, $46, $36, $56, $33, $67, $73, $75, $0E, $81, $06, $34, $82, $05, $12, $18, $F7, $83, $04, $06, $17, $74
 	dc.b	$38, $F2, $84, $04, $05, $85, $05, $18, $86, $05, $16, $87, $06, $37, $88, $04, $02, $16, $35, $27, $77, $38, $F6, $89, $05, $0F, $17, $76, $8A, $05, $15, $18
 	dc.b	$F3, $8B, $06, $32, $8C, $04, $04, $17, $75, $8D, $05, $10, $16, $38, $8E, $05, $13, $17, $72, $27, $78, $8F, $05, $14, $17, $7A, $FF, $FF, $FB, $9C, $E7, $39
@@ -26898,7 +27194,8 @@ loc_1B820:
 	dc.b	$36, $C1, $BF, $36, $C6, $DC, $FA, $5F, $A0, $E9, $FA, $BD, $58, $36, $B1, $E8, $35, $8F, $E8, $F6, $EE, $DC, $BA, $7E, $AC, $71, $76, $DB, $F4, $77, $63, $68
 	dc.b	$B4, $7C, $A3, $D0, $11, $F9, $02, $63, $FE, $18, $60, $C1, $9C, $C1, $B6, $F2, $0C, $7F, $E3, $1F, $F3, $FF, $9F, $FC, $C3, $06, $0D, $09, $E7, $C3, $9C, $DC
 	dc.b	$FA, $06, $BF, $F0, $E3, $FD, $33, $00
-loc_1BC28:
+;loc_1BC28
+Driver_portrait_tiles_Miller:
 	dc.b	$80, $34, $80, $03, $00, $14, $05, $25, $12, $35, $16, $46, $33, $56, $37, $67, $7A, $73, $01, $81, $05, $15, $18, $F6, $82, $06, $34, $83, $06, $31, $84, $05
 	dc.b	$0F, $17, $78, $85, $07, $72, $86, $06, $30, $87, $06, $2E, $17, $77, $88, $04, $06, $15, $0E, $26, $32, $38, $F3, $89, $04, $08, $16, $2F, $8A, $07, $73, $8B
 	dc.b	$06, $3A, $8C, $04, $04, $16, $35, $8D, $06, $36, $8E, $05, $13, $16, $38, $28, $F2, $8F, $05, $14, $17, $76, $28, $F7, $FF, $FF, $F9, $24, $92, $49, $27, $D4
@@ -26932,7 +27229,8 @@ loc_1BC28:
 	dc.b	$56, $0C, $92, $60, $C8, $3A, $E6, $95, $DB, $9E, $1C, $DE, $36, $4C, $FB, $8C, $64, $FE, $FE, $AE, $C5, $15, $03, $C2, $0A, $0A, $07, $AF, $BC, $AE, $FD, $FE
 	dc.b	$0F, $EF, $84, $69, $1D, $F1, $B3, $D5, $F2, $78, $C6, $E1, $FA, $40, $FB, $78, $57, $87, $8F, $DB, $AF, $89, $5D, $87, $E5, $63, $8D, $39, $61, $F9, $5F, $D4
 	dc.b	$F2, $E7, $DB, $DA, $54, $E8, $4D, $6E, $57, $F4, $26, $B7, $2B, $FA, $0F, $C6, $E9, $3F, $AF, $DA, $2F, $8C, $03, $F4, $BF, $47, $8F, $CA, $88, $57, $80, $00
-loc_1C048:
+;loc_1C048
+Driver_portrait_tiles_Herbin:
 	dc.b	$80, $2E, $80, $03, $00, $14, $07, $25, $13, $35, $17, $46, $36, $56, $37, $66, $3A, $74, $03, $81, $06, $32, $82, $05, $18, $18, $F5, $84, $05, $14, $18, $F2
 	dc.b	$85, $08, $F4, $86, $05, $15, $87, $05, $16, $88, $04, $02, $15, $1A, $89, $04, $06, $17, $77, $8A, $07, $78, $18, $F6, $8C, $04, $08, $16, $39, $28, $F7, $8D
 	dc.b	$06, $38, $8E, $03, $02, $16, $33, $28, $F3, $8F, $05, $12, $17, $76, $FF, $FF, $F9, $99, $99, $9F, $4B, $75, $BA, $DD, $6E, $B6, $CC, $F6, $46, $66, $66, $66
@@ -26961,7 +27259,8 @@ loc_1C048:
 	dc.b	$12, $9E, $61, $0E, $C3, $F3, $BF, $83, $6F, $D3, $97, $EA, $FA, $E7, $68, $10, $3F, $78, $51, $66, $E4, $68, $49, $36, $F2, $C9, $A2, $8E, $9F, $26, $10, $2B
 	dc.b	$FA, $8F, $DC, $BF, $6E, $9A, $4C, $13, $B7, $0C, $E9, $F8, $1C, $49, $B7, $69, $D6, $F2, $61, $C3, $FE, $75, $83, $7E, $2F, $11, $94, $64, $17, $7C, $9D, $5E
 	dc.b	$AE, $9D, $34, $D5, $DA, $C1, $4D, $3E, $61, $4F, $BA, $BA, $74, $00
-loc_1C3B6:
+;loc_1C3B6
+Driver_portrait_tiles_Ceara:
 	dc.b	$80, $33, $80, $03, $00, $14, $03, $24, $08, $35, $14, $46, $32, $56, $2A, $66, $35, $74, $02, $81, $06, $2B, $18, $F4, $82, $06, $34, $28, $F5, $83, $04, $05
 	dc.b	$16, $38, $28, $F6, $84, $06, $2F, $85, $05, $18, $17, $75, $86, $06, $36, $87, $08, $F7, $88, $04, $07, $16, $37, $27, $76, $89, $05, $12, $17, $78, $8A, $07
 	dc.b	$77, $17, $79, $8B, $05, $16, $8C, $04, $06, $17, $73, $8D, $06, $33, $8E, $04, $04, $16, $2E, $27, $74, $8F, $05, $13, $17, $72, $FF, $FF, $F9, $11, $11, $11
@@ -26992,7 +27291,8 @@ loc_1C3B6:
 	dc.b	$DF, $40, $BF, $9B, $DB, $C8, $61, $C6, $75, $B1, $FA, $F1, $9D, $79, $C7, $E4, $BD, $8A, $9A, $14, $37, $99, $A8, $51, $B1, $E1, $38, $8F, $D2, $A2, $8C, $0C
 	dc.b	$0E, $A8, $A9, $88, $EA, $94, $41, $8C, $AE, $8C, $1F, $43, $FC, $D8, $B6, $10, $70, $13, $03, $A9, $F1, $9B, $FE, $6E, $9A, $0F, $63, $D0, $7E, $48, $D7, $4A
 	dc.b	$68, $47, $5E, $94, $E9, $9F, $EA, $AF, $C4, $75, $09, $FA, $58, $C0, $4B, $75, $8C, $70, $96, $C4, $68, $17, $55, $4A, $68, $13, $14, $00
-loc_1C772:
+;loc_1C772
+Driver_portrait_tiles_Cotman:
 	dc.b	$80, $39, $80, $03, $00, $14, $04, $25, $13, $36, $2E, $46, $36, $57, $73, $67, $77, $74, $07, $81, $06, $2F, $18, $F3, $82, $07, $7A, $83, $05, $16, $84, $05
 	dc.b	$14, $18, $F2, $86, $06, $33, $18, $F6, $87, $05, $15, $88, $03, $01, $15, $18, $27, $74, $47, $76, $89, $04, $08, $16, $35, $27, $75, $8A, $08, $F7, $8B, $06
 	dc.b	$32, $8C, $04, $05, $16, $34, $8D, $06, $38, $8E, $05, $12, $17, $72, $8F, $04, $06, $16, $37, $27, $78, $FF, $FF, $FB, $BB, $BF, $79, $3B, $CF, $F7, $D3, $97
@@ -27031,7 +27331,8 @@ loc_1C772:
 	dc.b	$6B, $0D, $33, $58, $69, $E5, $58, $6B, $AD, $0D, $75, $E2, $2E, $BE, $B7, $79, $CA, $3F, $2F, $7E, $62, $D7, $8A, $8A, $A6, $4D, $B3, $56, $75, $8A, $AB, $49
 	dc.b	$35, $19, $09, $0A, $8A, $DA, $A2, $43, $51, $93, $09, $25, $4E, $49, $29, $E4, $B3, $92, $28, $64, $94, $D5, $25, $72, $A4, $B9, $B4, $A6, $CF, $73, $38, $E5
 	dc.b	$E7, $53, $12, $12, $4F, $64, $FD, $74, $F3, $90, $FD, $70, $94, $FF, $9C, $9C, $84, $84, $86, $E1, $A7, $29, $F8, $40
-loc_1CC2A:
+;loc_1CC2A
+Driver_portrait_tiles_Tornio:
 	dc.b	$00, $36, $81, $04, $03, $14, $06, $25, $16, $35, $15, $46, $36, $56, $34, $67, $70, $76, $30, $82, $07, $6E, $17, $73, $28, $F2, $36, $33, $48, $F7, $67, $78
 	dc.b	$76, $2F, $83, $05, $11, $17, $6B, $28, $F4, $84, $07, $74, $18, $F3, $85, $04, $02, $15, $10, $27, $6F, $37, $6A, $88, $05, $13, $17, $77, $89, $04, $05, $16
 	dc.b	$31, $27, $72, $8A, $04, $07, $16, $32, $28, $F5, $8B, $05, $12, $17, $71, $28, $F6, $8C, $04, $04, $16, $2E, $27, $75, $8D, $03, $00, $15, $14, $27, $76, $FF
@@ -27068,7 +27369,8 @@ loc_1CC2A:
 	dc.b	$59, $F9, $C8, $D7, $F5, $18, $9A, $CD, $7D, $74, $EE, $B2, $65, $EF, $D1, $CD, $7B, $F4, $57, $35, $EF, $D1, $5C, $DE, $7D, $31, $F5, $E4, $EC, $EB, $93, $7A
 	dc.b	$E2, $6F, $8B, $F2, $76, $79, $7E, $92, $B2, $F3, $91, $FA, $9C, $9C, $F2, $5C, $99, $5D, $5D, $72, $E4, $EA, $FF, $B9, $75, $7F, $FC, $FF, $27, $A4, $9C, $F2
 	dc.b	$C5, $DB, $2E, $46, $B9, $2B, $F2, $75, $CB, $F9, $39, $7F, $27, $F7, $5F, $C9, $C9, $5F, $96, $4A, $FC, $80
-loc_1D0A0:
+;loc_1D0A0
+Driver_portrait_tiles_Pacheco:
 	dc.b	$80, $32, $80, $03, $00, $14, $04, $24, $07, $35, $13, $46, $32, $55, $18, $66, $35, $74, $06, $81, $05, $17, $18, $F3, $82, $07, $74, $17, $7A, $83, $08, $F6
 	dc.b	$84, $06, $34, $86, $06, $36, $87, $05, $15, $17, $78, $88, $04, $05, $16, $38, $27, $76, $89, $04, $08, $18, $F7, $8C, $05, $12, $17, $75, $28, $F2, $8D, $06
 	dc.b	$37, $8E, $05, $14, $16, $33, $8F, $03, $01, $15, $16, $26, $39, $37, $77, $FF, $FF, $FB, $33, $33, $33, $33, $33, $4F, $F7, $C9, $9E, $54, $C5, $01, $CB, $3B
@@ -27099,7 +27401,8 @@ loc_1D0A0:
 	dc.b	$B2, $95, $1F, $9B, $4F, $EE, $69, $3E, $D1, $88, $67, $50, $B8, $54, $8C, $97, $11, $FA, $62, $B7, $83, $38, $06, $64, $19, $98, $42, $86, $10, $A1, $81, $A0
 	dc.b	$80, $60, $68, $FE, $E3, $44, $31, $A7, $E2, $E5, $D8, $EF, $88, $D7, $40, $6A, $CD, $91, $AB, $64, $BE, $17, $C6, $B5, $99, $4A, $BD, $5E, $BA, $D5, $C8, $22
 	dc.b	$A9, $59, $D7, $5A, $A5, $78, $A8, $F1, $AD, $67, $51, $5C, $BC, $33, $33, $38
-loc_1D450:
+;loc_1D450
+Driver_portrait_tiles_Elssler:
 	dc.b	$80, $3A, $80, $03, $00, $14, $04, $24, $06, $35, $12, $45, $15, $56, $30, $66, $38, $75, $0F, $81, $03, $01, $15, $11, $26, $34, $37, $73, $82, $05, $14, $17
 	dc.b	$74, $83, $05, $0E, $16, $36, $28, $EE, $84, $07, $78, $85, $07, $76, $86, $04, $05, $16, $31, $27, $75, $48, $F6, $87, $05, $10, $17, $6F, $88, $06, $33, $18
 	dc.b	$F5, $89, $06, $32, $8A, $07, $72, $8B, $05, $16, $18, $F2, $8C, $06, $2E, $18, $EF, $8D, $06, $35, $18, $F3, $8E, $06, $2F, $18, $F4, $8F, $05, $13, $17, $6E
@@ -27138,7 +27441,8 @@ loc_1D450:
 	dc.b	$A0, $C8, $DD, $A8, $F6, $85, $95, $F6, $16, $C3, $F5, $62, $C9, $70, $B0, $B0, $F2, $17, $56, $E4, $B9, $BB, $CA, $5C, $9D, $EB, $BD, $6D, $CA, $D7, $31, $06
 	dc.b	$D5, $F2, $B9, $BC, $87, $EB, $3C, $AE, $1F, $BC, $1F, $FC, $FF, $E7, $F7, $13, $FB, $89, $FF, $CF, $FE, $7E, $F0, $5D, $AF, $EF, $12, $E1, $FA, $C1, $AD, $D1
 	dc.b	$FD, $66, $BA, $0E, $FE, $69, $DE, $08, $29, $76, $A9, $14, $D4, $44, $7E, $9C, $14, $83, $1A, $EF, $7B, $DE
-loc_1D906:
+;loc_1D906
+Driver_portrait_tiles_Asselin:
 	dc.b	$00, $39, $81, $04, $04, $14, $06, $25, $13, $36, $34, $47, $6D, $78, $F4, $83, $05, $10, $16, $2A, $27, $72, $84, $05, $11, $17, $66, $28, $EF, $38, $F1, $85
 	dc.b	$03, $01, $15, $12, $27, $6C, $37, $6E, $48, $F6, $77, $76, $88, $05, $14, $89, $06, $32, $17, $6B, $8A, $05, $0F, $16, $2E, $27, $6A, $38, $F2, $8B, $06, $30
 	dc.b	$18, $EB, $8C, $04, $05, $16, $2B, $27, $71, $38, $F3, $8D, $03, $00, $15, $0E, $26, $31, $37, $70, $48, $EA, $58, $F7, $8E, $07, $67, $18, $F5, $8F, $06, $2F
@@ -27179,7 +27483,8 @@ loc_1D906:
 	dc.b	$F6, $08, $27, $9C, $23, $A7, $9D, $1D, $B4, $20, $9C, $58, $69, $16, $1A, $47, $6C, $7D, $22, $DF, $EE, $4F, $D7, $37, $F7, $9B, $D5, $BF, $BD, $3F, $DF, $6D
 	dc.b	$FD, $72, $46, $E6, $CE, $DE, $4D, $1D, $51, $7C, $5F, $17, $C5, $1F, $DE, $F8, $BD, $2E, $EF, $7E, $6D, $5E, $3E, $5E, $3A, $B3, $7E, $B9, $FE, $3F, $AE, $7F
 	dc.b	$7F, $EF, $9F, $17, $E6, $CE, $99, $9F, $17, $E6, $4C, $FF, $D4, $CE, $9F, $E4, $CE, $F8, $FA, $FF, $53, $F7, $D9, $BF, $BD, $9B, $FD, $D1, $00, $00
-loc_1DE04:
+;loc_1DE04
+Driver_portrait_tiles_Player:
 	dc.b	$00, $35, $81, $04, $04, $15, $10, $26, $26, $36, $32, $46, $34, $76, $2F, $83, $07, $6F, $84, $04, $03, $16, $2C, $28, $F7, $37, $73, $85, $06, $28, $17, $6B
 	dc.b	$86, $05, $0C, $18, $F3, $87, $05, $0D, $16, $30, $28, $EF, $37, $75, $58, $F6, $77, $70, $88, $04, $02, $15, $0B, $25, $0E, $36, $31, $46, $2A, $57, $78, $77
 	dc.b	$6E, $89, $07, $71, $18, $EE, $8A, $05, $0F, $16, $36, $28, $F5, $8B, $05, $11, $17, $66, $8C, $06, $2B, $18, $F4, $8D, $05, $12, $17, $67, $8E, $03, $00, $15
@@ -27216,7 +27521,8 @@ loc_1DE04:
 	dc.b	$F7, $7E, $FF, $BB, $69, $FE, $EF, $BC, $38, $10, $C4, $10, $58, $20, $43, $10, $41, $76, $0B, $3F, $F7, $9B, $87, $0C, $22, $B0, $B3, $70, $71, $AD, $5E, $0F
 	dc.b	$13, $5C, $71, $35, $C4, $DC, $6B, $89, $B8, $D7, $13, $F1, $7E, $92, $D7, $FE, $DD, $79, $F2, $96, $59, $F5, $E7, $4C, $F4, $7E, $B7, $49, $51, $19, $51, $5E
 	dc.b	$FA, $F5, $80, $00
-loc_1E268:
+;loc_1E268
+Team_select_scrollbar_tilemap:
 	dc.b	$0A, $03, $00, $00, $00, $00, $01, $61, $9F, $19, $C1, $E0, $20, $98, $6C, $98, $C9, $8C, $09, $00, $0D
 	dc.b	$C2
 	dc.b	$80, $06
@@ -27297,9 +27603,11 @@ loc_1E268:
 	dc.b	$0B, $1A, $40
 	dc.b	$A9
 	dc.b	$FC
-loc_1E3D4:
+;loc_1E3D4
+Car_stats_bar_tilemap:
 	dc.b	$0A, $00, $02, $30, $02, $30, $3F, $F8
-loc_1E3DC:
+;loc_1E3DC
+Car_stats_deco_tiles:
 	dc.b	$02, $46, $80, $06, $26, $16, $28, $26, $31, $37, $67, $47, $5F, $57, $70, $67, $72, $74, $03, $81, $04, $02, $15, $0D, $25, $10, $36, $29, $46, $2B, $56, $34
 	dc.b	$66, $30, $75, $0B, $83, $07, $6A, $18, $EB, $84, $03, $00, $15, $0C, $26, $2E, $37, $6B, $47, $6D, $58, $DF, $68, $F4, $77, $5E, $85, $06, $23, $18, $F0, $86
 	dc.b	$05, $12, $17, $66, $27, $6E, $38, $EA, $48, $F1, $58, $EF, $68, $E6, $76, $32, $87, $06, $27, $17, $74, $28, $F3, $38, $F7, $78, $DE, $88, $05, $0E, $16, $22
@@ -27544,64 +27852,80 @@ loc_1E3DC:
 	dc.b	$D4, $FF, $EB, $FF, $5F, $FA, $99, $99, $9F, $FD, $7F, $EB, $FF, $5F, $FF, $7F, $FB, $FF, $DF, $FE, $FF, $F7, $FF, $BF, $FD, $FF, $EF, $FF, $7F, $FB, $FF, $DF
 	dc.b	$FE, $FF, $F7, $FF, $BF, $FD, $FF, $EF, $FF, $7F, $FB, $FF, $DF, $FE, $FF, $F7, $FF, $BF, $FD, $FF, $EF, $FF, $7F, $FB, $FF, $DF, $FE, $FF, $F7, $FF, $BF, $FD
 	dc.b	$FF, $E0
-loc_2023E:
-	dc.l	loc_203AA
-	dc.l	loc_20390
-	dc.l	loc_2036A
-	dc.l	loc_20338
-	dc.l	loc_202FA
-	dc.l	loc_202B0
-	dc.l	loc_2025A
-loc_2025A:
+;loc_2023E
+Car_width_vdp_cmd_table:
+	dc.l	Car_width_vdp_cmds_2row
+	dc.l	Car_width_vdp_cmds_4row
+	dc.l	Car_width_vdp_cmds_6row
+	dc.l	Car_width_vdp_cmds_8row
+	dc.l	Car_width_vdp_cmds_10row
+	dc.l	Car_width_vdp_cmds_12row
+	dc.l	Car_width_vdp_cmds_14row
+;loc_2025A
+Car_width_vdp_cmds_14row:
 	dc.b	$00, $0D, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
 	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $F0, $03
 	dc.b	$42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28, $F0, $03, $42, $C2, $00, $30, $D0, $03, $42, $C2, $00, $30
-loc_202B0:
+;loc_202B0
+Car_width_vdp_cmds_12row:
 	dc.b	$00, $0B, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
 	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20, $F0, $03
 	dc.b	$42, $C2, $00, $28, $D0, $03, $42, $C2, $00, $28
-loc_202FA:
+;loc_202FA
+Car_width_vdp_cmds_10row:
 	dc.b	$00, $09, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10
 	dc.b	$D0, $03, $42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18, $F0, $03, $42, $C2, $00, $20, $D0, $03, $42, $C2, $00, $20
-loc_20338:
+;loc_20338
+Car_width_vdp_cmds_8row:
 	dc.b	$00, $07
 	dc.b	$F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10, $D0, $03
 	dc.b	$42, $C2, $00, $10, $F0, $03, $42, $C2, $00, $18, $D0, $03, $42, $C2, $00, $18
-loc_2036A:
+;loc_2036A
+Car_width_vdp_cmds_6row:
 	dc.b	$00, $05, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03
 	dc.b	$42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08, $F0, $03, $42, $C2, $00, $10, $D0, $03, $42, $C2, $00, $10
-loc_20390:
+;loc_20390
+Car_width_vdp_cmds_4row:
 	dc.b	$00, $03, $F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00, $F0, $03, $42, $C2, $00, $08, $D0, $03, $42, $C2, $00, $08
-loc_203AA:
+;loc_203AA
+Car_width_vdp_cmds_2row:
 	dc.b	$00, $01,	$F0, $03, $42, $C2, $00, $00, $D0, $03, $42, $C2, $00, $00
-loc_203B8:
-	dc.l	loc_203CC
-	dc.l	loc_20404
-	dc.l	loc_2043E
-	dc.l	loc_20472
-	dc.l	loc_204A6
-loc_203CC:
+;loc_203B8
+Car_stat_row_tilemap_table:
+	dc.l	Car_stat_row_tilemap_0
+	dc.l	Car_stat_row_tilemap_1
+	dc.l	Car_stat_row_tilemap_2
+	dc.l	Car_stat_row_tilemap_3
+	dc.l	Car_stat_row_tilemap_4
+;loc_203CC
+Car_stat_row_tilemap_0:
 	dc.b	$06, $01, $00, $01, $00, $03, $09, $78, $20, $14, $07, $9C, $50, $60, $00, $28, $12, $10, $40, $26, $1A, $10, $40, $24, $12, $50, $40, $22, $12, $70, $40, $22
 	dc.b	$0A, $90, $40, $20, $0A, $B0, $40, $20, $02, $D0, $40, $24, $2C, $10, $09, $0B, $04, $02, $41, $A3, $1C, $00, $5F, $C0
-loc_20404:
+;loc_20404
+Car_stat_row_tilemap_1:
 	dc.b	$06, $00, $00, $00, $00, $02, $09, $70, $30, $86, $BC, $10, $D4, $09, $08, $21, $A6, $0A, $00, $21, $04, $34, $A0, $0E, $1A, $10, $43, $44, $34, $00, $42, $08
 	dc.b	$68, $84, $9C, $10, $D0, $07, $82, $AA, $41, $0D, $00, $16, $82, $1A, $42, $C1, $0D, $21, $60, $86, $90, $68, $C7, $0C, $2F, $E0
-loc_2043E:
+;loc_2043E
+Car_stat_row_tilemap_2:
 	dc.b	$06, $00, $00, $01, $00, $03, $09, $78, $20, $28, $12, $10, $40, $50, $24, $20, $80, $98, $68, $41, $01, $30, $52, $82, $02, $41, $25, $04, $04, $42, $4E, $08
 	dc.b	$08, $06, $9C, $10, $10, $05, $58, $20, $24, $2C, $10, $12, $16, $08, $09, $06, $8C, $70, $02, $FE
-loc_20472:
+;loc_20472
+Car_stat_row_tilemap_3:
 	dc.b	$06, $00, $00, $01, $00, $03, $09, $78, $20, $31, $04, $05, $40, $46, $08, $0A, $04, $84, $10, $13, $0D, $08, $20, $24, $22, $10, $40, $44, $24, $E0, $80, $80
 	dc.b	$4A, $41, $01, $00, $55, $82, $02, $42, $C1, $01, $21, $60, $80, $90, $68, $C7, $00, $2F, $E0, $00
-loc_204A6:
+;loc_204A6
+Car_stat_row_tilemap_4:
 	dc.b	$06, $00, $00, $01, $00, $03, $09, $78, $20, $31, $04, $05, $40, $46, $08, $0A, $04, $84, $10, $13, $0D, $08, $20, $24, $22, $10, $40, $44, $24, $E0, $80, $80
 	dc.b	$4A, $41, $01, $00, $55, $82, $02, $42, $C1, $01, $21, $60, $80, $90, $68, $C7, $00, $2F, $E0, $00
-loc_204DA:
-	dc.l	loc_204EE
-	dc.l	loc_20700
-	dc.l	loc_208FA
-	dc.l	loc_20B2A
-	dc.l	loc_20D2C
-loc_204EE:
+;loc_204DA
+Car_stat_tiles_table:
+	dc.l	Car_stat_tiles_0
+	dc.l	Car_stat_tiles_1
+	dc.l	Car_stat_tiles_2
+	dc.l	Car_stat_tiles_3
+	dc.l	Car_stat_tiles_4
+;loc_204EE
+Car_stat_tiles_0:
 	dc.b	$00, $2B, $80, $05, $18, $27, $76, $67, $7B, $75, $16, $84, $07, $77, $8A, $04, $06, $15, $14, $28, $F8, $36, $39, $8B, $04, $07, $15, $13, $27, $7A, $36, $3A
 	dc.b	$8C, $04, $08, $15, $15, $8D, $03, $01, $16, $33, $26, $36, $37, $78, $77, $79, $8E, $05, $12, $16, $37, $26, $32, $35, $1A, $45, $17, $53, $02, $66, $38, $73
 	dc.b	$00, $FF, $B5, $AD, $6B, $5A, $D6, $FD, $87, $ED, $3F, $61, $DF, $DF, $ED, $3F, $61, $DF, $DF, $7B, $5A, $DD, $BB, $E3, $F8, $98, $EF, $8E, $FF, $C0, $EF, $8F
@@ -27619,7 +27943,8 @@ loc_204EE:
 	dc.b	$4A, $A6, $A6, $25, $FE, $D0, $00, $83, $53, $2F, $D6, $1A, $99, $7F, $70, $CA, $BF, $CD, $96, $60, $00, $65, $53, $5C, $E5, $53, $5C, $E5, $FC, $CC, $E5, $FD
 	dc.b	$D0, $00, $B7, $F4, $33, $FE, $81, $F7, $9F, $F4, $0F, $B3, $6B, $5B, $1B, $63, $C7, $E4, $0E, $0F, $6D, $B1, $E3, $07, $F2, $07, $F8, $07, $06, $D6, $B7, $63
 	dc.b	$83, $D8, $E0, $E3, $3C, $67, $83, $83, $83, $83, $D8, $F6, $3D, $8F, $63, $6B, $60, $00
-loc_20700:
+;loc_20700
+Car_stat_tiles_1:
 	dc.b	$00, $2C, $80, $05, $18, $26, $3A, $67, $7B, $75, $17, $84, $07, $76, $8A, $04, $06, $15, $14, $36, $38, $8B, $05, $0F, $15, $0E, $27, $7A, $36, $39, $8C, $05
 	dc.b	$13, $15, $15, $8D, $03, $02, $15, $1A, $26, $32, $37, $77, $77, $78, $8E, $05, $12, $16, $33, $26, $36, $36, $37, $45, $16, $54, $08, $67, $79, $72, $00, $FF
 	dc.b	$FD, $87, $ED, $3F, $61, $DB, $DF, $ED, $3F, $61, $DB, $DF, $6B, $DE, $FD, $76, $C7, $F1, $31, $DB, $1D, $BF, $81, $DB, $1F, $C4, $F7, $DB, $AF, $E2, $5E, $F7
@@ -27636,7 +27961,8 @@ loc_20700:
 	dc.b	$1F, $EC, $F0, $80, $02, $5F, $CC, $53, $95, $55, $54, $E5, $55, $55, $39, $7F, $B4, $02, $6A, $AA, $5F, $AC, $55, $52, $FE, $E2, $95, $7F, $9B, $2D, $00, $29
 	dc.b	$55, $57, $52, $AA, $AE, $A5, $FC, $CD, $4B, $FB, $A0, $17, $FE, $86, $BF, $A0, $BD, $EB, $FA, $0B, $DA, $BD, $EF, $8C, $B1, $DF, $F2, $0B, $0B, $AC, $B1, $DF
 	dc.b	$0B, $F2, $0B, $F8, $0B, $0A, $F7, $BF, $4B, $0B, $A5, $85, $8D, $63, $58, $58, $58, $58, $5D, $2E, $97, $4B, $A5, $7B, $E0, $00
-loc_208FA:
+;loc_208FA
+Car_stat_tiles_2:
 	dc.b	$00, $2F, $80, $05, $1A, $26, $3A, $67, $7B, $75, $17, $84, $07, $77, $8A, $03, $02, $15, $15, $36, $39, $8B, $04, $06, $15, $13, $27, $78, $37, $76, $8C, $04
 	dc.b	$07, $15, $19, $8D, $03, $01, $16, $37, $26, $38, $37, $79, $77, $7A, $8E, $05, $12, $15, $16, $25, $11, $35, $18, $46, $36, $55, $10, $65, $14, $73, $00, $FF
 	dc.b	$BD, $EF, $7B, $DE, $F7, $FD, $87, $ED, $3F, $61, $DF, $DF, $ED, $3F, $61, $DF, $DF, $7B, $DE, $FD, $77, $D7, $F1, $35, $DF, $5D, $FF, $81, $DF, $5F, $C4, $F7
@@ -27655,7 +27981,8 @@ loc_208FA:
 	dc.b	$9C, $97, $97, $FB, $40, $01, $CE, $4C, $BF, $58, $72, $65, $FD, $C3, $2C, $FF, $36, $5B, $80, $01, $96, $4E, $77, $96, $4E, $77, $97, $F3, $37, $97, $F7, $40
 	dc.b	$02, $FF, $D0, $DF, $FA, $07, $DE, $FF, $D0, $3E, $CD, $EF, $7D, $71, $AF, $3F, $90, $3A, $3D, $71, $AF, $3A, $3F, $90, $3F, $C0, $3A, $37, $BD, $FA, $3A, $3D
 	dc.b	$1D, $1D, $6F, $AD, $F4, $74, $74, $74, $7A, $3D, $1E, $8F, $46, $F7, $D0, $00
-loc_20B2A:
+;loc_20B2A
+Car_stat_tiles_3:
 	dc.b	$00, $2C, $80, $05, $18, $26, $3A, $67, $7B, $75, $16, $84, $07, $77, $8A, $04, $06, $15, $15, $36, $38, $8B, $05, $0F, $15, $12, $27, $7A, $36, $39, $8C, $05
 	dc.b	$13, $15, $14, $8D, $03, $02, $15, $1A, $26, $36, $37, $78, $77, $79, $8E, $05, $0E, $16, $32, $26, $37, $36, $33, $45, $17, $54, $08, $67, $76, $72, $00, $FF
 	dc.b	$B5, $AD, $6B, $5A, $D6, $FD, $87, $ED, $3F, $61, $DF, $DF, $ED, $3F, $61, $DF, $DF, $7B, $5A, $DD, $77, $C7, $F1, $31, $DF, $1D, $FF, $81, $DF, $1F, $C4, $F7
@@ -27673,7 +28000,8 @@ loc_20B2A:
 	dc.b	$FD, $C4, $EA, $7F, $35, $DA, $00, $4E, $A2, $A6, $9D, $45, $4D, $3B, $F9, $9A, $77, $F7, $40, $2D, $FD, $0D, $7F, $41, $7B, $D7, $F4, $17, $B5, $6B, $5B, $1B
 	dc.b	$63, $C7, $E4, $16, $17, $5B, $63, $C6, $17, $E4, $17, $F0, $16, $15, $AD, $6E, $96, $17, $4B, $0B, $1A, $C6, $B0, $B0, $B0, $B0, $BA, $5D, $2E, $97, $4A, $D6
 	dc.b	$C0, $00
-loc_20D2C:
+;loc_20D2C
+Car_stat_tiles_4:
 	dc.b	$00, $2C, $80, $05, $18, $26, $3A, $67, $7B, $75, $16, $84, $07, $77, $8A, $04, $06, $15, $15, $36, $38, $8B, $05, $0F, $15, $12, $27, $7A, $36, $39, $8C, $05
 	dc.b	$13, $15, $14, $8D, $03, $02, $15, $1A, $26, $36, $37, $78, $77, $79, $8E, $05, $0E, $16, $32, $26, $37, $36, $33, $45, $17, $54, $08, $67, $76, $72, $00, $FF
 	dc.b	$B5, $AD, $6B, $5A, $D6, $FD, $87, $ED, $3F, $61, $DF, $DF, $ED, $3F, $61, $DF, $DF, $7B, $5A, $DD, $77, $C7, $F1, $31, $DF, $1D, $FF, $81, $DF, $1F, $C4, $F7
@@ -27691,7 +28019,8 @@ loc_20D2C:
 	dc.b	$FD, $C4, $EA, $7F, $35, $DA, $00, $4E, $A2, $A6, $9D, $45, $4D, $3B, $F9, $9A, $77, $F7, $40, $2D, $FD, $0D, $7F, $41, $7B, $D7, $F4, $17, $B5, $6B, $5B, $1B
 	dc.b	$63, $C7, $E4, $16, $17, $5B, $63, $C6, $17, $E4, $17, $F0, $16, $15, $AD, $6E, $96, $17, $4B, $0B, $1A, $C6, $B0, $B0, $B0, $B0, $BA, $5D, $2E, $97, $4A, $D6
 	dc.b	$C0, $00
-loc_20F2E:
+;Team_intro_vdp_word_run
+Team_intro_vdp_word_run:
 	dc.b	$02, $3E, $00, $00, $00, $00, $00, $40, $0E, $EE, $00, $A0, $0A, $CC, $0A, $EA, $06, $C6, $06, $66, $0E, $CA, $0A, $AA, $06, $88, $04, $66, $02, $44, $04, $44
 	dc.b	$00, $00, $00, $00, $0E, $C0, $0E, $EE, $02, $22, $06, $66, $02, $4E, $00, $0A, $00, $CC, $00, $88, $04, $44, $0E, $CA, $0E, $C8, $0E, $C6, $0E, $C4, $0E, $C2
 	dc.b	$00, $00, $00, $00, $0E, $EE, $08, $00, $06, $AE, $04, $6A, $02, $48, $00, $26, $0C, $CC, $08, $88, $04, $44, $06, $6E, $02, $2C, $02, $06, $02, $44, $00, $00
@@ -27765,23 +28094,24 @@ Team_palette_data: ; Team palette (everywhere except while driving)
 ;loc_2132E
 ; 16-entry pointer table: per-team intro animation layout records (one per team)
 Team_intro_layout_table: ; Pointers to team introduction layouts
-	dc.l	loc_2136E ; Madonna
-	dc.l	loc_21426 ; Firenze
-	dc.l	loc_214D0 ; Millions
-	dc.l	loc_2157A ; Bestowal
-	dc.l	loc_21616 ; Blanche
-	dc.l	loc_216B2 ; Tyrant
-	dc.l	loc_21740 ; Losel
-	dc.l	loc_217CE ; May
-	dc.l	loc_2184E ; Bullets
-	dc.l	loc_218C0 ; Dardan
-	dc.l	loc_2194E ; Linden
-	dc.l	loc_219C0 ; Minarae
-	dc.l	loc_21A24 ; Rigel
-	dc.l	loc_21A88 ; Comet
-	dc.l	loc_21ADE ; Orchis
-	dc.l	loc_21B42 ; ZeroForce
-loc_2136E:
+	dc.l	Team_intro_layout_Madonna ; Madonna
+	dc.l	Team_intro_layout_Firenze ; Firenze
+	dc.l	Team_intro_layout_Millions ; Millions
+	dc.l	Team_intro_layout_Bestowal ; Bestowal
+	dc.l	Team_intro_layout_Blanche ; Blanche
+	dc.l	Team_intro_layout_Tyrant ; Tyrant
+	dc.l	Team_intro_layout_Losel ; Losel
+	dc.l	Team_intro_layout_May ; May
+	dc.l	Team_intro_layout_Bullets ; Bullets
+	dc.l	Team_intro_layout_Dardan ; Dardan
+	dc.l	Team_intro_layout_Linden ; Linden
+	dc.l	Team_intro_layout_Minarae ; Minarae
+	dc.l	Team_intro_layout_Rigel ; Rigel
+	dc.l	Team_intro_layout_Comet ; Comet
+	dc.l	Team_intro_layout_Orchis ; Orchis
+	dc.l	Team_intro_layout_ZeroForce ; ZeroForce
+;loc_2136E
+Team_intro_layout_Madonna:
 	dc.w	$000C ; Num items in table ($C=12, meaning table has 13 items)
 	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07 ; One row per item. Format: ?, ?, y-tile, x-tile, ?, ?, ?, ?, ?, ?
@@ -27793,7 +28123,7 @@ loc_2136E:
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F6C
+	dc.l	Intro_sprite_data_21F6C
 	dc.b	$60, $01, $68, $B6, $00, $03, $00, $03, $00, $08
 	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $3E, $00, $03, $00, $02, $00, $07
@@ -27809,7 +28139,8 @@ loc_2136E:
 	dc.b	$20, $01, $6D, $32, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
-loc_21426:
+;loc_21426
+Team_intro_layout_Firenze:
 	dc.w  	$000B
 	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07
@@ -27825,7 +28156,7 @@ loc_21426:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F42
+	dc.l	Intro_sprite_data_21F42
 	dc.b	$60, $01, $69, $42, $00, $03, $00, $01, $00, $07
 	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $82, $00, $03, $00, $01, $00, $03
@@ -27835,13 +28166,14 @@ loc_21426:
 	dc.b	$20, $01, $6D, $14, $00, $03, $00, $04, $00, $01
 	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
-loc_214D0:
+;loc_214D0
+Team_intro_layout_Millions:
 	dc.w	$000B
 	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $08, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0E, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F3A
+	dc.l	Intro_sprite_data_21F3A
 	dc.b	$60, $01, $69, $14, $00, $03, $00, $01, $00, $07
 	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
@@ -27861,7 +28193,8 @@ loc_214D0:
 	dc.b	$20, $01, $6D, $3E, $00, $03, $00, $06, $00, $01
 	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $30, $00, $03, $00, $06, $00, $01
-loc_2157A:
+;loc_2157A
+Team_intro_layout_Bestowal:
 	dc.w	$000A
 	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
@@ -27869,7 +28202,7 @@ loc_2157A:
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F3A
+	dc.l	Intro_sprite_data_21F3A
 	dc.b	$60, $01, $69, $30, $00, $03, $00, $01, $00, $07
 	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $34, $00, $03, $00, $02, $00, $07
@@ -27885,7 +28218,8 @@ loc_2157A:
 	dc.b	$20, $01, $6D, $3A, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $44, $00, $03, $00, $04, $00, $01
-loc_21616:
+;loc_21616
+Team_intro_layout_Blanche:
 	dc.w	$000A
 	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $08, $00, $03, $00, $02, $00, $07
@@ -27893,7 +28227,7 @@ loc_21616:
 	dc.b	$40, $01, $69, $0E, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $14, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F42
+	dc.l	Intro_sprite_data_21F42
 	dc.b	$60, $01, $69, $1A, $00, $03, $00, $01, $00, $07
 	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
@@ -27909,9 +28243,10 @@ loc_21616:
 	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
 	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $CA, $00, $03, $00, $01, $00, $03
-loc_216B2:
+;loc_216B2
+Team_intro_layout_Tyrant:
 	dc.w	$0009
-	dc.l	loc_21F3A
+	dc.l	Intro_sprite_data_21F3A
 	dc.b	$60, $01, $69, $0E, $00, $03, $00, $01, $00, $07
 	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
@@ -27931,7 +28266,8 @@ loc_216B2:
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
 	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C8, $00, $03, $00, $01, $00, $03
-loc_21740:
+;loc_21740
+Team_intro_layout_Losel:
 	dc.w	$0009
 	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
@@ -27953,7 +28289,8 @@ loc_21740:
 	dc.b	$20, $01, $6D, $18, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
-loc_217CE:
+;loc_217CE
+Team_intro_layout_May:
 	dc.w	$0008
 	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
@@ -27973,9 +28310,10 @@ loc_217CE:
 	dc.b	$20, $01, $6D, $32, $00, $03, $00, $06, $00, $01
 	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $06, $00, $01
-loc_2184E:
+;loc_2184E
+Team_intro_layout_Bullets:
 	dc.w	$0007
-	dc.l	loc_21F6C
+	dc.l	Intro_sprite_data_21F6C
 	dc.b	$60, $01, $68, $90, $00, $03, $00, $03, $00, $08
 	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
@@ -27991,7 +28329,8 @@ loc_2184E:
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
-loc_218C0:
+;loc_218C0
+Team_intro_layout_Dardan:
 	dc.w	$0009
 	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
@@ -28013,11 +28352,12 @@ loc_218C0:
 	dc.b	$20, $01, $6C, $C6, $00, $03, $00, $01, $00, $03
 	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $CA, $00, $03, $00, $01, $00, $03
-loc_2194E: ; Linden team introduction layout
+;loc_2194E
+Team_intro_layout_Linden: ; Linden team introduction layout
 	dc.w	$0007
 	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F62
+	dc.l	Intro_sprite_data_21F62
 	dc.b	$60, $01, $69, $18, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
@@ -28031,7 +28371,8 @@ loc_2194E: ; Linden team introduction layout
 	dc.b	$20, $01, $6D, $38, $00, $03, $00, $04, $00, $01
 	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
-loc_219C0: ; Minarae team introduction layout
+;loc_219C0
+Team_intro_layout_Minarae: ; Minarae team introduction layout
 	dc.w	$0006
 	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
@@ -28047,7 +28388,8 @@ loc_219C0: ; Minarae team introduction layout
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
-loc_21A24:
+;loc_21A24
+Team_intro_layout_Rigel:
 	dc.w	$0006
 	dc.l	Intro_sprite_data_21F02
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
@@ -28063,13 +28405,14 @@ loc_21A24:
 	dc.b	$20, $01, $6D, $16, $00, $03, $00, $06, $00, $01
 	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
-loc_21A88:
+;loc_21A88
+Team_intro_layout_Comet:
 	dc.w	$0005
 	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $10, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $16, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F62
+	dc.l	Intro_sprite_data_21F62
 	dc.b	$60, $01, $69, $30, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
@@ -28077,7 +28420,8 @@ loc_21A88:
 	dc.b	$20, $01, $6D, $08, $00, $03, $00, $04, $00, $01
 	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
-loc_21ADE:
+;loc_21ADE
+Team_intro_layout_Orchis:
 	dc.w	$0006
 	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $04, $00, $03, $00, $02, $00, $07
@@ -28093,7 +28437,8 @@ loc_21ADE:
 	dc.b	$20, $01, $6C, $90, $00, $03, $00, $01, $00, $03
 	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
-loc_21B42:
+;loc_21B42
+Team_intro_layout_ZeroForce:
 	dc.w	$0003
 	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $2E, $00, $03, $00, $02, $00, $07
@@ -28103,66 +28448,86 @@ loc_21B42:
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
-loc_21B7C: ; Team names (except in menu)
-	dc.l	loc_21BBC
-	dc.l	loc_21BD2
-	dc.l	loc_21BE8
-	dc.l	loc_21C00
-	dc.l	loc_21C18
-	dc.l	loc_21C2E
-	dc.l	loc_21C42
-	dc.l	loc_21C54
-	dc.l	loc_21C62
-	dc.l	loc_21C78
-	dc.l	loc_21C8C
-	dc.l	loc_21CA0
-	dc.l	loc_21CB6
-	dc.l	loc_21CC8
-	dc.l	loc_21CDA
-	dc.l	loc_21CEE
-loc_21BBC:
+;loc_21B7C
+Team_name_tilemap_table: ; Team names (except in menu)
+	dc.l	Team_name_tilemap_Madonna
+	dc.l	Team_name_tilemap_Firenze
+	dc.l	Team_name_tilemap_Millions
+	dc.l	Team_name_tilemap_Bestowal
+	dc.l	Team_name_tilemap_Blanche
+	dc.l	Team_name_tilemap_Tyrant
+	dc.l	Team_name_tilemap_Losel
+	dc.l	Team_name_tilemap_May
+	dc.l	Team_name_tilemap_Bullets
+	dc.l	Team_name_tilemap_Dardan
+	dc.l	Team_name_tilemap_Linden
+	dc.l	Team_name_tilemap_Minarae
+	dc.l	Team_name_tilemap_Rigel
+	dc.l	Team_name_tilemap_Comet
+	dc.l	Team_name_tilemap_Orchis
+	dc.l	Team_name_tilemap_ZeroForce
+;loc_21BBC
+Team_name_tilemap_Madonna:
 	dc.b	$E1, $86, $FB, $63, $D0, $18, $00, $06, $1C, $1A, $1A, $00, $FD, $19, $01, $07, $1D, $1B, $1B, $01, $FF, $00
-loc_21BD2:
+;loc_21BD2
+Team_name_tilemap_Firenze:
 	dc.b	$E1, $86, $FB, $63, $D0, $0A, $10, $22, $08, $1A, $32, $08, $FD, $0B, $11, $23, $09, $1B, $33, $09, $FF, $00
-loc_21BE8:
+;loc_21BE8
+Team_name_tilemap_Millions:
 	dc.b	$E1, $86, $FB, $63, $D0, $18, $10, $16, $16, $10, $1C, $1A, $24, $FD, $19, $11, $17, $17, $11, $1D, $1B, $25, $FF, $00
-loc_21C00:
+;loc_21C00
+Team_name_tilemap_Bestowal:
 	dc.b	$E1, $86, $FB, $63, $D0, $02, $08, $24, $26, $1C, $2C, $00, $16, $FD, $03, $09, $25, $27, $1D, $2D, $01, $17, $FF, $00
-loc_21C18:
+;loc_21C18
+Team_name_tilemap_Blanche:
 	dc.b	$E1, $86, $FB, $63, $D0, $02, $16, $00, $1A, $04, $0E, $08, $FD, $03, $17, $01, $1B, $05, $0F, $09, $FF, $00
-loc_21C2E:
+;loc_21C2E
+Team_name_tilemap_Tyrant:
 	dc.b	$E1, $86, $FB, $63, $D0, $26, $30, $22, $00, $1A, $26, $FD, $27, $31, $23, $01, $1B, $27, $FF, $00
-loc_21C42:
+;loc_21C42
+Team_name_tilemap_Losel:
 	dc.b	$E1, $86, $FB, $63, $D0, $16, $1C, $24, $08, $16, $FD, $17, $1D, $25, $09, $17, $FF, $00
-loc_21C54:
+;loc_21C54
+Team_name_tilemap_May:
 	dc.b	$E1, $86, $FB, $63, $D0, $18, $00, $30, $FD, $19, $01, $31, $FF, $00
-loc_21C62:
+;loc_21C62
+Team_name_tilemap_Bullets:
 	dc.b	$E1, $86, $FB, $63, $D0, $02, $28, $16, $16, $08, $26, $24, $FD, $03, $29, $17, $17, $09, $27, $25, $FF, $00
-loc_21C78:
+;loc_21C78
+Team_name_tilemap_Dardan:
 	dc.b	$E1, $86, $FB, $63, $D0, $06, $00, $22, $06, $00, $1A, $FD, $07, $01, $23, $07, $01, $1B, $FF, $00
-loc_21C8C:
+;loc_21C8C
+Team_name_tilemap_Linden:
 	dc.b	$E1, $86, $FB, $63, $D0, $16, $10, $1A, $06, $08, $1A, $FD, $17, $11, $1B, $07, $09, $1B, $FF, $00
-loc_21CA0:
+;loc_21CA0
+Team_name_tilemap_Minarae:
 	dc.b	$E1, $86, $FB, $63, $D0, $18, $10, $1A, $00, $22, $00, $08, $FD, $19, $11, $1B, $01, $23, $01, $09, $FF, $00
-loc_21CB6:
+;loc_21CB6
+Team_name_tilemap_Rigel:
 	dc.b	$E1, $86, $FB, $63, $D0, $22, $10, $0C, $08, $16, $FD, $23, $11, $0D, $09, $17, $FF, $00
-loc_21CC8:
+;loc_21CC8
+Team_name_tilemap_Comet:
 	dc.b	$E1, $86, $FB, $63, $D0, $04, $1C, $18, $08, $26, $FD, $05, $1D, $19, $09, $27, $FF, $00
-loc_21CDA:
+;loc_21CDA
+Team_name_tilemap_Orchis:
 	dc.b	$E1, $86, $FB, $63, $D0, $1C, $22, $04, $0E, $10, $24, $FD, $1D, $23, $05, $0F, $11, $25, $FF, $00
-loc_21CEE:
+;loc_21CEE
+Team_name_tilemap_ZeroForce:
 	dc.b	$E1, $86, $FB, $63, $D0, $32, $08, $22, $1C, $0A, $1C, $22, $04, $08, $FD, $33, $09, $23, $1D, $0B, $1D, $23, $05, $09, $FF, $00
-loc_21D08:
-	dc.l	loc_21D32
+;loc_21D08
+Championship_standings_tilemap_descriptors:
+	dc.l	Championship_standings_tilemap_1
 	dc.b	$20, $01, $40, $00, $00, $03, $00, $27, $00, $08
-	dc.l	loc_21D58
+	dc.l	Championship_standings_tilemap_2
 	dc.b	$00, $01, $44, $80, $00, $03, $00, $27, $00, $12
-	dc.l	loc_21EA4
+	dc.l	Championship_standings_tilemap_3
 	dc.b	$20, $01, $6A, $9E, $00, $03, $00, $08, $00, $04
-loc_21D32:
+;loc_21D32
+Championship_standings_tilemap_1:
 	dc.b	$03, $00, $00, $01, $00, $01, $01, $F7, $DF, $7D, $F7, $DF, $7D, $F7, $80, $9E, $A7, $A8, $C8, $09, $EE, $7B, $8C, $C0, $9F, $27, $C8, $D0, $09, $F6, $7D, $8D
 	dc.b	$40, $9F, $A7, $E8, $DB, $F8
-loc_21D58:
+;loc_21D58
+Championship_standings_tilemap_2:
 	dc.b	$08, $03, $00, $07, $00, $00, $02, $78, $0F, $3C, $07, $8C, $03
 	dc.b	$83
 	dc.b	$44, $08, $80, $04
@@ -28201,7 +28566,8 @@ loc_21D58:
 ;loc_21E9C
 Intro_sprite_data_21E9C:
 	dc.b	$08, $00, $00, $EF, $00, $EF, $1F, $F8
-loc_21EA4:
+;loc_21EA4
+Championship_standings_tilemap_3:
 	dc.b	$09, $01, $00, $F7, $00, $00, $44, $3E, $17, $BA, $62, $22, $26, $1C, $0C, $08, $18, $00, $98, $F0, $91, $39, $E1, $C8, $6E, $19, $85
 	dc.b	$FF
 ;Intro_sprite_data_21EC0
@@ -28237,9 +28603,11 @@ Intro_sprite_data_21F1E:
 ;Intro_sprite_data_21F2E
 Intro_sprite_data_21F2E:
 	dc.b	$09, $00, $01, $82, $00, $00, $40, $04, $0F, $13, $F8, $00
-loc_21F3A:
+;Intro_sprite_data_21F3A
+Intro_sprite_data_21F3A:
 	dc.b	$09, $00, $01, $98, $01, $98, $3F, $F8
-loc_21F42:
+;Intro_sprite_data_21F42
+Intro_sprite_data_21F42:
 	dc.b	$09, $00, $01, $A8, $01, $A8, $3F, $F8
 ;Intro_sprite_data_21F4A
 Intro_sprite_data_21F4A:
@@ -28249,11 +28617,14 @@ Intro_sprite_data_21F54:
 	dc.b	$09, $02, $01, $CF, $00, $00, $40, $04, $0D, $81, $A0
 	dc.b	$8B
 	dc.b	$FC, $00
-loc_21F62:
+;loc_21F62
+Intro_sprite_data_21F62:
 	dc.b	$09, $00, $01, $E4, $00, $00, $05, $03, $C4, $FE
-loc_21F6C: ; Woman with umbrella
+;loc_21F6C
+Intro_sprite_data_21F6C: ; Woman with umbrella
 	dc.b	$0A, $00, $01, $FB, $00, $00, $1D, $00, $90, $09, $00, $91, $05, $10, $51, $17, $F8, $00
-loc_21F7E:
+;loc_21F7E
+Championship_standings_compressed_tilemap:
 	dc.b	$82, $16, $80, $03, $01, $14, $05, $25, $0D, $35, $10, $45, $11, $55, $12, $65, $18, $73, $00, $81, $04, $04, $16, $34, $27, $71, $82, $05, $0E, $18, $E4, $83
 	dc.b	$05, $0C, $17, $6D, $84, $05, $14, $17, $70, $85, $06, $27, $18, $E9, $86, $05, $16, $18, $E6, $87, $05, $15, $17, $6F, $28, $EE, $88, $05, $0F, $17, $6E, $89
 	dc.b	$06, $2F, $18, $EC, $8A, $06, $2E, $18, $E5, $8B, $07, $6C, $18, $EA, $8C, $06, $35, $18, $EB, $8D, $06, $26, $18, $E8, $8E, $06, $33, $18, $E7, $8F, $06, $32
@@ -28496,17 +28867,20 @@ loc_21F7E:
 	dc.b	$92, $E8, $94, $C0, $3C, $06, $FE, $95, $FF, $AC, $9E, $1A, $80, $35, $33, $0C, $50, $74, $EE, $5E, $B0, $D7, $88, $F4, $46, $6A, $24, $78, $25, $21, $4C, $6E
 	dc.b	$9E, $8D, $D4, $63, $50, $00, $1F, $A8, $A4, $66, $13, $24, $28, $31, $AC, $C0, $2D, $20, $FE, $9A, $00, $25, $FC, $F6, $FF, $3C, $00, $02, $FF, $FE, $5F, $FF
 	dc.b	$00, $0C, $4F, $FD, $F9, $E5, $9F, $0F, $E7, $F1, $00, $EE, $9E, $8D, $79, $BD, $68, $B3, $5F, $2A, $2D, $10, $A1, $E7, $39, $D2, $75, $FC, $FA, $65, $C4, $02
-loc_23DBE:
+;loc_23DBE
+Game_over_palette_stream:
 	dc.b	$60, $0E, $00, $00, $00, $00, $0E, $EE, $00, $00, $08, $CC, $04, $48, $0C, $CC, $04, $44, $00, $22, $02, $44, $04, $66, $06, $88, $06, $AA, $08, $AA, $0A, $CC
 	dc.b	$0C, $EE
-loc_23DE0:
+;loc_23DE0
+Game_over_tilemap:
 	dc.b	$09, $00, $00, $00, $00, $12, $16, $98, $08, $F3, $C7, $80, $1D, $3E, $00, $74, $14, $20, $0C, $40, $40, $44, $78, $90, $02, $40, $40, $0E, $87, $C8, $76, $12
 	dc.b	$18, $83, $00, $62, $05, $12, $4A, $10, $08, $00, $40, $0E, $88, $88, $7D, $47, $61, $21, $88, $EC, $9C, $1D, $3F, $A8, $74, $B0, $50, $09, $0C, $48, $08, $F0
 	dc.b	$20, $23, $D0, $80, $12, $1D, $84, $86, $20, $40, $0E, $81, $48, $90, $42, $1C, $C6, $26, $80, $E9, $A4, $04, $48, $47, $91, $38, $3A, $58, $37, $91, $9C, $3A
 	dc.b	$69, $2D, $08, $04, $00, $38, $87, $4B, $07, $71, $0E, $9A, $4E, $E2, $1D, $2C, $1B, $C9, $4C, $1D, $34, $9D, $C4, $3A, $58, $3B, $88, $74, $D2, $2F, $02, $02
 	dc.b	$5C, $C7, $61, $21, $88, $EC, $08, $01, $D0, $51, $F4, $40, $26, $92, $49, $43, $B0, $90, $C4, $76, $31, $09, $0C, $40, $80, $1D, $3E, $00, $74, $F1, $50, $2A
 	dc.b	$00, $30, $09, $B1, $D0, $3F, $80, $00
-loc_23E88:
+;loc_23E88
+Game_over_tiles:
 	dc.b	$01, $1F, $80, $37, $73, $78, $F3, $84, $03, $00, $14, $07, $26, $36, $37, $74, $85, $17, $78, $86, $03, $02, $15, $19, $27, $7A, $88, $05, $1A, $17, $72, $28
 	dc.b	$F7, $89, $04, $09, $16, $38, $28, $F6, $8A, $04, $06, $15, $16, $27, $76, $37, $75, $8B, $04, $0A, $8C, $05, $17, $8D, $05, $18, $18, $F2, $8E, $03, $01, $14
 	dc.b	$08, $26, $37, $37, $77, $FF, $F3, $F3, $F3, $F3, $E7, $98, $E6, $9F, $1C, $C8, $F2, $E6, $7F, $5B, $E7, $E7, $E7, $E7, $00, $88, $18, $FE, $A1, $E8, $41, $43
@@ -28709,9 +29083,11 @@ loc_23E88:
 	dc.b	$13, $02, $1F, $C8, $43, $FE, $F5, $FF, $FB, $8B, $D7, $E9, $DF, $17, $35, $F9, $71, $E5, $75, $FA, $7F, $D6, $DD, $7E, $9F, $CB, $F3, $8B, $F4, $FE, $5F, $9C
 	dc.b	$5F, $A7, $C7, $E7, $05, $7E, $9F, $1F, $9C, $3F, $F7, $FF, $3F, $F0, $3F, $4F, $FC, $0F, $D3, $FF, $03, $F4, $FF, $C0, $FC, $BF, $F4, $3F, $2F, $FD, $0F, $CB
 	dc.b	$FF, $43, $F2, $FF, $D0, $FF, $BF, $FD, $FF, $EF, $FF, $7F, $3F, $3F, $3F, $3F, $CB, $FF, $43, $F0, $FF, $E0, $FC, $3F, $9F, $9F, $9F, $9F, $9F, $F8, $00, $00
-loc_257C8:
+;loc_257C8
+Race_finish_object_init_data:
 	dc.b	$00, $D5, $01, $1E, $00, $02, $58, $9E, $00, $CC, $00, $F9, $00, $02, $58, $68, $00, $EA, $00, $F9, $00, $02, $58, $70, $00, $DA, $00, $F2, $00, $02, $58, $78
-loc_257E8:
+;loc_257E8
+Race_finish_palette_stream:
 	dc.b	$02, $3E, $00, $00, $0E, $EE, $06, $62, $06, $64, $0C, $CC, $0A, $AA, $02, $22, $02, $46, $04, $68, $06, $8A, $08, $AC, $0A, $CE, $00, $AA, $00, $EE, $0C, $86
 	dc.b	$00, $00, $00, $00, $02, $2E, $06, $62, $06, $64, $0C, $CC, $0A, $AA, $02, $22, $02, $46, $04, $68, $06, $8A, $08, $AC, $0A, $CE, $00, $AA, $00, $EE, $0C, $86
 	dc.b	$00, $00, $00, $00, $00, $CE, $02, $22, $08, $88, $04, $44, $02, $24, $0E, $EE, $00, $06, $00, $08, $00, $2A, $02, $4C, $04, $6E, $06, $8E, $0A, $AA, $00, $00
@@ -28719,23 +29095,28 @@ loc_257E8:
 	dc.b	$00, $00, $E8, $06, $21, $6F, $FF, $F8, $00, $00, $E8, $06, $21, $75, $FF, $F8, $00, $05, $A8, $0F, $61, $7B, $FF, $EC, $A8, $02, $61, $8B, $00, $0C, $C8, $0F
 	dc.b	$61, $8E, $FF, $EC, $C8, $02, $61, $9E, $00, $0C, $E8, $0E, $61, $A1, $FF, $EC, $E8, $02, $61, $AD, $00, $0C, $00, $01, $D8, $0F, $21, $B0, $FF, $F0, $F8, $08
 	dc.b	$21, $C0, $FF, $F8
-loc_258AC:
+;loc_258AC
+Race_finish_layout_tilemap:
 	dc.b	$07, $00, $00, $01, $00, $01, $01, $F7, $DF, $7D, $F7, $DF, $54, $1A, $20, $80, $A2, $0A, $08, $28, $00, $C0, $C4, $13, $90, $40, $40, $CB, $82, $18, $F8, $05
 	dc.b	$43, $80, $18, $98, $29, $43, $80, $54, $3E, $A0, $9A, $35, $68, $D4, $10, $14, $5A, $51, $69, $44, $84, $10, $D4, $89, $05, $58, $35, $13, $F0, $4A, $D2, $44
 	dc.b	$15, $62, $B4, $57, $41, $4B, $49, $80, $5C, $52, $86, $A8, $9B, $8B, $32, $B4, $DA, $7A, $04, $D1, $AB, $46, $A0, $9C, $34, $6A, $D1, $AD, $B0, $DC, $03, $52
 	dc.b	$25, $C1, $CD, $B2, $BC, $0A, $D2, $45, $C9, $E2, $50, $D6, $53, $70, $4B, $49, $87, $27, $EC, $CA, $D3, $69, $F4, $13, $46, $AD, $1A, $82, $70, $D1, $AB, $46
 	dc.b	$A4, $08, $86, $A4, $4A, $93, $98, $21, $AA, $87, $A2, $7F, $81, $5A, $48, $A9, $3C, $82, $56, $A9, $6A, $2B, $B8, $25, $A4, $C2, $93, $F8, $29, $78, $06, $A8
 	dc.b	$9B, $8B, $32, $B4, $DA, $7A, $04, $D1, $AB, $46, $A0, $9C, $34, $6A, $D1, $AF, $F0, $00
-loc_2595E:
+;loc_2595E
+Race_finish_buf_tilemap_1:
 	dc.b	$08, $00, $00, $42, $00, $00, $78, $24, $83, $44, $34, $83, $40, $35, $07, $50, $74, $C4, $40, $A4, $4A, $44, $94, $C7, $50, $75, $07, $54, $64, $BF, $80, $00
-loc_2597E:
+;loc_2597E
+Race_finish_buf_tilemap_2:
 	dc.b	$09, $00, $00, $48, $00, $00, $46, $92, $A5, $2A, $4A, $C4, $E9, $2B, $D2, $A6, $B2, $46, $9A, $D9, $3A, $4B, $A4, $29, $AF, $54, $AE, $C1, $52, $9B, $25, $0A
 	dc.b	$4C, $D4, $80, $E0, $65, $A4, $D0, $46, $9B, $4E, $89, $BA, $A3, $5D, $1A, $8D, $CE, $07, $AA, $6E, $14, $AC, $B9, $53, $EE, $EF, $45, $BC, $11, $AF, $17, $92
 	dc.b	$41, $E6, $A5, $47, $A7, $24, $BB, $E5, $F4, $A5, $47, $DD, $24, $FA, $B4, $A0, $1C, $D4, $B0, $38, $22, $A1, $2F, $E0
-loc_259D6:
+;loc_259D6
+Race_finish_buf_tilemap_3:
 	dc.b	$09, $00, $00, $8B, $00, $00, $46, $94, $15, $2A, $50, $84, $A9, $C2, $D2, $A7, $0F, $46, $9C, $4D, $2A, $71, $74, $69, $46, $D4, $A5, $1E, $46, $94, $85, $4A
 	dc.b	$52, $44, $69, $C9, $D1, $A9, $2B, $46, $D4, $C1, $1B, $33, $B4, $AC, $D1, $53, $81, $4F, $02, $AD, $41, $4A, $F5, $65, $2B, $D7, $95, $AD, $66, $4B, $F8, $00
-loc_25A16:
+;loc_25A16
+Race_finish_tiles:
 	dc.b	$81, $6D, $80, $03, $00, $14, $05, $25, $13, $36, $2F, $46, $36, $56, $37, $67, $74, $75, $12, $81, $04, $02, $16, $35, $28, $F1, $82, $04, $08, $18, $F4, $83
 	dc.b	$04, $03, $17, $76, $84, $06, $32, $18, $F3, $85, $04, $06, $17, $75, $86, $04, $07, $17, $77, $87, $04, $04, $16, $39, $88, $05, $16, $89, $06, $2E, $8A, $05
 	dc.b	$14, $18, $F0, $8B, $06, $33, $18, $F5, $8C, $06, $34, $18, $F6, $8D, $05, $15, $8E, $05, $18, $18, $F2, $8F, $06, $38, $FF, $94, $A5, $29, $4A, $52, $FF, $B4
@@ -28980,7 +29361,8 @@ loc_25A16:
 	dc.b	$65, $49, $B9, $0C, $A8, $4A, $8E, $9E, $21, $3F, $82, $AF, $AA, $92, $F8, $AB, $20, $D5, $50, $E1, $B5, $09, $DB, $D2, $F2, $FD, $1C, $CA, $07, $A7, $22, $0F
 	dc.b	$C7, $91, $91, $94, $15, $FC, $B3, $F4, $E7, $74, $54, $EB, $38, $08, $70, $CA, $6A, $E0, $F2, $7B, $D1, $CD, $CD, $B2, $4F, $35, $EB, $92, $79, $C3, $4F, $97
 	dc.b	$ED, $7A, $77, $20, $81, $26, $83, $99, $A0, $7E, $76, $74, $95, $E8, $32, $E7, $63, $11, $FC, $C5, $3E, $85, $29, $6C, $85, $D0, $B3, $DD, $37, $00
-loc_27894:
+;loc_27894
+Race_finish_tiles_2:
 	dc.b	$80, $54, $80, $03, $00, $15, $0E, $25, $12, $35, $17, $46, $36, $55, $11, $65, $16, $74, $06, $81, $04, $02, $16, $3A, $82, $04, $05, $18, $F6, $83, $04, $03
 	dc.b	$16, $3B, $27, $7A, $84, $06, $38, $85, $05, $18, $86, $05, $15, $87, $05, $10, $18, $F7, $88, $05, $14, $89, $05, $1A, $8A, $06, $39, $8B, $05, $19, $8C, $06
 	dc.b	$37, $8D, $05, $13, $8E, $05, $0F, $17, $78, $8F, $04, $04, $17, $79, $FF, $8E, $F9, $DB, $31, $D7, $B9, $4B, $4B, $02, $37, $65, $60, $0C, $86, $7F, $4E, $65
@@ -29034,13 +29416,16 @@ loc_27894:
 	dc.b	$A9, $64, $B3, $E4, $92, $26, $97, $98, $A1, $39, $29, $74, $B1, $6C, $4E, $4B, $FB, $02, $89, $B8, $A4, $46, $10, $DC, $B2, $23, $91, $B3, $8E, $C5, $A7, $1C
 	dc.b	$B3, $1D, $5C, $DA, $DA, $77, $EE, $79, $B1, $B3, $8E, $E5, $62, $71, $1E, $DA, $CF, $71, $D7, $20, $C7, $39, $FD, $50, $30, $6A, $0E, $26, $0D, $C5, $2F, $D8
 	dc.b	$BB, $AF, $D7, $8E, $9D, $E5, $DF, $D1, $78, $EB, $6F, $D0, $BB, $F7, $34, $69, $52, $E5, $62, $EE, $91, $3D, $BB, $D6, $C7, $A8, $80, $00
-loc_27F30:
+;loc_27F30
+Credits_palette_stream:
 	dc.b	$22, $2E, $08, $AE, $08, $8E, $08, $6E, $06, $4E, $04, $2E, $02, $0E, $00, $0E, $00, $0C, $00, $0A, $00, $08, $00, $06, $00, $06, $00, $04, $00, $00, $00, $00
 	dc.b	$00, $00, $06, $88, $08, $AA, $0A, $AA, $0C, $CC, $04, $44, $06, $64, $0C, $CC, $06, $66, $00, $00, $02, $42, $04, $64, $06, $86, $08, $A8, $0A, $CA, $08, $86
 	dc.b	$04, $44, $0E, $EE, $0C, $CC, $04, $46, $04, $48, $04, $6A, $00, $08, $00, $2A, $02, $4C, $06, $6E, $0A, $AE, $08, $88, $0A, $AA, $02, $22, $04, $44, $06, $66
-loc_27F90:
+;loc_27F90
+Credits_car_sprite_table:
 	dc.l	$0EEE0CCC, $0AAA0000, $08880444, $02220000, $0000044C, $022A0228, $02260224, $08CE02AE, $028C0268, $00680444, $02220000, $0000048C, $028A0068, $02460024, $088E066C, $044C000A, $00080444, $02220000, $0000046C, $024A0008, $00060004, $0EEE0CCC, $0AAA0AAA, $08880444, $02220000, $00000A84, $0A620862, $06420422
-loc_28000:
+;loc_28000
+Credits_tilemap_1:
 	dc.b	$08, $03, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $DF, $7D, $F6, $41, $44, $06, $43, $68, $58, $00, $38, $E9, $84, $90, $69, $80, $81, $D1, $02, $44, $81
 	dc.b	$80, $12
 	dc.b	$1E
@@ -29052,9 +29437,11 @@ loc_28000:
 	dc.b	$84
 	dc.b	$80, $76, $50, $A2, $70, $90, $9C, $50, $84, $28, $9E, $78, $49, $0C, $24, $3A, $01, $50, $2C, $62, $74, $28, $05, $A0, $72, $0B, $88, $0D, $B8, $10, $4B, $6A
 	dc.b	$25, $BC, $F2, $E2, $59, $71, $FC
-loc_2808C:
+;loc_2808C
+Credits_tilemap_2:
 	dc.b	$08, $00, $00, $B8, $00, $B8, $01, $F5, $29, $DD, $2B, $46, $F9, $9A, $B8, $09, $54, $C6, $4A, $96, $5A, $31, $30, $2C, $E7, $23, $53, $63, $F8, $00
-loc_280AA:
+;loc_280AA
+Credits_tilemap_3:
 	dc.b	$0A, $00, $00, $01, $00, $00, $19, $83, $CF, $3C, $58, $00, $F0, $B0, $44, $22, $E0, $89, $E7, $81, $44, $42, $07, $08, $79, $84, $3C, $80, $1D
 	dc.b	$97
 	dc.b	$00, $4F, $2A, $08, $9E, $46, $11, $7F, $08, $BF, $00, $5E, $3C, $C8, $02, $78, $30, $04, $F0, $7A, $89, $E5, $01, $42, $27
@@ -29075,7 +29462,8 @@ loc_280AA:
 	dc.b	$0C, $E0, $0F, $03, $B4, $00, $0C, $C0, $0F, $03, $C4, $00, $2C, $E0, $0F, $03, $D4, $00, $2C, $C0, $0B, $03, $E4, $00, $4C, $E0, $0B, $03, $F0, $00, $4C, $00
 	dc.b	$01, $E4, $0C, $23, $FC, $FF, $FB, $E4, $00, $24, $00, $00, $1B, $00, $01, $E4, $0C, $24, $01, $FF, $FB, $E4, $08, $24, $05, $00, $1B, $00, $01, $E4, $0C, $24
 	dc.b	$08, $FF, $FB, $E4, $04, $24, $0C, $00, $1B, $00, $01, $E4, $0C, $24, $0E, $FF, $FB, $E4, $04, $24, $12, $00, $1B, $00, $00, $E4, $04, $24, $14, $FF, $FB
-loc_281EE:
+;loc_281EE
+Credits_tiles:
 	dc.b	$02, $19, $80, $76, $27, $81, $05, $0D, $17, $62, $27, $6A, $38, $E6, $48, $EB, $68, $EC, $76, $2A, $82, $05, $0B, $16, $24, $26, $2C, $37, $57, $47, $5E, $58
 	dc.b	$DA, $68, $E8, $76, $1F, $83, $06, $25, $18, $E3, $84, $07, $63, $85, $07, $5A, $18, $F2, $86, $07, $5B, $18, $EA, $87, $06, $2E, $18, $DE, $28, $E4, $48, $F1
 	dc.b	$76, $26, $88, $07, $69, $18, $F4, $89, $06, $30, $18, $ED, $8A, $07, $67, $18, $DF, $28, $E9, $8B, $04, $02, $16, $22, $27, $6C, $38, $E2, $48, $EE, $8C, $06
@@ -29333,7 +29721,8 @@ loc_281EE:
 	dc.b	$70, $D7, $0C, $DF, $CC, $B3, $67, $F3, $3F, $B7, $5B, $24, $4C, $63, $18, $FC, $7D, $1F, $CC, $B3, $FB, $75, $87, $FD, $79, $88, $49, $8A, $0C, $CF, $BE, $FF
 	dc.b	$F3, $2C, $E2, $E5, $5F, $F6, $EB, $43, $B8, $43, $31, $55, $55, $5A, $97, $CD, $5F, $9A, $B6, $D7, $2D, $EE, $EE, $5E, $E8, $72, $F7, $49, $FD, $C7, $DF, $91
 	dc.b	$AF, $F4, $36, $F0
-loc_2A1F2:
+;loc_2A1F2
+Credits_tiles_2:
 	dc.b	$00, $DD, $80, $07, $6F, $17, $70, $28, $EC, $38, $F4, $58, $E5, $74, $05, $81, $08, $E3, $82, $07, $62, $18, $F1, $83, $07, $67, $18, $E4, $85, $04, $04, $15
 	dc.b	$10, $25, $11, $36, $29, $46, $2E, $57, $56, $67, $57, $73, $00, $86, $03, $01, $14, $06, $25, $12, $36, $27, $47, $5F, $57, $64, $67, $73, $76, $26, $88, $06
 	dc.b	$2C, $18, $EB, $8A, $07, $6C, $18, $EA, $28, $F2, $76, $2A, $8B, $06, $2D, $17, $69, $28, $EE, $8C, $07, $65, $17, $68, $28, $EF, $38, $F0, $8D, $07, $66, $17
@@ -29408,7 +29797,8 @@ loc_2A1F2:
 	dc.b	$CB, $6E, $CB, $77, $5E, $FF, $EF, $FF, $7F, $9B, $6F, $FB, $2D, $FF, $65, $BD, $F6, $FF, $33, $FF, $76, $F9, $69, $CD, $A3, $F9, $7D, $FF, $CB, $EF, $FE, $5E
 	dc.b	$8E, $EF, $E6, $77, $78, $7E, $EF, $47, $76, $CF, $E5, $EC, $B7, $F7, $56, $EC, $5B, $76, $72, $E9, $EA, $F4, $B7, $F9, $5C, $2A, $B6, $AA, $BF, $D4, $AA, $AA
 	dc.b	$BB, $3F, $C1, $B2, $DE, $5B, $76, $5B, $FC, $00
-loc_2AB1C:
+;loc_2AB1C
+Credits_tiles_3:
 	dc.b	$80, $FD, $80, $04, $06, $14, $07, $25, $11, $36, $30, $46, $2F, $56, $2A, $65, $14, $72, $00, $81, $03, $02, $16, $2E, $27, $70, $78, $EB, $82, $06, $2B, $17
 	dc.b	$74, $83, $05, $10, $17, $71, $84, $07, $6A, $18, $E6, $85, $06, $31, $18, $EF, $86, $05, $16, $17, $6C, $28, $F2, $87, $05, $12, $17, $6E, $28, $EA, $48, $F0
 	dc.b	$76, $33, $88, $07, $6F, $18, $F1, $89, $06, $32, $17, $76, $8A, $06, $27, $17, $6D, $8B, $06, $26, $17, $72, $28, $F4, $8C, $07, $6B, $8D, $06, $34, $8E, $08
@@ -29487,7 +29877,8 @@ loc_2AB1C:
 	dc.b	$56, $7F, $D8, $B7, $09, $A3, $2B, $72, $6F, $4F, $CE, $81, $FA, $CB, $FC, $BD, $1F, $83, $59, $A6, $D3, $F6, $CD, $B1, $BF, $FA, $00, $7F, $76, $FF, $D6, $BF
 	dc.b	$EB, $40, $3F, $39, $3F, $E7, $1F, $5E, $CA, $F9, $9E, $DD, $3F, $38, $9E, $BE, $79, $99, $4E, $F5, $F3, $E3, $AD, $A6, $79, $57, $CE, $DA, $E3, $A4, $FC, $DD
 	dc.b	$F8, $7E, $B3, $43, $6D, $55, $C3, $29, $F5, $C7, $9D, $55, $CF, $5E, $36, $D7, $14, $CB, $5E, $19, $4B, $4A, $B4, $A8
-loc_2B4D4:
+;loc_2B4D4
+Championship_driver_tiles:
 	dc.b	$80, $94, $80, $04, $02, $14, $05, $25, $0E, $35, $11, $46, $31, $56, $2F, $66, $2A, $73, $00, $81, $05, $0F, $17, $6E, $28, $EC, $77, $6A, $82, $06, $30, $18
 	dc.b	$F2, $83, $04, $04, $16, $2E, $27, $72, $84, $04, $03, $16, $32, $27, $71, $38, $F1, $85, $05, $10, $17, $6C, $86, $05, $0D, $17, $6F, $28, $EF, $87, $05, $0C
 	dc.b	$16, $33, $28, $F0, $88, $05, $13, $18, $EB, $89, $05, $14, $18, $ED, $8A, $07, $6D, $18, $EA, $8B, $07, $6B, $18, $F4, $8C, $06, $34, $18, $EE, $8D, $06, $2B
@@ -29564,7 +29955,8 @@ loc_2B4D4:
 	dc.b	$1A, $F6, $E3, $37, $CF, $F6, $A5, $0B, $4D, $0D, $CF, $A6, $65, $91, $60, $AC, $8C, $DA, $F6, $F6, $00, $04, $77, $97, $37, $5D, $0D, $B8, $3B, $24, $7D, $1D
 	dc.b	$BB, $BC, $00, $0A, $5F, $A5, $75, $A6, $78, $D1, $85, $93, $9B, $FB, $10, $00, $0E, $D9, $D1, $BB, $08, $D3, $B5, $99, $13, $FB, $FB, $00, $00, $05, $85, $9B
 	dc.b	$B1, $40
-loc_2BE36:
+;loc_2BE36
+Championship_driver_tiles_2:
 	dc.b	$02, $55, $81, $03, $00, $15, $0F, $26, $2C, $37, $6A, $48, $E8, $78, $EC, $82, $04, $02, $15, $12, $26, $32, $38, $E6, $78, $F1, $83, $04, $03, $16, $29, $27
 	dc.b	$6C, $78, $F2, $84, $04, $04, $16, $2D, $28, $DE, $38, $F0, $85, $04, $06, $16, $28, $27, $68, $38, $EA, $86, $05, $10, $16, $30, $27, $69, $37, $72, $48, $E3
 	dc.b	$58, $E2, $67, $66, $75, $11, $87, $08, $DF, $88, $06, $2A, $17, $67, $28, $EE, $89, $05, $0A, $16, $2F, $27, $6E, $8A, $06, $27, $17, $6B, $8B, $06, $2E, $18
@@ -29896,7 +30288,8 @@ loc_2BE36:
 	dc.b	$83, $42, $50, $6C, $28, $BA, $88, $51, $06, $BA, $88, $51, $06, $B6, $14, $41, $A0, $8D, $06, $87, $F5, $61, $FC, $52, $4A, $21, $42, $3F, $0A, $10, $38, $36
 	dc.b	$1F, $F5, $D0, $8D, $0A, $21, $44, $28, $87, $52, $68, $87, $52, $13, $60, $C0, $DE, $49, $06, $30, $61, $29, $51, $3F, $AA, $0D, $82, $34, $1A, $14, $40, $E1
 	dc.b	$A1, $34, $5A, $09, $92, $83, $67, $C9, $9E, $6C, $F4, $2B, $09, $E8
-loc_2E784:
+;loc_2E784
+Options_shift_display_tiles:
 	dc.b	$2F, $E8, $5C, $1B, $95, $1A, $68, $8C, $28, $E2, $6C, $28, $C1, $B0, $95, $08, $76, $BD, $28, $FE, $8A, $9F, $7B, $26, $0D, $A6, $8E, $5D, $58, $68, $B4, $DB
 	dc.b	$0B, $4C, $21, $B3, $ED, $2D, $4A, $7A, $89, $EA, $7A, $96, $A1, $7A, $DC, $AD, $36, $9E, $9E, $A2, $68, $35, $AC, $90, $46, $4D, $09, $42, $1D, $AC, $68, $C6
 	dc.b	$82, $92, $79, $8B, $FA, $1D, $37, $F2, $70, $6C, $34, $60, $D0, $68, $51, $C9, $A1, $A3, $4D, $09, $41, $1A, $3D, $AD, $27, $A8, $9E, $8A, $AC, $38, $AC, $54
@@ -29961,7 +30354,8 @@ loc_2E784:
 	dc.b	$AC, $B5, $D9, $75, $BF, $CB, $C8, $F9, $8F, $BA, $99, $51, $BD, $A2, $9F, $FA, $76, $B5, $C8, $7F, $F5, $7C, $E3, $5C, $82, $7E, $CF, $C6, $5E, $5F, $F5, $43
 	dc.b	$2F, $E1, $FF, $95, $28, $B4, $CA, $9D, $ED, $84, $7D, $2A, $96, $AF, $DC, $9E, $F6, $8E, $24, $64, $97, $91, $A1, $C8, $E8, $FE, $A2, $C2, $87, $E7, $2A, $E7
 	dc.b	$92, $D5, $2B, $F6, $A9, $6F, $3D, $ED, $1C, $48, $C9, $2F, $23, $43, $91, $D1, $FD, $45, $BF, $59, $F3, $98
-loc_2EF7A:
+;loc_2EF7A
+Car_select_tilemap:
 	dc.b	$0A, $00, $00, $00, $00, $03, $0D, $10, $28, $80, $47, $9E, $6D, $70, $AE, $98, $5E, $78, $55, $C3, $EA, $62, $11, $E1, $57, $14, $69, $8A, $A0, $A0, $02, $06
 	dc.b	$D7, $18, $A9, $8C, $C0, $A0, $02, $06, $D7, $1C, $E9, $8E, $E7, $85, $5C, $86, $A6, $45
 	dc.b	$1E
@@ -29981,59 +30375,74 @@ loc_2EF7A:
 	dc.b	$53
 	dc.b	$89, $0F, $0A, $BC, $67, $4E, $37, $3C, $2A, $F2, $35, $39, $2A, $D9, $68, $1C, $03, $10, $0A, $C6, $30, $34, $4C, $BA, $32, $9D, $F3, $3E, $D1, $BF, $4C, $E6
 	dc.b	$FE, $00
-loc_2F068:
-	dc.l	loc_2F12C
-	dc.l	loc_2F124
-	dc.l	loc_2F11C
-	dc.l	loc_2F114
-	dc.l	loc_2F106
-	dc.l	loc_2F0F8
-	dc.l	loc_2F0E4
-	dc.l	loc_2F0BE
-	dc.l	loc_2F08C
-loc_2F08C:
+;loc_2F068
+Car_intro_sprite_frame_table:
+	dc.l	Car_intro_frame_data_2F12C
+	dc.l	Car_intro_frame_data_2F124
+	dc.l	Car_intro_frame_data_2F11C
+	dc.l	Car_intro_frame_data_2F114
+	dc.l	Car_intro_frame_data_2F106
+	dc.l	Car_intro_frame_data_2F0F8
+	dc.l	Car_intro_frame_data_2F0E4
+	dc.l	Car_intro_frame_data_2F0BE
+	dc.l	Car_intro_frame_data_2F08C
+;loc_2F08C
+Car_intro_frame_data_2F08C:
 	dc.b	$00, $07, $D0, $09, $00, $00, $FF, $E4, $D0, $09, $00, $06, $FF, $FC
 	dc.b	$E0, $0B, $00, $0C, $FF, $CC, $E0, $0B, $00, $18, $FF, $E4, $E0, $0B
 	dc.b	$00, $24, $FF, $FC, $E0, $0F, $00, $30, $00, $14, $F8, $00, $00, $40
 	dc.b	$FF, $C4, $F8, $00, $00, $41, $00, $34
-loc_2F0BE:
+;loc_2F0BE
+Car_intro_frame_data_2F0BE:
 	dc.b	$00, $05, $E0, $04, $00, $42, $FF, $E4, $E0, $0B, $00, $44, $FF, $F4
 	dc.b	$E8, $0A, $00, $50, $FF, $D4, $F0, $01, $00, $59, $FF, $EC, $E8, $0A
 	dc.b	$00, $5B, $00, $0C, $F8, $00, $00, $64, $00, $24
-loc_2F0E4:
+;loc_2F0E4
+Car_intro_frame_data_2F0E4:
 	dc.b	$00, $02, $E8, $0A, $00, $65, $FF, $F0, $F0, $05, $00, $6E, $FF, $E0
 	dc.b	$F0, $09, $00, $72, $00, $08
-loc_2F0F8:
+;loc_2F0F8
+Car_intro_frame_data_2F0F8:
 	dc.b	$00, $01, $F0, $09, $00, $78, $FF, $E8, $F0, $09, $00, $7E, $00, $00
-loc_2F106:
+;loc_2F106
+Car_intro_frame_data_2F106:
 	dc.b	$00, $01, $F0, $09, $00, $84, $FF, $F0, $F8, $00, $00, $8A, $00, $08
-loc_2F114:
+;loc_2F114
+Car_intro_frame_data_2F114:
 	dc.b	$00, $00, $F8, $08, $00, $8B, $FF, $F4
-loc_2F11C:
+;loc_2F11C
+Car_intro_frame_data_2F11C:
 	dc.b	$00, $00, $F8, $04, $00, $8E, $FF, $F8
-loc_2F124:
+;loc_2F124
+Car_intro_frame_data_2F124:
 	dc.b	$00, $00, $F8, $04, $00, $90, $FF, $F8
-loc_2F12C:
+;loc_2F12C
+Car_intro_frame_data_2F12C:
 	dc.b	$00, $00, $F8, $00, $00, $92, $FF, $FC
-loc_2F134:
+;loc_2F134
+Arcade_car_spec_palette_stream:
 	dc.b	$02, $3E, $00, $00, $0E, $EE, $02, $22, $02, $24, $02, $26, $0A, $AA, $0C, $CC, $06, $44, $04, $48, $04, $4A, $08, $66, $06, $68, $06, $6A, $06, $8A, $08, $8A
 	dc.b	$00, $00, $00, $00, $02, $2E, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $06, $6A, $0A, $AA, $0A, $AC, $0C, $CE, $06, $66, $06, $68
 	dc.b	$00, $00, $00, $00, $00, $CE, $02, $22, $04, $44, $02, $44, $04, $66, $04, $46, $06, $88, $0A, $AA, $06, $66, $0A, $CC, $06, $6A, $02, $8A, $02, $AC, $02, $CE
 	dc.b	$00, $00, $08, $8A, $0A, $AC, $0C, $CC, $06, $66, $0A, $AA, $04, $22, $06, $44, $06, $22, $0A, $44, $08, $22, $0C, $44, $0A, $22, $0E, $44, $0E, $66, $08, $88
 	dc.b	$00, $01, $E0, $08, $00, $E5, $FF, $F8, $E8, $0E, $00, $E8, $FF, $F0, $00, $01, $E0, $0E, $00, $F4, $FF, $F0, $F8, $08, $01, $00, $FF, $F8, $00, $02, $D8, $04
 	dc.b	$01, $03, $FF, $F4, $E0, $0F, $01, $05, $FF, $EC, $E0, $01, $01, $15, $00, $0C, $00, $00, $E8, $06, $01, $17, $FF, $F8
-loc_2F1EC:
+;loc_2F1EC
+Arcade_car_spec_tilemap_1:
 	dc.b	$08, $00, $00, $63, $00, $63, $01, $70, $1F, $4C, $27, $D1, $0D, $F4, $49, $50, $05, $49, $40, $55, $4F, $01, $43, $C0, $4C, $F0, $13, $1B, $F8, $00
-loc_2F20A:
+;loc_2F20A
+Arcade_car_spec_tilemap_2:
 	dc.b	$08, $00, $00, $63, $00, $63, $01, $0A, $58, $28, $71, $C4, $63, $AD, $8A, $85, $FC, $CA, $FB, $9F, $C0, $00
-loc_2F220:
+;loc_2F220
+Arcade_car_spec_tilemap_3:
 	dc.b	$07, $01, $00, $00, $00, $00, $01, $00, $15, $07, $08, $0A, $90, $00, $81, $57, $90, $10, $00, $0A, $B4, $40, $B8, $82, $80, $11, $60, $1A, $88, $30, $15, $42
 	dc.b	$6C, $03, $53, $06, $06, $00, $40, $B4, $44, $38, $04, $55, $12, $A2, $20, $05, $51, $2A, $22, $1C, $02, $2A, $89, $51, $10, $E2, $10, $24, $45, $11, $90, $2A
 	dc.b	$8E, $51, $19, $02, $A8, $E5, $81, $9A, $63, $24, $64, $A8, $A6, $53, $86, $A0, $0C, $34, $B4, $CA, $72, $54, $53, $29, $A6, $48, $46, $1B, $2E, $40, $35, $F5
 	dc.b	$D4, $CC, $F2, $59, $53, $33, $C3, $65, $C8, $06, $BE, $BA, $99, $9D, $12, $EE, $20, $26, $21, $C0, $0A, $0E, $99, $BF, $00, $AA, $67, $74, $CD, $F8, $05, $53
 	dc.b	$3B, $A6, $6F, $C0, $2A, $99, $DD, $33, $72, $2C, $1F, $D8, $3F, $B0, $7F, $4C, $FC, $8B, $09, $16, $12, $2C, $24, $53, $48, $23, $26, $AD, $35, $6B, $0A, $36
 	dc.b	$14, $69, $A8, $91, $93, $7A, $9A, $FD, $85, $AB, $0B, $54, $D6, $BF, $80, $00
-loc_2F2D0:
+;loc_2F2D0
+Arcade_car_spec_tiles:
 	dc.b	$80, $E4, $80, $03, $00, $14, $05, $25, $12, $36, $2A, $46, $34, $56, $2F, $66, $37, $74, $06, $81, $04, $02, $16, $33, $28, $F2, $82, $04, $08, $17, $76, $83
 	dc.b	$05, $13, $17, $78, $84, $06, $30, $85, $04, $03, $16, $31, $27, $77, $86, $04, $04, $16, $38, $28, $F4, $87, $04, $07, $17, $74, $27, $75, $88, $06, $36, $89
 	dc.b	$06, $35, $8A, $05, $16, $18, $F5, $8B, $06, $2E, $8C, $06, $2B, $8D, $06, $32, $18, $F6, $8E, $05, $14, $18, $F3, $8F, $06, $39, $FF, $FF, $D3, $37, $FD, $FF
@@ -30140,15 +30549,15 @@ loc_2F2D0:
 	dc.b	$4C, $2B, $C1, $30, $FD, $D5, $61, $CF, $2F, $CD, $CE, $27, $A8, $40, $85, $70, $29, $3D, $0F, $59, $AE, $7D, $2E, $B2, $95, $45, $57, $96, $9F, $D1, $AB, $39
 	dc.b	$D3, $6D, $6C, $E9, $58, $C8, $AE, $9C, $6F, $0B, $E3, $63, $BF, $88, $E2, $48, $2D, $C2, $E6, $12, $4F, $E5, $D4, $5D, $5B, $A0, $43, $B5, $56, $CA, $91, $A1
 	dc.b	$51, $6E, $5A, $E9, $DA, $55, $CC, $84, $4A, $B9, $88, $A6, $9C, $DF, $5A, $D3, $6F
-loc_30001:
+;loc_30001
 	dc.b	$D6, $CE, $BC
-loc_30004:
+;loc_30004
 	dc.b	$6A, $AD
-loc_30006:
+;loc_30006
 	dc.b	$25
-loc_30007:
+;loc_30007
 	dc.b	$5A, $C5
-loc_30009:
+;loc_30009
 	dc.b	$51, $4B, $FF, $5D, $BD, $1E, $54, $69, $14, $BF, $76, $4C, $B3, $6A, $A6, $B5, $B5, $53, $65, $AD, $B9, $54, $94, $E4, $95, $4F, $7E, $5B, $79, $D4, $49, $57
 	dc.b	$0E, $97, $A6, $9C, $36, $FC, $48, $97, $89, $13, $33, $34, $8B, $8D, $09, $1D, $53, $F6, $28, $A9, $FB, $17, $4A, $BC, $82, $7E, $C4, $17, $1E, $40, $9B, $C9
 	dc.b	$3A, $1D, $D6, $57, $58, $F3, $F4, $94, $0E, $0B, $81, $1B, $39, $20, $4E, $C1, $2A, $8B, $2A, $3A, $55, $98, $E2, $CB, $65, $FC, $A2, $6D, $64, $F5, $FC, $C7
@@ -30186,7 +30595,8 @@ loc_30009:
 	dc.b	$65, $7A, $4E, $9B, $73, $97, $4F, $DA, $EB, $95, $77, $2A, $74, $95, $C1, $04, $2C, $26, $42, $8A, $E2, $C9, $70, $AC, $E8, $1E, $B7, $C1, $61, $5F, $3A, $C5
 	dc.b	$78, $65, $49, $95, $7A, $DA, $EB, $38, $99, $94, $D1, $FF, $32, $F0, $83, $F3, $21, $F5, $A7, $E6, $C5, $67, $AB, $A9, $7E, $72, $35, $81, $F9, $4A, $C3, $83
 	dc.b	$BC, $D7, $01, $84, $4D, $3F, $67, $AF, $2D, $B9, $6E, $4F, $A7, $E9, $19, $B4, $00
-loc_3049A:
+;Arcade_car_spec_tiles_b
+Arcade_car_spec_tiles_b:
 	dc.b	$00, $38, $80, $06, $28, $16, $2D, $25, $0A, $35, $0F, $46, $26, $56, $27, $66, $33, $74, $00, $83, $05, $11, $15, $0D, $26, $29, $36, $30, $46, $32, $58, $F3
 	dc.b	$68, $EF, $76, $2E, $84, $04, $02, $16, $2C, $27, $76, $85, $04, $03, $16, $31, $27, $78, $86, $05, $15, $17, $75, $87, $07, $6A, $16, $34, $28, $F7, $88, $05
 	dc.b	$10, $17, $6E, $27, $6F, $38, $EE, $48, $F2, $89, $04, $01, $15, $0B, $27, $74, $37, $72, $8A, $04, $04, $16, $36, $27, $6B, $8B, $05, $0E, $27, $7A, $8D, $05
@@ -30219,95 +30629,114 @@ loc_3049A:
 	dc.b	$61, $32, $39, $51, $E2, $C3, $1B, $4B, $F6, $A2, $A3, $5C, $85, $E4, $6B, $98, $B1, $CC, $80, $00, $00, $00, $00, $02, $B9, $D6, $F9, $FF, $5F, $34, $B9, $C9
 	dc.b	$F2, $E7, $27, $FB, $5F, $27, $8F, $B5, $E6, $A5, $FE, $B9, $46, $27, $2B, $D4, $7D, $39, $DB, $8A, $E5, $5B, $E8, $13, $E9, $7D, $BE, $16, $AF, $12, $98, $C6
 	dc.b	$73, $00, $09, $C0
-loc_3087E: ; Round sign tiles
-	dc.l	loc_308FE
-	dc.l	loc_30954
-	dc.l	loc_30990
-	dc.l	loc_309CA
-	dc.l	loc_30A02
-	dc.l	loc_30A50
-	dc.l	loc_30A94
-	dc.l	loc_30AC4
-	dc.l	loc_30B1A
-	dc.l	loc_30B60
-	dc.l	loc_30BA2
-	dc.l	loc_30BD6
-	dc.l	loc_30C0A
-	dc.l	loc_30C44
-	dc.l	loc_30C82
-	dc.l	loc_30CB0
-loc_308BE: ; Round sign tile mappings
-	dc.l	loc_30CEC
-	dc.l	loc_30E48
-	dc.l	loc_30F64
-	dc.l	loc_31074
-	dc.l	loc_311B4
-	dc.l	loc_31352
-	dc.l	loc_3145C
-	dc.l	loc_31592
-	dc.l	loc_3174C
-	dc.l	loc_3183E
-	dc.l	loc_3197A
-	dc.l	loc_31AB6
-	dc.l	loc_31C0A
-	dc.l	loc_31D48
-	dc.l	loc_31E70
-	dc.l	loc_31FE6
-loc_308FE:
+;loc_3087E
+Round_sign_tile_table: ; 16 pointers to compressed round-sign tile data, indexed by Track_data sign tileset offset / 2
+	dc.l	Round_sign_tiles_1
+	dc.l	Round_sign_tiles_2
+	dc.l	Round_sign_tiles_3
+	dc.l	Round_sign_tiles_4
+	dc.l	Round_sign_tiles_5
+	dc.l	Round_sign_tiles_6
+	dc.l	Round_sign_tiles_7
+	dc.l	Round_sign_tiles_8
+	dc.l	Round_sign_tiles_9
+	dc.l	Round_sign_tiles_10
+	dc.l	Round_sign_tiles_11
+	dc.l	Round_sign_tiles_12
+	dc.l	Round_sign_tiles_13
+	dc.l	Round_sign_tiles_14
+	dc.l	Round_sign_tiles_15
+	dc.l	Round_sign_tiles_16
+;loc_308BE
+Round_sign_mapping_table: ; 16 pointers to compressed round-sign tilemap mapping data
+	dc.l	Round_sign_mapping_1
+	dc.l	Round_sign_mapping_2
+	dc.l	Round_sign_mapping_3
+	dc.l	Round_sign_mapping_4
+	dc.l	Round_sign_mapping_5
+	dc.l	Round_sign_mapping_6
+	dc.l	Round_sign_mapping_7
+	dc.l	Round_sign_mapping_8
+	dc.l	Round_sign_mapping_9
+	dc.l	Round_sign_mapping_10
+	dc.l	Round_sign_mapping_11
+	dc.l	Round_sign_mapping_12
+	dc.l	Round_sign_mapping_13
+	dc.l	Round_sign_mapping_14
+	dc.l	Round_sign_mapping_15
+	dc.l	Round_sign_mapping_16
+;loc_308FE
+Round_sign_tiles_1:
 	dc.b	$07, $01, $00, $00, $00, $0A, $02, $00, $00, $30, $40, $01, $82, $00, $07, $60, $40, $00, $00, $50, $40, $00, $00, $A5, $84, $02, $90, $A9, $00, $98, $9C, $04
 	dc.b	$12, $E0, $22, $98, $9C, $04, $12, $E0, $22, $98, $9C, $07, $92, $E2, $22, $14, $14, $00, $D1, $F9, $08, $85, $10, $83, $00, $50, $5E, $B6, $22, $02, $21, $44
 	dc.b	$34, $20, $40, $19, $0A, $01, $88, $7C, $44, $42, $80, $E7, $78, $3E, $3C, $3E, $2A, $10, $04, $7F, $80, $00
-loc_30954:
+;loc_30954
+Round_sign_tiles_2:
 	dc.b	$06, $01, $00, $00, $00, $0D, $0E, $00, $00, $78, $83, $00, $0F, $10, $60, $00, $E4, $00, $18, $00, $60, $03, $02, $58, $B0, $5B, $01, $CC, $23, $89, $47, $08
 	dc.b	$E8, $03, $C8, $47, $08, $E8, $03, $C6, $A2, $81, $1C, $23, $83, $81, $AC, $0E, $25, $6A, $84, $86, $11, $CD, $E1, $1C, $DC, $01, $DF, $C0
-loc_30990:
+;loc_30990
+Round_sign_tiles_3:
 	dc.b	$06, $02, $00, $00, $00, $0A, $0E, $00, $00, $78, $83, $00, $0F, $80, $60, $22, $45, $06, $02, $0C, $20, $60, $4B, $10, $0B, $60, $39, $84, $59, $48, $61, $16
 	dc.b	$52, $18, $45, $80, $80, $10, $09, $8C, $86, $11, $60, $21, $00, $68, $30, $15, $88, $86, $11, $6D, $E1, $16, $DC, $01, $7F, $C0
-loc_309CA:
+;loc_309CA
+Round_sign_tiles_4:
 	dc.b	$06, $01, $00, $00, $00, $0D, $0E, $00, $00, $78, $83, $00, $0F, $10, $60, $01, $E4, $0C, $00, $00, $20, $03, $02, $58, $B0, $5B, $01, $CC, $23, $81, $81, $3C
 	dc.b	$8C, $23, $80, $E2, $42, $79, $18, $47, $40, $1E, $4A, $18, $47, $14, $86, $11, $CD, $E1, $1C, $DC, $01, $DF, $C0, $00
-loc_30A02:
+;loc_30A02
+Round_sign_tiles_5:
 	dc.b	$07, $01, $00, $00, $00, $0D, $0E, $00, $00, $1C, $80, $00, $C0, $01, $E2, $06, $00, $0F, $10, $30, $00, $60, $01, $81, $2C, $2C, $14, $08, $44, $04, $47, $4B
 	dc.b	$80, $BA, $41, $20, $0F, $01, $F4, $B8, $0B, $A4, $14, $01, $20, $78, $12, $A5, $00, $5C, $BE, $36, $A2, $E1, $40, $1C, $1F, $8E, $00, $B8, $48, $0D, $C8, $DA
 	dc.b	$D8, $5C, $28, $05, $A1, $72, $CF, $18, $CF, $07, $8E, $90, $BF, $F0
-loc_30A50:
+;loc_30A50
+Round_sign_tiles_6:
 	dc.b	$06, $03, $00, $00, $00, $0B, $0E, $00, $00, $3C, $40, $C0, $01, $E4, $06, $01, $08, $07, $40, $30, $08, $18, $20, $30, $25, $84, $82, $D8, $0E, $61, $0C, $02
 	dc.b	$02, $68, $08, $04, $80, $28, $E1, $0C, $E8, $1A, $9A, $1C, $17, $1E, $0A, $00, $A3, $84, $30, $BC, $21, $90, $38, $C2, $80, $CA, $36, $10, $C6, $F0, $86, $37
 	dc.b	$00, $33, $F8, $00
-loc_30A94:
+;loc_30A94
+Round_sign_tiles_7:
 	dc.b	$06, $00, $00, $00, $00, $0E, $0E, $00, $00, $F1, $0C, $00, $78, $86, $00, $3C, $43, $00, $18, $01, $81, $2C, $C0, $5B, $01, $CC, $27, $94, $86, $13, $C4, $80
 	dc.b	$A8, $B8, $4F, $2B, $93, $C7, $9C, $57, $1D, $4F, $73, $09, $ED, $C0, $3F, $F8
-loc_30AC4:
+;loc_30AC4
+Round_sign_tiles_8:
 	dc.b	$07, $03, $00, $00, $00, $0A, $0E, $00, $00, $1E, $20, $30, $00, $3E, $00, $60, $08, $24, $14, $06, $00, $80, $C0, $80, $60, $4B, $04, $02, $80, $D0, $12, $00
 	dc.b	$A0, $02, $24, $23, $C0, $28, $88, $50, $13, $A1, $F0, $0E, $A3, $C4, $28, $0A, $2F, $88, $50, $14, $5F, $10, $A0, $28, $3E, $29, $55, $E0, $50, $07, $80, $72
 	dc.b	$1E, $05, $01, $42, $40, $5E, $09, $C8, $78, $14, $05, $07, $00, $6E, $24, $06, $98, $10, $02, $9F, $C0, $00
-loc_30B1A:
+;loc_30B1A
+Round_sign_tiles_9:
 	dc.b	$06, $03, $00, $00, $00, $0B, $0E, $00, $00, $3C, $40, $C0, $01, $E2, $06, $00, $07, $58, $50, $30, $08, $18, $20, $30, $25, $84, $82, $D8, $0E, $61, $0C, $15
 	dc.b	$00, $10, $0B, $08, $60, $34, $45, $C2, $E2, $26, $16, $0A, $18, $43, $01, $A2, $2E, $32, $18, $43, $01, $80, $AC, $0A, $00, $C0, $2C, $03, $93, $38, $58, $63
 	dc.b	$98, $43, $1B, $80, $19, $FC
-loc_30B60:
+;loc_30B60
+Round_sign_tiles_10:
 	dc.b	$06, $03, $00, $00, $00, $0E, $22, $00, $28, $14, $41, $F9, $02, $C3, $03, $83, $46, $08, $09, $61, $80, $B6, $03, $90, $03, $CC, $A2, $1E, $04, $05, $70, $79
 	dc.b	$08, $0D, $8B, $87, $CC, $70, $3C, $40, $38, $28, $02, $00, $40, $64, $0F, $88, $E0, $78, $08, $05, $00, $B0, $08, $0D, $A2, $61, $0F, $6F, $08, $7B, $70, $03
 	dc.b	$FF, $80
-loc_30BA2:
+;loc_30BA2
+Round_sign_tiles_11:
 	dc.b	$06, $02, $00, $00, $00, $10, $22, $00, $50, $28, $87, $E4, $14, $48, $71, $25, $8E, $05, $B0, $1C, $C2, $44, $BC, $24, $42, $A3, $54, $5E, $47, $48, $90, $0A
 	dc.b	$02, $41, $B9, $1D, $22, $40, $48, $0D, $03, $80, $D8, $0C, $24, $5B, $C2, $45, $B8, $04, $7F, $80
-loc_30BD6:
+;loc_30BD6
+Round_sign_tiles_12:
 	dc.b	$06, $01, $00, $00, $00, $15, $2E, $00, $81, $E5, $93, $05, $B0, $1C, $C2, $58, $98, $17, $C0, $C2, $5A, $01, $70, $20, $19, $1B, $0E, $7C, $25, $B9, $97, $AE
 	dc.b	$66, $B8, $B0, $37, $01, $84, $B0, $10, $38, $8F, $CB, $C1, $52, $CE, $61, $2C, $DC, $02, $DF, $C0
-loc_30C0A:
+;loc_30C0A
+Round_sign_tiles_13:
 	dc.b	$06, $03, $00, $00, $00, $10, $2F, $98, $44, $2C, $30, $38, $34, $60, $80, $96, $1C, $0B, $60, $39, $84, $45, $02, $78, $AD, $08, $A3, $00, $48, $2A, $32, $C0
 	dc.b	$C0, $1A, $03, $8A, $D0, $89, $7C, $96, $84, $44, $02, $81, $26, $14, $03, $20, $B8, $BA, $08, $B9, $84, $45, $B8, $02, $3F, $C0
-loc_30C44:
+;loc_30C44
+Round_sign_tiles_14:
 	dc.b	$06, $03, $00, $00, $00, $12, $2A, $88, $38, $9C, $70, $60, $C0, $96, $20, $0B, $60, $39, $84, $4C, $AE, $43, $82, $62, $41, $40, $17, $0E, $88, $E0, $1C, $87
 	dc.b	$04, $C4, $81, $E2, $C4, $2E, $14, $02, $50, $3A, $14, $31, $0E, $09, $89, $03, $00, $B4, $58, $05, $C0, $E1, $13, $6F, $08, $9B, $70, $04, $FF, $80
-loc_30C82:
+;loc_30C82
+Round_sign_tiles_15:
 	dc.b	$06, $01, $00, $00, $00, $15, $2E, $00, $81, $E5, $93, $05, $B0, $1C, $80, $58, $58, $07, $04, $E2, $78, $B0, $30, $0C, $8C, $87, $1B, $EA, $45, $82, $98, $24
 	dc.b	$28, $B1, $16, $0B, $61, $20, $3B, $01, $CC, $25, $9B, $80, $5B, $F8
-loc_30CB0:
+;loc_30CB0
+Round_sign_tiles_16:
 	dc.b	$06, $03, $00, $00, $00, $11, $22, $00, $28, $3C, $42, $01, $43, $A3, $04, $04, $B0, $F0, $5B, $01, $CC, $22, $41, $40, $55, $16, $02, $D0, $18, $44, $82, $80
 	dc.b	$3E, $04, $01, $71, $70, $89, $71, $1F, $57, $02, $03, $38, $F8, $44, $82, $C2, $E4, $27, $27, $61, $11, $27, $30, $89, $37, $00, $4B, $F8
-loc_30CEC:
+;loc_30CEC
+Round_sign_mapping_1:
 	dc.b	$80, $43, $80, $05, $1B, $14, $0A, $25, $18, $35, $19, $45, $1C, $55, $1D, $66, $3D, $71, $00, $88, $08, $F8, $8C, $03, $04, $14, $0B, $25, $1A, $36, $3C, $FF
 	dc.b	$FF, $88, $00, $E7, $EA, $33, $F1, $CF, $CC, $3B, $FB, $8F, $CF, $0F, $81, $EF, $C6, $FF, $71, $F9, $E5, $7E, $60, $19, $F8, $C7, $E6, $3F, $3C, $03, $E3, $1F
 	dc.b	$98, $FC, $F0, $0A, $FC, $C0, $EF, $F6, $07, $EA, $31, $F9, $61, $FA, $80, $C7, $E5, $87, $FD, $C7, $F5, $FF, $22, $3F, $6E, $1F, $97, $FC, $88, $0A, $FE, $E6
@@ -30319,7 +30748,8 @@ loc_30CEC:
 	dc.b	$F8, $CC, $A8, $E5, $8C, $D8, $62, $0D, $EA, $A0, $A8, $03, $13, $3A, $37, $75, $75, $79, $D1, $51, $D8, $7B, $A0, $0B, $21, $0C, $C4, $01, $D9, $B8, $3D, $83
 	dc.b	$93, $70, $72, $0E, $DE, $E0, $0C, $4C, $58, $0A, $BD, $EB, $90, $42, $3B, $60, $76, $62, $EA, $01, $89, $53, $32, $BC, $02, $39, $67, $6C, $35, $5A, $72, $56
 	dc.b	$B1, $61, $78, $D1, $78, $D0, $7F, $32, $A1, $FC, $CA, $81, $AC, $CF, $63, $41, $CD, $62, $FB, $1E, $07, $3F, $F9, $ED, $E6, $EB, $C0, $C0
-loc_30E48:
+;loc_30E48
+Round_sign_mapping_2:
 	dc.b	$80, $31, $80, $05, $18, $15, $17, $24, $0A, $35, $1A, $46, $3C, $55, $16, $66, $3A, $71, $00, $81, $18, $FA, $88, $05, $19, $17, $7A, $58, $F8, $8C, $03, $04
 	dc.b	$15, $1B, $26, $3B, $35, $1C, $47, $7B, $78, $F9, $FF, $FF, $88, $00, $D7, $EE, $2F, $EB, $CC, $BA, $FF, $40, $F4, $F4, $CA, $BF, $91, $8F, $CB, $00, $F8, $FC
 	dc.b	$B7, $99, $17, $FE, $41, $5F, $17, $C8, $0F, $E4, $18, $CD, $B3, $6C, $DB, $36, $CD, $B3, $6C, $EB, $F5, $0D, $65, $6C, $DB, $36, $CD, $B3, $6F, $FC, $75, $EB
@@ -30329,7 +30759,8 @@ loc_30E48:
 	dc.b	$52, $D2, $A5, $4D, $77, $8E, $C5, $4A, $83, $BB, $EF, $10, $4A, $83, $5C, $62, $16, $85, $A5, $F9, $8E, $EA, $16, $85, $A5, $A5, $F8, $03, $52, $A0, $09, $50
 	dc.b	$0E, $A5, $A5, $40, $23, $12, $A0, $03, $AD, $B1, $15, $D9, $8D, $DF, $6C, $76, $6B, $D8, $8E, $A2, $D2, $A1, $79, $53, $13, $1C, $5E, $01, $AE, $CF, $3B, $0F
 	dc.b	$9E, $A7, $9B, $C7, $B0, $B7, $0D, $70, $2B, $DA, $A3, $81, $E7, $0D, $70, $31, $FE, $C3, $1F, $EC, $09, $5C, $25, $70, $3E, $4F, $90, $00
-loc_30F64:
+;loc_30F64
+Round_sign_mapping_3:
 	dc.b	$80, $33, $80, $05, $19, $15, $17, $25, $18, $35, $16, $46, $3A, $55, $1C, $66, $3C, $71, $00, $81, $18, $FA, $88, $06, $3B, $47, $7B, $8C, $03, $04, $14, $0A
 	dc.b	$25, $1A, $35, $1B, $47, $7A, $58, $F8, $78, $F9, $FF, $FF, $88, $00, $B7, $EE, $2F, $F9, $8E, $BB, $79, $FE, $81, $F9, $87, $E6, $1D, $B1, $EF, $3F, $96, $01
 	dc.b	$FD, $8F, $CB, $75, $D8, $BF, $B3, $1F, $D8, $BF, $60, $3D, $F3, $F7, $02, $DF, $B8, $3D, $BC, $ED, $E7, $6C, $77, $6E, $D8, $F6, $2F, $FF, $71, $FD, $7F, $A1
@@ -30339,7 +30770,8 @@ loc_30F64:
 	dc.b	$07, $52, $DA, $19, $F8, $2F, $F1, $99, $9D, $80, $C4, $C4, $01, $79, $88, $F3, $66, $3D, $12, $F4, $C4, $2D, $2F, $47, $2A, $F3, $35, $D4, $10, $8F, $20, $1E
 	dc.b	$4C, $46, $20, $31, $2F, $33, $BC, $CB, $E8, $1E, $4E, $4C, $68, $04, $CE, $CB, $6C, $2F, $EA, $F1, $1B, $BC, $0D, $1D, $68, $3A, $D9, $6D, $85, $B7, $68, $68
 	dc.b	$2D, $F3, $15, $69, $8D, $86, $6B, $1A, $CC, $E4, $5B, $41, $F2, $7C, $80, $00
-loc_31074:
+;loc_31074
+Round_sign_mapping_4:
 	dc.b	$80, $39, $80, $04, $0A, $15, $19, $24, $0B, $35, $1C, $46, $3C, $56, $3A, $66, $3D, $71, $00, $81, $18, $FA, $88, $06, $3B, $17, $7C, $8C, $03, $04, $15, $18
 	dc.b	$25, $1A, $35, $1B, $FF, $FF, $88, $00, $F7, $B7, $5D, $BD, $F8, $3F, $B0, $33, $FD, $8F, $CB, $00, $EB, $F3, $DE, $76, $75, $D9, $D7, $7C, $FD, $45, $FC, $03
 	dc.b	$B7, $CB, $F8, $CF, $7C, $EC, $AE, $F9, $D8, $01, $5D, $F3, $B3, $DF, $D4, $0F, $FC, $57, $F2, $0C, $F7, $E7, $C1, $DF, $9F, $02, $BF, $90, $03, $3F, $F7, $1F
@@ -30350,7 +30782,8 @@ loc_31074:
 	dc.b	$CE, $80, $F2, $5E, $2B, $00, $5C, $A9, $7B, $BC, $3D, $80, $C5, $CA, $80, $8E, $B1, $99, $5A, $E6, $01, $E4, $A9, $CC, $20, $75, $2E, $2A, $75, $33, $2E, $36
 	dc.b	$73, $F9, $8F, $35, $58, $08, $26, $70, $03, $3A, $AD, $00, $AD, $56, $CD, $DC, $0D, $5E, $3A, $8D, $87, $9F, $EC, $F6, $54, $BC, $5E, $83, $AD, $9C, $D8, $5E
 	dc.b	$F9, $0D, $05, $FF, $F2, $31, $73, $9A, $A8, $18, $AD, $95, $8A, $D8, $75, $A3, $CD, $04, $AD, $99, $95, $B0, $CF, $F3, $17, $1B, $0E, $B6, $73, $61, $40, $00
-loc_311B4:
+;loc_311B4
+Round_sign_mapping_5:
 	dc.b	$80, $53, $80, $05, $19, $15, $16, $25, $17, $35, $18, $45, $1A, $55, $1C, $66, $3B, $71, $00, $88, $06, $3C, $17, $7B, $48, $F8, $8C, $03, $04, $14, $0A, $25
 	dc.b	$1B, $36, $3A, $47, $7A, $58, $F9, $FF, $FF, $88, $00, $FF, $C0, $FF, $C0, $F8, $17, $F8, $CF, $E5, $80, $7C, $67, $F2, $C0, $39, $EF, $5E, $0E, $FF, $F0, $BF
 	dc.b	$B7, $B7, $87, $8B, $78, $7C, $0B, $7C, $0F, $2D, $E0, $1D, $F9, $DF, $9A, $F6, $CF, $8F, $6F, $DC, $0F, $87, $7E, $6B, $DE, $3D, $80, $E7, $FD, $C7, $F5, $FF
@@ -30364,7 +30797,8 @@ loc_311B4:
 	dc.b	$54, $31, $41, $78, $31, $BD, $43, $93, $30, $5E, $AD, $05, $E0, $42, $10, $C4, $56, $25, $E5, $E1, $88, $20, $04, $CD, $5B, $7A, $A0, $62, $5A, $62, $66, $00
 	dc.b	$D7, $A0, $18, $99, $A0, $16, $AB, $50, $0B, $55, $A8, $6A, $0C, $56, $69, $7F, $45, $BF, $D8, $66, $AD, $B1, $78, $35, $2D, $35, $04, $21, $B4, $03, $FF, $8A
 	dc.b	$C4, $BF, $59, $81, $56, $E8, $AB, $74, $1E, $AD, $1D, $FC, $85, $FA, $CE, $CE, $B3, $B0, $9C, $84, $E4, $0C, $75, $88, $6C, $39, $47, $28, $00, $00
-loc_31352:
+;loc_31352
+Round_sign_mapping_6:
 	dc.b	$80, $2E, $80, $06, $3A, $14, $0A, $25, $18, $35, $16, $45, $1A, $56, $3C, $65, $1B, $71, $00, $81, $18, $FA, $88, $05, $1C, $18, $F8, $8C, $03, $04, $15, $19
 	dc.b	$25, $17, $36, $3B, $46, $3D, $78, $F9, $FF, $FF, $88, $00, $B7, $EE, $2B, $E3, $5C, $6F, $FD, $03, $E1, $F0, $E3, $1F, $C8, $EB, $F2, $C0, $3F, $B1, $F9, $6D
 	dc.b	$70, $0D, $F2, $B8, $1F, $C8, $2B, $F9, $1D, $7C, $6B, $81, $F1, $AE, $2D, $FA, $8D, $7C, $38, $71, $5C, $00, $DF, $37, $FD, $81, $5F, $F7, $1F, $D7, $FA, $1F
@@ -30374,7 +30808,8 @@ loc_31352:
 	dc.b	$53, $AB, $E3, $2D, $C3, $C9, $D6, $51, $EE, $A6, $EE, $16, $F7, $17, $A9, $E6, $75, $02, $EF, $42, $2D, $7B, $4C, $4C, $76, $04, $7F, $B1, $97, $F7, $03, $FB
 	dc.b	$9B, $9A, $CE, $2E, $1B, $F5, $89, $89, $6B, $85, $7C, $9F, $21, $7C, $66, $A6, $B3, $68, $81, $7A, $BA, $A6, $B3, $8B, $87, $7B, $8B, $5C, $1E, $E2, $1D, $86
 	dc.b	$6B, $B5, $A6, $33, $8B, $84, $6E, $03, $60, $00
-loc_3145C:
+;loc_3145C
+Round_sign_mapping_7:
 	dc.b	$80, $3C, $80, $05, $19, $15, $16, $24, $0A, $35, $17, $46, $3B, $55, $1A, $66, $3A, $71, $00, $81, $18, $FA, $88, $05, $1B, $48, $F8, $8C, $03, $04, $15, $18
 	dc.b	$26, $3C, $35, $1C, $47, $7A, $57, $7B, $68, $F9, $FF, $FF, $88, $00, $FF, $C0, $FF, $C0, $FF, $40, $CF, $F6, $3F, $1D, $F8, $60, $1F, $19, $FC, $B0, $7C, $1D
 	dc.b	$FC, $05, $B7, $7D, $96, $F8, $33, $B6, $B6, $6B, $76, $FF, $C2, $FB, $6B, $66, $B7, $DF, $E6, $2B, $F5, $05, $F6, $15, $F9, $8B, $7E, $E0, $CE, $C3, $5B, $AF
@@ -30385,7 +30820,8 @@ loc_3145C:
 	dc.b	$4B, $61, $50, $BC, $B6, $0D, $62, $D3, $38, $EE, $08, $47, $50, $6A, $0B, $CB, $61, $5E, $8B, $7B, $2D, $8A, $82, $F2, $A1, $D4, $B6, $00, $66, $06, $A1, $78
 	dc.b	$B6, $15, $E8, $B7, $C9, $33, $EE, $D1, $87, $81, $CA, $95, $3B, $C7, $73, $50, $3C, $3B, $F0, $3A, $E1, $7E, $05, $B8, $5F, $81, $7E, $5B, $C3, $CB, $60, $30
 	dc.b	$6B, $01, $D7, $2D, $0C, $F2, $D0, $3F, $F8, $EB, $FF, $81, $9C, $57, $99, $9A, $8B, $F8, $10, $EA, $07, $40
-loc_31592:
+;loc_31592
+Round_sign_mapping_8:
 	dc.b	$80, $59, $80, $05, $1C, $14, $0A, $25, $18, $35, $17, $45, $1A, $55, $1D, $66, $3C, $71, $00, $88, $06, $3D, $8C, $03, $04, $15, $16, $25, $19, $35, $1B, $48
 	dc.b	$F8, $58, $F9, $FF, $FF, $88, $00, $BF, $EE, $2B, $F3, $1A, $F5, $E7, $FA, $07, $E6, $1F, $98, $7A, $C7, $F2, $39, $F9, $60, $1F, $D8, $FC, $B6, $BD, $03, $CF
 	dc.b	$6B, $D0, $0D, $7E, $63, $9E, $BC, $F5, $7F, $D4, $5F, $D1, $DF, $5E, $7A, $C7, $B7, $F5, $8F, $E4, $0A, $FF, $B8, $FE, $BF, $E4, $47, $ED, $C3, $F2, $FF, $91
@@ -30400,7 +30836,8 @@ loc_31592:
 	dc.b	$6A, $72, $0B, $CC, $4A, $9A, $87, $20, $46, $50, $85, $E1, $90, $79, $2F, $9D, $64, $17, $8A, $80, $2F, $3B, $6A, $80, $62, $55, $BB, $90, $31, $6C, $7C, $72
 	dc.b	$C6, $A0, $55, $B1, $6C, $7C, $15, $FE, $C1, $CB, $08, $15, $6E, $D8, $0B, $DB, $BB, $3B, $08, $5F, $6F, $FE, $02, $D7, $DA, $F6, $06, $EA, $DD, $9C, $DE, $20
 	dc.b	$33, $59, $66, $B2, $0B, $ED, $7D, $83, $59, $6B, $20, $8F, $20, $3C, $DD, $59, $BA, $B0, $3E, $55, $F2, $0C, $65, $AC, $82, $E0
-loc_3174C:
+;loc_3174C
+Round_sign_mapping_9:
 	dc.b	$80, $2E, $80, $04, $0A, $15, $16, $24, $09, $35, $18, $46, $3B, $55, $19, $67, $7B, $71, $00, $81, $18, $F9, $88, $05, $1A, $17, $7A, $48, $FA, $58, $FB, $8C
 	dc.b	$04, $08, $15, $17, $25, $1B, $35, $1C, $46, $3A, $56, $3C, $78, $F8, $FF, $FF, $88, $00, $C7, $EE, $2D, $EB, $BD, $3D, $FF, $A0, $7A, $7A, $69, $3F, $55, $F9
 	dc.b	$60, $1F, $7F, $96, $EF, $40, $7B, $D5, $B4, $07, $BD, $7B, $D7, $7E, $95, $A7, $A7, $EE, $0F, $B0, $B6, $87, $D1, $6F, $A0, $D5, $BE, $C5, $BF, $EE, $3F, $AF
@@ -30409,7 +30846,8 @@ loc_3174C:
 	dc.b	$60, $CC, $2D, $D1, $98, $33, $15, $09, $BC, $EC, $81, $0C, $DE, $BA, $26, $08, $31, $CA, $B9, $18, $86, $60, $9E, $4C, $01, $DD, $EB, $95, $B0, $31, $7B, $75
 	dc.b	$57, $C4, $19, $83, $31, $8F, $2D, $15, $13, $13, $D0, $B7, $FB, $1B, $40, $81, $00, $1F, $1B, $03, $E3, $C0, $16, $DC, $DC, $06, $ED, $B3, $BD, $87, $85, $BC
 	dc.b	$0B, $70, $C7, $03, $3D, $13, $D0, $57, $44, $F4, $13, $F0, $7C, $06, $6E, $66, $E0, $00
-loc_3183E:
+;loc_3183E
+Round_sign_mapping_10:
 	dc.b	$80, $36, $80, $04, $0A, $15, $19, $24, $0B, $35, $1B, $46, $3C, $55, $1A, $71, $00, $81, $18, $FA, $88, $06, $3A, $16, $3D, $8C, $03, $04, $15, $18, $25, $1C
 	dc.b	$36, $3B, $48, $F8, $8E, $18, $F9, $FF, $FF, $88, $D7, $BE, $75, $E7, $AD, $7F, $20, $7A, $F3, $AD, $74, $AF, $77, $E8, $AF, $EC, $57, $5A, $E8, $FE, $C7, $C8
 	dc.b	$74, $E9, $AF, $6B, $F5, $1F, $2B, $F4, $17, $E8, $07, $5F, $E0, $EB, $3D, $01, $BE, $AF, $E4, $07, $EA, $33, $D7, $C8, $0F, $6F, $A0, $19, $F6, $BF, $50, $3C
@@ -30420,7 +30858,8 @@ loc_3183E:
 	dc.b	$66, $04, $18, $AC, $01, $52, $E5, $4A, $99, $E0, $1B, $9A, $95, $8C, $C0, $13, $38, $CC, $03, $C9, $BF, $84, $06, $65, $CA, $E6, $71, $53, $50, $35, $2A, $2E
 	dc.b	$6A, $66, $37, $D9, $7F, $DC, $79, $CC, $C0, $86, $FE, $0F, $F0, $76, $15, $FE, $CA, $8C, $5C, $DF, $02, $B1, $9E, $EA, $6A, $2F, $B0, $C5, $7C, $2E, $6F, $19
 	dc.b	$EC, $35, $8D, $44, $05, $FC, $5C, $61, $80, $F8, $AC, $2A, $6A, $57, $2B, $01, $83, $58, $0D, $77, $5C, $3B, $AE, $07, $FF, $0F, $FE, $00
-loc_3197A:
+;loc_3197A
+Round_sign_mapping_11:
 	dc.b	$80, $3B, $80, $05, $19, $15, $18, $24, $0A, $35, $16, $45, $1A, $55, $1C, $66, $37, $71, $00, $88, $06, $3B, $16, $3C, $28, $F8, $8C, $03, $04, $15, $17, $26
 	dc.b	$36, $36, $3A, $46, $3D, $8E, $18, $FA, $FF, $FF, $88, $E7, $9A, $EF, $5E, $39, $FC, $81, $E0, $E7, $81, $5F, $16, $EF, $5E, $39, $FB, $8F, $A1, $D8, $DF, $BC
 	dc.b	$7C, $7D, $2B, $C0, $57, $95, $F0, $03, $FF, $0C, $78, $0B, $77, $5E, $7D, $00, $EE, $DD, $FD, $00, $B7, $60, $39, $D8, $DF, $F9, $03, $F7, $02, $DF, $B8, $1C
@@ -30431,7 +30870,8 @@ loc_3197A:
 	dc.b	$26, $21, $08, $5B, $FF, $8A, $F4, $54, $6F, $37, $88, $86, $25, $A5, $75, $AE, $96, $81, $BC, $D5, $ED, $71, $BC, $39, $31, $FF, $CB, $4D, $F6, $16, $EA, $A5
 	dc.b	$A6, $36, $A9, $69, $9B, $9A, $8D, $91, $70, $31, $2A, $F5, $7C, $F4, $05, $5E, $A5, $A0, $0C, $4D, $5D, $08, $42, $E8, $B8, $3F, $F8, $DF, $FF, $81, $9B, $DA
 	dc.b	$F9, $9C, $8D, $5C, $36, $35, $B0, $2A, $E7, $2E, $16, $E8, $B7, $41, $2B, $A2, $57, $41, $E9, $5E, $85, $BD, $2B, $D0, $C4, $37, $81, $B8
-loc_31AB6:
+;loc_31AB6
+Round_sign_mapping_12:
 	dc.b	$80, $3A, $80, $05, $1B, $14, $0A, $25, $1A, $35, $16, $46, $3B, $55, $17, $67, $7B, $71, $00, $86, $18, $F9, $88, $05, $18, $16, $39, $26, $38, $8C, $03, $04
 	dc.b	$15, $19, $26, $3A, $37, $79, $47, $7A, $78, $F8, $8E, $17, $78, $FF, $FF, $88, $BF, $3D, $E3, $BE, $57, $FE, $40, $E5, $DE, $2F, $86, $F9, $B7, $23, $7F, $D8
 	dc.b	$DE, $2F, $83, $FB, $1E, $03, $0C, $2F, $CE, $F8, $F0, $D7, $20, $D7, $20, $D7, $05, $62, $B8, $AC, $56, $05, $72, $5F, $8D, $78, $01, $C5, $63, $C0, $0E, $75
@@ -30443,7 +30883,8 @@ loc_31AB6:
 	dc.b	$5A, $2B, $FB, $9B, $80, $3A, $00, $16, $81, $DF, $47, $40, $AC, $BD, $C5, $E2, $F1, $AF, $3A, $8A, $CE, $A3, $72, $A3, $52, $D0, $83, $70, $84, $01, $69, $EE
 	dc.b	$01, $A9, $52, $D3, $70, $0B, $4A, $9A, $96, $C8, $11, $DE, $4B, $E4, $3C, $D6, $4F, $35, $90, $F8, $3E, $02, $57, $A2, $57, $A0, $96, $E8, $96, $E8, $3A, $AE
 	dc.b	$8E, $AB, $A0, $F4, $6B, $D0, $6B, $E2, $33, $69, $AF, $21, $BC, $DB, $3B, $96, $9B, $97, $80, $00
-loc_31C0A:
+;loc_31C0A
+Round_sign_mapping_13:
 	dc.b	$80, $37, $80, $05, $18, $14, $0A, $25, $16, $35, $17, $46, $3A, $55, $19, $66, $3B, $71, $00, $81, $18, $F9, $88, $05, $1A, $16, $38, $27, $7A, $38, $FA, $8C
 	dc.b	$03, $04, $16, $36, $26, $39, $36, $37, $46, $3C, $58, $F8, $8E, $17, $7B, $FF, $FF, $88, $CF, $1D, $6B, $AE, $19, $FE, $40, $E1, $D6, $B3, $A6, $38, $BF, $03
 	dc.b	$1F, $D8, $C6, $B3, $A3, $FB, $1E, $C3, $4D, $33, $C6, $3D, $7B, $5B, $80, $5B, $80, $5B, $D1, $5A, $AF, $55, $AA, $D0, $AE, $0C, $FA, $B7, $B0, $1E, $AB, $5E
@@ -30454,7 +30895,8 @@ loc_31C0A:
 	dc.b	$8D, $C1, $1E, $75, $01, $89, $79, $89, $DE, $F5, $B5, $A1, $98, $5E, $62, $5E, $63, $7A, $E6, $D2, $DE, $0B, $7C, $26, $27, $52, $A0, $82, $77, $2B, $60, $1C
 	dc.b	$85, $E1, $99, $5F, $FC, $BC, $EF, $91, $7D, $ED, $2F, $2B, $9B, $4B, $CC, $6C, $75, $1C, $A0, $0B, $C5, $47, $70, $84, $5B, $CA, $8D, $9E, $07, $C7, $73, $AD
 	dc.b	$AD, $C8, $67, $C2, $DE, $05, $6F, $5B, $1B, $D6, $C1, $C9, $D7, $20, $B6, $C6, $76, $0B, $EE, $5F, $70, $96, $DC, $96, $DC, $26, $61, $33, $00, $00
-loc_31D48:
+;loc_31D48
+Round_sign_mapping_14:
 	dc.b	$80, $37, $80, $06, $3A, $14, $0A, $25, $18, $34, $0B, $46, $39, $55, $19, $66, $3B, $71, $00, $88, $05, $1A, $16, $36, $26, $3C, $38, $F8, $8C, $04, $08, $14
 	dc.b	$09, $26, $37, $36, $38, $47, $7A, $58, $FA, $8E, $17, $7B, $FF, $FF, $88, $CE, $DC, $EB, $9D, $99, $FE, $40, $D8, $67, $60, $AF, $86, $34, $EF, $CF, $63, $C1
 	dc.b	$CF, $F6, $3D, $B1, $B0, $31, $B6, $3C, $01, $B7, $5F, $C8, $AD, $19, $D1, $9D, $5E, $B9, $DB, $AF, $60, $3C, $AD, $7B, $01, $B6, $3C, $77, $A3, $3A, $31, $E3
@@ -30465,7 +30907,8 @@ loc_31D48:
 	dc.b	$CC, $8B, $90, $18, $8C, $C0, $17, $17, $B8, $0C, $47, $53, $5B, $F3, $20, $B8, $A8, $B8, $A9, $01, $89, $C4, $01, $18, $8A, $9B, $93, $AF, $FE, $06, $F8, $9A
 	dc.b	$8E, $65, $72, $15, $F4, $57, $D0, $7A, $A8, $EE, $1E, $83, $1F, $FC, $4D, $C6, $38, $EA, $02, $71, $B9, $38, $DC, $3D, $18, $F4, $17, $FE, $CE, $A1, $2E, $02
 	dc.b	$4C, $C8, $67, $82, $F8, $0B, $00, $00
-loc_31E70:
+;loc_31E70
+Round_sign_mapping_15:
 	dc.b	$80, $40, $80, $05, $17, $15, $18, $24, $0A, $36, $39, $45, $19, $56, $36, $67, $78, $71, $00, $81, $17, $7B, $88, $05, $1A, $16, $37, $27, $79, $8C, $03, $04
 	dc.b	$15, $16, $26, $38, $36, $3B, $46, $3A, $8E, $17, $7A, $FF, $FF, $88, $DB, $7C, $EB, $3B, $B6, $FE, $40, $DE, $BC, $8D, $EB, $C8, $FF, $C0, $FE, $C7, $A1, $B8
 	dc.b	$DB, $7B, $F9, $F4, $AD, $C1, $5B, $80, $57, $90, $1B, $F3, $F9, $60, $19, $D7, $A0, $1B, $81, $5E, $55, $FB, $8A, $D7, $3A, $18, $F3, $5B, $D6, $8F, $5A, $68
@@ -30478,7 +30921,8 @@ loc_31E70:
 	dc.b	$2F, $2A, $62, $54, $62, $06, $D1, $B4, $CC, $BC, $67, $83, $9E, $98, $98, $E3, $10, $11, $B5, $AF, $F9, $BF, $CE, $DE, $02, $33, $31, $3F, $17, $F8, $7F, $65
 	dc.b	$FB, $0C, $F6, $73, $D8, $63, $FF, $91, $6A, $B5, $70, $18, $95, $D5, $45, $90, $3A, $F1, $33, $6E, $6C, $1B, $75, $7B, $23, $BB, $D8, $2D, $98, $5B, $30, $38
 	dc.b	$BF, $67, $17, $EC, $3F, $B9, $78, $7F, $72, $F0, $3A, $BD, $8E, $AF, $60, $E2, $FF, $97, $F6, $70, $19, $00
-loc_31FE6:
+;loc_31FE6
+Round_sign_mapping_16:
 	dc.b	$80, $38, $80, $05, $19, $14, $0A, $25, $17, $35, $1A, $46, $3B, $55, $1B, $66, $3D, $71, $00, $81, $18, $F9, $88, $05, $18, $15, $1C, $8C, $03, $04, $15, $16
 	dc.b	$26, $3C, $36, $3A, $8E, $18, $F8, $FF, $FF, $88, $DF, $3B, $C7, $7C, $6F, $F9, $03, $8E, $F1, $BC, $33, $CD, $70, $67, $FB, $19, $C6, $F0, $7F, $63, $E0, $30
 	dc.b	$C3, $7C, $CF, $EA, $3E, $17, $E0, $2F, $C0, $0C, $7B, $8A, $C0, $70, $AC, $5F, $F2, $C1, $FA, $81, $58, $F8, $01, $CC, $F2, $B1, $58, $D6, $05, $F9, $DE, $2B
@@ -30489,18 +30933,21 @@ loc_31FE6:
 	dc.b	$3B, $F1, $E0, $3B, $80, $1A, $F0, $04, $CF, $40, $6A, $5E, $67, $CC, $CA, $9D, $C1, $08, $F6, $0D, $C1, $A9, $56, $5F, $F9, $85, $7F, $70, $AB, $5E, $0D, $4B
 	dc.b	$C3, $76, $AB, $2A, $02, $F2, $A6, $7A, $CC, $AF, $01, $EC, $A9, $79, $78, $05, $E5, $4D, $4A, $E8, $08, $CF, $46, $BA, $0D, $F4, $6B, $A0, $BF, $F3, $2F, $16
 	dc.b	$58, $3A, $AF, $0F, $2A, $C1, $63, $76, $0F, $7A, $35, $D0, $5F, $FF, $91, $6D, $4B, $F4, $19, $B6, $AD, $99, $A9, $99, $B8, $00
-loc_32120:
+;loc_32120
+Title_sign_tilemap: ; Compressed tilemap for track preview sign at title screen
 	dc.b	$06, $03, $00, $00, $00, $13, $0A, $00, $08, $34, $40, $C0, $80, $02, $16, $10, $70, $A8, $83, $03, $CC, $18, $24, $18, $24, $1F, $00, $C1, $20, $C0, $D1, $10
 	dc.b	$F1, $10, $E0, $C0, $72, $06, $87, $80, $06, $8C, $0F, $08, $1A, $50, $70, $20, $40, $44, $18, $0A, $81, $28, $02, $00, $40, $19, $05, $48, $03, $20, $71, $59
 	dc.b	$19, $05, $48, $12, $80, $40, $59, $05, $2F, $E0
-loc_3216A:
+;loc_3216A
+Title_sign_tiles: ; Compressed tiles for track preview sign at title screen
 	dc.b	$80, $23, $80, $05, $1B, $15, $17, $25, $19, $35, $16, $45, $1A, $56, $3B, $65, $18, $71, $00, $89, $03, $04, $15, $1C, $46, $3C, $68, $FB, $8C, $04, $0A, $18
 	dc.b	$FA, $26, $3A, $36, $3D, $77, $7C, $FF, $FF, $88, $DF, $D8, $DF, $D8, $FD, $CB, $88, $DF, $D8, $C7, $2D, $CD, $46, $3C, $17, $F0, $67, $C1, $6F, $06, $7C, $17
 	dc.b	$FE, $C8, $C4, $01, $89, $78, $06, $22, $D0, $0B, $CB, $40, $17, $80, $31, $06, $A0, $C4, $DC, $B4, $62, $0C, $45, $E5, $A5, $E6, $B9, $A8, $EE, $77, $2F, $2D
 	dc.b	$33, $16, $E0, $62, $1F, $A9, $B4, $2F, $03, $50, $20, $6A, $5E, $5A, $33, $1F, $B9, $19, $F1, $99, $69, $9E, $5E, $6B, $83, $FE, $E0, $1D, $FD, $6A, $BB, $A7
 	dc.b	$74, $5B, $A0, $C7, $B9, $AB, $53, $75, $BF, $E6, $06, $68, $D7, $41, $AF, $F6, $29, $4F, $A5, $14, $33, $D5, $FA, $01, $D5, $FA, $0F, $E6, $00, $5F, $E3, $BE
 	dc.b	$80, $B5, $67, $E0, $5B, $D3, $E1, $F0, $3D, $C5, $6B, $EB, $54, $18, $AE, $E9, $BA, $B5, $67, $D0, $DF, $B6, $A1, $7A, $18, $FE, $E0, $A1, $80, $00
-loc_32228:
+;loc_32228
+Track_preview_tilemap_data: ; Per-track tilemap for race preview background; stride = $3B bytes, indexed by Track_preview_index
 	dc.b	$24, $00, $1A, $FA, $18, $00, $22, $10, $1A, $1C, $FA, $FA, $FA, $FE, $25, $01, $1B, $FA, $19, $01, $23, $11, $1B, $1D, $FA, $FA, $FA, $FD, $FB, $07, $C0, $34
 	dc.b	$FA, $1B, $18, $1E, $17, $0D, $FA, $FA, $01, $FA, $35, $FD, $15, $0E, $17, $10, $1D, $11, $FA, $28, $FA, $03, $05, $02, $00, $16, $FF, $02, $22, $00, $32, $10
 	dc.b	$16, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FE, $03, $23, $01, $33, $11, $17, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FD, $FB, $07, $C0, $34, $FA, $1B, $18, $1E, $17
@@ -30531,16 +30978,20 @@ loc_32228:
 	dc.b	$FA, $01, $05, $FA, $35, $FD, $15, $0E, $17, $10, $1D, $11, $FA, $28, $FA, $03, $00, $04, $00, $16, $FF, $18, $1C, $1A, $00, $04, $1C, $FA, $FA, $FA, $FA, $FA
 	dc.b	$FA, $FA, $FE, $19, $1D, $1B, $01, $05, $1D, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FD, $FB, $07, $C0, $34, $FA, $1B, $18, $1E, $17, $0D, $FA, $01, $06, $FA, $35
 	dc.b	$FD, $15, $0E, $17, $10, $1D, $11, $FA, $28, $FA, $03, $00, $07, $02, $16, $FF
-loc_325D8:
+;loc_325D8
+Championship_start_text_tilemap: ; Packed tilemap for "BEST LAP" text at championship start screen
 	dc.b	$E3, $58, $FB, $87, $C0, $0B, $0E, $1C, $1D, $FA, $15, $0A, $19, $FF
-loc_325E6:
+;loc_325E6
+Championship_start_palette_stream: ; Palette VDP command stream for championship start screen
 	dc.b	$02, $11, $00, $00, $0E, $EE, $0A, $AA, $06, $88, $04, $46, $04, $44, $02, $22, $00, $00, $00, $0E, $00, $00, $04, $4E, $06, $68, $06, $66, $08, $88, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $CE
-loc_3260C:
+;loc_3260C
+Championship_start_curve_data: ; Compressed curve data decompressed to Curve_data at championship start
 	dc.b	$80, $10, $80, $04, $0B, $15, $12, $25, $14, $35, $10, $45, $19, $55, $1B, $65, $1D, $71, $00, $8F, $05, $11, $15, $13, $25, $15, $35, $18, $45, $1A, $55, $1C
 	dc.b	$65, $1E, $FF, $00, $FF, $FD, $F8, $0B, $F2, $5C, $04, $B8, $53, $41, $4D, $08, $60, $43, $01, $9A, $99, $A8, $37, $36, $E6, $07, $63, $D8, $80, $8F, $62, $07
 	dc.b	$66, $DC, $C1, $BA, $99, $A8, $67, $02, $18, $10, $D0, $53, $45, $38, $09, $71, $2F, $01, $7E, $B0
-loc_32660:
+;loc_32660
+Championship_start_tilemap: ; Compressed tilemap for championship start background
 	dc.b	$07, $00, $00, $00, $00, $44, $02, $78, $09, $E0, $22, $00, $3C, $39, $60, $09, $80, $58, $5C, $25, $C1, $94, $00, $98, $05, $89, $94, $00, $29, $EF, $40, $8C
 	dc.b	$00, $28, $B0, $40, $9E, $FE, $1B, $F8, $20, $20, $3F, $05, $50, $27, $BF, $86, $FE, $08, $0E, $2F, $E1, $AD, $C2, $2C, $F7, $F0, $DF, $C1, $01, $C5, $FC, $35
 	dc.b	$B8, $45, $9E, $FE, $1B, $F8, $20, $38, $BF, $86, $B7, $08, $B3, $DF, $C3, $7F, $04, $07, $17, $F0, $D6, $E1, $16, $7B, $F8, $6F, $E0, $80, $E2, $FE, $1A, $DC
@@ -30549,7 +31000,8 @@ loc_32660:
 	dc.b	$C1, $83, $07, $AC, $27, $E0, $00, $3F, $86, $FB, $3D, $62, $BF, $00, $01, $FC, $37, $D9, $EB, $15, $F8, $00, $0F, $E1, $BE, $CF, $58, $AF, $C0, $00, $7F, $0D
 	dc.b	$F6, $7A, $C5, $7E, $00, $03, $F8, $6F, $B3, $D6, $2B, $F0, $00, $1F, $C3, $7D, $9E, $B1, $5F, $80, $00, $FE, $1B, $EC, $F5, $8A, $FC, $00, $07, $F0, $DF, $67
 	dc.b	$AC, $57, $E0, $00, $3F, $86, $FB, $3D, $22, $BF, $00, $01, $F8, $33, $E5, $48, $94, $07, $07, $F3, $C0, $4F, $01, $00, $07, $F0
-loc_3275A:
+;loc_3275A
+Championship_start_tiles: ; Compressed tiles for championship start background
 	dc.b	$00, $4C, $84, $04, $05, $15, $12, $28, $F3, $85, $04, $04, $16, $36, $86, $05, $17, $17, $78, $28, $F7, $87, $05, $14, $88, $05, $16, $14, $08, $26, $39, $37
 	dc.b	$75, $48, $F2, $57, $77, $89, $05, $18, $14, $07, $27, $76, $8B, $04, $06, $27, $7A, $8C, $06, $33, $8D, $03, $00, $13, $01, $25, $13, $36, $32, $46, $38, $56
 	dc.b	$37, $68, $F6, $75, $1A, $8E, $05, $15, $77, $74, $FF, $D6, $B5, $AD, $6B, $5A, $D6, $FF, $9E, $CB, $F3, $CB, $95, $57, $8A, $AE, $F5, $0A, $50, $55, $66, $8A
@@ -30596,240 +31048,312 @@ loc_3275A:
 	dc.b	$9C, $FF, $2F, $53, $9C, $EB, $96, $62, $BB, $E7, $7D, $E8, $2F, $95, $07, $4F, $FB, $CE, $B9, $8F, $CF, $1A, $9C, $FF, $2E, $2B, $96, $62, $BB, $E7, $7D, $E8
 	dc.b	$2F, $95, $27, $73, $4E, $2F, $49, $F4, $FF, $B8, $AE, $59, $8A, $EF, $9D, $F7, $A0, $BE, $54, $9D, $CD, $38, $BD, $27, $5A, $0A, $E7, $3F, $CB, $D4, $E7, $3A
 	dc.b	$E5, $98, $AE, $F9, $DF, $7A, $0B, $E5, $49, $DC, $D3, $8B, $D2, $60
-loc_32D08:
-	dc.l	loc_32D20
-	dc.l	loc_32D76
-	dc.l	loc_32DCC
-	dc.l	loc_32E22
-	dc.l	loc_32E78
-	dc.l	loc_32ECE
-loc_32D20:
+;loc_32D08
+Control_layout_table: ; 6 pointers to control scheme display data, one per control type
+	dc.l	Control_layout_type_1
+	dc.l	Control_layout_type_2
+	dc.l	Control_layout_type_3
+	dc.l	Control_layout_type_4
+	dc.l	Control_layout_type_5
+	dc.l	Control_layout_type_6
+;loc_32D20
+Control_layout_type_1: ; Control type A: SHIFT DOWN/UP on C/A
 	dc.b	$00, $04
-	dc.l	loc_32D36
-	dc.l	loc_32D3E
-	dc.l	loc_32D4C
-	dc.l	loc_32D5A
-	dc.l	loc_32D68
-loc_32D36:
+	dc.l	Control_layout_type_1_header
+	dc.l	Control_layout_type_1_shift_dn
+	dc.l	Control_layout_type_1_shift_up
+	dc.l	Control_layout_type_1_brake
+	dc.l	Control_layout_type_1_accel
+;loc_32D36
+Control_layout_type_1_header:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0A, $FF, $00
-loc_32D3E:
+;loc_32D3E
+Control_layout_type_1_shift_dn:
 	dc.b	$E8, $86
 	txt "SHIFT", $FA
 	txt "DOWN", $FA, $FF
-loc_32D4C:
+;loc_32D4C
+Control_layout_type_1_shift_up:
 	dc.b	$EB, $86
 	txt "SHIFT", $FA
 	txt "UP", $FA, $FA, $FA, $FF
-loc_32D5A:
+;loc_32D5A
+Control_layout_type_1_brake:
 	dc.b	$EB, $B2, $FA, $FA, $FA, $FA, $FA, $FA
 	txt "BRAKE", $FF
-loc_32D68:
+;loc_32D68
+Control_layout_type_1_accel:
 	dc.b	$EA, $B2
 	txt "ACCELERATOR", $FF
-loc_32D76:
+;loc_32D76
+Control_layout_type_2: ; Control type B
 	dc.b	$00, $04
-	dc.l	loc_32D8C
-	dc.l	loc_32D94
-	dc.l	loc_32DA2
-	dc.l	loc_32DB0
-	dc.l	loc_32DBE
-loc_32D8C:
+	dc.l	Control_layout_type_2_header
+	dc.l	Control_layout_type_2_shift_dn
+	dc.l	Control_layout_type_2_shift_up
+	dc.l	Control_layout_type_2_brake
+	dc.l	Control_layout_type_2_accel
+;loc_32D8C
+Control_layout_type_2_header:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0B, $FF, $00
-loc_32D94:
+;loc_32D94
+Control_layout_type_2_shift_dn:
 	dc.b	$E8, $86, $1C, $11, $12, $0F, $1D, $FA, $1E, $19, $FA, $FA, $FA, $FF
-loc_32DA2:
+;loc_32DA2
+Control_layout_type_2_shift_up:
 	dc.b	$EB, $86, $1C, $11, $12, $0F, $1D, $FA, $0D, $18, $20, $17, $FA, $FF
-loc_32DB0:
+;loc_32DB0
+Control_layout_type_2_brake:
 	dc.b	$EB, $B2, $FA, $FA, $FA, $FA, $FA, $FA, $0B, $1B, $0A, $14, $0E, $FF
-loc_32DBE:
+;loc_32DBE
+Control_layout_type_2_accel:
 	dc.b	$EA, $B2, $0A, $0C, $0C, $0E, $15, $0E, $1B, $0A, $1D, $18, $1B, $FF
-loc_32DCC:
+;loc_32DCC
+Control_layout_type_3: ; Control type C
 	dc.b	$00, $04
-	dc.l	loc_32DE2
-	dc.l	loc_32DEA
-	dc.l	loc_32DF8
-	dc.l	loc_32E06
-	dc.l	loc_32E14
-loc_32DE2:
+	dc.l	Control_layout_type_3_header
+	dc.l	Control_layout_type_3_shift_dn
+	dc.l	Control_layout_type_3_shift_up
+	dc.l	Control_layout_type_3_brake
+	dc.l	Control_layout_type_3_accel
+;loc_32DE2
+Control_layout_type_3_header:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0C, $FF, $00
-loc_32DEA:
+;loc_32DEA
+Control_layout_type_3_shift_dn:
 	dc.b	$E8, $86, $1C, $11, $12, $0F, $1D, $FA, $0D, $18, $20, $17, $FA, $FF
-loc_32DF8:
+;loc_32DF8
+Control_layout_type_3_shift_up:
 	dc.b	$EB, $86, $1C, $11, $12, $0F, $1D, $FA, $1E, $19, $FA, $FA, $FA, $FF
-loc_32E06:
+;loc_32E06
+Control_layout_type_3_brake:
 	dc.b	$EB, $B2, $0A, $0C, $0C, $0E, $15, $0E, $1B, $0A, $1D, $18, $1B, $FF
-loc_32E14:
+;loc_32E14
+Control_layout_type_3_accel:
 	dc.b	$EA, $B2, $FA, $FA, $FA, $FA, $FA, $FA, $0B, $1B, $0A, $14, $0E, $FF
-loc_32E22:
+;loc_32E22
+Control_layout_type_4: ; Control type D
 	dc.b	$00, $04
-	dc.l	loc_32E38
-	dc.l	loc_32E40
-	dc.l	loc_32E4E
-	dc.l	loc_32E5C
-	dc.l	loc_32E6A
-loc_32E38:
+	dc.l	Control_layout_type_4_header
+	dc.l	Control_layout_type_4_shift_dn
+	dc.l	Control_layout_type_4_shift_up
+	dc.l	Control_layout_type_4_brake
+	dc.l	Control_layout_type_4_accel
+;loc_32E38
+Control_layout_type_4_header:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0D, $FF, $00
-loc_32E40:
+;loc_32E40
+Control_layout_type_4_shift_dn:
 	dc.b	$E8, $86, $1C, $11, $12, $0F, $1D, $FA, $1E, $19, $FA, $FA, $FA, $FF
-loc_32E4E:
+;loc_32E4E
+Control_layout_type_4_shift_up:
 	dc.b	$EB, $86, $1C, $11, $12, $0F, $1D, $FA, $0D, $18, $20, $17, $FA, $FF
-loc_32E5C:
+;loc_32E5C
+Control_layout_type_4_brake:
 	dc.b	$EB, $B2, $0A, $0C, $0C, $0E, $15, $0E, $1B, $0A, $1D, $18, $1B, $FF
-loc_32E6A:
+;loc_32E6A
+Control_layout_type_4_accel:
 	dc.b	$EA, $B2, $FA, $FA, $FA, $FA, $FA, $FA, $0B, $1B, $0A, $14, $0E, $FF
-loc_32E78:
+;loc_32E78
+Control_layout_type_5: ; Control type E
 	dc.b	$00, $04
-	dc.l	loc_32E8E
-	dc.l	loc_32E96
-	dc.l	loc_32EA4
-	dc.l	loc_32EB2
-	dc.l	loc_32EC0
-loc_32E8E:
+	dc.l	Control_layout_type_5_header
+	dc.l	Control_layout_type_5_shift_dn
+	dc.l	Control_layout_type_5_shift_up
+	dc.l	Control_layout_type_5_brake
+	dc.l	Control_layout_type_5_accel
+;loc_32E8E
+Control_layout_type_5_header:
 	dc.b	$E2, $B2, $FB, $07, $C0, $0E, $FF, $00
-loc_32E96:
+;loc_32E96
+Control_layout_type_5_shift_dn:
 	dc.b	$E8, $86, $0B, $1B, $0A, $14, $0E, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_32EA4:
+;loc_32EA4
+Control_layout_type_5_shift_up:
 	dc.b	$EB, $86, $0A, $0C, $0C, $0E, $15, $0E, $1B, $0A, $1D, $18, $1B, $FF
-loc_32EB2:
+;loc_32EB2
+Control_layout_type_5_brake:
 	dc.b	$EB, $B2, $FA, $1C, $11, $12, $0F, $1D, $FA, $0D, $18, $20, $17, $FF
-loc_32EC0:
+;loc_32EC0
+Control_layout_type_5_accel:
 	dc.b	$EA, $B2, $FA, $FA, $FA, $1C, $11, $12, $0F, $1D, $FA, $1E, $19, $FF
-loc_32ECE:
+;loc_32ECE
+Control_layout_type_6: ; Control type F
 	dc.b	$00, $04
-	dc.l	loc_32EE4
-	dc.l	loc_32EEC
-	dc.l	loc_32EFC-2
-	dc.l	loc_32F08
-	dc.l	loc_32F18-2
-loc_32EE4:
+	dc.l	Control_layout_type_6_header
+	dc.l	Control_layout_type_6_shift_dn
+	dc.l	Control_layout_type_6_shift_dn_b-2
+	dc.l	Control_layout_type_6_brake
+	dc.l	Control_layout_type_6_brake_b-2
+;loc_32EE4
+Control_layout_type_6_header:
 	dc.l	$E2B2FB07
 	dc.l	$C00FFF00
-loc_32EEC:
+;loc_32EEC
+Control_layout_type_6_shift_dn:
 	dc.l	$E8860A0C
 	dc.l	$0C0E150E
 	dc.l	$1B0A1D18
 	dc.l	$1BFFEB86
-loc_32EFC:
+;Control_layout_type_6_shift_dn_b
+Control_layout_type_6_shift_dn_b:
 	dc.l	$0B1B0A14
 	dc.l	$0EFAFAFA
 	dc.l	$FAFAFAFF
-loc_32F08:
+;loc_32F08
+Control_layout_type_6_brake:
 	dc.l	$EBB41C11
 	dc.l	$120F1DFA
 	dc.l	$0D182017
 	dc.l	$FF00EAB2
-loc_32F18:
+;Control_layout_type_6_brake_b
+Control_layout_type_6_brake_b:
 	dc.l	$FAFAFA1C
 	dc.l	$11120F1D
 	dc.l	$FA1E19FF
-loc_32F24:
-	dc.l	loc_32F2C
-	dc.l	loc_32F38
-loc_32F2C:
+;loc_32F24
+Options_jp_text_table: ; 2 pointers to Japanese text tilemap blocks for options screen
+	dc.l	Options_jp_text_1
+	dc.l	Options_jp_text_2
+;loc_32F2C
+Options_jp_text_1:
 	dc.l	$E328FB07
 	dc.l	$C017181B
 	dc.l	$160A15FF
-loc_32F38:
+;loc_32F38
+Options_jp_text_2:
 	dc.l	$E328FB07
 	dc.l	$C00E0A1C
 	dc.l	$22FAFAFF
-loc_32F44:
-	dc.l	loc_32F4C
-	dc.l	loc_32F5C-2
-loc_32F4C:
+;loc_32F44
+Options_en_text_table: ; 2 pointers to English text tilemap blocks for options screen
+	dc.l	Options_en_text_1
+	dc.l	Options_en_text_2-2
+;loc_32F4C
+Options_en_text_1:
 	dc.l	$E3A8FB07
 	dc.l	$C0130A19
 	dc.l	$0A170E1C
 	dc.l	$0EFFE3A8
-loc_32F5C:
+;Options_en_text_2
+Options_en_text_2:
 	dc.l	$FB07C00E
 	dc.l	$17101512
 	dc.l	$1C11FAFF
-loc_32F68:
-	dc.l	loc_32FA4
-	dc.l	loc_32FBC
-	dc.l	loc_32FD4
-	dc.l	loc_32FEC
-	dc.l	loc_33002
-	dc.l	loc_33018
-	dc.l	loc_3302E
-	dc.l	loc_33044
-	dc.l	loc_3305A
-	dc.l	loc_33070
-	dc.l	loc_33086
-	dc.l	loc_3309C
-	dc.l	loc_330B2
-	dc.l	loc_330C8
-	dc.l	loc_330E0
-loc_32FA4:
+;loc_32F68
+Race_quotes_table: ; 15 pointers to race quote text strings displayed during race results
+	dc.l	Race_quote_1
+	dc.l	Race_quote_2
+	dc.l	Race_quote_3
+	dc.l	Race_quote_4
+	dc.l	Race_quote_5
+	dc.l	Race_quote_6
+	dc.l	Race_quote_7
+	dc.l	Race_quote_8
+	dc.l	Race_quote_9
+	dc.l	Race_quote_10
+	dc.l	Race_quote_11
+	dc.l	Race_quote_12
+	dc.l	Race_quote_13
+	dc.l	Race_quote_14
+	dc.l	Race_quote_15
+;loc_32FA4
+Race_quote_1:
 	dc.b	$E4, $28, $FB, $07, $C0
 	txt '"EXTREME', $FA
 	txt 'TENSION"', $FA, $FF
-loc_32FBC:
+;loc_32FBC
+Race_quote_2:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1D, $11, $0E, $FA, $0C, $11, $0E, $0C, $14, $0E, $1B, $FA, $0F, $15, $0A, $10, $27, $FF
-loc_32FD4:
+;loc_32FD4
+Race_quote_3:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1D, $11, $0E, $FA, $11, $0E, $0A, $1D, $FA, $20, $0A, $1F, $0E, $1C, $27, $FA, $FA, $FF
-loc_32FEC:
+;loc_32FEC
+Race_quote_4:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $0A, $FA, $0B, $1B, $0E, $0A, $14, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_33002:
+;loc_33002
+Race_quote_5:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1A, $1E, $0A, $15, $12, $0F, $22, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FF, $00
-loc_33018:
+;loc_33018
+Race_quote_6:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $0F, $01, $FA, $10, $1B, $0A, $17, $0D, $FA, $19, $1B, $12, $21, $27, $FF, $00
-loc_3302E:
+;loc_3302E
+Race_quote_7:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $0A, $1D, $FA, $0A, $FA, $15, $18, $1C, $1C, $27, $FA, $FA, $FA, $FA, $FF, $00
-loc_33044:
+;loc_33044
+Race_quote_8:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1C, $1E, $19, $0E, $1B, $FA, $15, $12, $0C, $0E, $17, $1C, $0E, $27, $FF, $00
-loc_3305A:
+;loc_3305A
+Race_quote_9:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $0E, $21, $11, $0A, $1E, $1C, $1D, $FA, $0F, $1E, $16, $0E, $1C, $27, $FF, $00
-loc_33070:
+;loc_33070
+Race_quote_10:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $0C, $18, $17, $0C, $0E, $17, $1D, $1B, $0A, $1D, $12, $18, $17, $27, $FA, $FF
-loc_33086:
+;loc_33086
+Race_quote_11:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1D, $11, $0E, $FA, $0B, $12, $1D, $1D, $0E, $1B, $17, $0E, $1C, $1C, $27, $FF
-loc_3309C:
+;loc_3309C
+Race_quote_12:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $12, $16, $19, $0A, $1D, $12, $0E, $17, $0C, $0E, $27, $FA, $FA, $FA, $FA, $FF
-loc_330B2:
+;loc_330B2
+Race_quote_13:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $0C, $18, $17, $1D, $0E, $17, $1D, $16, $0E, $17, $1D, $27, $FA, $FA, $FF, $00
-loc_330C8:
+;loc_330C8
+Race_quote_14:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $11, $18, $15, $0D, $FA, $12, $17, $FA, $0C, $11, $0E, $0C, $14, $27, $FA, $FA, $FF, $00
-loc_330E0:
+;loc_330E0
+Race_quote_15:
 	dc.b	$E4, $28, $FB, $07, $C0, $27, $1D, $11, $0E, $16, $0E, $FA, $18, $0F, $FA, $16, $18, $17, $0A, $0C, $18, $27, $FF, $00
-loc_330F8:
+;loc_330F8
+Race_quote_index_table: ; Maps race-result index to quote index; $00 = no quote
 	dc.b	$01, $02, $04, $05, $06, $07, $08, $09, $0A, $0E, $10, $11, $12, $16, $1B, $1C, $1E
 	dc.b	$00
-loc_3310A:
-	dc.l	loc_33122
-	dc.l	loc_3313C
-	dc.l	loc_3318A
-	dc.l	loc_33170
-	dc.l	loc_331A4
-	dc.l	loc_33156
-loc_33122:
+;loc_3310A
+Championship_intro_text_table: ; 6 pointers to championship intro screen text records
+	dc.l	Championship_intro_text_1
+	dc.l	Championship_intro_text_2
+	dc.l	Championship_intro_text_5
+	dc.l	Championship_intro_text_4
+	dc.l	Championship_intro_text_6
+	dc.l	Championship_intro_text_3
+;loc_33122
+Championship_intro_text_1:
 	dc.b	$E5, $28, $FB, $07, $C0, $27, $14, $0E, $0E, $19, $FA, $12, $1D, $FA, $1E, $19, $2D, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_3313C:
+;loc_3313C
+Championship_intro_text_2:
 	dc.b	$E5, $28, $FB, $07, $C0, $27, $0C, $26, $16, $18, $17, $2D, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_33156:
+;loc_33156
+Championship_intro_text_3:
 	dc.b	$E5, $28, $FB, $07, $C0, $27, $17, $18, $20, $FA, $12, $1D, $26, $1C, $FA, $1E, $19, $FA, $1D, $18, $FA, $22, $18, $1E, $27, $FF
-loc_33170:
+;loc_33170
+Championship_intro_text_4:
 	dc.b	$E5, $28, $FB, $07, $C0, $27, $10, $18, $18, $0D, $FA, $15, $1E, $0C, $14, $2D, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_3318A:
+;loc_3318A
+Championship_intro_text_5:
 	dc.b	$E5, $28, $FB, $07, $C0, $27, $0F, $12, $17, $0A, $15, $FA, $15, $0A, $19, $2D, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_331A4:
+;loc_331A4
+Championship_intro_text_6:
 	dc.b	$E5, $28, $FB, $07, $C0, $27, $17, $12, $0C, $0E, $FA, $0D, $1B, $12, $1F, $12, $17, $26, $27, $FA, $FA, $FA, $FA, $FA, $FA, $FF
-loc_331BE:
+;loc_331BE
+Championship_intro_sequence: ; Sequence of championship intro text indices
 	dc.b	$01, $02, $03, $05, $06, $04
-loc_331C4:
+;loc_331C4
+Championship_intro_text_block: ; Full text block for championship intro screen (options, controls, voice title)
 	dc.b	$E1, $96, $FB, $07, $C0, $FA, $FA, $FA, $FA, $18, $19, $1D, $12, $18, $17, $1C, $FC, $FB, $27, $C0, $0C, $18, $17, $1D, $1B, $18, $15, $FB, $07, $C0, $FA, $FA
 	dc.b	$1D, $22, $19, $0E, $FD, $FB, $27, $C0, $15, $0E, $1F, $0E, $15, $FD, $15, $0A, $17, $10, $1E, $0A, $10, $0E, $FD, $0B, $29, $10, $29, $16, $29, $FD, $1C, $29
 	dc.b	$0E, $29, $FD, $1F, $18, $12, $0C, $0E, $FD, $0E, $21, $12, $1D, $FC, $FC, $FC, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA, $FA
 	dc.b	$FA, $FA, $FA, $FB, $07, $C0, $19, $12, $1D, $FA, $12, $17, $FF, $00
-loc_33232:
+;loc_33232
+Options_screen_cram_data: ; VDP CRAM/scroll init stream for Options screen championship variant
 	dc.b	$60, $0F, $00, $00, $00, $00, $0E, $8A, $0A, $68, $00, $EE, $00, $00, $02, $22, $04, $44, $06, $66, $08, $88, $0A, $AA, $0C, $CC, $0E, $EE, $04, $4E, $0C, $44
 	dc.b	$0E, $88
-loc_33254:
+;loc_33254
+Options_screen_champ_tilemap: ; Tilemap for Options/championship intro screen (used with Decompress_tilemap_to_vdp_64_cell_rows)
 	dc.b	$07, $03, $00, $00, $00, $03, $06, $78, $06, $78, $06, $02, $00, $17, $DF, $E2, $82, $01, $3E, $FA, $1C, $50, $40, $20, $25, $01, $09, $94, $04, $E2, $82, $01
 	dc.b	$34, $53, $5C, $50, $40, $26, $8A, $6B, $8A, $08, $04, $D1, $4D, $71, $41, $00, $9A, $2A, $50, $13, $8A, $08, $04, $D0, $69, $06, $D7, $14, $10, $0A, $50, $10
 	dc.b	$06, $00, $94, $04, $E2, $82, $80, $4F, $80, $CF, $80, $F1, $80, $E0, $3F, $80
-loc_332A4:
+;loc_332A4
+Options_screen_champ_tiles: ; Compressed tiles for Options/championship intro screen background
 	dc.b	$00, $45, $82, $37, $75, $78, $F4, $83, $06, $36, $17, $71, $26, $34, $36, $33, $47, $72, $57, $6F, $68, $F6, $74, $07, $84, $05, $13, $85, $03, $02, $15, $15
 	dc.b	$26, $35, $37, $76, $48, $F5, $78, $F7, $86, $03, $00, $14, $08, $26, $2E, $36, $2F, $48, $F3, $77, $6E, $87, $03, $01, $15, $14, $27, $70, $37, $78, $88, $04
 	dc.b	$06, $15, $16, $27, $73, $89, $05, $12, $16, $32, $28, $F2, $77, $74, $8A, $06, $30, $17, $77, $8B, $06, $31, $FF, $F4, $F4, $F4, $F4, $EB, $9F, $5C, $FA, $E7
@@ -30873,43 +31397,51 @@ loc_332A4:
 	dc.b	$FA, $22, $18, $1E, $FA, $16, $1E, $1C, $1D, $FC, $0D, $0E, $0F, $0E, $17, $0D, $FA, $1D, $11, $0E, $FA, $1D, $12, $1D, $15, $0E, $29, $29, $29, $FF, $C5, $98
 	dc.b	$FB, $C7, $C0, $FA, $1D, $11, $0A, $17, $14, $FA, $22, $18, $1E, $FA, $0F, $18, $1B, $FC, $19, $15, $0A, $22, $12, $17, $10, $FA, $18, $1E, $1B, $FA, $10, $0A
 	dc.b	$16, $0E, $29, $FC, $FC, $FD, $FA, $19, $1B, $0E, $1C, $0E, $17, $1D, $0E, $0D, $FA, $0B, $22, $29, $29, $29, $FF, $00
-loc_337EE:
+;loc_337EE
+Championship_driver_select_cram_data: ; VDP CRAM/scroll init stream for Championship driver/team select screen
 	dc.b	$20, $2F, $00, $00, $00, $00, $02, $22, $02, $44, $04, $66, $06, $88, $06, $AA, $08, $CC, $0A, $EE, $02, $46, $04, $68, $06, $8A, $06, $AC, $00, $46, $02, $68
 	dc.b	$04, $8A, $00, $00, $00, $00, $0E, $EE, $08, $00, $0E, $22, $0E, $64, $0E, $E6, $00, $20, $04, $E2, $00, $E2, $00, $C0, $00, $A2, $00, $82, $00, $42, $0A, $EC
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $02, $00, $22, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $02, $00, $00, $00, $00, $02, $22, $00, $00, $00, $22
 	dc.b	$00, $00
-loc_33850:
+;loc_33850
+Championship_team_select_logo_vdp_data: ; 48-entry VDP sprite attribute / nametable table for scrolling championship logo
 	dc.l	$0466008A, $02AE0AEE, $0222048A, $00240242, $024404CE, $04680246, $0EEE02AC, $04EE0068, $02440068, $008C08CC, $00000268, $00020020, $002202AC, $02460024, $0CCC008A, $02CC0046, $00220046, $006A06AA, $00000046, $00000000, $0000008A, $00240002, $0AAA0068, $00AA0024, $00000024, $00480488, $00000024, $00000000, $00000068, $00020000, $08880046, $00880002
 	dc.l	$00000002, $00260266, $00000002, $00000000, $00000046, $00000000, $06660024, $00660000, $00000000, $00040044, $00000000, $00000000, $00000024, $00000000, $04440002, $00440000
-loc_33910:
+;loc_33910
+Team_select_car_sprite_frame_a: ; Sprite frame data: team-select car top-left quadrant (object at y=$120, x=$120)
 	dc.b	$00, $11, $D8, $0F, $40, $01, $FF, $90, $D8, $0E, $40, $11, $FF, $B0, $F0, $05, $40, $1D, $FF, $C0, $D0, $04, $40, $21, $FF, $C0, $C8, $0E, $40, $23, $FF, $D0
 	dc.b	$E0, $04, $40, $2F, $FF, $D0, $B8, $0D, $40, $31, $FF, $E8, $B0, $00, $40, $39, $FF, $F0, $C8, $09, $40, $3A, $FF, $F0, $A8, $0B, $40, $40, $00, $08, $C8, $08
 	dc.b	$40, $4C, $00, $08, $A0, $0B, $40, $4F, $00, $20, $C0, $04, $40, $5B, $00, $20, $A8, $0D, $40, $5D, $00, $38, $B8, $04, $40, $65, $00, $38, $A0, $08, $40, $67
 	dc.b	$00, $40, $98, $0A, $40, $6A, $00, $58
-loc_33978:
+;loc_33978
+Team_select_car_sprite_frame_b: ; Sprite frame data: team-select car top-right quadrant (object at y=$120, x=$128)
 	dc.b	$00, $0E, $90, $0D, $20, $73, $FF, $E0, $90, $0D, $20, $7B, $00, $00, $A0, $0F, $20, $83, $FF, $D8, $A0, $0E, $20, $93
 	dc.b	$00, $08, $A0, $07, $20, $9F, $FF, $F8, $C0, $04, $20, $A7, $FF, $E0, $B8, $00, $20, $A9, $00, $08, $B8, $05, $20, $AA, $00, $10, $C0, $0F, $20, $AE, $FF, $F0
 	dc.b	$E0, $0F, $20, $BE, $FF, $F0, $D8, $07, $20, $CE, $FF, $E0
 	dc.b	$F8, $04, $20, $D6, $FF, $E0, $D8, $07, $20, $D8, $00, $10
 	dc.b	$F8, $04, $20, $E0, $00, $10
-loc_339CE:
+;loc_339CE
+Team_select_car_sprite_frame_c: ; Sprite frame data: team-select car bottom-left quadrant (object at y=$F4, x=$148)
 	dc.b	$00, $12
 	dc.b	$50, $01, $40, $E2, $00, $24, $50, $0E, $40, $E4, $00, $04, $68, $00, $40, $F0, $00, $04, $58, $07, $40, $F1, $FF, $F4, $78, $00, $40, $F9, $FF, $F4, $60, $00
 	dc.b	$40, $FA, $FF, $EC, $68, $0B, $40, $FB, $FF, $DC, $80, $00, $41, $07, $FF, $D4, $88, $0B, $41, $08, $FF, $D4, $A8, $0B, $41, $14, $FF, $D4, $C0, $00, $41, $20
 	dc.b	$FF, $EC, $C8, $09, $41, $21, $FF, $DC, $D0, $00, $41, $27, $FF, $F4, $D8, $00, $41, $28, $FF, $E4, $D8, $0E, $41, $29, $FF, $EC, $F0, $08, $41, $35, $FF, $F4
 	dc.b	$E0, $04, $41, $38, $00, $0C, $E8, $0E, $41, $3A, $00, $0C
-loc_33A3C:
+;loc_33A3C
+Team_select_car_sprite_frame_d: ; Sprite frame data: team-select car bottom-right quadrant (object at y=$14C, x=$148)
 	dc.b	$00, $12, $50, $01, $48, $E2, $FF, $D4, $50, $0E, $48, $E4, $FF, $DC, $68, $00, $48, $F0, $FF, $F4
 	dc.b	$58, $07, $48, $F1, $FF, $FC, $78, $00, $48, $F9, $00, $04, $60, $00, $48, $FA, $00, $0C, $68, $0B, $48, $FB, $00, $0C, $80, $00, $49, $07, $00, $24, $88, $0B
 	dc.b	$49, $08, $00, $14, $A8, $0B, $49, $14, $00, $14, $C0, $00, $49, $20, $00, $0C, $C8, $09, $49, $21, $00, $0C, $D0, $00, $49, $27, $00, $04, $D8, $00, $49, $28
 	dc.b	$00, $14, $D8, $0E, $49, $29, $FF, $F4, $F0, $08, $49, $35, $FF, $F4, $E0, $04, $49, $38, $FF, $E4, $E8, $0E, $49, $3A, $FF, $D4
-loc_33AAA:
+;loc_33AAA
+Championship_driver_select_tilemap: ; Tilemap for Championship driver/team select background
 	dc.b	$0A, $02, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $DF, $7D, $F7, $DF, $7D, $F7, $DF, $7D, $F7, $DF, $7D, $F4, $80, $7D, $80, $5A, $09, $F4, $41, $40, $0E
 	dc.b	$30, $08, $00
 	dc.b	$04
 	dc.b	$90, $0A, $84, $C0, $4A, $9E, $3A, $E0, $AA, $79, $68, $0A, $A1, $E7, $84, $A1, $E7, $88, $91, $E7, $88, $90, $10, $04, $D9, $E7, $9E, $79, $E7, $9E, $79, $E7
 	dc.b	$9E, $79, $E7, $9E, $79, $E7, $9E, $79, $E7, $9E, $79, $E7, $9E, $79, $E6, $FF
-loc_33AFE:
+;loc_33AFE
+Championship_driver_select_tiles: ; Compressed tiles for Championship driver/team select screen
 	dc.b	$82, $9C, $80, $03, $00, $14, $05, $25, $16, $36, $36, $46, $38, $57, $76, $67, $7A, $75, $14, $81, $06, $31, $82, $05, $0E, $17, $75, $83, $04, $04, $16, $34
 	dc.b	$28, $EF, $84, $04, $02, $16, $33, $28, $F7, $85, $06, $32, $86, $06, $30, $18, $F6, $87, $05, $12, $17, $72, $88, $06, $2E, $18, $EE, $89, $06, $2F, $18, $F3
 	dc.b	$8A, $05, $0F, $17, $73, $8B, $05, $15, $17, $78, $8C, $04, $06, $16, $37, $8D, $05, $13, $18, $F2, $8E, $04, $03, $16, $35, $8F, $04, $08, $17, $74, $FF, $A5
@@ -31421,7 +31953,8 @@ loc_33AFE:
 	dc.b	$72, $4E, $35, $9B, $2E, $EB, $59, $35, $60, $7E, $96, $A2, $E1, $1B, $47, $64, $B2, $0D, $29, $B4, $5B, $B8, $43, $0E, $99, $B2, $6F, $64, $08, $21, $A1, $BF
 	dc.b	$5E, $D2, $4E, $EB, $21, $27, $84, $08, $BF, $B3, $B4, $5D, $FA, $CB, $7E, $D3, $70, $E2, $AF, $4F, $D6, $38, $57, $66, $1D, $0A, $E8, $5A, $AB, $42, $A7, $1D
 	dc.b	$F7, $2B, $77, $8F, $D9, $D9, $07, $EB, $EC, $83, $F5, $94, $E0, $00
-loc_37ACC:
+;Championship_driver_select_tiles_b
+Championship_driver_select_tiles_b:
 	dc.b	$81, $45, $80, $03, $00, $14, $07, $25, $12, $35, $18, $46, $2E, $56, $33, $66, $37, $74, $03, $81, $04, $02, $16, $39, $28, $F3, $82, $06, $2F, $83, $04, $06
 	dc.b	$16, $38, $28, $F4, $84, $04, $04, $17, $77, $28, $F5, $85, $05, $15, $18, $F6, $86, $04, $08, $17, $75, $87, $04, $05, $17, $76, $88, $07, $74, $89, $06, $36
 	dc.b	$8A, $05, $13, $18, $F2, $8B, $05, $16, $8C, $06, $34, $8D, $05, $14, $17, $78, $8E, $06, $32, $8F, $06, $35, $FF, $33, $3D, $D3, $34, $2B, $90, $9B, $08, $4D
@@ -31603,11 +32136,13 @@ loc_37ACC:
 	dc.b	$C4, $4B, $F6, $C3, $F4, $C6, $FE, $D6, $FD, $AD, $B2, $D9, $7F, $73, $D8, $CC, $CC, $CC, $DF, $4A, $67, $0B, $4D, $D6, $9B, $AD, $0E, $50, $AE, $B4, $91, $2D
 	dc.b	$D5, $04, $A2, $7A, $84, $F6, $48, $9D, $FA, $88, $CA, $08, $2D, $56, $B4, $BC, $5F, $03, $F4, $E5, $36, $8A, $12, $4D, $AD, $14, $E9, $5C, $BA, $34, $53, $A6
 	dc.b	$B9, $2B, $42, $F4, $D4, $2E, $9D, $6F, $D5, $E8, $15, $B5, $94, $CA, $7A, $E1, $68, $A6, $77, $00
-loc_39160:
+;Championship_standings_tilemap_list
+Championship_standings_tilemap_list:
 	dc.b	$00, $01
-	dc.l	loc_3916A
-	dc.l	loc_391AC
-loc_3916A:
+	dc.l	Championship_standings_team_names_a
+	dc.l	Championship_standings_team_names_b
+;Championship_standings_team_names_a
+Championship_standings_team_names_a:
 	dc.b	$E3, $88, $FB, $67, $C0
 	txt "MADONNA\n"
 	txt "FIRENZE\n"
@@ -31617,7 +32152,8 @@ loc_3916A:
 	txt "TYRANT\n"
 	txt "LOSEL\n"
 	txt "MAY", $FF, $00
-loc_391AC:
+;Championship_standings_team_names_b
+Championship_standings_team_names_b:
 	dc.b	$E3, $AC
 	txt "BULLETS\n"
 	txt "DARDAN\n"
@@ -31628,7 +32164,8 @@ loc_391AC:
 	txt "ORCHIS\n"
 	txt "ZEROFORCE\n", $FD
 	txt "EXIT", $FF
-loc_391F0:
+;Championship_standings_tiles
+Championship_standings_tiles:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $F7, $DE, $3C, $67, $D0, $3C, $77, $CF, $1D, $F0, $A7, $A5, $42, $4A, $01, $90, $27, $A6, $4F, $4C, $88, $98, $8C, $14, $C0
 	dc.b	$66, $27, $01, $05, $30, $19, $8A, $20, $41, $4C, $46, $0A, $60, $0C, $0B, $05, $30, $06, $2A, $2A, $01, $05, $31, $18, $29, $9C, $14, $D8, $13, $9A, $CA, $62
 	dc.b	$62, $D3, $15, $17, $39, $2D, $A6, $26, $23, $05, $33, $82, $9B, $21, $21, $CD, $65, $31, $31, $69, $80, $60, $31, $03, $C9, $6D, $31, $31, $18, $29, $9C, $14
@@ -31642,9 +32179,11 @@ loc_391F0:
 	dc.b	$00, $03, $9B, $AC, $CA, $62, $62, $30, $53, $20, $2D, $00, $B8, $30, $22, $01, $E6, $B6, $98, $99, $30, $C5, $1A, $D8, $11, $00, $F2, $99, $4C, $4C, $46, $0A
 	dc.b	$65, $18, $E9, $91, $FC, $A4, $13, $13, $01, $99, $68, $04, $14, $C4, $67, $A6, $4F, $4C, $8A, $98, $8C, $F4, $C8, $69, $8A, $CB, $4C, $46, $7A, $64, $F4, $C8
 	dc.b	$A9, $8F, $BE, $C7, $F0, $00
-loc_39376:
+;Championship_standings_vdp_word_run
+Championship_standings_vdp_word_run:
 	dc.b	$60, $0E, $06, $66, $00, $00, $0E, $EE, $00, $00, $06, $88, $04, $46, $04, $44, $02, $22, $00, $00, $00, $0E, $00, $00, $04, $4E, $06, $68, $06, $66, $08, $88
-loc_39396:
+;Championship_standings_tiles_b
+Championship_standings_tiles_b:
 	dc.b	$00, $B6, $80, $08, $F3, $84, $04, $04, $15, $17, $28, $F5, $85, $04, $05, $16, $38, $86, $05, $0E, $18, $F4, $87, $04, $08, $17, $74, $27, $78, $88, $06, $36
 	dc.b	$15, $1A, $27, $72, $37, $76, $48, $F6, $89, $06, $33, $15, $13, $28, $F2, $8B, $04, $0A, $8C, $06, $37, $8D, $03, $00, $14, $03, $25, $0F, $36, $32, $45, $16
 	dc.b	$55, $18, $65, $12, $74, $02, $8E, $04, $06, $17, $73, $27, $77, $77, $75, $FF, $22, $22, $22, $22, $2C, $73, $CB, $9A, $64, $C9, $66, $4C, $30, $43, $50, $C8
@@ -31731,22 +32270,28 @@ loc_39396:
 	dc.b	$69, $3B, $0E, $62, $22, $22, $2F, $FB, $F3, $22, $22, $2B, $45, $BA, $0F, $E3, $E2, $31, $12, $8C, $46, $20, $88, $88, $88, $88, $AD, $D3, $2E, $87, $FB, $7C
 	dc.b	$44, $A3, $11, $28, $C4, $11, $11, $1F, $3B, $30, $6C, $98, $D9, $EC, $F7, $78, $76, $20, $3B, $28, $7B, $8E, $2C, $E8, $22, $27, $FF, $DD, $D8, $80, $EC, $A1
 	dc.b	$EE, $38, $B3, $A3, $11, $BE, $20, $6F, $68, $3D, $C7, $ED, $DF, $BB, $B1, $01, $D9, $43, $DC, $71, $67, $43, $C0, $00
-loc_39E4E:
+;loc_39E4E
+Endgame_tilemap_b: ; Packed tilemap: endgame/race-result overlay (used with Draw_packed_tilemap_to_vdp in Endgame_sequence_init)
 	dc.b	$C8, $0A, $FB, $07, $C0, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $FA, $12, $17, $0C, $18, $1B, $1B, $0E, $0C, $1D, $2D, $2D, $FF
-loc_39E68:
+;loc_39E68
+Endgame_tilemap_a: ; Packed tilemap: endgame/race-result frame (used with Draw_packed_tilemap_to_vdp in Endgame_sequence_init)
 	dc.b	$C1, $8C, $FB, $27, $C0, $0E, $17, $1D, $0E, $1B, $FA, $1D, $11, $0E, $FA, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $FF
-loc_39E80:
+;loc_39E80
+Name_entry_tilemap_a: ; Packed tilemap: save name-entry screen primary layout (used with Draw_packed_tilemap_to_vdp in Save_name_entry_init)
 	dc.b	$C7, $8A, $FB, $27, $C0, $2C, $2C, $2C, $2C, $2C, $FA, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $FA, $2C, $2C, $2C, $2C, $2C, $FC, $FC, $FC, $FC, $FC, $FC, $2C
 	dc.b	$2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $2C, $FF
-loc_39EB4:
+;loc_39EB4
+Name_entry_tilemap_b: ; Packed tilemap: save name-entry screen secondary layout (border/cursor tiles)
 	dc.b	$CF, $26, $FB, $20, $64, $37, $38, $38, $38, $38, $38, $38, $38, $39, $FD, $3A, $32, $32, $10, $0A, $16, $0E, $32, $3B, $FD, $3A, $32, $32, $32, $32, $32, $32
 	dc.b	$32, $3B, $FD, $3A, $32, $32, $0E, $17, $0D, $32, $32, $3B, $FD, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF, $00, $00, $00, $E8, $0A, $20, $01, $FF, $F4
-loc_39EF4:
+;loc_39EF4
+Endgame_tiles_a: ; Compressed tiles for endgame/name-entry screen (decompressed to VDP VRAM $40200000)
 	dc.b	$80, $09, $80, $15, $1D, $24, $0C, $35, $1B, $47, $7D, $63, $02, $72, $00, $81, $04, $06, $27, $7C, $75, $1C, $83, $04, $07, $88, $05, $1A, $14, $0A, $89, $14
 	dc.b	$08, $8A, $04, $09, $15, $1E, $8B, $14, $0B, $FF, $03, $2A, $27, $1F, $51, $3F, $7E, $63, $77, $F2, $26, $38, $98, $4E, $26, $13, $89, $8F, $C5, $FE, $AB, $35
 	dc.b	$F8, $BF, $D5, $7F, $43, $F2, $3F, $7E, $00, $4D, $D4, $7A, $EA, $27, $9C, $00, $00, $00, $8A, $BF, $45, $5F, $B9, $C0, $09, $BD, $6E, $6F, $EF, $F4, $7B, $F3
 	dc.b	$F0, $0D, $FD, $07, $13, $09, $C4, $C2, $71, $31, $B8, $D3, $EE, $2B, $7F, $C1, $CF, $E8, $9D, $00
-loc_39F68:
+;loc_39F68
+Endgame_tiles_b:
 	dc.b	$00, $47, $80, $03, $01, $14, $0A, $23, $03, $35, $19, $45, $1A, $54, $0B, $67, $72, $73, $04, $81, $15, $18, $37, $78, $82, $13, $00, $26, $36, $38, $F6, $46
 	dc.b	$3A, $57, $7A, $67, $76, $83, $08, $F3, $13, $02, $27, $73, $47, $77, $56, $37, $84, $16, $38, $86, $08, $F7, $18, $F2, $FF, $AF, $D0, $E7, $F0, $35, $8A, $C3
 	dc.b	$C1, $C3, $C1, $C3, $C5, $62, $BF, $03, $9F, $D0, $CB, $C6, $BF, $43, $78, $BC, $5E, $2F, $19, $FE, $8C, $AF, $E0, $D6, $1E, $35, $FA, $17, $E1, $F8, $7F, $A1
@@ -31780,20 +32325,20 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_a
 	dc.l	Team_msg_jp_a
 	dc.l	Team_msg_jp_d
-	dc.l	loc_3A710
-	dc.l	loc_3A724
-	dc.l	loc_3A732
+	dc.l	Team_msg_jp_d2
+	dc.l	Team_msg_jp_d3
+	dc.l	Team_msg_jp_d4
 	dc.l	Team_msg_jp_d
-	dc.l	loc_3A740
-	dc.l	loc_3A75C
-	dc.l	loc_3A768
-	dc.l	loc_3A77C
-	dc.l	loc_3A78E
-	dc.l	loc_3A79C
-	dc.l	loc_3A7AE
-	dc.l	loc_3A7C2
-	dc.l	loc_3A75C
-	dc.l	loc_3A7D0
+	dc.l	Team_msg_jp_d5
+	dc.l	Team_msg_jp_d6
+	dc.l	Team_msg_jp_d7
+	dc.l	Team_msg_jp_d8
+	dc.l	Team_msg_jp_d9
+	dc.l	Team_msg_jp_d10
+	dc.l	Team_msg_jp_d11
+	dc.l	Team_msg_jp_d12
+	dc.l	Team_msg_jp_d6
+	dc.l	Team_msg_jp_d13
 	dc.l	Team_msg_jp_e
 	dc.l	$0003A7E6
 	dc.l	Team_msg_jp_after_jp34
@@ -31811,34 +32356,34 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_m
 	dc.l	$0003A818
 	dc.l	Team_msg_jp_e
-	dc.l	loc_3A838
+	dc.l	Team_msg_jp_m2
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A84E
-	dc.l	loc_3A858
+	dc.l	Team_msg_jp_m3
+	dc.l	Team_msg_jp_m4
 	dc.l	Team_msg_jp_l
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_d
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A7D0
+	dc.l	Team_msg_jp_d13
 	dc.l	Team_msg_jp_b
 	dc.l	$0003A7E6
 	dc.l	Team_msg_jp_o2
-	dc.l	loc_3A86A
+	dc.l	Team_msg_jp_m5
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_a2
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A888
+	dc.l	Team_msg_jp_a3
 	dc.l	Team_msg_jp_i
-	dc.l	loc_3A8A0
-	dc.l	loc_3A8BA
-	dc.l	loc_3A8C8
-	dc.l	loc_3A8D2
+	dc.l	Team_msg_jp_i2
+	dc.l	Team_msg_jp_i3
+	dc.l	Team_msg_jp_i4
+	dc.l	Team_msg_jp_i5
 	dc.l	Team_msg_jp_d
 	dc.l	$0003A818
 	dc.l	Team_msg_jp_i
-	dc.l	loc_3A838
+	dc.l	Team_msg_jp_m2
 	dc.l	Team_msg_jp_j
 	dc.l	$0003A7E6
 	dc.l	Team_msg_jp_o2
@@ -31850,30 +32395,30 @@ Team_msg_jp_table:
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_g
 	dc.l	Team_msg_jp_j
-	dc.l	loc_3A858
-	dc.l	loc_3A86A
+	dc.l	Team_msg_jp_m4
+	dc.l	Team_msg_jp_m5
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_a2
 	dc.l	Team_msg_jp_b
 	dc.l	$0003A7FC
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A84E
+	dc.l	Team_msg_jp_m3
 	dc.l	Team_msg_jp_after_jp34
 	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_l
 	dc.l	Team_msg_jp_r2
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A920
-	dc.l	loc_3A932
-	dc.l	loc_3A946
-	dc.l	loc_3A952
-	dc.l	loc_3A96C
-	dc.l	loc_3A980
-	dc.l	loc_3A990
-	dc.l	loc_3A99C
-	dc.l	loc_3A990
+	dc.l	Team_msg_jp_r3
+	dc.l	Team_msg_jp_r4
+	dc.l	Team_msg_jp_r5
+	dc.l	Team_msg_jp_r6
+	dc.l	Team_msg_jp_r7
+	dc.l	Team_msg_jp_r8
+	dc.l	Team_msg_jp_r9
+	dc.l	Team_msg_jp_r10
+	dc.l	Team_msg_jp_r9
 	dc.l	Team_msg_jp_g
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_j
@@ -31881,17 +32426,17 @@ Team_msg_jp_table:
 	dc.l	$0003A8EE
 	dc.l	Team_msg_jp_g
 	dc.l	$0003A8EE
-	dc.l	loc_3A9BC
+	dc.l	Team_msg_jp_b3
 	dc.l	Team_msg_jp_h
-	dc.l	loc_3A9D4
-	dc.l	loc_3A9E8
-	dc.l	loc_3A9F4
-	dc.l	loc_3AA00
-	dc.l	loc_3AA10
-	dc.l	loc_3AA20
-	dc.l	loc_3AA2C
-	dc.l	loc_3AA3C
-	dc.l	loc_3A9E8
+	dc.l	Team_msg_jp_b4
+	dc.l	Team_msg_jp_b5
+	dc.l	Team_msg_jp_b6
+	dc.l	Team_msg_jp_b7
+	dc.l	Team_msg_jp_b8
+	dc.l	Team_msg_jp_b9
+	dc.l	Team_msg_jp_b10
+	dc.l	Team_msg_jp_b11
+	dc.l	Team_msg_jp_b5
 	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_g
 	dc.l	Team_msg_jp_j
@@ -31924,20 +32469,20 @@ Team_msg_jp_table:
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_your_days_gone
-	dc.l	loc_3AA62
-	dc.l	loc_3AA86
-	dc.l	loc_3AAAA
+	dc.l	Team_msg_en_ill_show_you
+	dc.l	Team_msg_en_results_obvious
+	dc.l	Team_msg_en_never_lose
 	dc.l	Team_msg_your_days_gone
-	dc.l	loc_3AAC2
-	dc.l	loc_3AAE8
-	dc.l	loc_3AB04
-	dc.l	loc_3AB1C
-	dc.l	loc_3AB40
-	dc.l	loc_3AB62
-	dc.l	loc_3AB84
-	dc.l	loc_3ABA6
-	dc.l	loc_3AAE8
-	dc.l	loc_3ABC0
+	dc.l	Team_msg_en_race_not_easy
+	dc.l	Team_msg_en_dont_take_advantage
+	dc.l	Team_msg_en_take_it_easy
+	dc.l	Team_msg_en_never_make_way
+	dc.l	Team_msg_en_effort_in_vain
+	dc.l	Team_msg_en_underdog_again
+	dc.l	Team_msg_en_time_to_quit
+	dc.l	Team_msg_en_mean_as_ever
+	dc.l	Team_msg_en_dont_take_advantage
+	dc.l	Team_msg_en_drive_quite_fast
 	dc.l	Team_msg_faster_than_you
 	dc.l	$0003ABF4
 	dc.l	Team_msg_en_dont_make_me_angry
@@ -31955,34 +32500,34 @@ Team_msg_jp_table:
 	dc.l	Team_msg_cearas_era
 	dc.l	$0003AC66
 	dc.l	Team_msg_faster_than_you
-	dc.l	loc_3ACA0
+	dc.l	Team_msg_en_need_experience
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3ACEA
-	dc.l	loc_3AD02
+	dc.l	Team_msg_en_effort_in_vain2
+	dc.l	Team_msg_en_seldom_win
 	dc.l	Team_msg_better_stop_racing
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_your_days_gone
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3ABC0
+	dc.l	Team_msg_en_drive_quite_fast
 	dc.l	Team_msg_lets_compete
 	dc.l	$0003ABF4
 	dc.l	Team_msg_en_dont_be_stuck
-	dc.l	loc_3AD24
+	dc.l	Team_msg_en_still_a_racer
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_en_you_can_never_win
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AD5A
+	dc.l	Team_msg_en_try_our_best
 	dc.l	Team_msg_go_easy
-	dc.l	loc_3AD86
-	dc.l	loc_3ADAE
-	dc.l	loc_3ADC6
-	dc.l	loc_3ADE4
+	dc.l	Team_msg_en_cant_allow_takeover
+	dc.l	Team_msg_en_do_or_die
+	dc.l	Team_msg_en_still_competing
+	dc.l	Team_msg_en_working_hard
 	dc.l	Team_msg_your_days_gone
 	dc.l	$0003AC66
 	dc.l	Team_msg_go_easy
-	dc.l	loc_3ACA0
+	dc.l	Team_msg_en_need_experience
 	dc.l	Team_msg_no_easy_with_me
 	dc.l	$0003ABF4
 	dc.l	Team_msg_en_dont_be_stuck
@@ -31994,30 +32539,30 @@ Team_msg_jp_table:
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_hi
 	dc.l	Team_msg_no_easy_with_me
-	dc.l	loc_3AD02
-	dc.l	loc_3AD24
+	dc.l	Team_msg_en_seldom_win
+	dc.l	Team_msg_en_still_a_racer
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_en_you_can_never_win
 	dc.l	Team_msg_lets_compete
 	dc.l	$0003AC24
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3ACEA
+	dc.l	Team_msg_en_effort_in_vain2
 	dc.l	Team_msg_en_dont_make_me_angry
 	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_better_stop_racing
 	dc.l	Team_msg_en_do_you_intend
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AE56
-	dc.l	loc_3AE7E
-	dc.l	loc_3AE9E
-	dc.l	loc_3AEBA
-	dc.l	loc_3AEDE
-	dc.l	loc_3AF02
-	dc.l	loc_3AF2A
-	dc.l	loc_3AF3E
-	dc.l	loc_3AF2A
+	dc.l	Team_msg_en_junior_driver_disgrace
+	dc.l	Team_msg_en_throw_the_race
+	dc.l	Team_msg_en_let_me_win
+	dc.l	Team_msg_en_dont_come_close
+	dc.l	Team_msg_en_win_and_comeback
+	dc.l	Team_msg_en_look_depressed
+	dc.l	Team_msg_en_come_on
+	dc.l	Team_msg_en_good_racer
+	dc.l	Team_msg_en_come_on
 	dc.l	Team_msg_hi
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_no_easy_with_me
@@ -32025,17 +32570,17 @@ Team_msg_jp_table:
 	dc.l	$0003AE18
 	dc.l	Team_msg_hi
 	dc.l	$0003AE18
-	dc.l	loc_3AF6C
+	dc.l	Team_msg_en_still_top_racer
 	dc.l	Team_msg_lets_drive_fair
-	dc.l	loc_3AF96
-	dc.l	loc_3AFBC
-	dc.l	loc_3AFDE
-	dc.l	loc_3AFFA
-	dc.l	loc_3B010
-	dc.l	loc_3B02E
-	dc.l	loc_3B042
-	dc.l	loc_3B062
-	dc.l	loc_3AFBC
+	dc.l	Team_msg_en_win_against_me
+	dc.l	Team_msg_en_not_suitable
+	dc.l	Team_msg_en_had_enough
+	dc.l	Team_msg_en_youll_pay
+	dc.l	Team_msg_en_really_finished
+	dc.l	Team_msg_en_get_away
+	dc.l	Team_msg_en_dont_bother
+	dc.l	Team_msg_en_dont_give_trouble
+	dc.l	Team_msg_en_not_suitable
 	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_hi
 	dc.l	Team_msg_no_easy_with_me
@@ -32070,31 +32615,43 @@ Team_msg_jp_a:
 Team_msg_jp_d:
 	dc.b	$3F, $6C, $4E, $57, $32, $B8, $BC, $40, $58, $32, $43, $6A, $75, $4E, $64, $79, $FF
 	dc.b	$00
-loc_3A710:
+;Team_msg_jp_d2
+Team_msg_jp_d2:
 	dc.b	$5C, $6C, $52, $41, $57, $32, $58, $4A, $66, $6B, $32, $5E, $4C, $51, $62, $67, $64, $79, $FF, $00
-loc_3A724:
+;Team_msg_jp_d3
+Team_msg_jp_d3:
 	dc.b	$47, $75, $44, $58, $32, $5E, $42, $51, $40, $67, $64, $79, $FF, $00
-loc_3A732:
+;Team_msg_jp_d4
+Team_msg_jp_d4:
 	dc.b	$BA, $75, $4E, $40, $54, $32, $5D, $47, $67, $61, $6C, $44, $79, $FF
-loc_3A740:
+;Team_msg_jp_d5
+Team_msg_jp_d5:
 	dc.b	$45, $5E, $B2, $32, $44, $6C, $B2, $42, $51, $40, $67, $5C, $C0, $FC, $A5, $2C, $88, $58, $32, $3F, $5D, $46, $53, $40, $64, $79, $FF
 	dc.b	$00
-loc_3A75C:
+;Team_msg_jp_d6
+Team_msg_jp_d6:
 	dc.b	$6A, $4E, $4A, $6B, $32, $53, $60, $67, $53, $64, $79, $FF
-loc_3A768:
+;Team_msg_jp_d7
+Team_msg_jp_d7:
 	dc.b	$58, $B8, $60, $44, $65, $32, $9C, $A3, $6B, $32, $4A, $53, $40, $48, $52, $BC, $64, $79, $FF, $00
-loc_3A77C:
+;Team_msg_jp_d8
+Team_msg_jp_d8:
 	dc.b	$61, $41, $32, $02, $C0, $52, $32, $5E, $4F, $58, $32, $63, $B9, $65, $53, $40, $79, $FF
-loc_3A78E:
+;Team_msg_jp_d9
+Team_msg_jp_d9:
 	dc.b	$6A, $67, $3F, $B2, $45, $58, $32, $62, $60, $53, $64, $79, $FF
 	dc.b	$00
-loc_3A79C:
+;Team_msg_jp_d10
+Team_msg_jp_d10:
 	dc.b	$C0, $41, $4C, $32, $5D, $4E, $32, $43, $4F, $60, $54, $32, $53, $67, $64, $79, $FF, $00
-loc_3A7AE:
+;Team_msg_jp_d11
+Team_msg_jp_d11:
 	dc.b	$4D, $69, $4D, $69, $32, $40, $6C, $4E, $40, $6B, $32, $44, $6C, $B2, $42, $4E, $65, $79, $FF, $00
-loc_3A7C2:
+;Team_msg_jp_d12
+Team_msg_jp_d12:
 	dc.b	$3F, $40, $44, $6A, $65, $B9, $32, $45, $4E, $53, $40, $53, $79, $FF
-loc_3A7D0:
+;Team_msg_jp_d13
+Team_msg_jp_d13:
 	dc.b	$43, $68, $58, $32, $58, $62, $40, $BA, $79, $FF
 ;Team_msg_jp_e
 Team_msg_jp_e:
@@ -32122,34 +32679,43 @@ Team_msg_jp_q:
 ;Team_msg_jp_m
 Team_msg_jp_m:
 	dc.b	$40, $5D, $58, $32, $89, $7C, $A2, $57, $32, $B8, $BC, $40, $BC, $64, $79, $FF
-loc_3A838:
+;Team_msg_jp_m2
+Team_msg_jp_m2:
 	dc.b	$01, $00, $56, $6C, $32, $58, $62, $40, $64, $79, $FF, $00
 ;loc_3A844
 Team_msg_jp_b:
 	dc.b	$4A, $74, $41, $C3, $32, $4A, $64, $41, $79, $FF
-loc_3A84E:
+;Team_msg_jp_m3
+Team_msg_jp_m3:
 	dc.b	$5F, $BC, $53, $32, $48, $52, $6B, $79, $FF, $00
-loc_3A858:
+;Team_msg_jp_m4
+Team_msg_jp_m4:
 	dc.b	$4D, $41, $4D, $41, $32, $5D, $B4, $68, $58, $32, $43, $48, $65, $53, $40, $64, $79, $FF
-loc_3A86A:
+;Team_msg_jp_m5
+Team_msg_jp_m5:
 	dc.b	$5D, $BC, $32, $A5, $2C, $88, $32, $62, $75, $51, $6C, $57, $79, $FF
 ;loc_3A878
 Team_msg_jp_a2:
 	dc.b	$89, $7C, $A2, $54, $58, $32, $44, $51, $53, $40, $46, $4C, $54, $79, $FF
 	dc.b	$00
-loc_3A888:
+;Team_msg_jp_a3
+Team_msg_jp_a3:
 	dc.b	$43, $4E, $B2, $40, $54, $32, $B2, $6C, $C1, $69, $41, $79, $FF, $00
 ;Team_msg_jp_i
 Team_msg_jp_i:
 	dc.b	$43, $51, $62, $6A, $65, $44, $54, $79, $FF
 	dc.b	$00
-loc_3A8A0:
+;Team_msg_jp_i2
+Team_msg_jp_i2:
 	dc.b	$48, $57, $8C, $2C, $9C, $6B, $32, $3F, $47, $6A, $4E, $4B, $6A, $47, $54, $58, $FC, $40, $44, $53, $40, $44, $65, $56, $79, $FF
-loc_3A8BA:
+;Team_msg_jp_i3
+Team_msg_jp_i3:
 	dc.b	$4A, $55, $45, $BF, $32, $62, $67, $4A, $44, $53, $40, $56, $79, $FF
-loc_3A8C8:
+;Team_msg_jp_i4
+Team_msg_jp_i4:
 	dc.b	$3F, $68, $2E, $32, $40, $4E, $6C, $BC, $79, $FF
-loc_3A8D2:
+;Team_msg_jp_i5
+Team_msg_jp_i5:
 	dc.b	$4E, $40, $5B, $6C, $BF, $4B, $56, $79, $FF, $00
 ;Team_msg_jp_j
 Team_msg_jp_j:
@@ -32160,46 +32726,63 @@ Team_msg_jp_r:
 ;loc_3A906
 Team_msg_jp_r2:
 	dc.b	$8F, $B1, $E1, $D4, $A2, $7D, $D5, $2C, $54, $32, $81, $9C, $D5, $B1, $83, $4B, $67, $FC, $50, $61, $66, $53, $57, $44, $79, $FF
-loc_3A920:
+;Team_msg_jp_r3
+Team_msg_jp_r3:
 	dc.b	$4C, $6C, $DA, $40, $54, $32, $58, $53, $6B, $32, $61, $4E, $4C, $69, $64, $79, $FF, $00
-loc_3A932:
+;Team_msg_jp_r4
+Team_msg_jp_r4:
 	dc.b	$6A, $67, $40, $B2, $32, $6A, $B7, $52, $32, $5D, $47, $51, $46, $68, $53, $40, $44, $79, $FF, $00
-loc_3A946:
+;Team_msg_jp_r5
+Team_msg_jp_r5:
 	dc.b	$48, $6C, $C0, $61, $32, $4E, $57, $5F, $BA, $79, $FF, $00
-loc_3A952:
+;Team_msg_jp_r6
+Team_msg_jp_r6:
 	dc.b	$43, $68, $57, $32, $46, $67, $5D, $54, $58, $32, $4F, $44, $BE, $44, $53, $40, $5C, $41, $B2, $FC, $40, $40, $BA, $79, $FF, $00
-loc_3A96C:
+;Team_msg_jp_r7
+Team_msg_jp_r7:
 	dc.b	$43, $68, $6B, $32, $57, $66, $48, $42, $51, $32, $81, $9C, $D5, $B1, $83, $4A, $69, $79, $FF
 	dc.b	$00
-loc_3A980:
+;Team_msg_jp_r8
+Team_msg_jp_r8:
 	dc.b	$C0, $41, $4A, $4E, $79, $32, $B5, $6C, $45, $B2, $53, $40, $53, $79, $FF, $00
-loc_3A990:
+;Team_msg_jp_r9
+Team_msg_jp_r9:
 	dc.b	$64, $4A, $79, $32, $44, $44, $75, $51, $48, $40, $79, $FF
-loc_3A99C:
+;Team_msg_jp_r10
+Team_msg_jp_r10:
 	dc.b	$43, $5D, $42, $61, $32, $5D, $BC, $5D, $BC, $32, $62, $67, $53, $79, $FF
 	dc.b	$00
 ;loc_3A9AC
 Team_msg_jp_b2:
 	dc.b	$4D, $69, $4D, $69, $32, $5C, $6C, $45, $6B, $32, $BC, $4B, $44, $53, $79, $FF
-loc_3A9BC:
+;Team_msg_jp_b3
+Team_msg_jp_b3:
 	dc.b	$8F, $B1, $E1, $D4, $A2, $7D, $D5, $2C, $BF, $61, $32, $53, $40, $46, $4C, $54, $FC, $40, $C1, $67, $53, $79, $FF
 	dc.b	$00
-loc_3A9D4:
+;Team_msg_jp_b4
+Team_msg_jp_b4:
 	dc.b	$43, $68, $54, $32, $44, $51, $67, $52, $32, $43, $61, $75, $51, $40, $67, $57, $44, $79, $FF, $00
-loc_3A9E8:
+;Team_msg_jp_b5
+Team_msg_jp_b5:
 	dc.b	$58, $56, $51, $67, $53, $64, $32, $48, $BB, $41, $79, $FF
-loc_3A9F4:
+;Team_msg_jp_b6
+Team_msg_jp_b6:
 	dc.b	$5D, $BC, $32, $6A, $44, $65, $56, $42, $57, $44, $79, $FF
-loc_3AA00:
+;Team_msg_jp_b7
+Team_msg_jp_b7:
 	dc.b	$48, $57, $5D, $5D, $B8, $72, $32, $43, $6A, $65, $56, $42, $BB, $79, $FF, $00
-loc_3AA10:
+;Team_msg_jp_b8
+Team_msg_jp_b8:
 	dc.b	$B9, $40, $C3, $6C, $52, $32, $43, $4F, $4E, $61, $6C, $BC, $53, $79, $FF
 	dc.b	$00
-loc_3AA20:
+;Team_msg_jp_b9
+Team_msg_jp_b9:
 	dc.b	$43, $5D, $42, $32, $60, $B7, $6A, $66, $BC, $79, $FF, $00
-loc_3AA2C:
+;Team_msg_jp_b10
+Team_msg_jp_b10:
 	dc.b	$41, $67, $4C, $42, $53, $79, $32, $B8, $75, $52, $32, $4A, $51, $69, $79, $FF
-loc_3AA3C:
+;Team_msg_jp_b11
+Team_msg_jp_b11:
 	dc.b	$51, $48, $B9, $65, $4C, $67, $53, $64, $79, $FF
 ;loc_3AA46
 Team_msg_error:
@@ -32208,29 +32791,41 @@ Team_msg_error:
 Team_msg_your_days_gone:
 	dc.b	$FD
 	txt "YOUR DAYS ARE GONE!", $FF, $00
-loc_3AA62:
+;Team_msg_en_ill_show_you
+Team_msg_en_ill_show_you:
 	txt "I'LL SHOW YOU WHAT\nREAL DRIVING IS.", $FF
-loc_3AA86:
+;Team_msg_en_results_obvious
+Team_msg_en_results_obvious:
 	txt "THE RESULTS WILL BE\nQUITE OBVIOUS.", $FF, $00
-loc_3AAAA:
+;Team_msg_en_never_lose
+Team_msg_en_never_lose:
 	txt "I'LL NEVER LOSE\nTO YOU.", $FF
-loc_3AAC2:
+;Team_msg_en_race_not_easy
+Team_msg_en_race_not_easy:
 	txt	"THE RACE ISN'T AS\nEASY AS YOU THINK.", $FF, $00
-loc_3AAE8:
+;Team_msg_en_dont_take_advantage
+Team_msg_en_dont_take_advantage:
 	txt "DON'T TAKE ADVANTAGE\nOF ME!", $FF
-loc_3AB04:
+;Team_msg_en_take_it_easy
+Team_msg_en_take_it_easy:
 	txt "AT FIRST,\nTAKE IT EASY.", $FF
-loc_3AB1C:
+;Team_msg_en_never_make_way
+Team_msg_en_never_make_way:
 	txt "I'LL NEVER MAKE WAY\nFOR YOU AGAIN.", $FF, $00
-loc_3AB40:
+;Team_msg_en_effort_in_vain
+Team_msg_en_effort_in_vain:
 	txt "YOUR EFFORT WILL\nJUST BE IN VAIN!", $FF
-loc_3AB62:
+;Team_msg_en_underdog_again
+Team_msg_en_underdog_again:
 	txt "YOU'LL END UP\nAN UNDERDOG AGAIN.", $FF, $00
-loc_3AB84:
+;Team_msg_en_time_to_quit
+Team_msg_en_time_to_quit:
 	txt "IT'S ABOUT TIME\nFOR YOU TO QUIT.", $FF, $00
-loc_3ABA6:
+;Team_msg_en_mean_as_ever
+Team_msg_en_mean_as_ever:
 	txt "YOU ARE AS MEAN AS\nEVER.", $FF, $00
-loc_3ABC0:
+;Team_msg_en_drive_quite_fast
+Team_msg_en_drive_quite_fast:
 	dc.b	$FD
 	txt "I DRIVE QUITE FAST.", $FF, $00
 ;Team_msg_faster_than_you
@@ -32260,33 +32855,42 @@ Team_msg_i_underestimated:
 ;Team_msg_cearas_era
 Team_msg_cearas_era:
 	txt "IT'S CEARA'S ERA\nNOW!", $FF
-loc_3ACA0:
+;Team_msg_en_need_experience
+Team_msg_en_need_experience:
 	txt "I GUESS YOU NEED\nMORE EXPERIENCE.", $FF
 ;loc_3ACC2
 Team_msg_lets_compete:
 	txt "NOW, LET'S COMPETE\nAGAINST EACH OTHER!", $FF, $00
-loc_3ACEA:
+;Team_msg_en_effort_in_vain2
+Team_msg_en_effort_in_vain2:
 	txt	"YOUR EFFORT IS\nIN VAIN.", $FF
-loc_3AD02:
+;Team_msg_en_seldom_win
+Team_msg_en_seldom_win:
 	txt "YOU CAN SELDOM WIN\nBY SHEER LUCK.", $FF
-loc_3AD24:
+;Team_msg_en_still_a_racer
+Team_msg_en_still_a_racer:
 	txt "ARE YOU STILL\nA RACER?", $FF, $00
 ;loc_3AD3C
 Team_msg_en_you_can_never_win:
 	txt "YOU CAN NEVER WIN\nOVER CEARA.", $FF
-loc_3AD5A:
+;Team_msg_en_try_our_best
+Team_msg_en_try_our_best:
 	txt "LET'S TRY TO DO OUR\nBEST.", $FF
 ;Team_msg_go_easy
 Team_msg_go_easy:
 	dc.b	$FD
 	txt "GO EASY WITH ME!", $FF
-loc_3AD86:
+;Team_msg_en_cant_allow_takeover
+Team_msg_en_cant_allow_takeover:
 	txt "I CAN'T ALLOW YOU TO\nTAKE OVER MY SEAT.", $FF
-loc_3ADAE:
+;Team_msg_en_do_or_die
+Team_msg_en_do_or_die:
 	txt "IT'S DO OR DIE\nFOR ME!", $FF,$00
-loc_3ADC6:
+;Team_msg_en_still_competing
+Team_msg_en_still_competing:
 	txt "OH, ARE YOU STILL\nCOMPETING?", $FF, $00
-loc_3ADE4:
+;Team_msg_en_working_hard
+Team_msg_en_working_hard:
 	dc.b	$FD
 	txt "WORKING HARD?", $FF, $00
 ;Team_msg_no_easy_with_me
@@ -32298,406 +32902,522 @@ Team_msg_never_speak_underdogs:
 ;loc_3AE34
 Team_msg_en_do_you_intend:
 	txt "DO YOU INTEND TO\nMAKE A COMEBACK?", $FF
-loc_3AE56:
+;Team_msg_en_junior_driver_disgrace
+Team_msg_en_junior_driver_disgrace:
 	txt "LOSING TO A JUNIOR\nDRIVER IS A DISGRACE", $FF
-loc_3AE7E:
+;Team_msg_en_throw_the_race
+Team_msg_en_throw_the_race:
 	txt "DO YOU MIND THROWING\nTHE RACE?", $FF, $00
-loc_3AE9E:
+;Team_msg_en_let_me_win
+Team_msg_en_let_me_win:
 	txt "COULD YOU LET ME WIN\nAGAIN?", $FF
-loc_3AEBA:
+;Team_msg_en_dont_come_close
+Team_msg_en_dont_come_close:
 	txt "YOU'D BETTER NOT\nCOME CLOSE TO ME.", $FF, $00
-loc_3AEDE:
+;Team_msg_en_win_and_comeback
+Team_msg_en_win_and_comeback:
 	txt "WIN OVER ME AND MAKE\nYOUR COMEBACK!", $FF
-loc_3AF02:
+;Team_msg_en_look_depressed
+Team_msg_en_look_depressed:
 	txt "WHAT'S THE MATTER?\nYOU LOOK DEPRESSED.", $FF, $00
-loc_3AF2A:
+;Team_msg_en_come_on
+Team_msg_en_come_on:
 	dc.b	$FD
 	txt "OK, THEN COME ON!", $FF, $00
-loc_3AF3E:
+;Team_msg_en_good_racer
+Team_msg_en_good_racer:
 	txt "YOU'RE STILL\nA GOOD RACER.", $FF, $00
 ;loc_3AF5A
 Team_msg_en_im_serious:
 	dc.b	$FD
 	txt "I'M SERIOUS NOW.", $FF
-loc_3AF6C:
+;Team_msg_en_still_top_racer
+Team_msg_en_still_top_racer:
 	txt "DO YOU THINK YOU'RE\nSTILL THE TOP RACER?", $FF, $00
-loc_3AF96:
+;Team_msg_en_win_against_me
+Team_msg_en_win_against_me:
 	txt "DO YOU THINK YOU CAN\nWIN AGAINST ME?", $FF, $00
-loc_3AFBC:
+;Team_msg_en_not_suitable
+Team_msg_en_not_suitable:
 	txt "YOU'RE NOT SUITABLE\nFOR THE TEAM.", $FF
-loc_3AFDE:
+;Team_msg_en_had_enough
+Team_msg_en_had_enough:
 	txt "HAVEN'T YOU HAD\nENOUGH YET?", $FF
-loc_3AFFA:
+;Team_msg_en_youll_pay
+Team_msg_en_youll_pay:
 	dc.b	$FD
 	txt "YOU'LL PAY FOR THIS.", $FF
-loc_3B010:
+;Team_msg_en_really_finished
+Team_msg_en_really_finished:
 	txt "YOU'RE REALLY\nFINISHED WITH.", $FF
 	dc.b	$00
-loc_3B02E:
+;Team_msg_en_get_away
+Team_msg_en_get_away:
 	dc.b	$FD
 	txt "GET AWAY FROM ME.", $FF, $00
-loc_3B042:
+;Team_msg_en_dont_bother
+Team_msg_en_dont_bother:
 	txt "DON'T BOTHER ME.\nJUST GET AWAY!", $FF
-loc_3B062:
+;Team_msg_en_dont_give_trouble
+Team_msg_en_dont_give_trouble:
 	txt "DON'T GIVE ME\nANY TROUBLE!", $FF, $00
 ;loc_3B07E
 ; 64-entry pointer table: per-team introduction text/data records
 Team_intro_table: ; Pointers to team introductions
-	dc.l	loc_3B17E
-	dc.l	loc_3B1A6
-	dc.l	loc_3B1BC
-	dc.l	loc_3B1E2
-	dc.l	loc_3B1F8
-	dc.l	loc_3B20E
-	dc.l	loc_3B222
-	dc.l	loc_3B23C
-	dc.l	loc_3B24E
-	dc.l	loc_3B262
-	dc.l	loc_3B26E
-	dc.l	loc_3B284
+	dc.l	Team_intro_jp_1
+	dc.l	Team_intro_jp_2
+	dc.l	Team_intro_jp_3
+	dc.l	Team_intro_jp_4
+	dc.l	Team_intro_jp_5
+	dc.l	Team_intro_jp_6
+	dc.l	Team_intro_jp_7
+	dc.l	Team_intro_jp_8
+	dc.l	Team_intro_jp_9
+	dc.l	Team_intro_jp_10
+	dc.l	Team_intro_jp_11
+	dc.l	Team_intro_jp_12
 	dc.l	Team_msg_jp_f
-	dc.l	loc_3B2A6
+	dc.l	Team_intro_jp_13
 	dc.l	Team_msg_jp_g
-	dc.l	loc_3B2BA
-	dc.l	loc_3B17E
-	dc.l	loc_3B1A6
+	dc.l	Team_intro_jp_14
+	dc.l	Team_intro_jp_1
+	dc.l	Team_intro_jp_2
 	dc.l	Team_msg_jp_n
 	dc.l	Team_msg_jp_n
-	dc.l	loc_3B1F8
-	dc.l	Team_msg_jp_k
-	dc.l	Team_msg_jp_n
+	dc.l	Team_intro_jp_5
 	dc.l	Team_msg_jp_k
 	dc.l	Team_msg_jp_n
 	dc.l	Team_msg_jp_k
-	dc.l	loc_3B26E
+	dc.l	Team_msg_jp_n
+	dc.l	Team_msg_jp_k
+	dc.l	Team_intro_jp_11
 	dc.l	Team_msg_jp_n
 	dc.l	Team_msg_jp_k
 	dc.l	Team_msg_jp_k
 	dc.l	Team_msg_jp_k
-	dc.l	loc_3B2BA
-	dc.l	loc_3B2CE
-	dc.l	loc_3B31A
-	dc.l	loc_3B33E
-	dc.l	loc_3B386
-	dc.l	loc_3B3AA
-	dc.l	loc_3B3CC
-	dc.l	loc_3B3F2
-	dc.l	loc_3B41A
-	dc.l	loc_3B434
-	dc.l	loc_3B45C
-	dc.l	loc_3B480
-	dc.l	loc_3B4A4
+	dc.l	Team_intro_jp_14
+	dc.l	Team_intro_en_be_top_driver
+	dc.l	Team_intro_en_beat_madonna
+	dc.l	Team_intro_en_familiar_with_f1
+	dc.l	Team_intro_en_reliable_machine
+	dc.l	Team_intro_en_party_for_you
+	dc.l	Team_intro_en_keep_performances
+	dc.l	Team_intro_en_watch_for_trouble
+	dc.l	Team_intro_en_rely_on_talent
+	dc.l	Team_intro_en_steady_team
+	dc.l	Team_intro_en_very_strict
+	dc.l	Team_intro_en_security_money
+	dc.l	Team_intro_en_try_hard_to_win
 	dc.l	Team_msg_envy_high_spirits
-	dc.l	loc_3B4D6
+	dc.l	Team_intro_en_enjoy_race
 	dc.l	Team_msg_hi
-	dc.l	loc_3B502
-	dc.l	loc_3B2CE
-	dc.l	loc_3B31A
+	dc.l	Team_intro_en_appreciate_joining
+	dc.l	Team_intro_en_be_top_driver
+	dc.l	Team_intro_en_beat_madonna
 	dc.l	Team_msg_help_comeback
 	dc.l	Team_msg_help_comeback
-	dc.l	loc_3B3AA
-	dc.l	Team_msg_can_still_drive
-	dc.l	Team_msg_help_comeback
+	dc.l	Team_intro_en_party_for_you
 	dc.l	Team_msg_can_still_drive
 	dc.l	Team_msg_help_comeback
 	dc.l	Team_msg_can_still_drive
-	dc.l	loc_3B480
+	dc.l	Team_msg_help_comeback
+	dc.l	Team_msg_can_still_drive
+	dc.l	Team_intro_en_security_money
 	dc.l	Team_msg_help_comeback
 	dc.l	Team_msg_can_still_drive
 	dc.l	Team_msg_can_still_drive
 	dc.l	Team_msg_can_still_drive
-	dc.l	loc_3B502
-loc_3B17E:
+	dc.l	Team_intro_en_appreciate_joining
+;Team_intro_jp_1
+Team_intro_jp_1:
 	dc.b	$49, $40, $48, $41, $57, $9A, $87, $A8, $BF, $32, $8F, $B1, $E1, $6B, $60, $B7, $4C, $79, $FF
 	dc.b	$00
 ;Team_msg_jp_k
 Team_msg_jp_k:
 	dc.b	$5C, $6C, $52, $41, $54, $32, $5D, $BC, $32, $58, $4A, $68, $67, $6C, $BC, $69, $41, $53, $79, $FF
-loc_3B1A6:
+;Team_intro_jp_2
+Team_intro_jp_2:
 	dc.b	$BC, $52, $41, $9A, $D4, $A8, $90, $2D, $FC, $C0, $41, $BC, $32, $62, $75, $51, $5E, $53, $40, $44, $79, $FF
-loc_3B1BC:
+;Team_intro_jp_3
+Team_intro_jp_3:
 	dc.b	$4D, $69, $4D, $69, $32, $0F, $01, $B2, $32, $5E, $42, $51, $32, $45, $4E, $44, $53, $79, $FF, $00
 ;Team_msg_jp_n
 Team_msg_jp_n:
 	dc.b	$45, $5E, $57, $81, $9C, $D5, $B1, $83, $54, $32, $51, $6B, $44, $4D, $41, $79, $FF, $00
-loc_3B1E2:
+;Team_intro_jp_4
+Team_intro_jp_4:
 	dc.b	$41, $4F, $57, $9A, $87, $A8, $58, $32, $4A, $6C, $65, $40, $4C, $40, $B2, $32, $4E, $44, $40, $79, $FF, $00
-loc_3B1F8:
+;Team_intro_jp_5
+Team_intro_jp_5:
 	dc.b	$3F, $52, $BF, $32, $45, $5E, $57, $32, $44, $6C, $B5, $40, $44, $40, $6B, $32, $62, $69, $41, $79, $FF, $00
-loc_3B20E:
+;Team_intro_jp_6
+Team_intro_jp_6:
 	dc.b	$8C, $2C, $9C, $57, $32, $BF, $6C, $52, $41, $6B, $32, $5D, $61, $75, $51, $46, $68, $79, $FF, $00
-loc_3B222:
+;Team_intro_jp_7
+Team_intro_jp_7:
 	dc.b	$8F, $A2, $D7, $A4, $54, $32, $45, $6B, $50, $47, $51, $32, $43, $52, $53, $4A, $46, $FC, $58, $4A, $75, $51, $46, $68, $79, $FF
-loc_3B23C:
+;Team_intro_jp_8
+Team_intro_jp_8:
 	dc.b	$45, $5E, $57, $32, $49, $40, $57, $41, $54, $32, $44, $47, $51, $5E, $64, $41, $79, $FF
-loc_3B24E:
+;Team_intro_jp_9
+Team_intro_jp_9:
 	dc.b	$5D, $3F, $32, $B8, $75, $46, $66, $32, $48, $4A, $6B, $4B, $42, $51, $32, $40, $48, $41, $79, $FF
-loc_3B262:
+;Team_intro_jp_10
+Team_intro_jp_10:
 	dc.b	$41, $4F, $58, $32, $45, $C2, $4A, $40, $64, $79, $FF, $00
-loc_3B26E:
+;Team_intro_jp_11
+Team_intro_jp_11:
 	dc.b	$52, $66, $3F, $42, $B9, $32, $5C, $4A, $74, $41, $45, $6C, $6B, $32, $61, $65, $43, $41, $44, $79, $FF, $00
-loc_3B284:
+;Team_intro_jp_12
+Team_intro_jp_12:
 	dc.b	$B2, $6C, $C1, $75, $51, $32, $44, $51, $67, $64, $41, $54, $32, $53, $69, $41, $79, $FF
 ;Team_msg_jp_f
 Team_msg_jp_f:
 	dc.b	$40, $40, $56, $79, $32, $45, $5E, $58, $32, $B5, $6C, $45, $BF, $79, $FF
 	dc.b	$00
-loc_3B2A6:
+;Team_intro_jp_13
+Team_intro_jp_13:
 	dc.b	$5D, $3F, $32, $4E, $57, $4A, $46, $32, $62, $69, $41, $79, $FF, $00
 ;Team_msg_jp_g
 Team_msg_jp_g:
 	dc.b	$64, $69, $4A, $46, $2D, $FF
-loc_3B2BA:
+;Team_intro_jp_14
+Team_intro_jp_14:
 	dc.b	$45, $5E, $54, $32, $45, $51, $61, $65, $42, $68, $C1, $32, $4E, $4B, $44, $67, $64, $79, $FF, $00
-loc_3B2CE:
+;Team_intro_en_be_top_driver
+Team_intro_en_be_top_driver:
 	txt "BE THE TOP DRIVER\nWITH THE BEST CAR.", $FF, $00
 ;Team_msg_can_still_drive
 Team_msg_can_still_drive:
 	txt "ARE YOU SURE IF YOU\nCAN STILL DRIVE?", $FF, $00
-loc_3B31A:
+;Team_intro_en_beat_madonna
+Team_intro_en_beat_madonna:
 	txt "LET'S TRY TO BEAT\nTHE MADONNA TEAM.", $FF
-loc_3B33E:
+;Team_intro_en_familiar_with_f1
+Team_intro_en_familiar_with_f1:
 	txt "ARE YOU GETTING FA-\nMILIAR WITH THE F1?", $FF
 ;Team_msg_help_comeback
 Team_msg_help_comeback:
 	txt "I'LL HELP YOU MAKE\nA COMEBACK.", $FF, $00
-loc_3B386:
+;Team_intro_en_reliable_machine
+Team_intro_en_reliable_machine:
 	txt "WE HAVE THE MOST\nRELIABLE MACHINE.", $FF, $00
-loc_3B3AA:
+;Team_intro_en_party_for_you
+Team_intro_en_party_for_you:
 	txt "WE'LL HAVE A PARTY\nFOR YOU LATER.", $FF
-loc_3B3CC:
+;Team_intro_en_keep_performances
+Team_intro_en_keep_performances:
 	txt "LET'S KEEP UP OUR\nPAST PERFORMANCES.", $FF, $00
-loc_3B3F2:
+;Team_intro_en_watch_for_trouble
+Team_intro_en_watch_for_trouble:
 	txt "WATCH FOR TROUBLE\nAND DRIVE CAREFULLY.", $FF, $00
-loc_3B41A:
+;Team_intro_en_rely_on_talent
+Team_intro_en_rely_on_talent:
 	txt "I'LL RELY ON YOUR\nTALENT.", $FF
-loc_3B434:
+;Team_intro_en_steady_team
+Team_intro_en_steady_team:
 	txt "WE'RE A STEADY TEAM.\nDON'T LET US DOWN.", $FF
-loc_3B45C:
+;Team_intro_en_very_strict
+Team_intro_en_very_strict:
 	txt "WE'LL BE VERY STRICT\nWITH YOU, OK?", $FF, $00
-loc_3B480:
+;Team_intro_en_security_money
+Team_intro_en_security_money:
 	txt "ANYWAY, GIVE ME\nTHE SECURITY MONEY.", $FF
-loc_3B4A4:
+;Team_intro_en_try_hard_to_win
+Team_intro_en_try_hard_to_win:
 	txt "LET'S TRY HARD\nTO WIN.", $FF, $00
 ;Team_msg_envy_high_spirits
 Team_msg_envy_high_spirits:
 	txt "I ENVY YOUR HIGH\nSPIRITS.", $FF
-loc_3B4D6:
+;Team_intro_en_enjoy_race
+Team_intro_en_enjoy_race:
 	txt "WELL, LET'S ENJOY\nTHE RACE TOGETHER.", $FF, $00
 ;Team_msg_hi
 Team_msg_hi:
 	dc.b	$FD
 	txt "HI!", $FF, $00
-loc_3B502:
+;Team_intro_en_appreciate_joining
+Team_intro_en_appreciate_joining:
 	txt "WE'D APPRECIATE\nYOUR JOINING US.", $FF, $00
 ;loc_3B524:
 TeamMessagesBeforeRace:
-	dc.l	loc_3B5AC
-	dc.l	loc_3B5C2
-	dc.l	loc_3B5D2
-	dc.l	loc_3B5F0
-	dc.l	loc_3B60A
-	dc.l	loc_3B620
-	dc.l	loc_3B638
-	dc.l	loc_3B658
-	dc.l	loc_3B66A
-	dc.l	loc_3B680
-	dc.l	loc_3B696
-	dc.l	loc_3B6AC
-	dc.l	loc_3B6C4
-	dc.l	loc_3B6E2
-	dc.l	loc_3B6F2
-	dc.l	loc_3B708
-	dc.l	loc_3B716
-	dc.l	loc_3B72E
-	dc.l	loc_3B74C    ; San Marino message after preliminary race
-	dc.l	loc_3B770
-	dc.l	loc_3B798
-	dc.l	loc_3B7C0
-	dc.l	loc_3B7E2
-	dc.l	loc_3B80A
-	dc.l	loc_3B832
-	dc.l	loc_3B854
-	dc.l	loc_3B87A
-	dc.l	loc_3B89E
-	dc.l	loc_3B8C2
-	dc.l	loc_3B8EA
-	dc.l	loc_3B912
-	dc.l	loc_3B932
-	dc.l	loc_3B954
-	dc.l	loc_3B978
-loc_3B5AC:
+	; JP block: entry 0 = partner-team fallback, entries 1-16 = per championship track
+	dc.l	Team_msg_jp_before_partner      ; [0] partner fallback
+	dc.l	Team_msg_jp_before_San_Marino   ; [1]  Track 0
+	dc.l	Team_msg_jp_before_Brazil       ; [2]  Track 1
+	dc.l	Team_msg_jp_before_France       ; [3]  Track 2
+	dc.l	Team_msg_jp_before_Hungary      ; [4]  Track 3
+	dc.l	Team_msg_jp_before_West_Germany ; [5]  Track 4
+	dc.l	Team_msg_jp_before_Usa          ; [6]  Track 5
+	dc.l	Team_msg_jp_before_Canada       ; [7]  Track 6
+	dc.l	Team_msg_jp_before_Great_Britain; [8]  Track 7
+	dc.l	Team_msg_jp_before_Italy        ; [9]  Track 8
+	dc.l	Team_msg_jp_before_Portugal     ; [10] Track 9
+	dc.l	Team_msg_jp_before_Spain        ; [11] Track 10
+	dc.l	Team_msg_jp_before_Mexico       ; [12] Track 11
+	dc.l	Team_msg_jp_before_Japan        ; [13] Track 12
+	dc.l	Team_msg_jp_before_Belgium      ; [14] Track 13
+	dc.l	Team_msg_jp_before_Australia    ; [15] Track 14
+	dc.l	Team_msg_jp_before_Monaco       ; [16] Track 15
+	; EN block: entry 0 = partner-team fallback, entries 1-16 = per championship track
+	; Offset from JP base = $44 (17 * 4 bytes); see Select_team_pre_race_message
+	dc.l	Team_msg_en_before_partner      ; [17] partner fallback
+	dc.l	Team_msg_en_before_San_Marino   ; [18] Track 0
+	dc.l	Team_msg_en_before_Brazil       ; [19] Track 1
+	dc.l	Team_msg_en_before_France       ; [20] Track 2
+	dc.l	Team_msg_en_before_Hungary      ; [21] Track 3
+	dc.l	Team_msg_en_before_West_Germany ; [22] Track 4
+	dc.l	Team_msg_en_before_Usa          ; [23] Track 5
+	dc.l	Team_msg_en_before_Canada       ; [24] Track 6
+	dc.l	Team_msg_en_before_Great_Britain; [25] Track 7
+	dc.l	Team_msg_en_before_Italy        ; [26] Track 8
+	dc.l	Team_msg_en_before_Portugal     ; [27] Track 9
+	dc.l	Team_msg_en_before_Spain        ; [28] Track 10
+	dc.l	Team_msg_en_before_Mexico       ; [29] Track 11
+	dc.l	Team_msg_en_before_Japan        ; [30] Track 12
+	dc.l	Team_msg_en_before_Belgium      ; [31] Track 13
+	dc.l	Team_msg_en_before_Australia    ; [32] Track 14
+	dc.l	Team_msg_en_before_Monaco       ; [33] Track 15
+;loc_3B5AC
+Team_msg_jp_before_partner:
 	dc.b	$32, $32, $32, $32, $32, $32, $B2, $32, $4F, $74, $41, $4C, $6C, $4A, $51, $32, $45, $4E, $BB, $2D, $FF
 	dc.b	$00
-loc_3B5C2:
+;loc_3B5C2
+Team_msg_jp_before_San_Marino:
 	dc.b	$98, $7C, $E0, $A8, $B2, $32, $55, $46, $8C, $AE, $A8, $88, $BC, $2D, $FF
 	dc.b	$00
-loc_3B5D2:
+;loc_3B5D2
+Team_msg_jp_before_Brazil:
 	dc.b	$8B, $7D, $9F, $B2, $32, $5B, $66, $62, $4B, $40, $44, $65, $32, $81, $2C, $D7, $BF, $58, $FC, $88, $E0, $2C, $D4, $6B, $32, $43, $52, $4C, $79, $FF
-loc_3B5F0:
+;loc_3B5F0
+Team_msg_jp_before_France:
 	dc.b	$88, $8F, $A5, $2C, $8F, $54, $50, $BE, $40, $51, $FC, $48, $41, $4D, $46, $85, $2C, $90, $2C, $B2, $32, $3F, $67, $79, $FF
 	dc.b	$00
-loc_3B60A:
+;loc_3B60A
+Team_msg_jp_before_Hungary:
 	dc.b	$69, $60, $6C, $B2, $32, $4B, $C4, $66, $62, $4B, $40, $44, $65, $32, $45, $6B, $50, $47, $69, $79, $FF, $00
-loc_3B620:
+;loc_3B620
+Team_msg_jp_before_West_Germany:
 	dc.b	$49, $40, $B6, $57, $85, $2C, $90, $2C, $58, $32, $44, $4D, $46, $4A, $53, $B2, $65, $FC, $55, $47, $69, $79, $FF
 	dc.b	$00
-loc_3B638:
+;loc_3B638
+Team_msg_jp_before_Usa:
 	dc.b	$4F, $74, $75, $44, $46, $85, $2C, $90, $2C, $B2, $32, $43, $43, $40, $44, $65, $FC, $D7, $A5, $2C, $82, $6B, $32, $41, $5D, $46, $50, $44, $42, $79, $FF
 	dc.b	$00
-loc_3B658:
+;loc_3B658
+Team_msg_jp_before_Canada:
 	dc.b	$88, $8F, $A5, $2C, $8F, $58, $32, $5C, $52, $6C, $C0, $32, $53, $40, $BB, $79, $FF, $00
-loc_3B66A:
+;loc_3B66A
+Team_msg_jp_before_Great_Britain:
 	dc.b	$63, $67, $40, $81, $2C, $D7, $58, $32, $7C, $83, $89, $A4, $BA, $6C, $44, $40, $BF, $FC, $40, $47, $79, $FF
-loc_3B680:
+;loc_3B680
+Team_msg_jp_before_Italy:
 	dc.b	$02, $50, $60, $57, $87, $84, $7D, $A8, $BF, $58, $32, $88, $E0, $2C, $D4, $D0, $7E, $A8, $BC, $79, $FF, $00
-loc_3B696:
+;loc_3B696
+Team_msg_jp_before_Portugal:
 	dc.b	$02, $50, $60, $57, $85, $2C, $90, $2C, $58, $32, $48, $41, $4D, $46, $BF, $32, $55, $47, $69, $79, $FF, $00
-loc_3B6AC:
+;loc_3B6AC
+Team_msg_jp_before_Spain:
 	dc.b	$85, $2C, $90, $2C, $BF, $57, $32, $7C, $83, $89, $A4, $A7, $2C, $83, $B2, $FC, $E3, $7D, $A8, $8F, $BC, $79, $FF, $00
-loc_3B6C4:
+;loc_3B6C4
+Team_msg_jp_before_Mexico:
 	dc.b	$46, $41, $45, $B2, $32, $41, $4B, $40, $44, $65, $32, $7F, $A8, $CC, $A8, $B2, $FC, $40, $4E, $5E, $62, $4B, $40, $32, $85, $2C, $88, $BC, $79, $FF
-loc_3B6E2:
+;loc_3B6E2
+Team_msg_jp_before_Japan:
 	dc.b	$87, $84, $7D, $A8, $B2, $32, $55, $46, $8C, $AE, $A8, $88, $BC, $79, $FF, $00
-loc_3B6F2:
+;loc_3B6F2
+Team_msg_jp_before_Belgium:
 	dc.b	$49, $40, $4A, $74, $57, $85, $2C, $90, $2C, $58, $32, $44, $53, $66, $32, $45, $50, $40, $BB, $79, $FF, $00
-loc_3B708:
+;loc_3B708
+Team_msg_jp_before_Australia:
 	dc.b	$88, $E0, $2C, $D4, $6B, $32, $BC, $4A, $4B, $B3, $67, $53, $79, $FF
-loc_3B716:
+;loc_3B716
+Team_msg_jp_before_Monaco:
 	dc.b	$98, $7C, $E0, $A8, $58, $32, $52, $5D, $67, $50, $61, $66, $BF, $FC, $88, $E0, $2C, $D4, $D0, $7E, $A8, $BC, $79, $FF
-loc_3B72E:
+;loc_3B72E
+Team_msg_en_before_partner:
 	txt "          IS\nCHALLENGING YOU!", $FF
-loc_3B74C:
+;loc_3B74C
+Team_msg_en_before_San_Marino:
 	txt "PASS THE CARS AT\nTHE HAIRPIN TURN!", $FF, $00
-loc_3B770:
+;loc_3B770
+Team_msg_en_before_Brazil:
 	txt "SLOW DOWN AT CURVES\nTO SAVE YOUR TIRES.", $FF
-loc_3B798:
+;loc_3B798
+Team_msg_en_before_France:
 	txt "GENTLE CURVE FOLLOWS\nTHE STRAIGHTAWAY.", $FF, $00
-loc_3B7C0:
+;loc_3B7C0
+Team_msg_en_before_Hungary:
 	txt	"BE CAREFUL! THE ROAD\nIS SLIPPERY.", $FF
-loc_3B7E2:
+;loc_3B7E2
+Team_msg_en_before_West_Germany:
 	txt "INCREASE SPEED TO\nPASS THE LAST CORNER", $FF, $00
-loc_3B80A:
+;loc_3B80A
+Team_msg_en_before_Usa:
 	txt "SKILLFULLY BRAKE AT\nTHE SHARP CORNERS.", $FF, $00
-loc_3B832:
+;loc_3B832
+Team_msg_en_before_Canada:
 	txt "THERE'S HARDLY\nANY STRAIGHTAWAY.", $FF, $00
-loc_3B854:
+;loc_3B854
+Team_msg_en_before_Great_Britain:
 	txt "PASS THE EASY COR-\nNERS AT TOP SPEED.", $FF
-loc_3B87A:
+;loc_3B87A
+Team_msg_en_before_Italy:
 	txt 'SLOW DOWN AT THE\nSECOND "CHICANE"!', $FF, $00
-loc_3B89E:
+;loc_3B89E
+Team_msg_en_before_Portugal:
 	txt "PASS THE 2ND CORNER\nAT HIGH SPEED.", $FF, $00
-loc_3B8C2:
+;loc_3B8C2
+Team_msg_en_before_Spain:
 	txt "CORNER SPEED CONTROL\nIS VERY IMPORTANT.", $FF
-loc_3B8EA:
+;loc_3B8EA
+Team_msg_en_before_Mexico:
 	txt "THE HIGH ALTITUDE\nMAY RUIN THE ENGINE.", $FF, $00
-loc_3B912:
+;loc_3B912
+Team_msg_en_before_Japan:
 	txt 'PASS THE CARS AT\nTHE "CHICANE"!', $FF
-loc_3B932:
+;loc_3B932
+Team_msg_en_before_Belgium:
 	txt "THE FIRST CORNER IS\nPRETTY SHARP.", $FF
-loc_3B954:
+;loc_3B954
+Team_msg_en_before_Australia:
 	txt "DON'T SOUP UP YOUR\nENGINE TOO MUCH!", $FF
-loc_3B978:
+;loc_3B978
+Team_msg_en_before_Monaco:
 	txt "COMPLETELY SLOW DOWN\nAT THE SHARP CURVES.", $FF
 ;loc_3B9A2
 ; 32-entry pointer table: team name display strings (JP names 0..15, EN names 16..31)
 ; Accessed via +$40 offset for English. See Select_rival_team_name for usage.
 Team_name_strings_table:
-	dc.l	loc_3BA22
-	dc.l	loc_3BA28
-	dc.l	loc_3BA30
-	dc.l	loc_3BA36
-	dc.l	loc_3BA3E
-	dc.l	loc_3BA44
-	dc.l	loc_3BA4A
-	dc.l	loc_3BA50
-	dc.l	loc_3BA56
-	dc.l	loc_3BA5C
-	dc.l	loc_3BA62
-	dc.l	loc_3BA68
-	dc.l	loc_3BA6E
-	dc.l	loc_3BA74
-	dc.l	loc_3BA7A
-	dc.l	loc_3BA80
-	dc.l	loc_3BA88
-	dc.l	loc_3BA92
-	dc.l	loc_3BA9C
-	dc.l	loc_3BAA6
-	dc.l	loc_3BAB0
-	dc.l	loc_3BABA
-	dc.l	loc_3BAC2
-	dc.l	loc_3BACA
-	dc.l	loc_3BAD2
-	dc.l	loc_3BADA
-	dc.l	loc_3BAE2
-	dc.l	loc_3BAEA
-	dc.l	loc_3BAF2
-	dc.l	loc_3BAFA
-	dc.l	loc_3BB02
-	dc.l	loc_3BB0A
-loc_3BA22:
+	; JP team names (indices 0..15, same order as Team_car_characteristics)
+	dc.l	Team_name_jp_Madonna
+	dc.l	Team_name_jp_Firenze
+	dc.l	Team_name_jp_Millions
+	dc.l	Team_name_jp_Bestowal
+	dc.l	Team_name_jp_Blanche
+	dc.l	Team_name_jp_Tyrant
+	dc.l	Team_name_jp_Losel
+	dc.l	Team_name_jp_May
+	dc.l	Team_name_jp_Bullets
+	dc.l	Team_name_jp_Dardan
+	dc.l	Team_name_jp_Linden
+	dc.l	Team_name_jp_Minarae
+	dc.l	Team_name_jp_Rigel
+	dc.l	Team_name_jp_Comet
+	dc.l	Team_name_jp_Orchis
+	dc.l	Team_name_jp_Zeroforce
+	; EN team names (indices 16..31, offset +$40 from base)
+	dc.l	Team_name_en_Madonna
+	dc.l	Team_name_en_Firenze
+	dc.l	Team_name_en_Millions
+	dc.l	Team_name_en_Bestowal
+	dc.l	Team_name_en_Blanche
+	dc.l	Team_name_en_Tyrant
+	dc.l	Team_name_en_Losel
+	dc.l	Team_name_en_May
+	dc.l	Team_name_en_Bullets
+	dc.l	Team_name_en_Dardan
+	dc.l	Team_name_en_Linden
+	dc.l	Team_name_en_Minarae
+	dc.l	Team_name_en_Rigel
+	dc.l	Team_name_en_Comet
+	dc.l	Team_name_en_Orchis
+	dc.l	Team_name_en_Zeroforce
+;loc_3BA22
+Team_name_jp_Madonna:
 	dc.b	$32, $9A, $D4, $A8, $90, $FF
-loc_3BA28:
+;loc_3BA28
+Team_name_jp_Firenze:
 	dc.b	$97, $AA, $A5, $A8, $8D, $AC, $FF, $00
-loc_3BA30:
+;loc_3BA30
+Team_name_jp_Millions:
 	dc.b	$9B, $A3, $80, $A8, $CD, $FF
-loc_3BA36:
+;loc_3BA36
+Team_name_jp_Bestowal:
 	dc.b	$D8, $88, $8F, $7E, $AC, $A4, $FF, $00
-loc_3BA3E:
+;loc_3BA3E
+Team_name_jp_Blanche:
 	dc.b	$D7, $A2, $A8, $8C, $AC, $FF
-loc_3BA44:
+;loc_3BA44
+Team_name_jp_Tyrant:
 	dc.b	$8B, $7D, $A2, $A8, $8F, $FF
-loc_3BA4A:
+;loc_3BA4A
+Team_name_jp_Losel:
 	dc.b	$32, $A6, $2C, $CE, $A4, $FF
-loc_3BA50:
+;loc_3BA50
+Team_name_jp_May:
 	dc.b	$32, $32, $32, $9D, $7D, $FF
-loc_3BA56:
+;loc_3BA56
+Team_name_jp_Bullets:
 	dc.b	$D6, $AF, $A5, $B1, $8D, $FF
-loc_3BA5C:
+;loc_3BA5C
+Team_name_jp_Dardan:
 	dc.b	$32, $D0, $2C, $D0, $A8, $FF
-loc_3BA62:
+;loc_3BA62
+Team_name_jp_Linden:
 	dc.b	$32, $A3, $A8, $D3, $A8, $FF
-loc_3BA68:
+;loc_3BA68
+Team_name_jp_Minarae:
 	dc.b	$32, $9B, $90, $A2, $7F, $FF
-loc_3BA6E:
+;loc_3BA6E
+Team_name_jp_Rigel:
 	dc.b	$32, $32, $A3, $C9, $A4, $FF
-loc_3BA74:
+;loc_3BA74
+Team_name_jp_Comet:
 	dc.b	$32, $85, $9D, $B1, $8F, $FF
-loc_3BA7A:
+;loc_3BA7A
+Team_name_jp_Orchis:
 	dc.b	$32, $80, $2C, $81, $88, $FF
-loc_3BA80:
+;loc_3BA80
+Team_name_jp_Zeroforce:
 	dc.b	$CE, $A6, $97, $AD, $2C, $88, $FF, $00
-loc_3BA88:
+;loc_3BA88
+Team_name_en_Madonna:
 	txt " MADONNA", $FF, $00
-loc_3BA92:
+;loc_3BA92
+Team_name_en_Firenze:
 	txt " FIRENZE", $FF, $00
-loc_3BA9C:
+;loc_3BA9C
+Team_name_en_Millions:
 	txt "MILLIONS", $FF, $00
-loc_3BAA6:
+;loc_3BAA6
+Team_name_en_Bestowal:
 	txt "BESTOWAL", $FF, $00
-loc_3BAB0:
+;loc_3BAB0
+Team_name_en_Blanche:
 	txt " BLANCHE", $FF, $00
-loc_3BABA:
+;loc_3BABA
+Team_name_en_Tyrant:
 	txt " TYRANT", $FF
-loc_3BAC2:
+;loc_3BAC2
+Team_name_en_Losel:
 	txt "  LOSEL", $FF
-loc_3BACA:
+;loc_3BACA
+Team_name_en_May:
 	txt "   MAY", $FF, $00
-loc_3BAD2:
+;loc_3BAD2
+Team_name_en_Bullets:
 	txt "BULLETS", $FF
-loc_3BADA:
+;loc_3BADA
+Team_name_en_Dardan:
 	txt " DARDAN", $FF
-loc_3BAE2:
+;loc_3BAE2
+Team_name_en_Linden:
 	txt " LINDEN", $FF
-loc_3BAEA:
+;loc_3BAEA
+Team_name_en_Minarae:
 	txt "MINARAE", $FF
-loc_3BAF2:
+;loc_3BAF2
+Team_name_en_Rigel:
 	txt "  RIGEL", $FF
-loc_3BAFA:
+;loc_3BAFA
+Team_name_en_Comet:
 	txt "  COMET", $FF
-loc_3BB02:
+;loc_3BB02
+Team_name_en_Orchis:
 	txt " ORCHIS", $FF
-loc_3BB0A:
+;loc_3BB0A
+Team_name_en_Zeroforce:
 	txt "ZEROFORCE", $FF
 ;loc_3BB14
 ; 320-entry pointer table: post-race team messages (JP block 0..159, EN block 160..319)
@@ -33324,7 +34044,8 @@ Team_msg_en_dont_make_me_angry:
 ;loc_3C898
 Team_msg_en_forfeit_license:
 	txt "I HEAR THEY'LL FOR-\nFEIT YOUR LICENSE.", $FF, $00
-loc_3C8C0:
+;Race_hud_tiles_b
+Race_hud_tiles_g:
 	dc.b	$00, $0D, $80, $06, $34, $17, $77, $26, $36, $36, $37, $48, $FA, $56, $33, $66, $3A, $75, $12, $81, $04, $06, $15, $0F, $25, $13, $37, $7C, $48, $FB, $66, $3C
 	dc.b	$76, $38, $82, $05, $18, $83, $04, $08, $17, $76, $84, $03, $00, $15, $15, $27, $7B, $85, $03, $02, $17, $7A, $86, $05, $14, $26, $32, $87, $05, $0E, $15, $16
 	dc.b	$88, $16, $39, $89, $06, $35, $8D, $03, $01, $15, $17, $FF, $6E, $9B, $A7, $E6, $32, $B7, $7F, $E3, $5B, $4F, $E2, $D2, $DF, $B3, $54, $B7, $EC, $D5, $2D, $FC
@@ -33335,202 +34056,234 @@ loc_3C8C0:
 	dc.b	$66, $07, $76, $17, $D9, $E4, $2C, $AA, $5F, $47, $30, $3F, $62, $FF, $2B, $79, $D6, $E1, $E4, $7E, $F5, $FF, $ED, $44, $7F, $B4, $7A, $FE, $68, $78, $3F, $B4
 	dc.b	$FD, $EB, $20, $47, $26, $B7, $F6, $45, $C7, $E9, $43, $2B, $D6, $E1, $87, $EB, $7D, $DF, $BC, $7F, $8B, $B4, $A5, $2D, $C1, $04, $10, $51, $45, $14, $7F, $EB
 	dc.b	$C7, $1C, $71, $C1, $79, $79, $64, $51, $45, $7F, $F7, $FF, $A4, $78, $BC, $5E, $2F, $11, $45, $14, $7F, $E8, $47, $F7, $40, $00, $00
-loc_3C9FB:
+;Crash_rpm_gauge_palette_table
+Crash_rpm_gauge_palette_table:
 	dc.b	$7F, $80
 	dc.b	$80
-	dc.l	loc_3CABA
+	dc.l	Crash_rpm_gauge_palette_0
 	dc.b	$00, $7F, $81
 	dc.b	$00
-	dc.l	loc_3CABA
+	dc.l	Crash_rpm_gauge_palette_0
 	dc.b	$00, $7F, $81
 	dc.b	$80
-	dc.l	loc_3CAC8
+	dc.l	Crash_rpm_gauge_palette_1
 	dc.b	$00, $7F, $82
 	dc.b	$20
-	dc.l	loc_3CADC
+	dc.l	Crash_rpm_gauge_palette_2
 	dc.b	$00, $7F, $82
 	dc.b	$D0
-	dc.l	loc_3CAF0
+	dc.l	Crash_rpm_gauge_palette_3
 	dc.b	$00, $7F, $83
 	dc.b	$80
-	dc.l	loc_3CB0A
+	dc.l	Crash_rpm_gauge_palette_4
 	dc.b	$00, $7F, $84
 	dc.b	$40
-	dc.l	loc_3CB24
+	dc.l	Crash_rpm_gauge_palette_5
 	dc.b	$00, $7F, $85
 	dc.b	$00
-	dc.l	loc_3CB3E
+	dc.l	Crash_rpm_gauge_palette_6
 	dc.b	$00, $7F, $85
 	dc.b	$B0
-	dc.l	loc_3CB58
+	dc.l	Crash_rpm_gauge_palette_7
 	dc.b	$00, $7F, $86
 	dc.b	$80
-	dc.l	loc_3CB78
+	dc.l	Crash_rpm_gauge_palette_8
 	dc.b	$00, $7F, $87
 	dc.b	$40
-	dc.l	loc_3CB98
+	dc.l	Crash_rpm_gauge_palette_9
 	dc.b	$00, $7F, $88
 	dc.b	$10
-	dc.l	loc_3CBBE
+	dc.l	Crash_rpm_gauge_palette_10
 	dc.b	$00, $7F, $89
 	dc.b	$00
-	dc.l	loc_3CBE4
+	dc.l	Crash_rpm_gauge_palette_11
 	dc.b	$00, $7F, $89
 	dc.b	$D0
-	dc.l	loc_3CC0A
+	dc.l	Crash_rpm_gauge_palette_12
 	dc.b	$00, $7F, $8A
 	dc.b	$90
-	dc.l	loc_3CC30
+	dc.l	Crash_rpm_gauge_palette_13
 	dc.b	$00, $7F, $8B
 	dc.b	$60
-	dc.l	loc_3CC56
+	dc.l	Crash_rpm_gauge_palette_14
 	dc.b	$00, $7F, $8C
 	dc.b	$30
-	dc.l	loc_3CC76
+	dc.l	Crash_rpm_gauge_palette_15
 	dc.b	$00, $7F, $8D
 	dc.b	$10
-	dc.l	loc_3CC9C
+	dc.l	Crash_rpm_gauge_palette_16
 	dc.b	$00, $7F, $8D
 	dc.b	$E0
-	dc.l	loc_3CCC2
+	dc.l	Crash_rpm_gauge_palette_17
 	dc.b	$00, $7F, $8E
 	dc.b	$B0
-	dc.l	loc_3CCE2
+	dc.l	Crash_rpm_gauge_palette_18
 	dc.b	$00, $7F, $8F
 	dc.b	$70
-	dc.l	loc_3CD02
+	dc.l	Crash_rpm_gauge_palette_19
 	dc.b	$00, $7F, $90
 	dc.b	$40
-	dc.l	loc_3CD16
+	dc.l	Crash_rpm_gauge_palette_20
 	dc.b	$00, $7F, $91
 	dc.b	$00
-	dc.l	loc_3CD30
+	dc.l	Crash_rpm_gauge_palette_21
 	dc.b	$00, $7F
 	dc.b	$91
 	dc.b	$A0
-	dc.l	loc_3CD30
-loc_3CABA:
+	dc.l	Crash_rpm_gauge_palette_21
+;Crash_rpm_gauge_palette_0
+Crash_rpm_gauge_palette_0:
 	dc.b	$00, $01, $B0, $0C, $84, $52, $00, $00, $B0, $0C, $84, $56, $00, $20
-loc_3CAC8:
+;Crash_rpm_gauge_palette_1
+Crash_rpm_gauge_palette_1:
 	dc.b	$00, $02, $B0, $0C, $84, $52, $00, $00, $B0, $04, $84, $56, $00, $20
 	dc.b	$B8, $0C, $84, $58, $00, $20
-loc_3CADC:
+;Crash_rpm_gauge_palette_2
+Crash_rpm_gauge_palette_2:
 	dc.b	$00, $02, $B0, $04, $84, $52, $00, $00, $B0, $09, $84, $54, $00, $10
 	dc.b	$B8, $08, $84, $5A, $00, $28
-loc_3CAF0:
+;Crash_rpm_gauge_palette_3
+Crash_rpm_gauge_palette_3:
 	dc.b	$00, $03, $B0, $0C, $84, $52, $00, $00, $B8, $0C, $84, $56, $00, $10
 	dc.b	$B8, $00, $84, $5A, $00, $30, $C0, $04, $84, $5B, $00, $30
-loc_3CB0A:
+;Crash_rpm_gauge_palette_4
+Crash_rpm_gauge_palette_4:
 	dc.b	$00, $03, $B0, $08, $84, $52, $00, $00, $B8, $0C, $84, $55, $00, $08
 	dc.b	$B8, $00, $84, $59, $00, $28, $C0, $0C, $84, $5A, $00, $20
-loc_3CB24:
+;Crash_rpm_gauge_palette_5
+Crash_rpm_gauge_palette_5:
 	dc.b	$00, $03, $B0, $08, $84, $52, $00, $00, $B8, $0C, $84, $55, $00, $08
 	dc.b	$C0, $08, $84, $59, $00, $20, $C8, $04, $84, $5C, $00, $30
-loc_3CB3E:
+;Crash_rpm_gauge_palette_6
+Crash_rpm_gauge_palette_6:
 	dc.b	$00, $03, $B0, $04, $84, $52, $00, $00, $B8, $08, $84, $54, $00, $08
 	dc.b	$C0, $08, $84, $57, $00, $18, $C8, $08, $84, $5A, $00, $28
-loc_3CB58:
+;Crash_rpm_gauge_palette_7
+Crash_rpm_gauge_palette_7:
 	dc.b	$00, $04, $B0, $04, $84, $52, $00, $00, $B8, $08, $84, $54, $00, $08
 	dc.b	$C0, $08, $84, $57, $00, $10, $C8, $08, $84, $5A, $00, $20, $D0, $04
 	dc.b	$84, $5D, $00, $30
-loc_3CB78:
+;Crash_rpm_gauge_palette_8
+Crash_rpm_gauge_palette_8:
 	dc.b	$00, $04, $B0, $04, $84, $52, $00, $00, $B8, $08, $84, $54, $00, $00
 	dc.b	$C0, $04, $84, $57, $00, $10, $C8, $08, $84, $59, $00, $18, $D0, $04
 	dc.b	$84, $5C, $00, $28
-loc_3CB98:
+;Crash_rpm_gauge_palette_9
+Crash_rpm_gauge_palette_9:
 	dc.b	$00, $05, $B0, $04, $84, $52, $00, $00, $B8, $08, $84, $54, $00, $00
 	dc.b	$C0, $04, $84, $57, $00, $10, $C8, $04, $84, $59, $00, $18, $D0, $04
 	dc.b	$84, $5B, $00, $20, $D8, $04, $84, $5D, $00, $28
-loc_3CBBE:
+;Crash_rpm_gauge_palette_10
+Crash_rpm_gauge_palette_10:
 	dc.b	$00, $05, $B0, $04, $84, $52, $00, $00, $B8, $08, $84, $54, $00, $00
 	dc.b	$C0, $08, $84, $57, $00, $08, $C8, $08, $84, $5A, $00, $10, $D0, $04
 	dc.b	$84, $5D, $00, $18, $D8, $04, $84, $5F, $00, $20
-loc_3CBE4:
+;Crash_rpm_gauge_palette_11
+Crash_rpm_gauge_palette_11:
 	dc.b	$00, $05, $B0, $05, $84, $52, $00, $00, $C0, $04, $84, $56, $00, $08
 	dc.b	$C8, $04, $84, $58, $00, $10, $D0, $04, $84, $5A, $00, $18, $D8, $04
 	dc.b	$84, $5C, $00, $20, $E0, $00, $84, $5E, $00, $28
-loc_3CC0A:
+;Crash_rpm_gauge_palette_12
+Crash_rpm_gauge_palette_12:
 	dc.b	$00, $05, $B0, $01, $84, $52, $00, $00, $B8, $01, $84, $54, $00, $08
 	dc.b	$C0, $01, $84, $56, $00, $10, $C8, $01, $84, $58, $00, $18, $D8, $04
 	dc.b	$84, $5A, $00, $18, $E0, $04, $84, $5C, $00, $20
-loc_3CC30:
+;Crash_rpm_gauge_palette_13
+Crash_rpm_gauge_palette_13:
 	dc.b	$00, $05, $B0, $01, $84, $52, $00, $00, $B8, $02, $84, $54, $00, $08
 	dc.b	$C0, $02, $84, $57, $00, $10, $D0, $01, $84, $5A, $00, $18, $E0, $04
 	dc.b	$84, $5C, $00, $18, $E8, $00, $84, $5E, $00, $20
-loc_3CC56:
+;Crash_rpm_gauge_palette_14
+Crash_rpm_gauge_palette_14:
 	dc.b	$00, $04, $B0, $02, $84, $52, $00, $00, $B8, $02, $84, $55, $00, $08
 	dc.b	$C8, $02, $84, $58, $00, $10, $D8, $01, $84, $5B, $00, $18, $E8, $04
 	dc.b	$84, $5D, $00, $18
-loc_3CC76:
+;Crash_rpm_gauge_palette_15
+Crash_rpm_gauge_palette_15:
 	dc.b	$00, $05, $B0, $00, $84, $52, $00, $00, $B8, $05, $84, $53, $00, $00
 	dc.b	$C8, $05, $84, $57, $00, $08, $D8, $00, $84, $5B, $00, $10, $E0, $04
 	dc.b	$84, $5C, $00, $10, $E8, $01, $84, $5E, $00, $18
-loc_3CC9C:
+;Crash_rpm_gauge_palette_16
+Crash_rpm_gauge_palette_16:
 	dc.b	$00, $05, $B0, $00, $84, $52, $00, $00, $B8, $05, $84, $53, $00, $00
 	dc.b	$C8, $01, $84, $57, $00, $08, $D0, $02, $84, $59, $00, $10, $E8, $04
 	dc.b	$84, $5C, $00, $10, $F0, $00, $84, $5E, $00, $18
-loc_3CCC2:
+;Crash_rpm_gauge_palette_17
+Crash_rpm_gauge_palette_17:
 	dc.b	$00, $04, $B0, $01, $84, $52, $00, $00, $C0, $05, $84, $54, $00, $00
 	dc.b	$D0, $00, $84, $58, $00, $08, $D8, $05, $84, $59, $00, $08, $E8, $01
 	dc.b	$84, $5D
 	dc.b	$00, $10
-loc_3CCE2:
+;Crash_rpm_gauge_palette_18
+Crash_rpm_gauge_palette_18:
 	dc.b	$00, $04, $B0, $01, $84, $52, $00, $00, $C0, $05, $84, $54, $00, $00
 	dc.b	$D0, $02, $84, $58, $00, $08, $E8, $04, $84, $5B, $00, $08, $F0, $00
 	dc.b	$84, $5D, $00, $10
-loc_3CD02:
+;Crash_rpm_gauge_palette_19
+Crash_rpm_gauge_palette_19:
 	dc.b	$00, $02, $B0, $02, $84, $52, $00, $00, $C8, $06, $84, $55, $00, $00
 	dc.b	$E0, $03, $84, $5B, $00, $08
-loc_3CD16:
+;Crash_rpm_gauge_palette_20
+Crash_rpm_gauge_palette_20:
 	dc.b	$00, $03, $B0, $03, $84, $52, $00, $00, $D0, $01, $84, $56, $00, $00
 	dc.b	$E0, $05, $84, $58, $00, $00, $F0, $01, $84, $5C, $00, $08
-loc_3CD30:
+;Crash_rpm_gauge_palette_21
+Crash_rpm_gauge_palette_21:
 	dc.b	$00, $02, $B0, $03, $84, $52, $00, $00, $D0, $03, $84, $56, $00, $00
 	dc.b	$F0, $01, $84, $5A, $00, $00, $00
-loc_3CD45:
+;Crash_sync_gauge_palette_table
+Crash_sync_gauge_palette_table:
 	dc.b	$7F, $94
 	dc.b	$30
-	dc.l	loc_3CDF4
+	dc.l	Crash_sync_gauge_palette_6
 	dc.b	$00, $7F, $93
 	dc.b	$80
-	dc.l	loc_3CDE0
+	dc.l	Crash_sync_gauge_palette_5
 	dc.b	$00, $7F, $92
 	dc.b	$C0
-	dc.l	loc_3CDCC
+	dc.l	Crash_sync_gauge_palette_4
 	dc.b	$00, $7F, $92
 	dc.b	$40
-	dc.l	loc_3CDB8
+	dc.l	Crash_sync_gauge_palette_3
 	dc.b	$00, $7F, $92
 	dc.b	$C0
-	dc.l	loc_3CDA4
+	dc.l	Crash_sync_gauge_palette_2
 	dc.b	$00, $7F, $93
 	dc.b	$80
-	dc.l	loc_3CD90
+	dc.l	Crash_sync_gauge_palette_1
 	dc.b	$00, $7F, $94
 	dc.b	$30
-	dc.l	loc_3CD7C
-loc_3CD7C:
+	dc.l	Crash_sync_gauge_palette_0
+;Crash_sync_gauge_palette_0
+Crash_sync_gauge_palette_0:
 	dc.b	$00, $02, $E8, $04, $84, $61, $FF, $FA, $F0, $0D, $84, $63, $FF, $F2
 	dc.b	$F8, $00, $84, $6B, $FF, $EA
-loc_3CD90:
+;Crash_sync_gauge_palette_1
+Crash_sync_gauge_palette_1:
 	dc.b	$00, $02, $E8, $04, $84, $61, $FF, $F8, $F0, $0D, $84, $63, $FF, $F0
 	dc.b	$F8, $00, $84, $6B, $FF, $E8
-loc_3CDA4:
+;Crash_sync_gauge_palette_2
+Crash_sync_gauge_palette_2:
 	dc.b	$00, $02, $E8, $04, $84, $61, $FF, $E9, $F0, $0D, $84, $63, $FF, $E9
 	dc.b	$F0, $01, $84, $6B, $00, $09
-loc_3CDB8:
+;Crash_sync_gauge_palette_3
+Crash_sync_gauge_palette_3:
 	dc.b	$00, $02, $F8, $04, $84, $61, $FF, $EC, $F0, $0C, $84, $63, $FF, $F4
 	dc.b	$F8, $04, $84, $67, $00, $04
-loc_3CDCC:
+;Crash_sync_gauge_palette_4
+Crash_sync_gauge_palette_4:
 	dc.b	$00, $02, $E8, $04, $8C, $61, $00, $07, $F0, $0D, $8C, $63, $FF, $F7
 	dc.b	$F0, $01, $8C, $6B, $FF, $EF
-loc_3CDE0:
+;Crash_sync_gauge_palette_5
+Crash_sync_gauge_palette_5:
 	dc.b	$00, $02, $E8, $04, $8C, $61, $FF, $F8, $F0, $0D, $8C, $63, $FF, $F0
 	dc.b	$F8, $00, $8C, $6B, $00, $10
-loc_3CDF4:
+;Crash_sync_gauge_palette_6
+Crash_sync_gauge_palette_6:
 	dc.b	$00, $02, $E8, $04, $8C, $61, $FF, $F6, $F0, $0D, $8C, $63, $FF, $EE
 	dc.b	$F8, $00, $8C, $6B, $00, $0E, $00
-loc_3CE09:
+;Crash_collision_palette_table
+Crash_collision_palette_table:
 	dc.b	$7F, $9D
 	dc.b	$E0
 	dc.b	$00, $7F, $A2
@@ -33615,7 +34368,8 @@ loc_3CE09:
 	dc.b	$E0
 	dc.b	$00, $7F, $9F
 	dc.b	$60
-loc_3CEB0:
+;Startup_tileset_data
+Startup_tileset_data:
 	dc.b	$82, $42, $80, $03, $01, $15, $12, $25, $16, $36, $34, $45, $18, $55, $13, $65, $15, $73, $00, $81, $04, $04, $16, $36, $27, $77, $38, $F7, $82, $05, $19, $17
 	dc.b	$74, $83, $04, $05, $17, $72, $28, $F2, $84, $05, $14, $17, $75, $85, $04, $07, $16, $37, $28, $F0, $38, $F3, $86, $06, $38, $87, $07, $73, $88, $04, $06, $17
 	dc.b	$76, $89, $04, $08, $18, $F1, $8C, $06, $35, $8D, $05, $17, $18, $F4, $FF, $3F, $F3, $FF, $08, $3F, $E1, $51, $FE, $30, $3F, $E7, $FF, $11, $FF, $11, $FF, $30
@@ -33856,7 +34610,8 @@ loc_3CEB0:
 	dc.b	$DB, $E6, $69, $6A, $34, $14, $93, $DB, $57, $34, $4A, $6A, $F0, $68, $C6, $92, $72, $90, $8D, $67, $82, $FA, $E8, $C5, $CF, $7A, $3F, $54, $00, $0B, $8B, $CD
 	dc.b	$8D, $2D, $44, $2D, $17, $D1, $B0, $8E, $7B, $1B, $DB, $C5, $AC, $E9, $BF, $EA, $6E, $57, $5F, $03, $1C, $1D, $62, $5B, $DB, $F1, $DA, $FE, $92, $5A, $F0, $D3
 	dc.b	$E2, $49, $4E, $9A, $F3, $62, $9A, $EF, $28, $EB, $AD, $33, $AE, $F6, $A7, $36, $D5, $F4, $74, $64, $A6, $AF, $27, $A6, $C5, $3F, $38, $00
-loc_3ECAC:
+;Race_hud_tiles_a
+Race_hud_tiles_f:
 	dc.b	$02, $67, $80, $05, $16, $16, $2F, $26, $2A, $36, $31, $47, $6B, $57, $70, $67, $6D, $74, $04, $81, $03, $01, $15, $11, $26, $2B, $36, $2E, $47, $66, $56, $34
 	dc.b	$67, $6E, $74, $06, $83, $08, $E7, $84, $03, $00, $15, $12, $27, $6A, $37, $74, $48, $EC, $58, $F2, $68, $F5, $78, $E6, $85, $05, $0E, $17, $6F, $28, $F1, $78
 	dc.b	$F4, $86, $05, $0F, $16, $30, $27, $71, $38, $EE, $58, $EF, $78, $ED, $87, $05, $13, $17, $6C, $28, $F6, $88, $05, $14, $16, $32, $28, $EB, $38, $F0, $78, $EA
@@ -34012,7 +34767,7 @@ loc_3ECAC:
 	dc.b	$A1, $71, $50, $A3, $1E, $98, $F4, $8D, $E0, $CB, $30, $8D, $E6, $44, $1C, $6E, $C6, $EC, $6E, $FD, $CD, $D2, $D0, $6E, $FD, $AD, $D8, $D7, $D9, $5F, $64, $7C
 	dc.b	$A3, $C0, $F0, $08, $88, $88, $9C, $33, $EB, $86, $5A, $FC, $F3, $79, $8C, $61, $1B, $44, $5A, $11, $A8, $88, $03, $AE, $00, $FF, $66, $BE, $90, $CC, $0C, $23
 	dc.b	$FB, $53, $08, $EB, $84, $7B, $21, $1E, $CC, $E7, $B2, $14, $85, $E2, $39, $E9, $D2, $22, $16, $F2, $35
-loc_40001:
+;loc_40001
 	dc.b	$76, $6B, $D5, $C2, $48, $88, $89, $AF, $56, $32, $51, $88, $52, $2A, $95, $75, $05, $AF, $CE, $55, $E5, $05, $BB, $39, $17, $67, $21, $99, $98, $CB, $40, $BA
 	dc.b	$05, $D3, $96, $9F, $93, $D1, $CB, $A0, $5B, $81, $0A, $61, $11, $15, $34, $85, $C0, $C2, $9B, $9D, $0C, $C3, $76, $AC, $DD, $2B, $5E, $97, $5F, $AA, $BD, $75
 	dc.b	$DB, $B2, $35, $73, $2F, $F1, $75, $7E, $D5, $41, $0B, $E2, $14, $CB, $C4, $B8, $10, $AE, $52, $A0, $8E, $4E, $21, $62, $39, $45, $D1, $1C, $A2, $E8, $C9, $48
@@ -38485,7 +39240,8 @@ Car_sprite_data_53F50:
 	dc.b	$B3, $F3, $E0, $DC, $06, $48, $C8, $4D, $C3, $FC, $17, $A3, $E4, $17, $A0, $F4, $0D, $C2, $D4, $3A, $D4, $F5, $A8, $BD, $32, $6E, $C9, $D6, $AE, $B7, $65, $EB
 	dc.b	$3E, $F5, $BB, $A3, $20, $86, $AF, $4F, $4F, $4B, $27, $5A, $BE, $59, $7A, $CB, $2D, $DF, $2D, $D9, $75, $AB, $BF, $24, $D4, $7A, $C8, $BD, $35, $64, $EB, $53
 	dc.b	$AE, $BE, $5B, $B2, $EB, $57, $5F, $46, $EC, $B2, $6E, $DD, $D7, $CF, $D7, $EC
-loc_54020:
+;loc_54020
+Race_hud_car_tiles:
 	dc.b	$80, $77, $80, $05, $16, $15, $19, $26, $37, $36, $34, $45, $17, $55, $18, $66, $38, $71, $00, $81, $06, $35, $82, $04, $0A, $83, $06, $3A, $85, $04, $08, $18
 	dc.b	$F4, $27, $7B, $38, $F5, $86, $07, $72, $87, $04, $09, $88, $06, $36, $8A, $07, $78, $48, $F2, $77, $73, $8D, $07, $77, $17, $76, $8F, $08, $F3, $FF, $FD, $6F
 	dc.b	$90, $00, $00, $0F, $D3, $80, $69, $2E, $24, $00, $00, $1F, $97, $FE, $AB, $35, $79, $CD, $2F, $39, $AB, $CE, $69, $79, $CD, $5E, $73, $4B, $CA, $49, $00, $7F
@@ -38507,7 +39263,8 @@ loc_54020:
 	dc.b	$AA, $DA, $DB, $5B, $7E, $47, $3A, $DB, $F2, $36, $D6, $FA, $F1, $AE, $75, $D3, $5D, $FF, $47, $F9, $EB, $72, $FC, $71, $A6, $DA, $F2, $00, $03, $1A, $F2, $67
 	dc.b	$B5, $B6, $B7, $2F, $C7, $0B, $7E, $F7, $F4, $60, $00, $03, $AF, $C9, $5F, $F2, $38, $D5, $6D, $6F, $F9, $3F, $C7, $75, $DD, $8D, $76, $00, $63, $5D, $B7, $ED
 	dc.b	$9F, $C7, $57, $55, $7D, $56, $D7, $BD, $B6, $FE, $1D, $B6, $E4, $02, $FD, $F6, $B7, $E4, $CD, $FB, $7E, $8C, $6E, $00
-loc_542B8:
+;loc_542B8
+Startup_screen_tiles:
 	dc.b	$80, $31, $80, $03, $00, $14, $04, $25, $0E, $36, $26, $45, $14, $56, $34, $66, $31, $75, $12, $81, $04, $02, $16, $2F, $27, $66, $38, $EC, $48, $F4, $82, $05
 	dc.b	$11, $18, $F7, $83, $04, $03, $17, $6B, $28, $E2, $38, $F3, $47, $75, $78, $EE, $84, $07, $67, $85, $05, $0F, $17, $6E, $28, $F0, $86, $06, $27, $18, $EF, $87
 	dc.b	$05, $0D, $16, $32, $27, $72, $38, $E3, $88, $05, $10, $17, $6C, $28, $F1, $89, $06, $2E, $18, $E7, $8A, $06, $2A, $17, $70, $8B, $05, $16, $17, $6A, $28, $E6
@@ -38544,7 +39301,8 @@ loc_542B8:
 	dc.b	$1A, $D4, $85, $31, $37, $12, $9D, $A2, $D5, $A3, $51, $A9, $96, $9F, $DC, $15, $F7, $6D, $C3, $A3, $C4, $12, $61, $CC, $86, $9B, $DA, $66, $4C, $2B, $43, $06
 	dc.b	$E2, $46, $7E, $70, $57, $D1, $87, $77, $8E, $E3, $CF, $0E, $6E, $F1, $51, $7F, $39, $53, $D2, $2D, $1D, $73, $DF, $46, $A7, $F7, $35, $77, $6C, $B8, $FF, $65
 	dc.b	$34, $68, $52, $A8, $E5, $1A, $14, $DF, $BB, $9B, $AB, $80
-loc_54724:
+;loc_54724
+Ui_tilemap_source:
 	dc.b	$08, $03, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $DF, $68, $17, $04, $64, $28, $40, $38, $2A, $D1, $00, $41, $84, $03
 	dc.b	$88
 	dc.b	$95, $40, $0E, $08, $0E, $3D, $20, $22, $20, $0F, $00, $0B, $16, $10, $36, $FA, $22, $BC, $24, $20, $6C, $06, $C4, $A2, $0D
@@ -38590,7 +39348,7 @@ loc_54724:
 	dc.b	$FB, $EF, $BE, $FB, $60, $BF, $00, $1B, $0D, $C0, $21, $83, $61, $33, $85, $13, $E0, $3C
 	dc.b	$44
 	dc.b	$06, $E8, $8E, $D4, $47, $A5, $78, $03, $78, $D1, $A0, $22, $03, $74, $C7, $C4, $A1, $03, $78, $D2, $1E, $12, $6C, $60, $6E, $91, $03, $FC, $00
-loc_548D8:
+Race_hud_car_tiles_b:
 	dc.b	$00, $85, $8B, $06, $36, $17, $72, $27, $6F, $37, $73, $46, $34, $57, $79, $67, $6E, $73, $01, $8C, $06, $30, $18, $FA, $26, $32, $36, $31, $56, $35, $68, $F9
 	dc.b	$73, $02, $8D, $06, $2E, $15, $13, $26, $2F, $35, $15, $46, $33, $56, $38, $75, $10, $8E, $07, $74, $17, $75, $27, $76, $37, $77, $47, $78, $57, $7A, $67, $7B
 	dc.b	$78, $F8, $8F, $05, $0F, $15, $0E, $25, $11, $34, $06, $45, $14, $55, $16, $65, $12, $73, $00, $FF, $24, $92, $49, $24, $92, $4E, $99, $12, $4E, $EC, $39, $A5
@@ -38622,7 +39380,7 @@ loc_548D8:
 	dc.b	$56, $D3, $31, $D2, $5B, $00, $00, $00, $5D, $2A, $B7, $0E, $83, $FF, $DA, $DC, $E5, $B0, $00, $00, $4B, $BC, $DB, $90, $00, $00, $00, $BE, $99, $C6, $00, $0B
 	dc.b	$A5, $56, $E1, $D0, $81, $24, $BF, $73, $73, $00, $92, $49, $31, $D2, $DC, $80, $00, $00, $5D, $E6, $9B, $C0, $00, $12, $4B, $73, $96, $C0, $12, $49, $2E, $F3
 	dc.b	$6E, $40, $00, $05, $D2, $BE, $DB, $9B, $98, $00, $00, $49, $8E, $96, $E4, $00, $24, $92, $EF, $34, $DE, $00, $00, $09, $DA, $AC
-loc_54CB2:
+Minimap_tiles_Monaco_prelim:
 	dc.b	$80, $29, $80, $04, $08, $15, $16, $25, $18, $36, $38, $45, $19, $54, $09, $65, $1B, $72, $00, $81, $03, $02, $14, $0A, $27, $7B, $38, $FA, $82, $05, $17, $16
 	dc.b	$3C, $83, $06, $39, $8C, $03, $03, $15, $1A, $28, $F8, $8D, $06, $3A, $28, $F9, $37, $7A, $8E, $06, $3B, $FF, $00, $DA, $94, $F2, $9E, $53, $95, $F2, $1F, $C1
 	dc.b	$C7, $F3, $2A, $5C, $29, $76, $F8, $C3, $EB, $DF, $A0, $01, $0A, $68, $00, $CA, $25, $39, $5D, $5B, $DF, $0B, $E2, $A1, $3C, $38, $52, $E1, $D9, $92, $F3, $F9
@@ -38637,9 +39395,9 @@ loc_54CB2:
 	dc.b	$03, $F4, $59, $FA, $8F, $D1, $E1, $5C, $B5, $C0, $C2, $BD, $AE, $73, $50, $BF, $27, $E4, $29, $40, $6D, $13, $58, $5C, $DC, $00, $0E, $6A, $CB, $9B, $80, $01
 	dc.b	$CD, $59, $73, $7E, $11, $70, $09, $57, $B7, $35, $65, $CD, $C2, $F0, $83, $37, $84, $67, $9A, $B2, $E6, $F9, $57, $0D, $AB, $ED, $07, $35, $85, $CC, $5E, $14
 	dc.b	$2B, $E2, $F0, $AF, $9F, $0B, $79, $9B, $C2, $FE, $14, $28, $FE, $8C, $7E, $4E, $8C, $DE, $17, $17, $85, $2A, $50, $6C
-loc_54E6A:
+Minimap_map_Monaco_prelim:
 	dc.b	$06, $00, $00, $01, $00, $00, $09, $03, $C0, $44, $44, $E0, $2A, $0A, $80, $A6, $12, $60, $F0, $75, $30, $78, $3A, $98, $3C, $1D, $4C, $2F, $E0, $00
-loc_54E88:
+Minimap_tiles_Monaco_arcade:
 	dc.b	$80, $27, $80, $04, $08, $14, $0B, $25, $18, $36, $3A, $45, $1A, $54, $09, $65, $1B, $72, $00, $81, $03, $02, $14, $0A, $27, $7B, $38, $F9, $82, $03, $03, $15
 	dc.b	$19, $26, $3C, $83, $05, $1C, $18, $F8, $26, $3B, $37, $7A, $8C, $08, $FA, $FF, $00, $DA, $94, $F4, $9E, $93, $95, $D8, $7F, $07, $1F, $C2, $A9, $70, $A5, $DF
 	dc.b	$98, $7C, $F7, $E8, $00, $42, $9A, $00, $34, $89, $4E, $57, $2F, $DF, $4B, $CA, $84, $F0, $E1, $4B, $87, $6C, $97, $AF, $8A, $ED, $00, $80, $DA, $B5, $EB, $6E
@@ -38653,9 +39411,9 @@ loc_54E88:
 	dc.b	$F0, $99, $6C, $0C, $27, $6C, $E5, $42, $F8, $CC, $29, $40, $6D, $13, $58, $5C, $60, $00, $72, $AD, $71, $80, $01, $CA, $B5, $C7, $D2, $18, $04, $A7, $7C, $AB
 	dc.b	$5C, $60, $E1, $06, $9C, $23, $5C, $AB, $5C, $7A, $4C, $36, $9E, $D0, $72, $B0, $B9, $0E, $14, $27, $87, $09, $EB, $25, $E7, $4E, $17, $F0, $A1, $47, $F4, $63
 	dc.b	$E2, $8D, $38, $5D, $38, $52, $A5, $06, $C0, $00
-loc_55012:
+Minimap_map_Monaco_arcade:
 	dc.b	$06, $00, $00, $01, $00, $00, $09, $03, $C0, $44, $44, $E0, $2A, $07, $06, $54, $03, $83, $29, $84, $98, $3C, $19, $4C, $1E, $0C, $A6, $0F, $06, $53, $0B, $F8
-loc_55032:
+Minimap_tiles_San_Marino:
 	dc.b	$80, $26, $80, $03, $04, $15, $17, $25, $18, $35, $1B, $46, $3B, $55, $16, $65, $19, $72, $00, $81, $03, $02, $14, $0A, $26, $3D, $82, $03, $03, $15, $1A, $27
 	dc.b	$7C, $83, $06, $3C, $15, $1C, $26, $3A, $37, $7D, $FF, $2F, $EE, $D7, $CA, $89, $E1, $C5, $66, $0F, $6F, $0B, $A5, $D0, $08, $15, $9C, $5D, $FC, $F2, $B9, $67
 	dc.b	$DB, $C2, $7D, $BC, $A8, $9D, $DC, $41, $C8, $F9, $45, $DC, $56, $71, $5D, $E1, $C5, $13, $C3, $8A, $27, $8D, $5D, $3C, $AF, $A0, $05, $5B, $55, $BE, $47, $CA
@@ -38668,9 +39426,9 @@ loc_55032:
 	dc.b	$9D, $93, $9E, $55, $D7, $00, $23, $88, $37, $C8, $F9, $56, $78, $4C, $0C, $3C, $26, $65, $3B, $AC, $26, $06, $11, $67, $11, $17, $57, $5D, $B0, $03, $35, $85
 	dc.b	$C3, $B4, $C3, $29, $87, $95, $17, $1C, $71, $01, $66, $1D, $EB, $CA, $E8, $00, $0A, $ED, $01, $94, $07, $55, $D6, $DD, $99, $8D, $76, $E2, $78, $71, $45, $F2
 	dc.b	$B1, $EE, $28, $32, $AC, $80, $C8, $00
-loc_5519A:
+Minimap_map_San_Marino:
 	dc.b	$06, $00, $00, $00, $00, $00, $09, $40, $93, $11, $00, $90, $05, $11, $13, $09, $30, $93, $09, $30, $93, $09, $30, $90, $FE, $00
-loc_551B4:
+Minimap_tiles_Monaco:
 	dc.b	$80, $2B, $80, $03, $04, $14, $0A, $25, $16, $35, $1A, $45, $1C, $55, $17, $66, $3A, $73, $03, $81, $03, $02, $14, $0C, $28, $F8, $82, $02, $00, $15, $1B, $28
 	dc.b	$F9, $38, $FA, $83, $06, $3D, $16, $3B, $26, $3C, $FF, $E9, $5D, $1C, $47, $10, $DB, $75, $F1, $17, $9B, $9F, $B1, $B7, $D4, $57, $DB, $FA, $E7, $FC, $AD, $BA
 	dc.b	$FE, $9E, $3C, $B9, $3E, $35, $BA, $F8, $B7, $D3, $FA, $E7, $C7, $F0, $DB, $6F, $2E, $4C, $E6, $E6, $57, $8A, $1D, $E9, $1D, $2D, $DF, $1B, $6F, $FE, $73, $7C
@@ -38687,9 +39445,9 @@ loc_551B4:
 	dc.b	$CE, $97, $F0, $A2, $38, $87, $5F, $2C, $D6, $E9, $1A, $26, $78, $42, $67, $37, $15, $C8, $AE, $68, $B6, $E9, $17, $CD, $E8, $51, $7E, $CD, $B6, $DB, $22, $E2
 	dc.b	$9F, $C3, $51, $1A, $29, $1D, $23, $A4, $74, $8E, $91, $D6, $4C, $FD, $9C, $C8, $58, $8A, $1A, $F9, $76, $2E, $5C, $8B, $F8, $51, $5B, $2B, $35, $FB, $16, $E2
 	dc.b	$BA, $6F, $A5, $D2, $6D, $B6, $FA, $00
-loc_5539C:
+Minimap_map_Monaco:
 	dc.b	$06, $00, $00, $01, $00, $00, $0D, $21, $13, $0D, $30, $93, $09, $20, $92, $0D, $20, $D2, $05, $00, $51, $11, $20, $D0, $FE, $00
-loc_553B6:
+Minimap_tiles_Mexico:
 	dc.b	$80, $20, $80, $04, $08, $15, $18, $25, $1A, $35, $19, $45, $1B, $54, $0A, $65, $1C, $72, $00, $81, $03, $02, $14, $09, $28, $F8, $38, $F9, $82, $03, $03, $14
 	dc.b	$0B, $26, $3B, $38, $FB, $83, $06, $3A, $18, $FA, $26, $3C, $36, $3D, $FF, $03, $8A, $93, $DA, $7B, $4F, $1F, $2F, $5F, $3E, $84, $D5, $CD, $5C, $D5, $CD, $38
 	dc.b	$FF, $1A, $00, $05, $C5, $4A, $93, $00, $0F, $E9, $B1, $D3, $A7, $0B, $1D, $C2, $DC, $86, $1C, $5F, $B1, $7B, $F8, $BA, $9B, $A9, $7C, $41, $D4, $D5, $CD, $5C
@@ -38700,10 +39458,10 @@ loc_553B6:
 	dc.b	$C5, $E4, $E1, $3C, $38, $40, $06, $1F, $3D, $F8, $EB, $69, $ED, $33, $69, $86, $19, $E7, $7D, $2D, $38, $59, $70, $B2, $E1, $65, $C2, $29, $14, $B0, $BC, $40
 	dc.b	$00, $2C, $2F, $10, $00, $0B, $6B, $A0, $03, $8F, $8F, $EA, $70, $BA, $00, $2E, $AC, $00, $1C, $2A, $71, $F1, $9F, $BF, $1E, $98, $61, $33, $32, $F4, $E2, $CD
 	dc.b	$38, $5B, $BE, $9F, $13, $E2, $FE, $96, $3F, $A2, $07, $B2, $66, $E7, $17, $39, $90, $28
-loc_554E8:
+Minimap_map_Mexico:
 	dc.b	$06, $03, $00, $00, $00, $00, $0D, $21, $60, $01, $82, $80, $74, $42, $90, $0B, $94, $18, $50, $58, $3C, $20, $D1, $A2, $14, $0A, $54, $42, $81, $4A, $88, $50
 	dc.b	$29, $03, $44, $65, $28, $10, $80, $F0, $D3, $4A, $06, $18, $29, $FF
-loc_55516:
+Minimap_tiles_France:
 	dc.b	$80, $26, $80, $04, $0A, $14, $0B, $25, $18, $35, $1A, $46, $3A, $55, $1C, $68, $F9, $72, $00, $81, $02, $01, $15, $19, $26, $3D, $48, $FB, $82, $03, $04, $18
 	dc.b	$FA, $28, $F8, $83, $06, $3C, $15, $1B, $26, $3B, $FF, $0F, $97, $8C, $E9, $9D, $33, $A6, $74, $CC, $4B, $7E, $3C, $6B, $3F, $1E, $FD, $62, $54, $E4, $31, $F5
 	dc.b	$AF, $AC, $CB, $99, $B6, $53, $D3, $E0, $89, $C9, $4F, $25, $26, $B7, $90, $C3, $C6, $1D, $30, $E9, $98, $77, $2B, $E9, $98, $94, $CC, $4A, $75, $29, $D4, $A4
@@ -38715,9 +39473,9 @@ loc_55516:
 	dc.b	$83, $2E, $52, $14, $F6, $D6, $C0, $0E, $98, $57, $99, $C3, $E0, $01, $52, $93, $5B, $CE, $10, $E3, $0E, $98, $15, $DF, $BB, $0B, $94, $9A, $94, $86, $BC, $CE
 	dc.b	$1F, $03, $8C, $00, $DE, $70, $85, $CA, $40, $E4, $AF, $7F, $67, $5F, $01, $86, $5C, $2D, $97, $02, $BD, $EF, $21, $49, $C4, $3E, $5E, $F3, $BE, $A7, $26, $18
 	dc.b	$7C, $B3, $1F, $56, $FC, $67, $1E, $DF, $BD, $E7, $E2, $E5, $26, $A5, $3A, $94, $97, $F1, $9C, $7B, $D0, $00
-loc_5566C:
+Minimap_map_France:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $00, $92, $0D, $20, $D2, $0D, $28, $06, $04, $90, $88, $D1, $4D, $00, $51, $05, $00, $12, $0D, $20, $D3, $05, $2F, $E0, $00
-loc_5568C:
+Minimap_tiles_Great_Britain:
 	dc.b	$80, $2A, $80, $04, $08, $14, $0C, $24, $09, $36, $3C, $45, $1A, $54, $0B, $65, $1C, $72, $00, $81, $03, $02, $14, $0A, $27, $7C, $82, $03, $03, $16, $3B, $28
 	dc.b	$FA, $83, $05, $1B, $16, $3A, $26, $3D, $38, $FB, $FF, $00, $E2, $B4, $F4, $9E, $93, $D2, $87, $D6, $2F, $AA, $84, $E5, $C2, $76, $ED, $CF, $7A, $70, $9C, $B8
 	dc.b	$50, $9C, $6E, $A5, $6C, $40, $AD, $C2, $B7, $08, $F3, $AA, $00, $25, $5A, $7A, $50, $E5, $6F, $EB, $13, $D2, $7E, $3B, $70, $9C, $B8, $4E, $5C, $2F, $1C, $2F
@@ -38731,10 +39489,10 @@ loc_5568C:
 	dc.b	$D6, $EB, $17, $40, $00, $6E, $B1, $74, $00, $06, $EA, $56, $C0, $2D, $30, $EA, $A5, $00, $63, $84, $04, $BC, $70, $80, $31, $3C, $70, $8C, $5E, $C3, $D8, $00
 	dc.b	$69, $38, $DD, $4A, $D8, $4F, $F0, $63, $FC, $40, $7F, $CC, $3F, $E3, $FF, $20, $36, $E7, $BD, $82, $76, $C2, $5C, $2F, $1C, $2C, $FA, $CF, $F8, $FC, $00, $0F
 	dc.b	$9A, $F8, $00, $1A, $00, $00
-loc_55812:
+Minimap_map_Great_Britain:
 	dc.b	$06, $03, $00, $00, $00, $00, $0D, $21, $11, $05, $08, $10, $22, $24, $22, $20, $A0, $12, $00, $A2, $0A, $00, $A2, $0A, $00, $A3, $44, $81, $08, $1B, $20, $22
 	dc.b	$14, $02, $70, $11, $81, $B2, $04, $12, $90, $3F, $80, $00
-loc_5583E:
+Minimap_tiles_West_Germany:
 	dc.b	$80, $26, $80, $04, $08, $14, $09, $25, $1B, $34, $0B, $45, $1A, $54, $0C, $65, $1D, $72, $00, $81, $03, $02, $14, $0A, $82, $03, $03, $15, $1C, $28, $F8, $83
 	dc.b	$06, $3D, $26, $3C, $38, $FA, $FF, $00, $EA, $C4, $EE, $9D, $AE, $69, $7D, $6B, $F4, $33, $FA, $1F, $88, $5F, $1B, $4F, $1E, $3D, $71, $4F, $C5, $47, $33, $F8
 	dc.b	$55, $9C, $47, $7F, $85, $7F, $B1, $67, $57, $82, $04, $06, $50, $1A, $58, $9E, $93, $34, $9D, $AF, $5D, $A7, $6D, $3D, $F1, $3D, $B8, $56, $E1, $5B, $85, $6E
@@ -38747,10 +39505,10 @@ loc_5583E:
 	dc.b	$62, $6B, $EB, $F4, $2F, $6E, $56, $DC, $F2, $5C, $73, $4F, $1D, $BD, $71, $5B, $85, $1F, $55, $3F, $D1, $9F, $E9, $56, $32, $3E, $35, $5D, $5D, $AF, $A4, $08
 	dc.b	$03, $AA, $17, $95, $9C, $94, $CE, $AE, $65, $73, $28, $FF, $8F, $FC, $80, $FF, $97, $FC, $4F, $F8, $F2, $3F, $84, $07, $23, $F8, $5F, $F1, $17, $F0, $E9, $DB
 	dc.b	$85, $6E, $15, $B8, $5B, $E5, $6D, $D6, $91, $D0
-loc_559A8:
+Minimap_map_West_Germany:
 	dc.b	$06, $03, $00, $00, $00, $00, $01, $10, $D1, $11, $10, $50, $05, $10, $11, $01, $10, $51, $01, $1A, $21, $88, $80, $88, $28, $F0, $8F, $44, $14, $41, $40, $14
 	dc.b	$01, $46, $02, $68, $88, $86, $87, $F0
-loc_559D0:
+Minimap_tiles_Hungary:
 	dc.b	$80, $2F, $80, $04, $08, $15, $19, $25, $17, $35, $1A, $45, $1B, $54, $0A, $65, $18, $72, $00, $81, $03, $02, $14, $09, $26, $38, $38, $FA, $76, $3C, $82, $03
 	dc.b	$03, $15, $16, $26, $3A, $48, $F8, $78, $F9, $83, $06, $39, $17, $7A, $26, $3B, $37, $7B, $FF, $00, $03, $7C, $6F, $80, $00, $F3, $C0, $00, $FA, $D7, $10, $BB
 	dc.b	$CA, $B1, $A4, $CB, $DB, $6E, $10, $72, $EF, $6E, $40, $F9, $F0, $3D, $C9, $4E, $11, $0F, $09, $DD, $C2, $AB, $10, $BF, $A6, $01, $8E, $2F, $3D, $71, $68, $F5
@@ -38764,9 +39522,9 @@ loc_559D0:
 	dc.b	$7F, $AC, $CF, $C2, $B1, $B6, $5F, $F6, $57, $71, $C1, $D6, $67, $9F, $F1, $01, $1F, $3E, $1D, $C8, $6D, $C2, $D3, $85, $A7, $3B, $41, $95, $EC, $0B, $A7, $85
 	dc.b	$6A, $97, $8E, $0F, $AC, $FF, $4A, $6A, $C1, $F1, $7F, $E0, $BC, $2F, $41, $34, $E1, $01, $BE, $67, $48, $30, $80, $3B, $9A, $71, $C6, $BE, $0C, $2B, $54, $FC
 	dc.b	$5F, $F8, $27, $9F, $20, $7C, $F8, $79, $1F, $E2, $02, $3F, $C5, $E6, $D7, $AF, $E0, $BC, $FC, $01, $9F, $9F, $23, $99, $0C, $2D, $B1, $52, $30, $00
-loc_55B6E:
+Minimap_map_Hungary:
 	dc.b	$06, $00, $00, $01, $00, $00, $09, $31, $50, $15, $10, $51, $05, $00, $52, $01, $00, $52, $01, $00, $51, $05, $13, $A0, $58, $12, $DF, $C0
-loc_55B8A:
+Minimap_tiles_Belgium:
 	dc.b	$80, $27, $80, $03, $04, $14, $0A, $25, $16, $35, $17, $45, $1B, $55, $1C, $66, $3A, $72, $00, $81, $03, $02, $14, $0C, $26, $3D, $82, $03, $03, $15, $1A, $28
 	dc.b	$FA, $83, $06, $3C, $17, $7C, $26, $3B, $FF, $0D, $FB, $6C, $FA, $A5, $A2, $E9, $DD, $EF, $4A, $2E, $D4, $55, $FB, $1D, $67, $EC, $AB, $46, $DE, $F4, $BF, $85
 	dc.b	$93, $F8, $35, $FB, $1B, $AF, $AC, $E3, $88, $A6, $1D, $3E, $BF, $67, $84, $5C, $4E, $F8, $EE, $B5, $74, $F6, $99, $6D, $27, $5A, $C6, $53, $88, $BB, $8A, $94
@@ -38780,10 +39538,10 @@ loc_55B8A:
 	dc.b	$BF, $32, $2E, $C2, $C9, $94, $E9, $32, $9D, $27, $7C, $9F, $B3, $40, $52, $38, $82, $D9, $F2, $F8, $C0, $E9, $30, $F9, $96, $40, $14, $E2, $0B, $78, $E6, $B2
 	dc.b	$26, $53, $88, $02, $BE, $B7, $F4, $5D, $3A, $71, $71, $C5, $13, $2C, $EC, $9D, $9D, $93, $B2, $EE, $3F, $80, $11, $D3, $88, $8C, $8E, $9C, $51, $8E, $CC, $8F
 	dc.b	$A4, $EE, $E9, $3A, $71, $52, $D6, $5F, $0B, $20, $E9, $07, $40, $00
-loc_55D18:
+Minimap_map_Belgium:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $00, $92, $0D, $21, $50, $80, $40, $88, $40, $20, $34, $40, $40, $14, $81, $80, $70, $09, $06, $90, $4A, $02, $A4, $04, $C1
 	dc.b	$47, $F8
-loc_55D3A:
+Minimap_tiles_Portugal:
 	dc.b	$80, $2B, $80, $03, $04, $14, $0A, $25, $19, $35, $18, $45, $1A, $55, $17, $65, $1B, $72, $00, $81, $03, $03, $15, $16, $28, $F8, $38, $FB, $82, $03, $02, $16
 	dc.b	$3A, $26, $3B, $38, $F9, $83, $05, $1C, $16, $3D, $26, $3C, $38, $FA, $FF, $DB, $D5, $96, $1F, $58, $6B, $4D, $19, $51, $AC, $AB, $A9, $69, $DC, $73, $FA, $56
 	dc.b	$BF, $41, $FD, $2A, $FE, $8A, $DB, $5B, $65, $AE, $A3, $BA, $8E, $EA, $32, $EA, $3A, $FA, $B0, $00, $47, $76, $AE, $F8, $04, $FE, $0D, $3F, $99, $65, $8E, $CE
@@ -38797,9 +39555,9 @@ loc_55D3A:
 	dc.b	$18, $6E, $DE, $F7, $CC, $B5, $48, $00, $2D, $1F, $BD, $47, $86, $B6, $C0, $05, $FD, $36, $2D, $B5, $B6, $B2, $B2, $FB, $8F, $3F, $64, $B7, $96, $02, $30, $06
 	dc.b	$A9, $46, $00, $53, $54, $85, $97, $F4, $00, $31, $DD, $CF, $2C, $00, $46, $8B, $BF, $3B, $E1, $86, $8D, $B5, $B6, $B6, $CB, $5D, $4F, $E8, $CF, $F1, $02, $DB
 	dc.b	$FF, $14, $FF, $0D, $FF, $E3, $FF, $20, $2B, $FE, $5F, $F1, $FE, $1D, $B4, $A3, $30, $A3, $C2, $8F, $3D, $5B, $16, $2E
-loc_55ED2:
+Minimap_map_Portugal:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $10, $91, $09, $00, $11, $09, $00, $11, $11, $11, $12, $0B, $81, $69, $06, $90, $69, $06, $90, $28, $00, $90, $68, $7F, $00
-loc_55EF2:
+Minimap_tiles_Spain:
 	dc.b	$80, $2C, $80, $03, $04, $14, $0A, $24, $0C, $35, $17, $45, $1A, $55, $1B, $66, $3A, $73, $03, $81, $03, $02, $15, $16, $28, $FA, $38, $FB, $82, $02, $00, $15
 	dc.b	$1C, $26, $3B, $83, $06, $3C, $16, $3D, $27, $7C, $FF, $7A, $FA, $BA, $EF, $10, $F4, $87, $86, $CC, $5F, $3E, $F7, $CB, $6F, $96, $D9, $16, $C8, $B9, $72, $58
 	dc.b	$B9, $4B, $F8, $6D, $B6, $D3, $5B, $FA, $F9, $66, $DB, $6D, $D2, $2B, $98, $8E, $91, $D2, $36, $8D, $23, $48, $D2, $2F, $E2, $9F, $C3, $84, $4F, $64, $4D, $E8
@@ -38815,9 +39573,9 @@ loc_55EF2:
 	dc.b	$D6, $D0, $F4, $87, $4B, $E7, $7A, $25, $8D, $98, $45, $72, $27, $72, $2B, $91, $4F, $AF, $2D, $4B, $A5, $C6, $DE, $58, $AF, $AE, $67, $6F, $39, $7E, $5A, $B9
 	dc.b	$6C, $22, $6D, $DC, $8B, $56, $A5, $F1, $B6, $EE, $8E, $97, $37, $6F, $3E, $FE, $13, $BC, $E3, $79, $DD, $77, $F5, $CF, $AC, $B6, $FF, $C6, $B6, $2C, $ED, $4E
 	dc.b	$FE, $AB, $E9, $B7, $A5, $D2, $6D, $B6, $FA, $00
-loc_560BC:
+Minimap_map_Spain:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $20, $93, $09, $38, $02, $00, $88, $88, $0A, $81, $A9, $06, $88, $69, $06, $BF, $F0
-loc_560D4:
+Minimap_tiles_Australia:
 	dc.b	$80, $2B, $80, $03, $04, $15, $17, $25, $1B, $35, $1A, $45, $1C, $54, $0C, $65, $16, $72, $00, $81, $03, $02, $14, $0A, $27, $7D, $82, $03, $03, $16, $3D, $27
 	dc.b	$7C, $83, $06, $3A, $16, $3B, $26, $3C, $FF, $00, $02, $CA, $CB, $2B, $55, $EE, $D7, $BA, $4F, $89, $E9, $A7, $BF, $63, $DB, $95, $FB, $3A, $BF, $DE, $7C, $AC
 	dc.b	$71, $63, $8A, $3D, $38, $A3, $D3, $94, $F4, $EE, $BF, $86, $00, $2B, $3A, $E7, $55, $A4, $00, $18, $9F, $95, $17, $40, $00, $79, $7F, $37, $4E, $C9, $D9, $3B
@@ -38831,10 +39589,10 @@ loc_560D4:
 	dc.b	$B2, $65, $95, $DC, $46, $DD, $DC, $57, $73, $F6, $5D, $2B, $B0, $7A, $65, $93, $B2, $7B, $71, $45, $E5, $00, $08, $B7, $94, $5D, $18, $9F, $13, $C7, $8C, $DB
 	dc.b	$BF, $CE, $D9, $77, $11, $A7, $11, $A7, $16, $9C, $5C, $A9, $F7, $9F, $40, $00, $88, $2C, $80, $3F, $C6, $8C, $71, $E9, $C5, $A7, $14, $5F, $2B, $7F, $4D, $22
 	dc.b	$C8, $00, $B0, $00
-loc_56258:
+Minimap_map_Australia:
 	dc.b	$06, $03, $00, $00, $00, $00, $11, $21, $10, $09, $00, $50, $05, $10, $51, $05, $00, $51, $05, $10, $11, $81, $02, $0A, $00, $24, $1F, $0D, $54, $44, $46, $01
 	dc.b	$08, $49, $04, $8F, $F0, $00
-loc_5627E:
+Minimap_tiles_USA:
 	dc.b	$80, $1F, $80, $04, $0A, $15, $18, $25, $17, $35, $19, $46, $3B, $55, $1A, $66, $36, $72, $00, $81, $02, $01, $15, $16, $26, $3C, $36, $39, $48, $FA, $82, $03
 	dc.b	$04, $16, $38, $27, $7A, $38, $F9, $48, $F8, $83, $06, $37, $17, $7B, $26, $3A, $FF, $00, $D9, $D3, $03, $4E, $E1, $FF, $1F, $F9, $01, $FF, $30, $F3, $BF, $56
 	dc.b	$D4, $A7, $52, $92, $BF, $86, $D6, $E0, $00, $75, $E5, $4C, $4A, $E4, $00, $38, $C7, $FC, $79, $00, $07, $F8, $7E, $43, $66, $00, $77, $EE, $A7, $BB, $00, $62
@@ -38844,10 +39602,10 @@ loc_5627E:
 	dc.b	$4D, $7C, $DB, $1C, $80, $00, $57, $99, $7D, $5D, $99, $77, $95, $C6, $E0, $00, $53, $BC, $AE, $37, $36, $80, $07, $53, $13, $52, $9F, $8B, $63, $90, $0B, $B8
 	dc.b	$7A, $40, $DA, $05, $D9, $76, $EF, $41, $5C, $DF, $E2, $DA, $94, $86, $F2, $F2, $90, $0C, $7A, $EF, $D1, $97, $AC, $3D, $F8, $00, $16, $FD, $9F, $30, $00, $34
 	dc.b	$CC, $4A, $40, $01, $DA, $D3, $1C, $6E, $18, $66, $CF, $CE, $79, $00
-loc_5638C:
+Minimap_map_USA:
 	dc.b	$05, $02, $00, $01, $00, $00, $06, $10, $40, $20, $14, $11, $80, $42, $00, $81, $20, $02, $00, $41, $A4, $24, $C2, $4E, $02, $00, $A4, $04, $0B, $40, $4C, $1E
 	dc.b	$0B, $26, $12, $61, $28, $07, $05, $11, $FE, $00
-loc_563B6:
+Minimap_tiles_Japan:
 	dc.b	$80, $28, $80, $03, $04, $15, $17, $25, $18, $35, $1B, $45, $16, $55, $19, $65, $1C, $72, $00, $81, $03, $03, $14, $0A, $28, $FA, $82, $03, $02, $15, $1A, $26
 	dc.b	$3B, $78, $FB, $83, $06, $3C, $16, $3D, $26, $3A, $37, $7C, $FF, $0E, $3C, $B4, $59, $A2, $CD, $63, $EA, $74, $FF, $65, $51, $6F, $4F, $88, $BE, $AC, $A3, $56
 	dc.b	$76, $F1, $DD, $F4, $31, $80, $66, $AE, $FA, $00, $02, $80, $00, $BB, $5C, $7E, $80, $28, $C2, $CA, $38, $FA, $00, $01, $47, $1F, $4A, $30, $00, $B5, $5D, $F4
@@ -38861,9 +39619,9 @@ loc_563B6:
 	dc.b	$DF, $EC, $70, $BD, $AE, $F0, $81, $63, $58, $ED, $EF, $EA, $34, $5F, $E3, $9E, $A0, $57, $51, $91, $6D, $47, $75, $95, $B5, $3D, $7F, $18, $00, $3E, $3B, $3F
 	dc.b	$00, $00, $F6, $BD, $D7, $16, $D0, $71, $A0, $BA, $F2, $A3, $F6, $30, $CA, $8C, $0B, $79, $58, $7E, $06, $5A, $38, $C3, $DA, $8F, $DB, $A8, $D5, $B4, $18, $59
 	dc.b	$4F, $FA, $4E, $7F, $46, $79, $40, $59, $47, $97, $96, $70
-loc_56542:
+Minimap_map_Japan:
 	dc.b	$06, $00, $00, $01, $00, $00, $09, $30, $93, $80, $20, $29, $84, $9C, $01, $03, $44, $54, $44, $4C, $24, $84, $4C, $24, $C2, $FE
-loc_5655C:
+Minimap_tiles_Canada:
 	dc.b	$80, $21, $80, $03, $04, $14, $0A, $25, $19, $35, $1C, $45, $1A, $55, $18, $65, $1B, $72, $00, $81, $03, $03, $14, $0B, $28, $FA, $82, $03, $02, $15, $1E, $28
 	dc.b	$FB, $83, $06, $3A, $17, $7C, $26, $3B, $FF, $C5, $E9, $FB, $8D, $01, $86, $8A, $BC, $BF, $9E, $BC, $7A, $F0, $A3, $9E, $CA, $8E, $96, $54, $54, $B2, $A2, $A5
 	dc.b	$9F, $9F, $5D, $80, $31, $E1, $47, $AE, $AF, $2F, $A0, $00, $3E, $5C, $6B, $0D, $6D, $AD, $B0, $DB, $36, $E9, $46, $65, $52, $8C, $29, $52, $8C, $AE, $EE, $3E
@@ -38875,9 +39633,9 @@ loc_5655C:
 	dc.b	$A6, $8A, $52, $D1, $4A, $38, $FB, $FA, $E8, $C3, $41, $B6, $1F, $2F, $0A, $3A, $79, $51, $98, $51, $C5, $B6, $B2, $8A, $6A, $BD, $68, $A5, $18, $01, $5F, $3E
 	dc.b	$FA, $B0, $23, $41, $48, $AE, $94, $F7, $D0, $00, $1D, $29, $EF, $AD, $AD, $21, $53, $42, $C5, $FE, $CB, $9F, $B1, $EE, $CD, $28, $CE, $28, $F8, $A3, $C3, $C3
 	dc.b	$D8, $00
-loc_5669E:
+Minimap_map_Canada:
 	dc.b	$06, $02, $00, $00, $00, $00, $01, $00, $93, $09, $30, $93, $81, $1C, $14, $C3, $48, $04, $01, $44, $44, $42, $E0, $5D, $20, $94, $05, $40, $52, $FE
-loc_566BC:
+Minimap_tiles_Italy:
 	dc.b	$80, $23, $80, $03, $04, $15, $1D, $25, $1A, $34, $0A, $44, $0C, $55, $16, $66, $3D, $72, $00, $81, $03, $02, $15, $17, $28, $FA, $82, $03, $03, $16, $3C, $28
 	dc.b	$F8, $83, $05, $1B, $15, $1C, $28, $F9, $FF, $00, $0B, $5E, $7F, $07, $C9, $FC, $1E, $7A, $B2, $EE, $97, $94, $9E, $27, $57, $75, $F1, $4E, $6F, $F8, $5F, $5F
 	dc.b	$C2, $BB, $C6, $33, $F8, $55, $FB, $17, $D5, $49, $FA, $B6, $21, $59, $C4, $59, $C4, $57, $2E, $1A, $59, $77, $4B, $CD, $5D, $D2, $F2, $93, $AF, $17, $EC, $DE
@@ -38889,10 +39647,10 @@ loc_566BC:
 	dc.b	$03, $13, $2C, $9C, $E5, $E2, $E4, $71, $06, $38, $80, $AE, $7D, $7C, $E9, $3C, $4C, $D3, $89, $E9, $D9, $C4, $1B, $F8, $DD, $FA, $E2, $B2, $C6, $AC, $80, $29
 	dc.b	$70, $00, $B7, $96, $F3, $77, $EA, $E0, $00, $FD, $7E, $EE, $3E, $5C, $00, $0E, $AF, $98, $F6, $00, $18, $9C, $DD, $F4, $B6, $00, $47, $15, $9C, $5A, $F9, $BF
 	dc.b	$51, $EA, $00, $3F, $67, $7B, $38, $A3, $A7, $2E, $EB, $C8, $9F, $A9, $FA, $BC, $B5, $FC, $8B, $E5, $44, $27, $66, $69, $C4, $53, $8B, $BF, $11, $68
-loc_5681A:
+Minimap_map_Italy:
 	dc.b	$06, $00, $00, $00, $00, $00, $01, $10, $D0, $1D, $10, $50, $05, $00, $51, $11, $1A, $29, $82, $95, $14, $C1, $48, $24, $E8, $A7, $C1, $E4, $C1, $E0, $F2, $61
 	dc.b	$27, $FC
-loc_5683C:
+Minimap_tiles_Brazil:
 	dc.b	$80, $2A, $80, $03, $04, $15, $17, $25, $18, $35, $1A, $45, $1B, $54, $0A, $65, $1C, $72, $00, $81, $03, $03, $15, $16, $25, $1D, $82, $03, $02, $15, $19, $26
 	dc.b	$3D, $83, $08, $F9, $18, $F8, $26, $3C, $FF, $0E, $3D, $D9, $62, $D9, $C3, $CE, $9A, $29, $FF, $4C, $B5, $66, $D5, $9B, $56, $6D, $48, $5F, $F3, $00, $18, $EA
 	dc.b	$C0, $06, $3B, $A7, $EE, $1A, $A7, $FB, $30, $0F, $F8, $FF, $C8, $FF, $9F, $1D, $34, $6D, $A9, $FC, $15, $7F, $E1, $17, $CE, $D4, $5A, $51, $E3, $36, $C2, $8C
@@ -38907,10 +39665,11 @@ loc_5683C:
 	dc.b	$51, $E9, $5B, $6F, $6D, $53, $5C, $60, $07, $EC, $ED, $4A, $59, $6B, $D1, $E6, $AD, $9A, $B7, $BB, $E9, $FF, $1F, $F9, $01, $FF, $2F, $F8, $F3, $B5, $9B, $52
 	dc.b	$8E, $94, $65, $D6, $14, $71, $AE, $3F, $3A, $1C, $65, $34, $11, $F8, $E2, $6A, $EA, $32, $2D, $B5, $85, $1E, $94, $B2, $DB, $54, $B6, $A2, $F0, $0B, $A8, $C3
 	dc.b	$4A, $3D, $E7, $F8, $7C, $45, $28, $B1, $9E, $FB, $6C, $74, $D5, $B8, $CA, $60, $1C, $00
-loc_569EE:
+Minimap_map_Brazil:
 	dc.b	$06, $02, $00, $00, $00, $00, $01, $20, $90, $1E, $04, $51, $60, $05, $0A, $00, $F0, $20, $C5, $01, $00, $38, $8F, $00, $12, $1C, $8B, $8F, $00, $12, $1C, $4B
 	dc.b	$8F, $44, $3E, $03, $D1, $0F, $80, $F4, $C2, $4E, $05, $80, $7F, $80
-loc_56A1C:
+;Hud_tiles_normal
+Hud_tiles_normal:
 	dc.b	$80, $1A, $80, $03, $04, $15, $18, $24, $0B, $35, $1A, $45, $1B, $55, $1C, $66, $3D, $72, $00, $81, $03, $02, $16, $3B, $26, $3C, $82, $04, $0A, $15, $19, $83
 	dc.b	$03, $03, $16, $3A, $28, $F9, $58, $FA, $78, $FB, $8D, $08, $F8, $FF, $C7, $EC, $96, $DC, $68, $25, $46, $83, $DA, $E3, $C3, $57, $F2, $A5, $47, $E0, $18, $EB
 	dc.b	$9E, $7B, $FB, $25, $B6, $46, $89, $51, $A3, $DA, $8C, $56, $E3, $5A, $7A, $A8, $F0, $D6, $90, $E3, $5A, $57, $D5, $F5, $3C, $C7, $98, $FE, $16, $FE, $56, $FC
@@ -38921,7 +39680,8 @@ loc_56A1C:
 	dc.b	$46, $8D, $74, $B7, $D9, $3F, $44, $AE, $A3, $D5, $47, $86, $B4, $AE, $A3, $58, $68, $DB, $5C, $5E, $E5, $06, $AA, $38, $E3, $56, $AD, $C7, $85, $FB, $38, $B1
 	dc.b	$FC, $10, $BC, $F7, $95, $28, $FA, $C2, $3F, $87, $68, $FD, $99, $AA, $EE, $80, $00, $59, $EF, $28, $FB, $3E, $CF, $B2, $BB, $CF, $74, $00, $00, $51, $EB, $2B
 	dc.b	$9D, $1C, $A9, $F0, $71, $7E, $33, $E0, $E2, $FC, $67, $C7, $17, $C5, $80, $00
-loc_56B4C:
+;Hud_tiles_practice
+Hud_tiles_practice:
 	dc.b	$80, $18, $80, $03, $03, $14, $0A, $24, $09, $34, $0B, $45, $1B, $55, $19, $66, $3B, $73, $00, $81, $03, $01, $15, $1C, $25, $1A, $82, $04, $08, $16, $3A, $37
 	dc.b	$7C, $48, $FA, $83, $03, $02, $15, $18, $26, $3C, $78, $FB, $8D, $06, $3D, $FF, $AF, $AD, $F8, $77, $A0, $1C, $35, $DE, $23, $7E, $1D, $E8, $38, $68, $10, $2F
 	dc.b	$19, $D7, $7F, $0E, $D0, $68, $87, $0D, $11, $DC, $34, $0C, $A6, $8D, $AB, $86, $A9, $1B, $21, $34, $6C, $CE, $27, $0F, $55, $AA, $FA, $DF, $87, $7A, $0E, $1A
@@ -38931,7 +39691,8 @@ loc_56B4C:
 	dc.b	$4D, $34, $64, $CA, $6A, $8F, $EC, $D9, $AF, $E0, $CF, $F4, $8B, $C5, $62, $B9, $3C, $00, $54, $34, $08, $13, $0D, $02, $05, $E3, $3A, $CF, $D4, $C5, $60, $E7
 	dc.b	$80, $0A, $86, $88, $02, $61, $A2, $04, $C5, $28, $35, $FC, $39, $FE, $88, $13, $D7, $3A, $2E, $07, $F4, $E8, $8F, $E1, $C9, $1F, $B3, $17, $1C, $80, $00, $00
 	dc.b	$1E, $B9, $D1, $1F, $63, $EC, $7D, $88, $E7, $5C, $80, $00, $00, $01, $03, $B4, $23, $38, $19, $87, $E8, $C9, $FC, $67, $A3, $27, $F1, $9E, $E4, $FB, $20, $00
-loc_56C6C:
+;Hud_tiles_warmup
+Hud_tiles_warmup:
 	dc.b	$80, $12, $80, $03, $04, $15, $18, $25, $16, $35, $1A, $45, $1D, $55, $17, $67, $7C, $72, $00, $81, $03, $02, $15, $1B, $26, $3C, $82, $04, $0A, $15, $19, $83
 	dc.b	$03, $03, $15, $1C, $77, $7D, $8D, $06, $3D, $FF, $CA, $B6, $43, $E3, $B5, $2A, $01, $AC, $38, $EE, $CB, $B5, $1A, $09, $C5, $1D, $B7, $8D, $DF, $28, $D5, $61
 	dc.b	$A3, $4F, $B4, $0D, $6A, $88, $EA, $FC, $B5, $47, $B0, $B7, $16, $39, $37, $6F, $31, $FB, $25, $D6, $46, $89, $51, $A3, $E5, $46, $2B, $38, $D6, $9E, $AA, $3C
@@ -38939,17 +39700,17 @@ loc_56C6C:
 	dc.b	$C4, $51, $1A, $07, $8A, $8F, $4E, $38, $A2, $FD, $1C, $56, $FD, $8F, $7F, $64, $BA, $E3, $41, $2A, $34, $1F, $2A, $EF, $0D, $5B, $F4, $6A, $54, $7E, $01, $8E
 	dc.b	$5F, $C0, $BE, $77, $95, $28, $FE, $9E, $11, $FC, $3B, $23, $F6, $66, $AB, $74, $00, $02, $CE, $F2, $8F, $A7, $D3, $E9, $5B, $CE, $E8, $00, $00, $A3, $E3, $2A
 	dc.b	$FC, $2F, $53, $D2, $EB, $F1, $9E, $97, $5F, $8C, $F6, $EB, $DB, $00
-loc_56D3A:
+Race_hud_tiles_c:
 	dc.b	$80, $20, $80, $71, $00, $FF, $FF, $90, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $0F, $F9, $80, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-loc_56D64:
+Race_hud_tiles_d:
 	dc.b	$00, $08, $80, $14, $0D, $24, $0B, $35, $1E, $73, $01, $81, $04, $0C, $74, $06, $82, $03, $02, $26, $3E, $74, $0A, $84, $03, $00, $8D, $73, $04, $8E, $04, $07
 	dc.b	$14, $0E, $FF, $DF, $D9, $5A, $FD, $F2, $D5, $CB, $B5, $72, $ED, $5F, $BE, $5A, $BB, $EB, $FD, $91, $3E, $0E, $3C, $1F, $F1, $EE, $2D, $FF, $5E, $F6, $FF, $AF
 	dc.b	$7B, $0F, $F8, $F7, $1E, $0E, $09, $FE, $06, $0C, $F6, $04, $32, $C7, $C2, $C7, $C2, $F0, $21, $9E, $C1, $86, $E4, $92, $49, $27, $FD, $09, $24, $96, $66, $66
 	dc.b	$66, $6A, $AA, $AA, $AA, $A3, $FF, $46, $69, $2A, $80, $00
-loc_56DD0:
+Race_hud_tiles_e:
 	dc.b	$80, $03, $80, $71, $00, $FF, $FE, $EF, $E5, $00, $7E, $77, $F6, $1F, $99, $FC, $07, $E1, $7F, $A1, $F8, $50, $00, $7F, $80, $00
-loc_56DEA:
+Finish_screen_tiles:
 	dc.b	$00, $03, $80, $14, $0B, $23, $04, $34, $0D, $74, $0E, $81, $04, $0A, $8D, $03, $02, $25, $1E, $8E, $02, $00, $8F, $03, $03, $14, $0C, $FF, $BF, $DE, $C5, $FB
 	dc.b	$F5, $6B, $16, $5A, $C5, $96, $BF, $7E, $AD, $67, $A7, $EF, $7B, $B4, $66, $8F, $F1, $8C, $8F, $F5, $8E, $3F, $D6, $38, $3F, $C6, $33, $46, $77, $7F, $02, $8A
 	dc.b	$DA, $11, $50, $F1, $0F, $12, $84, $56, $D1, $5D, $00, $00
@@ -38976,7 +39737,8 @@ Race_hud_tiles:
 	dc.b	$FC, $A8, $35, $75, $06, $AE, $A0, $D6, $B7, $7C, $F5, $E7, $F4, $B3, $F6, $78, $E7, $62, $83, $BA, $50, $77, $4A, $0E, $E9, $41, $DD, $28, $35, $B1, $F1, $9F
 	dc.b	$D3, $73, $FC, $2A, $7E, $CB, $6D, $FC, $7B, $15, $B6, $FE, $3D, $8A, $D7, $EC, $FE, $27, $EC, $70, $A4, $96, $DB, $EB, $DB, $D7, $69, $6A, $93, $E5, $2D, $AB
 	dc.b	$0E, $9A, $A5, $E7, $F8, $E7, $FC, $52, $49, $24, $92, $49, $24, $B3, $A4, $F9, $47, $9E, $AC, $00
-loc_570CA:
+;Road_tiles_startup
+Road_tiles_startup:
 	dc.b	$00, $37, $80, $03, $03, $14, $0A, $25, $19, $35, $18, $45, $1C, $56, $3B, $75, $1A, $81, $02, $00, $13, $04, $25, $1B, $38, $F8, $48, $F9, $82, $05, $17, $13
 	dc.b	$02, $25, $16, $36, $3A, $46, $3C, $56, $3D, $FF, $AE, $8A, $51, $0E, $F1, $A1, $14, $84, $52, $10, $D6, $FA, $95, $F3, $DA, $33, $D1, $91, $4C, $23, $16, $30
 	dc.b	$A6, $11, $CD, $F3, $A2, $94, $43, $43, $43, $DA, $95, $69, $56, $95, $ED, $7F, $87, $16, $33, $78, $8C, $96, $32, $B6, $EE, $34, $34, $34, $33, $A9, $5F, $3C
@@ -39073,7 +39835,7 @@ Podium_car_tiles:
 	dc.b	$29, $29, $29, $69, $AE, $19, $99, $5F, $C2, $34, $96, $96, $9A, $FE, $11, $99, $B4, $AF, $E1, $1B, $4D, $F0, $D2, $25, $24, $26, $66, $93, $7F, $C2, $29, $21
 	dc.b	$29, $13, $49, $69, $99, $97, $E9, $69, $69, $69, $3F, $46, $66, $47, $F0, $8B, $49, $FE, $11, $69, $3F, $C2, $33, $32, $51, $12, $51, $12, $D3, $69, $B4, $CC
 	dc.b	$CC, $CC, $CC, $D0
-loc_57C16:
+Championship_screen_tiles:
 	dc.b	$80, $2F, $80, $04, $0A, $14, $08, $25, $18, $35, $1B, $46, $3A, $56, $3B, $65, $1C, $72, $00, $81, $03, $02, $17, $7A, $28, $FA, $82, $03, $03, $15, $1A, $24
 	dc.b	$0B, $37, $7B, $83, $04, $09, $15, $19, $26, $3C, $58, $F8, $FF, $0F, $F1, $6F, $30, $F6, $98, $11, $6A, $34, $63, $F8, $5D, $E5, $F6, $A9, $07, $6D, $55, $A2
 	dc.b	$AF, $1A, $C2, $00, $DD, $A8, $D0, $E2, $F0, $B6, $83, $6E, $24, $4D, $45, $A2, $AE, $35, $B4, $18, $71, $22, $C5, $A8, $D1, $FD, $2C, $7F, $0D, $63, $F8, $20
@@ -39088,9 +39850,9 @@ loc_57C16:
 	dc.b	$D8, $30, $21, $E7, $0B, $53, $4A, $17, $24, $38, $C1, $E7, $A7, $90, $00, $E9, $E7, $6E, $96, $5A, $84, $6E, $5F, $79, $E2, $09, $87, $98, $53, $AA, $52, $C7
 	dc.b	$C9, $E2, $01, $E6, $1C, $B5, $95, $A9, $87, $4B, $93, $DB, $06, $62, $76, $F3, $4B, $DE, $7A, $F3, $BF, $40, $10, $F3, $89, $D7, $A9, $D6, $10, $01, $B7, $98
 	dc.b	$79, $AF, $15, $65, $72, $43, $8C, $1E, $61, $CB, $5E, $69, $43, $9C, $2C, $20, $3A, $9D, $6F, $FC, $74, $00
-loc_57DCC:
+Pre_race_screen_tilemap:
 	dc.b	$06, $00, $00, $00, $00, $05, $1D, $03, $60, $18, $78, $3C, $4F, $78, $48, $12, $83, $FC
-loc_57DDE:
+Pre_race_screen_tiles:
 	dc.b	$80, $29, $80, $03, $00, $14, $09, $25, $19, $35, $18, $44, $0A, $57, $78, $73, $01, $81, $03, $03, $15, $1B, $82, $05, $1A, $83, $03, $02, $36, $3A, $87, $04
 	dc.b	$08, $36, $39, $8A, $16, $38, $37, $79, $8B, $17, $7A, $8C, $05, $16, $8D, $05, $17, $8E, $18, $F6, $8F, $07, $76, $17, $77, $38, $F7, $FF, $FD, $F6, $C9, $CA
 	dc.b	$0B, $1D, $4D, $FF, $1C, $10, $59, $44, $30, $F2, $EF, $65, $AE, $F6, $B9, $39, $41, $4E, $FA, $A4, $11, $A6, $1C, $F7, $5A, $5A, $EE, $71, $EE, $10, $53, $BE
@@ -39111,9 +39873,9 @@ loc_57DDE:
 	dc.b	$92, $4F, $1B, $38, $E3, $C5, $ED, $7B, $6F, $2C, $33, $50, $23, $1C, $D4, $08, $38, $F3, $8F, $D8, $DF, $F3, $97, $A6, $19, $A8, $11, $8E, $67, $D0, $81, $06
 	dc.b	$7F, $B5, $FB, $1B, $DA, $F6, $A6, $19, $A8, $11, $8E, $78, $D8, $81, $07, $89, $F3, $3B, $BD, $AF, $6A, $61, $9A, $81, $18, $E7, $8F, $42, $04, $1F, $FD, $4D
 	dc.b	$ED, $7B, $53, $0C, $D4, $08, $C7, $35, $02, $0E, $3C, $CB, $B5, $ED, $7B, $66, $E1, $86, $6A, $04, $63, $9A, $81, $07, $1E, $64
-loc_58058:
+Championship_screen_tilemap:
 	dc.b	$06, $00, $00, $00, $00, $08, $39, $03, $C9, $FE
-loc_58062:
+Startup_screen_tiles_b:
 	dc.b	$80, $82, $80, $04, $09, $15, $17, $25, $18, $34, $0A, $45, $19, $55, $16, $65, $1B, $72, $00, $81, $03, $03, $16, $3A, $26, $3C, $82, $03, $02, $15, $1A, $26
 	dc.b	$38, $37, $7B, $46, $3B, $78, $F8, $83, $04, $08, $16, $39, $27, $7A, $FF, $BF, $F4, $A5, $59, $57, $39, $89, $6B, $2C, $0A, $D3, $CA, $10, $C0, $00, $37, $17
 	dc.b	$D5, $6A, $E8, $5F, $C3, $E2, $27, $C0, $0C, $45, $A2, $5E, $39, $97, $5E, $63, $59, $56, $46, $D4, $6D, $85, $F5, $5A, $BB, $00, $0C, $E9, $E3, $40, $01, $65
@@ -39148,40 +39910,51 @@ loc_58062:
 	dc.b	$F1, $13, $D5, $74, $05, $6B, $28, $B2, $0D, $FC, $7B, $0C, $7A, $A8, $9E, $95, $32, $B4, $EB, $46, $84, $3D, $C0, $CB, $FB, $98, $D1, $48, $10, $A3, $6C, $D3
 	dc.b	$A4, $17, $8C, $2A, $E0, $BA, $8C, $73, $76, $B9, $97, $3C, $73, $74, $00, $07, $6E, $DE, $C2, $90, $A3, $6D, $1B, $E0, $7B, $8C, $2A, $E0, $BF, $FC, $FF, $E3
 	dc.b	$DB, $B4, $0F, $31, $68, $97, $8E, $65, $E7, $AC, $BD, $80
-loc_5848E:
-	dc.l	loc_584CA
-	dc.l	loc_584EE
-	dc.l	loc_58512
-	dc.l	loc_58536
-	dc.l	loc_5855A
-	dc.l	loc_5857E
-	dc.l	loc_585A2
-loc_584AA:
+;loc_5848E
+Shift_indicator_tilemap_table:
+	dc.l	Shift_indicator_tilemap_gear1
+	dc.l	Shift_indicator_tilemap_gear2
+	dc.l	Shift_indicator_tilemap_gear3
+	dc.l	Shift_indicator_tilemap_gear4
+	dc.l	Shift_indicator_tilemap_gear5
+	dc.l	Shift_indicator_tilemap_gear6
+	dc.l	Shift_indicator_tilemap_gear7
+;loc_584AA
+Shift_indicator_tilemap_manual:
 	dc.b	$87, $7A, $87, $7B, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $87, $7B, $8F, $7A, $87, $80, $87, $81, $87, $82, $87, $83, $87, $84, $87, $85, $87, $86, $87, $87
-loc_584CA:
+;loc_584CA
+Shift_indicator_tilemap_gear1:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $88, $87, $89, $87, $8A, $87, $8B, $87, $8C, $87, $8D, $87, $8E, $87, $8F, $87, $90, $87, $91
 	dc.b	$87, $92, $87, $93
-loc_584EE:
+;loc_584EE
+Shift_indicator_tilemap_gear2:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $94, $87, $95, $87, $96, $87, $8B, $87, $8C, $87, $8D, $87, $8E, $87, $8F, $87, $90, $87, $91
 	dc.b	$87, $92, $87, $93
-loc_58512:
+;loc_58512
+Shift_indicator_tilemap_gear3:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $94, $87, $89, $87, $8A, $87, $97, $87, $8C, $87, $8D, $87, $8E, $87, $8F, $87, $90, $87, $91
 	dc.b	$87, $92, $87, $93
-loc_58536:
+;loc_58536
+Shift_indicator_tilemap_gear4:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $94, $87, $89, $87, $8A, $87, $8B, $87, $98, $87, $99, $87, $8E, $87, $8F, $87, $90, $87, $91
 	dc.b	$87, $92,	$87, $93
-loc_5855A:
+;loc_5855A
+Shift_indicator_tilemap_gear5:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $94, $87, $89, $87, $8A, $87, $8B, $87, $8C, $87, $8D, $87, $8E, $87, $9A, $87, $90, $87, $91
 	dc.b	$87, $92, $87, $93
-loc_5857E:
+;loc_5857E
+Shift_indicator_tilemap_gear6:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $94, $87, $89, $87, $8A, $87, $8B, $87, $8C, $87, $8D, $87, $8E, $87, $8F, $87, $9B, $87, $9C
 	dc.b	$87, $92, $87, $93
-loc_585A2:
+;loc_585A2
+Shift_indicator_tilemap_gear7:
 	dc.b	$87, $7A, $87, $7C, $87, $7D, $87, $7E, $87, $7F, $8F, $7A, $87, $94, $87, $89, $87, $8A, $87, $8B, $87, $8C, $87, $8D, $87, $8E, $87, $8F, $87, $90, $87, $91
 	dc.b	$87, $9D, $87, $93
-loc_585C6:
+;loc_585C6
+Hud_gear_tile_strip:
 	dc.w	$A4AC, $A4AD, $A4AE, $A4AF, $A4B0, $A4B1
-loc_585D2:
+;loc_585D2
+Hud_lap_number_tile_header:
 	dc.w	$C4B2
 	dc.w	$C4B3
 ;Lap_number_tilemap_table
@@ -39190,9 +39963,11 @@ Lap_number_tilemap_table:
 	dc.b	$C4, $C0, $C4, $C1, $C4, $C2, $C4, $C3, $C4, $C4, $C4, $C5, $C4, $C6, $00, $00, $C4, $C7, $00, $00, $C4, $C8, $C4, $C9
 	dc.w	$0000
 	dc.w	$0000
-loc_5860A:
+;loc_5860A
+Race_minimap_bg_tilemap:
 	dc.b	$07, $00, $00, $2F, $00, $00, $58, $64, $41, $58, $15, $42, $54, $15, $42, $54, $15, $03, $44, $4E, $11, $D2, $0D, $4F, $E0, $00
-loc_58624:
+;loc_58624
+Race_hud_tiles_a:
 	dc.b	$00, $1E, $80, $03, $03, $14, $09, $25, $1B, $35, $1C, $44, $0B, $55, $1D, $68, $FA, $74, $0C, $81, $02, $00, $14, $0A, $26, $3C, $38, $F8, $82, $04, $08, $13
 	dc.b	$02, $25, $1A, $36, $3D, $48, $F9, $FF, $9D, $76, $0B, $45, $C0, $9C, $3F, $6A, $75, $52, $85, $2B, $C4, $E3, $33, $21, $C3, $53, $FE, $26, $88, $13, $81, $10
 	dc.b	$38, $10, $B3, $3A, $AD, $56, $D5, $6D, $56, $D5, $6D, $0B, $74, $FF, $83, $99, $99, $99, $8E, $9F, $91, $D5, $68, $E2, $AD, $AA, $DA, $AB, $AC, $DC, $52, $26
@@ -39206,7 +39981,8 @@ loc_58624:
 	dc.b	$6D, $0A, $57, $9E, $D4, $FF, $07, $2F, $5C, $55, $1B, $8A, $69, $A2, $53, $44, $A6, $87, $A6, $87, $A6, $7C, $92, $40, $8D, $8D, $0E, $36, $84, $35, $48, $68
 	dc.b	$66, $AB, $7F, $19, $D8, $EE, $AC, $82, $E0, $E9, $99, $9F, $51, $B8, $9D, $3D, $32, $06, $40, $E0, $98, $24, $D9, $99, $98, $E3, $EA, $3B, $07, $60, $B8, $3B
 	dc.b	$05, $C1, $D8, $2E, $0E, $C1, $70, $76, $0B, $83, $B0, $74, $CE, $80
-loc_587B2:
+;loc_587B2
+Race_hud_tiles_b:
 	dc.b	$80, $50, $80, $03, $02, $14, $07, $24, $09, $35, $16, $45, $18, $56, $32, $66, $33, $73, $00, $81, $04, $06, $17, $73, $27, $78, $82, $03, $01, $16, $34, $26
 	dc.b	$35, $83, $04, $0A, $16, $36, $84, $07, $72, $18, $F7, $86, $07, $75, $88, $06, $37, $8A, $07, $7A, $8C, $04, $08, $27, $74, $8D, $18, $F2, $8E, $05, $17, $16
 	dc.b	$38, $28, $F6, $37, $77, $8F, $08, $F3, $17, $76, $FF, $1F, $F2, $35, $3F, $A3, $4D, $6E, $62, $D5, $63, $2C, $27, $56, $C6, $AE, $58, $BD, $33, $B5, $98, $80
@@ -39242,7 +40018,8 @@ loc_587B2:
 	dc.b	$B9, $02, $C7, $33, $25, $B2, $34, $DA, $62, $9D, $97, $6F, $C6, $AD, $99, $79, $DF, $F1, $AB, $69, $69, $A7, $D1, $EB, $99, $9A, $65, $4F, $B3, $5A, $B9, $CE
 	dc.b	$CD, $8E, $79, $90, $04, $9C, $CB, $3C, $77, $F3, $B8, $57, $FE, $FB, $FF, $44, $39, $67, $39, $96, $9F, $3F, $6F, $3E, $20, $7F, $FF, $FC, $34, $5B, $15, $3D
 	dc.b	$9D, $A2, $FE, $6F, $EC, $99, $71, $3D, $AF, $CF, $F5, $FE, $1F, $C0, $C7, $EF, $F9, $E2, $FC, $DF, $D9, $AD, $E0, $00, $30, $00
-loc_58C0C:
+;loc_58C0C
+Championship_driver_screen_tiles:
 	dc.b	$00, $2F, $80, $04, $07, $14, $0C, $24, $0A, $36, $3A, $47, $7A, $54, $09, $67, $7B, $74, $08, $81, $02, $00, $14, $0B, $26, $39, $36, $3B, $78, $F8, $82, $04
 	dc.b	$06, $76, $3C, $84, $05, $1B, $13, $02, $26, $38, $35, $1A, $FF, $88, $8A, $FE, $15, $37, $74, $C4, $B1, $2C, $44, $45, $79, $F1, $11, $11, $11, $E7, $2D, $DD
 	dc.b	$31, $2C, $4B, $11, $11, $5E, $76, $DC, $F4, $C4, $B1, $2C, $44, $46, $7E, $CB, $AE, $58, $96, $25, $89, $62, $58, $96, $25, $89, $62, $58, $96, $25, $89, $62
@@ -39262,12 +40039,14 @@ loc_58C0C:
 	dc.b	$06, $7E, $4C, $A1, $FF, $06, $49, $0E, $C4, $B1, $2C, $67, $9D, $B7, $3D, $31, $2C, $4B, $1E, $98, $96, $25, $8A, $FD, $91, $5C, $B1, $2C, $4B, $12, $C7, $B6
 	dc.b	$25, $89, $62, $58, $96, $25, $89, $62, $58, $F4, $C4, $B1, $2C, $4F, $F0, $AB, $F8, $31, $11, $4C, $4B, $12, $C5, $79, $F1, $11, $1D, $31, $2C, $4B, $19, $E7
 	dc.b	$C4, $44, $53, $12, $C4, $B1, $5F, $B2, $2B, $F8, $31, $11, $40, $00
-loc_58E5A:
+;loc_58E5A
+Attract_screen_palette_data:
 	dc.b	$02, $2F, $00, $00, $0E, $EE, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $0E, $EE, $0E, $00, $02, $24, $02, $CE
 	dc.b	$00, $00, $06, $E4, $00, $C2, $00, $62, $00, $20, $00, $24, $0E, $EE, $02, $EE, $00, $CE, $00, $88, $00, $00, $00, $22, $08, $8E, $00, $2E, $02, $24, $00, $AE
 	dc.b	$00, $00, $02, $22, $00, $2A, $02, $26, $02, $2A, $0E, $EE, $0C, $CC, $04, $2C, $04, $6E, $06, $66, $06, $64, $02, $28, $08, $88, $0A, $AA, $04, $AC, $04, $4E
 	dc.b	$04, $44
-loc_58EBC:
+;loc_58EBC
+Attract_screen_bg_tilemap:
 	dc.b	$0A, $02, $00, $01, $00, $D0, $02, $70, $00, $0E, $30, $00, $36, $38, $00, $12, $10, $00, $0E, $28, $00, $3C, $A8, $40, $00, $88, $00, $00, $48, $00, $2C, $28
 	dc.b	$00, $3C, $0A, $20, $44, $E8, $40, $00, $F0, $E8, $82, $83, $CF, $3C, $F3, $C5, $80, $30
 	dc.b	$8D
@@ -39293,7 +40072,8 @@ loc_58EBC:
 	dc.b	$20, $10, $1A, $28, $10, $1A, $30, $1C, $5A, $4B, $2A, $B0, $D2
 	dc.b	$78
 	dc.b	$B2, $D6, $28, $04, $06, $A8, $79, $E4, $FF
-loc_58F86:
+;loc_58F86
+Attract_screen_overlay_tilemap:
 	dc.b	$09, $01, $00, $00, $00, $00, $01, $C1, $32, $40, $AF, $B4, $36, $68, $31, $F5, $C6, $47, $34, $26, $FA, $A2, $2F, $92, $18, $7C, $F0, $50, $11, $E3, $CB, $5C
 	dc.b	$F2, $E0, $0C, $42, $A6, $42, $C5, $C0, $18, $82, $80, $31
 	dc.b	$04
@@ -39304,9 +40084,11 @@ loc_58F86:
 	dc.b	$10
 	dc.b	$FA, $22, $20, $73, $E9, $0A, $90, $70, $3A, $01, $1F, $4C, $78, $1D, $A0, $70, $3A, $F0, $DF, $56, $03, $5A, $2E, $5F, $0B, $87, $5A, $FB, $61, $E3, $F1, $94
 	dc.b	$05, $8F, $E0, $00
-loc_59020:
+;loc_59020
+Attract_screen_logo_tilemap:
 	dc.b	$09, $03, $01, $C9, $01, $CA, $09, $08, $07, $2C, $C8, $1F, $28, $0C, $37, $2E, $05, $CB, $0F, $F8
-loc_59034:
+;loc_59034
+Attract_screen_logo_tiles:
 	dc.b	$03, $83, $80, $04, $01, $15, $0E, $26, $25, $37, $56, $47, $6A, $57, $74, $68, $EB, $75, $10, $81, $05, $0D, $16, $26, $27, $63, $37, $68, $47, $57, $57, $65
 	dc.b	$67, $72, $74, $03, $82, $07, $5F, $18, $F0, $83, $06, $29, $17, $69, $28, $ED, $78, $F2, $84, $06, $28, $17, $6B, $28, $EC, $85, $07, $67, $78, $EA, $86, $07
 	dc.b	$5E, $18, $DF, $87, $07, $62, $88, $07, $70, $89, $04, $00, $15, $0C, $26, $22, $36, $2C, $47, $66, $57, $6C, $68, $E3, $76, $23, $8A, $04, $05, $16, $30, $27
@@ -40007,17 +40789,21 @@ loc_59034:
 	dc.b	$D6, $C6, $01, $EF, $D7, $F5, $BA, $84, $C6, $5D, $6E, $32, $C4, $38, $EB, $8A, $6B, $D6, $9F, $9C, $2F, $D8, $97, $EB, $40, $FD, $8C, $BF, $82, $03, $BF, $E2
 	dc.b	$9D, $65, $89, $18, $43, $06, $86, $10, $C1, $BB, $AC, $BF, $E2, $65, $88, $B1, $97, $F0, $65, $FD, $10, $13, $FE, $29, $FC, $C2, $30, $0B, $5B, $18, $15, $EB
 	dc.b	$A8
-loc_5E790:
+;loc_5E790
+Title_screen_palette_data:
 	dc.b	$02, $3E, $00, $00, $0E, $EE, $08, $00, $06, $66, $04, $44, $02, $22, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $0E, $EE, $00, $40, $06, $66, $04, $44, $02, $22, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $24, $00, $46, $02, $68, $04, $8A, $06, $AC, $08, $CE, $0C, $EE, $00, $48, $02, $6A, $04, $8C, $06, $AE, $00, $8A, $00, $AC, $02, $CE, $06, $EE
 	dc.b	$0E, $66, $0E, $EE, $0C, $CC, $0A, $AA, $08, $88, $06, $66, $04, $44, $06, $6E, $06, $82, $0C, $84, $08, $CE, $0A, $CE, $08, $AC, $06, $6A, $0A, $CA, $08, $8E
-loc_5E810:
+;loc_5E810
+Title_screen_preview_palette_data:
 	dc.b	$42, $0E, $00, $24, $00, $46, $02, $68, $04, $8A, $06, $AC, $08, $CE, $0C, $EE, $00, $48, $02, $6A, $04, $8C, $06, $AE, $08, $8A, $0A, $AC, $0C, $CE, $0C, $EE
-loc_5E830:
+;loc_5E830
+Title_screen_bg_tilemap:
 	dc.b	$08, $00, $00, $00, $00, $00, $01, $11, $95, $1D, $32, $13, $29, $22, $51, $21, $32, $12, $25, $22, $51, $29, $12, $91, $29, $11, $D0, $05, $32, $52, $25, $22
 	dc.b	$52, $25, $22, $52, $25, $22, $92, $25, $22, $53, $1D, $51, $56, $15, $71, $11, $FE, $00
-loc_5E862:
+;loc_5E862
+Title_screen_main_tilemap:
 	dc.b	$0A, $00, $01, $BF, $00, $00, $02, $7B, $7F, $3D, $BF, $8C, $DF
 	dc.b	$81
 	dc.b	$3D, $C0, $9E, $E0
@@ -40053,7 +40839,8 @@ loc_5E862:
 	dc.b	$80, $68, $C0, $21, $52, $81, $60, $40, $C0, $CB, $82, $41, $A5, $02
 	dc.b	$D2
 	dc.b	$81, $69, $40, $B4, $A0, $5A, $50, $2D, $18, $14, $09, $F0, $64, $F8, $32, $34, $19, $FC
-loc_5E97E:
+;loc_5E97E
+Title_screen_overlay_tilemap:
 	dc.b	$09, $03, $00, $F3, $00, $F7, $06, $58, $F4, $37, $8A, $FC, $1F, $60, $A0, $24, $01, $FA, $3F, $12, $08, $3D
 	dc.b	$C4
 	dc.b	$80, $3F
@@ -40101,7 +40888,8 @@ loc_5E97E:
 	dc.b	$E6
 	dc.b	$53, $BE, $35, $0C, $82
 	dc.b	$7F
-loc_5EA52:
+;loc_5EA52
+Title_screen_tiles_a:
 	dc.b	$82, $0D, $80, $03, $01, $14, $05, $24, $07, $35, $10, $45, $16, $56, $2F, $66, $36, $73, $00, $81, $04, $04, $15, $13, $26, $34, $37, $6E, $47, $72, $58, $EC
 	dc.b	$78, $E7, $82, $05, $14, $18, $F2, $83, $04, $06, $16, $31, $27, $6A, $38, $E8, $84, $06, $2E, $85, $08, $E6, $86, $07, $6B, $87, $05, $12, $17, $70, $88, $06
 	dc.b	$2A, $18, $E9, $28, $F4, $89, $06, $33, $18, $EB, $28, $F0, $8A, $06, $30, $18, $EE, $8B, $06, $2B, $18, $EF, $8C, $05, $11, $17, $71, $28, $ED, $8D, $07, $6F
@@ -40276,7 +41064,8 @@ loc_5EA52:
 	dc.b	$CE, $80, $2F, $88, $00, $FF, $B0, $01, $6F, $DE, $00, $21, $DA, $22, $07, $68, $88, $1B, $44, $08, $44, $2C, $40, $16, $ED, $00, $5B, $FD, $80, $03, $DA, $22
 	dc.b	$04, $42, $C4, $01, $18, $71, $01, $78, $80, $04, $3B, $4F, $68, $0B, $C6, $11, $00, $03, $FE, $C0, $23, $7C, $41, $8D, $A2, $16, $23, $88, $02, $23, $68, $85
 	dc.b	$8B, $C6, $1D, $AB, $C4, $08, $71, $16, $88, $BE, $36, $E3, $68, $80, $00
-loc_60001:
+;loc_60001
+Title_screen_tiles_b:
 	dc.b	$03, $F7, $8F, $10, $00, $87, $EF, $00, $FD, $E0, $03, $68, $C3, $B4, $0B, $FB, $40, $00, $42, $23, $68, $BF, $EF, $00, $00, $FF, $B0, $08, $DB, $88, $02, $20
 	dc.b	$42, $21, $7B, $57, $B5, $E2, $04, $40, $88, $11, $31, $7E, $D5, $89, $88, $BE, $20, $42, $22, $F8, $ED, $C4, $43, $F7, $80, $00, $21, $DB, $7F, $13, $FC, $C0
 	dc.b	$00, $0F, $FF, $C0, $7B, $40, $88, $02, $2F, $DA, $BC, $57, $8D, $A2, $36, $88, $11, $16, $ED, $7E, $22, $D1, $17, $C4, $5F, $11, $0E, $D8, $44, $6D, $10, $B1
@@ -40343,7 +41132,8 @@ loc_60001:
 	dc.b	$10, $85, $0F, $E5, $97, $F2, $C0, $05, $FD, $B2, $FE, $CB, $F6, $C7, $F4, $42, $14, $7F, $DB, $00, $07, $EC, $BF, $6C, $7F, $44, $21, $47, $FC, $B0, $00, $7E
 	dc.b	$5B, $F6, $5F, $B6, $3F, $A2, $10, $BB, $5A, $D2, $74, $00, $7E, $59, $6E, $E1, $77, $EC, $BF, $6C, $7F, $44, $04, $2E, $FD, $37, $ED, $2D, $FA, $20, $3F, $89
 	dc.b	$FA, $63, $FA, $21, $00
-loc_60826:
+;loc_60826
+Title_screen_tiles_c:
 	dc.b	$80, $66, $80, $03, $01, $14, $07, $25, $15, $35, $17, $45, $16, $55, $10, $65, $18, $73, $00, $81, $04, $05, $17, $75, $28, $F3, $78, $EF, $82, $08, $F4, $83
 	dc.b	$05, $11, $17, $76, $84, $04, $06, $18, $EE, $85, $07, $72, $86, $07, $6F, $87, $04, $04, $16, $38, $28, $F6, $88, $06, $32, $17, $6E, $89, $05, $12, $17, $74
 	dc.b	$8A, $06, $36, $8B, $06, $35, $8C, $05, $13, $8D, $06, $33, $18, $F5, $8E, $06, $34, $28, $F2, $8F, $05, $14, $17, $78, $77, $73, $FF, $00, $00, $00, $00, $00
@@ -40389,13 +41179,15 @@ loc_60826:
 	dc.b	$FC, $CE, $9F, $DF, $FC, $F0, $00, $00, $00, $00, $01, $A6, $34, $00, $00, $00, $BF, $EB, $2B, $F9, $5B, $72, $BA, $E2, $78, $9E, $16, $F9, $3E, $75, $D3, $7B
 	dc.b	$E6, $FC, $BF, $37, $FA, $C0, $00, $02, $BF, $FC, $16, $FD, $69, $5F, $D6, $9F, $53, $33, $EA, $73, $53, $33, $9A, $E6, $66, $57, $33, $3C, $CC, $CF, $A9, $9E
 	dc.b	$7B, $29, $FD, $6A, $CF, $5F, $EE, $00, $00, $1F, $CC, $FD, $5D, $B8, $0E, $BF, $AD, $74, $33, $39, $A6, $36, $C6, $77, $99, $CD, $0A, $3A, $FA, $EC, $77, $90
-loc_60DC6:
+;loc_60DC6
+Options_shift_tilemap_a:
 	dc.b	$09, $00, $00, $E8, $00, $00, $70, $55, $81, $58, $15, $02, $E0, $F1, $7D, $F7, $D8, $AA, $E8, $58, $15, $C1, $5C, $0E, $0F, $85, $C1, $7D, $F7, $83, $58, $15
 	dc.b	$81, $52, $8B, $C8, $0E, $10, $37, $DF, $7D, $AA, $6F, $C5, $81, $5E, $8B, $DD, $7C, $2F, $95, $E8, $BE, $9F, $7D, $E0, $D5, $0D, $60, $56, $A3, $0F, $50, $2E
 	dc.b	$11, $07, $DF, $7D, $0A, $70, $75, $60, $42, $C1, $E1, $0E, $58, $06, $38, $45, $98, $01, $F7, $DD, $15, $31, $55, $05, $6A, $32, $45, $68, $C4, $78, $49, $5F
 	dc.b	$7D, $F4, $69, $C1, $D5, $81, $0B, $03, $8C, $56, $1C, $AD, $18, $12, $94, $5E, $58, $60, $8F, $BE, $FB, $54, $DF, $8B, $02, $B5, $19, $22, $D4, $64, $8A, $D1
 	dc.b	$88, $F0, $92, $BE, $FA, $5F, $C0, $00
-loc_60E4E:
+;loc_60E4E
+Options_shift_tilemap_b:
 	dc.b	$09, $01, $01, $29, $01, $2D, $06, $32, $54, $12, $C0, $51, $4B, $16, $E4, $97
 	dc.b	$25
 	dc.b	$89, $68, $50, $33, $10, $39, $E5, $E9, $6A, $5C, $96
@@ -40403,11 +41195,13 @@ loc_60E4E:
 	dc.b	$03, $36, $07, $96, $66, $97
 	dc.b	$25
 	dc.b	$83, $72, $CE, $52, $E4, $B0, $38, $1A, $18, $3C, $F4, $04, $B9, $2C, $4B, $41, $47, $0E, $8E, $84, $04, $B8, $18, $CA, $48, $1F, $C0, $00
-loc_60E8E:
+;loc_60E8E
+Options_main_tilemap:
 	dc.b	$08, $00, $00, $2D, $00, $00, $3C, $14, $0F, $25, $01, $28, $A4, $20, $14, $06, $03, $50, $17, $83, $02, $23, $A2, $52, $02, $2C, $52, $35, $DD, $51, $0A, $C3
 	dc.b	$FA, $00, $53, $89, $58, $0B, $31, $C8, $D7, $75, $44, $1B, $2F, $C1, $20, $0A, $20, $A2, $78, $2A, $9E, $0A, $A0, $D5, $BA, $06, $AE, $10, $F4, $72, $A8, $DD
 	dc.b	$01, $4A, $F6, $8E, $65, $5C, $20, $91, $01, $42, $92, $05, $5F, $E0
-loc_60EDC:
+;loc_60EDC
+Options_tiles:
 	dc.b	$81, $4B, $80, $04, $04, $14, $05, $24, $06, $35, $13, $46, $2A, $55, $16, $65, $10, $73, $00, $81, $03, $01, $15, $12, $27, $6B, $38, $EB, $48, $F1, $58, $F3
 	dc.b	$78, $EA, $82, $07, $66, $18, $F0, $83, $06, $2F, $18, $F4, $84, $06, $2B, $17, $67, $85, $05, $14, $86, $04, $07, $16, $31, $28, $EF, $48, $F2, $87, $05, $11
 	dc.b	$16, $2E, $28, $F6, $88, $06, $36, $17, $6E, $89, $07, $6A, $17, $72, $8A, $07, $73, $17, $74, $8B, $08, $EE, $17, $76, $8C, $06, $32, $17, $6F, $8D, $06, $34
@@ -40550,7 +41344,8 @@ loc_60EDC:
 	dc.b	$A8, $9B, $2D, $12, $89, $B2, $7E, $A2, $89, $4D, $CD, $B2, $52, $DB, $52, $1A, $6E, $00, $0F, $D4, $57, $6C, $AB, $AB, $2A, $EA, $DA, $B0, $00, $B7, $EA, $65
 	dc.b	$B4, $F7, $55, $B9, $75, $4B, $72, $E5, $FA, $9A, $35, $72, $A7, $19, $E7, $4E, $2B, $9D, $B8, $E7, $5F, $D4, $D7, $A7, $EA, $47, $57, $FE, $72, $F3, $A7, $19
 	dc.b	$E7, $4E, $2B, $9D, $B8, $E7, $5E, $5B, $65, $B4, $37, $AC, $9B, $7A, $7E, $A5, $BF, $59, $AD, $B6, $E3, $3C, $E9, $C5, $73, $B7, $1C, $EA
-loc_62098:
+;loc_62098
+Options_bg_tiles:
 	dc.b	$00, $14, $80, $04, $07, $13, $01, $24, $0A, $35, $19, $45, $16, $55, $18, $66, $3C, $74, $06, $83, $05, $1C, $84, $03, $02, $14, $08, $27, $7C, $85, $03, $00
 	dc.b	$16, $3B, $86, $04, $09, $15, $1B, $26, $3A, $38, $FA, $76, $3D, $87, $05, $1A, $18, $FB, $8C, $05, $17, $FF, $66, $66, $66, $66, $6C, $7E, $4F, $3F, $93, $59
 	dc.b	$E2, $B7, $16, $38, $E8, $87, $E2, $A0, $9F, $96, $4F, $FF, $34, $CC, $E0, $8A, $10, $E2, $0A, $3F, $B4, $C4, $63, $FE, $6E, $11, $04, $2A, $87, $47, $B7, $54
@@ -40561,7 +41356,8 @@ loc_62098:
 	dc.b	$88, $46, $1C, $43, $61, $09, $B7, $44, $27, $E9, $3A, $3A, $DC, $1F, $AA, $9D, $74, $67, $5F, $4F, $3A, $FE, $37, $DF, $B3, $6E, $AD, $D5, $BA, $B7, $56, $DE
 	dc.b	$37, $89, $6B, $6F, $C9, $66, $66, $66, $9F, $F3, $FA, $FF, $E6, $3F, $D6, $CF, $D3, $33, $7F, $DF, $DF, $7D, $F5, $99, $BD, $FF, $33, $FF, $58, $FD, $66, $59
 	dc.b	$99, $8F, $2F, $6E, $1B, $D7, $33, $77, $E6, $2F, $38, $D3, $CE, $75, $52, $75, $69, $D5, $00, $00
-loc_621CC:
+;loc_621CC
+Options_bg_tilemap:
 	dc.b	$05, $00, $00, $00, $00, $13, $02, $78, $27, $82, $50, $02, $9E, $39, $23, $06, $40, $01, $9E, $79, $67, $06, $38, $01, $9E, $79, $47, $0A, $38, $02, $9F, $19
 	dc.b	$51, $02, $28, $29, $06, $30, $E8, $92, $98, $23, $0E, $89, $29, $82, $30, $E8, $92, $08, $28, $9A, $41, $E8, $A2, $89, $A4, $1E, $8A, $28, $9A, $41, $E8, $A3
 	dc.b	$90, $14, $B9, $07, $A2, $DA, $2A, $8E, $7A, $4C, $A2, $A8, $E7, $A4, $CE, $00, $A4, $F8, $F1, $E3, $20, $52, $7C, $78, $F1, $90, $29, $3E, $3C, $78, $4A, $78
@@ -40569,12 +41365,14 @@ loc_621CC:
 	dc.b	$BE, $00, $6F, $80, $1B, $82, $06, $F8, $01, $BE, $00, $6E, $08, $1B, $E0, $06, $F8, $01, $B8, $20, $6F, $80, $1B, $E0, $06, $E0, $81, $BE, $00, $6F, $80, $1B
 	dc.b	$82, $06, $F8, $01, $BE, $00, $6E, $08, $1B, $E0, $06, $F8, $01, $B8, $20, $6F, $80, $1B, $E0, $06, $E0, $81, $BE, $00, $6F, $80, $1B, $82, $06, $F8, $01, $BE
 	dc.b	$00, $6E, $08, $1B, $E0, $06, $F8, $01, $B9, $E0, $9E, $09, $E0, $9E, $09, $E0, $80, $0F, $E0, $00
-loc_622A0:
+;loc_622A0
+Race_results_tiles:
 	dc.b	$80, $0A, $80, $75, $1A, $82, $25, $1C, $45, $1D, $56, $3E, $72, $00, $83, $45, $1E, $84, $05, $1B, $86, $04, $09, $88, $04, $0B, $72, $01, $89, $04, $0C, $74
 	dc.b	$08, $8D, $15, $15, $8E, $05, $14, $FF, $FF, $A0, $07, $D5, $FA, $A0, $01, $F8, $2A, $FD, $50, $00, $03, $BF, $B7, $FD, $AF, $F0, $3F, $43, $AD, $77, $F4, $7F
 	dc.b	$80, $FD, $0E, $B5, $FB, $09, $FC, $BC, $FE, $D4, $00, $0E, $78, $39, $E0, $0E, $78, $3F, $E6, $01, $34, $9A, $4D, $26, $8A, $AA, $DE, $5E, $5E, $5C, $44, $44
 	dc.b	$44, $67, $E3, $3F, $0B, $F8, $CD, $FE, $37, $7F, $8D, $D8, $7E, $8C, $03, $A0
-loc_62310:
+;loc_62310
+Race_results_tilemap:
 	dc.b	$04, $00, $00, $00, $00, $07, $0A, $79, $4F, $28, $A4, $04, $F3, $9E, $71, $0C, $0A, $25, $3C, $E7, $9C, $43, $E6, $84, $66, $0C, $F6, $9E, $D0, $4F, $A2, $11
 	dc.b	$9A, $00, $80, $18, $61, $08, $30, $8C, $18, $46, $0C, $23, $06, $11, $83, $08, $C1, $84, $60, $C6, $14, $A2, $74, $4A, $89, $A3, $06, $11, $83, $08, $C1, $84
 	dc.b	$60, $C2, $30, $61, $18, $30, $8C, $18, $46, $0C, $61, $4A, $27, $44, $A8, $9C, $18, $46, $0C, $23, $06, $11, $83, $08, $C1, $84, $60, $C2, $30, $61, $18, $30
@@ -40591,7 +41389,8 @@ loc_62310:
 	dc.b	$89, $A3, $06, $11, $83, $08, $C1, $84, $60, $C2, $30, $61, $18, $30, $8C, $18, $46, $0C, $61, $4A, $27, $44, $A8, $9C, $18, $46, $0C, $23, $06, $11, $83, $08
 	dc.b	$C1, $84, $60, $C2, $30, $61, $18, $30, $8E, $14, $A2, $74, $4A, $89, $C1, $84, $60, $C2, $30, $61, $18, $30, $8C, $18, $46, $0C, $23, $06, $11, $83, $08, $E1
 	dc.b	$4A, $27, $44, $A8, $9C, $F6, $9E, $C0, $41, $3E, $28, $53, $CE, $79, $C5, $3E, $28, $53, $CE, $79, $C5, $3E, $28, $53, $DA, $7B, $45, $68, $13, $FC
-loc_6250E:
+;Championship_final_tilemap
+Championship_final_tilemap:
 	dc.b	$09, $03, $00, $00, $00, $00, $01, $80, $10, $05, $00, $90, $09, $10, $51, $01, $B2, $38, $E0, $B0, $00, $2C, $0C, $16, $02, $81, $22, $78, $C9, $40, $C1, $60
 	dc.b	$20, $78, $90, $01, $58, $68, $9E, $79, $E7, $9E, $79, $E7, $9E, $79, $8F, $A7, $DC, $03
 	dc.b	$00
@@ -40666,7 +41465,8 @@ loc_6250E:
 	dc.b	$1E, $98, $87, $D7, $20, $34, $3F
 	dc.b	$07
 	dc.b	$E3, $3F, $C0
-loc_6263A:
+;Championship_final_tiles
+Championship_final_tiles:
 	dc.b	$01, $06, $80, $02, $00, $14, $06, $26, $3B, $36, $36, $48, $F9, $58, $F8, $74, $07, $81, $05, $17, $82, $05, $16, $83, $04, $09, $84, $04, $08, $85, $05, $1A
 	dc.b	$86, $06, $3D, $87, $06, $3C, $88, $05, $1C, $89, $06, $3A, $8A, $04, $0A, $8B, $03, $02, $8C, $06, $37, $8D, $05, $18, $8E, $05, $19, $FF, $77, $77, $77, $77
 	dc.b	$7F, $8C, $BB, $BB, $FC, $65, $FE, $72, $F8, $DB, $22, $F8, $CB, $E7, $6C, $FC, $E7, $6C, $7C, $2F, $8C, $77, $97, $EF, $3F, $19, $77, $7C, $3D, $08, $C3, $BB
@@ -40818,7 +41618,8 @@ loc_6263A:
 	dc.b	$A2, $84, $52, $28, $C0, $9B, $A2, $8D, $CF, $11, $E1, $82, $9B, $73, $D2, $8E, $51, $E1, $C3, $A7, $38, $23, $87, $1A, $8A, $11, $48, $A3, $02, $6E, $8F, $0E
 	dc.b	$85, $B9, $E1, $45, $37, $0E, $1E, $94, $8F, $0A, $3D, $73, $87, $0E, $09, $90, $84, $2E, $8C, $08, $DD, $B8, $6E, $7A, $52, $37, $11, $86, $F4, $DC, $F4, $FC
 	dc.b	$D0, $8E, $84, $FD, $A3, $86, $EF, $8D, $90, $9A, $8A, $28, $C5, $77, $45, $6C, $BB, $D3, $60, $44, $00, $00
-loc_63910:
+;loc_63910
+Track_bg_tilemap_Monaco_arcade:
 	dc.b	$07, $03, $00, $00, $00, $00, $01, $F7, $DF, $5C, $28, $00, $30, $78, $20, $5C, $E6, $01, $01, $81, $10, $2F, $A1, $CC, $02, $83, $40, $80, $06, $7D, $60, $E0
 	dc.b	$63, $C0, $E2, $90, $07, $C0, $08, $8A, $80, $10, $13, $00, $AF, $E0, $24, $14, $43, $83, $81, $F1, $00, $8E, $3C, $22, $04, $0C, $D8, $9E, $F3, $E1, $F0, $F8
 	dc.b	$4C, $3E, $1F, $0C, $86, $82, $A1, $64, $C2, $61, $10, $10, $C2, $20, $ED, $9C, $50, $26, $C4, $21, $B4, $E8, $80, $0E, $62, $00, $EC, $88, $3E, $0F, $1D, $20
@@ -40843,7 +41644,8 @@ loc_63910:
 	dc.b	$14, $C8, $75, $F2, $4A, $26, $F2, $49, $24, $DA, $24, $90, $20, $18, $41, $80, $5C, $06, $88, $6E, $09, $2B, $F1, $E4, $3E, $21, $13, $09, $34, $82, $E5, $38
 	dc.b	$B2, $4C, $21, $4C, $C8, $84, $A2, $0E, $EF, $9E, $69, $28, $92, $79, $1A, $07, $03, $80, $41, $07, $C1, $CD, $FE, $0E, $08, $0F, $21, $D5, $38, $7C, $42, $25
 	dc.b	$16, $09, $54, $FA, $41, $62, $9C, $43, $F8, $34, $21, $D2, $07, $C3, $82, $E3, $C8, $70, $5E, $34, $11, $88, $C4, $0A, $E0, $8F, $3C, $D8, $80, $3E, $25, $FE
-loc_63C10:
+;loc_63C10
+Track_bg_tilemap_Monaco_arcade_wet:
 	dc.b	$08, $03, $00, $06, $00, $00, $7D, $F7, $DF, $7D, $F5, $46, $7D, $60, $E0, $61, $E0, $71, $44, $00, $F8, $00, $88, $A8, $01, $01, $18, $05, $7F, $00, $90, $28
 	dc.b	$83
 	dc.b	$81
@@ -40966,7 +41768,8 @@ loc_63C10:
 	dc.b	$08, $41, $A0, $87, $24, $07, $C1, $C0, $B8, $79, $07, $02, $F0, $D0, $23, $08, $C2, $04, $BB, $A0, $23, $8D
 	dc.b	$84
 	dc.b	$00, $F8, $4B, $FC, $00
-loc_63ECA:
+;loc_63ECA
+Track_bg_tiles_Monaco_arcade:
 	dc.b	$00, $80, $80, $06, $2D, $17, $6B, $28, $E7, $37, $70, $47, $71, $58, $ED, $68, $EA, $75, $12, $81, $04, $06, $16, $30, $27, $6F, $38, $F0, $82, $04, $05, $16
 	dc.b	$33, $28, $F4, $83, $03, $01, $15, $13, $26, $34, $38, $EC, $84, $06, $36, $85, $06, $2E, $18, $E6, $28, $EF, $38, $F3, $76, $2F, $86, $08, $EB, $18, $F2, $87
 	dc.b	$04, $07, $16, $31, $27, $72, $88, $05, $14, $17, $6E, $28, $F6, $89, $03, $00, $14, $08, $26, $2C, $37, $74, $48, $EE, $8A, $04, $04, $15, $15, $26, $32, $37
@@ -41045,7 +41848,8 @@ loc_63ECA:
 	dc.b	$91, $CD, $96, $95, $BE, $FB, $FF, $8B, $65, $D0, $82, $B4, $41, $48, $DD, $D2, $9D, $DB, $82, $0A, $FF, $94, $7F, $16, $CB, $86, $5E, $D5, $FD, $C4, $6E, $EE
 	dc.b	$A5, $9B, $87, $F2, $22, $9D, $2B, $41, $BB, $FF, $56, $6A, $14, $09, $40, $81, $37, $59, $4A, $FE, $E2, $C4, $8F, $DC, $46, $EB, $37, $0F, $DC, $46, $EE, $72
 	dc.b	$E5, $CF, $39, $73, $8E, $BD, $31, $5D, $65, $CB, $97, $D6, $7F, $6E, $75, $95, $72, $E7, $59, $E4, $5E, $D0, $5D, $5E, $60, $00
-loc_64884:
+;loc_64884
+Track_bg_tilemap_Japan:
 	dc.b	$07, $03, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $DF, $78, $09, $E0, $18, $A0, $10, $E2, $00, $40, $86, $06, $02, $68, $18, $A8, $00, $60, $70, $A5, $20
 	dc.b	$01, $80, $88, $06, $3A, $00, $90, $18, $02, $41, $E0, $2A, $40, $A2, $2A, $02, $00, $B4, $0A, $82, $9A, $22, $91, $60, $8A, $69, $8A, $86, $A6, $38, $0A, $00
 	dc.b	$E4, $0A, $23, $B0, $20, $0E, $41, $81, $3C, $03, $89, $00, $88, $17, $22, $00, $EC, $78, $FB, $EF, $BE, $FB, $EF, $B8, $14, $F0, $0C, $F0, $0C, $F0, $34, $F0
@@ -41058,7 +41862,8 @@ loc_64884:
 	dc.b	$0C, $F0, $0C, $F0, $34, $F0, $35, $70, $B7, $C0, $31, $5C, $D4, $6A, $75, $35, $CA, $E6, $A3, $53, $A9, $AE, $57, $6B, $CA, $03, $54, $14, $D1, $17, $F1, $15
 	dc.b	$AC, $00, $A2, $58, $A2, $2B, $03, $A0, $A4, $DE, $32, $6D, $1C, $2A, $0A, $7B, $8A, $55, $22, $F5, $62, $AC, $60, $AB, $3C, $53, $1C, $F8, $21, $8E, $48, $63
 	dc.b	$B6, $07, $13, $90, $3A, $1D, $83, $50, $E4, $07, $32, $18, $EC, $78, $43, $A4, $39, $E4, $C4, $64, $AD, $BF, $80, $00
-loc_649FC:
+;loc_649FC
+Track_bg_tiles_Japan:
 	dc.b	$00, $7E, $80, $05, $0E, $16, $36, $27, $72, $58, $F5, $68, $F6, $75, $16, $81, $03, $00, $15, $14, $27, $6E, $82, $06, $32, $18, $EE, $28, $F2, $83, $04, $02
 	dc.b	$14, $05, $25, $15, $36, $2E, $46, $2F, $56, $30, $66, $34, $74, $03, $84, $05, $0F, $16, $31, $26, $33, $37, $74, $48, $F3, $68, $F7, $75, $12, $85, $05, $11
 	dc.b	$16, $38, $86, $04, $06, $17, $75, $87, $07, $6F, $88, $05, $10, $17, $6A, $27, $73, $38, $EF, $48, $F4, $57, $78, $74, $04, $89, $05, $13, $17, $6B, $8A, $07
@@ -41112,7 +41917,8 @@ loc_649FC:
 	dc.b	$F1, $BB, $22, $75, $F9, $19, $96, $38, $74, $B9, $DE, $E5, $BA, $F1, $86, $4B, $91, $65, $77, $72, $D3, $00, $66, $59, $99, $DE, $14, $10, $BC, $60, $0C, $CE
 	dc.b	$F9, $49, $BC, $C9, $FC, $33, $E2, $D1, $BD, $A3, $A3, $D6, $25, $13, $BA, $59, $C7, $FA, $85, $8B, $67, $77, $4D, $23, $A4, $77, $99, $99, $9E, $99, $19, $99
 	dc.b	$99, $99, $99, $9D, $D9, $DE, $FB, $F1, $57, $9A, $EA, $BD, $F0, $BD, $FA, $AF, $E6, $EB, $F5, $5E
-loc_65090:
+;loc_65090
+Track_bg_tilemap_Italy:
 	dc.b	$07, $01, $00, $00, $00, $02, $02, $78, $04, $E0, $00, $27, $80, $CE, $01, $01, $F7, $D2, $03, $84, $1B, $EE, $81, $C2, $11, $F7, $40, $E1, $0A, $FB, $22, $40
 	dc.b	$09, $19, $6E, $32, $20, $F0, $04, $41, $E5, $20, $0C, $0E, $05, $10, $98, $01, $82, $61, $18, $23, $8C, $98, $90, $38, $67, $E0, $0F, $81, $02, $7C, $0E, $23
 	dc.b	$42, $C0, $52, $18, $16, $01, $60, $F0, $0D, $03, $C3, $66, $07, $23, $5B, $3A, $E0, $20, $14, $81, $C8, $C4, $B0, $BA, $78, $04, $F0, $09, $E0, $33, $C0, $5F
@@ -41124,7 +41930,8 @@ loc_65090:
 	dc.b	$A5, $50, $60, $27, $01, $45, $54, $2E, $AA, $66, $C7, $07, $27, $66, $60, $F1, $34, $B3, $9E, $01, $3C, $02, $78, $0C, $F0, $17, $DF, $7D, $F7, $DF, $7D, $FA
 	dc.b	$81, $A1, $C3, $66, $03, $A1, $0C, $9D, $14, $8C, $85, $40, $DE, $E4, $44, $12, $62, $44, $64, $81, $F2, $15, $06, $C2, $81, $D4, $05, $16, $A8, $1D, $41, $72
 	dc.b	$25, $9F, $18, $A8, $36, $14, $02, $50, $78, $8E, $4F, $54, $2F, $0F, $8B, $B7, $B8, $10, $1D, $C2, $E2, $69, $67, $54, $B8, $1A, $26, $C0, $E1, $29, $FE, $00
-loc_651F0:
+;loc_651F0
+Track_bg_tiles_Italy:
 	dc.b	$00, $7F, $80, $06, $35, $81, $03, $00, $14, $08, $25, $16, $37, $6E, $47, $75, $57, $72, $68, $F2, $76, $2E, $82, $04, $04, $15, $15, $26, $38, $83, $03, $01
 	dc.b	$15, $12, $26, $30, $37, $73, $48, $F7, $84, $04, $06, $16, $32, $27, $78, $85, $06, $34, $18, $F6, $75, $14, $86, $05, $0F, $16, $31, $27, $74, $38, $F5, $87
 	dc.b	$05, $0E, $17, $77, $27, $6F, $88, $06, $36, $89, $05, $13, $18, $F3, $8A, $04, $05, $16, $33, $27, $76, $58, $F4, $76, $2F, $FF, $5D, $57, $55, $D5, $7F, $20
@@ -41199,7 +42006,8 @@ loc_651F0:
 	dc.b	$4D, $BF, $A7, $E2, $4D, $26, $2D, $FF, $3F, $F9, $E1, $4A, $45, $45, $58, $A7, $52, $C8, $2A, $08, $23, $88, $20, $D9, $04, $A1, $2C, $69, $47, $F7, $7E, $FE
 	dc.b	$8E, $7B, $BA, $39, $EE, $7B, $BA, $6F, $7E, $FC, $5D, $8E, $FF, $FB, $3E, $94, $DE, $FD, $EF, $73, $DC, $FD, $EF, $73, $DC, $F7, $3D, $CF, $DE, $F7, $3D, $D8
 	dc.b	$BB, $17, $3D, $DF, $F6, $7D, $28, $00
-loc_65B18:
+;loc_65B18
+Track_bg_tilemap_West_Germany:
 	dc.b	$07, $03, $00, $00, $00, $00, $01, $F7, $DF, $78, $09, $E0, $19, $C0, $10, $27, $80, $A7, $00, $80, $9E, $03, $9C, $03, $12, $A0, $12, $90, $12, $88, $12, $88
 	dc.b	$10, $2A, $40, $58, $20, $4A, $60, $5A, $40, $41, $29, $83, $01, $A2, $0D, $A2, $0C, $A2, $0C, $0B, $98, $35, $18, $8F, $47, $54, $06, $52, $06, $01, $C8, $2C
 	dc.b	$92, $48, $83, $C9, $24, $97, $48, $85, $CD, $24, $16, $0C, $05, $A0, $06, $C1, $F0, $1D, $0D, $A5, $82, $21, $20, $B0, $6D, $24, $91, $03, $90, $58, $36, $92
@@ -41219,7 +42027,8 @@ loc_65B18:
 	dc.b	$16, $0D, $A4, $89, $21, $E0, $9A, $54, $0F, $D5, $04, $AA, $50, $2A, $94, $4A, $A5, $03, $A9, $40, $A8, $9B, $48, $4A, $0D, $85, $BE, $86, $D2, $D2, $04, $B3
 	dc.b	$28, $48, $A6, $0D, $85, $83, $21, $A1, $FA, $81, $7C, $07, $E4, $EE, $51, $3A, $9D, $A8, $49, $6A, $0D, $08, $ED, $41, $A0, $1D, $12, $92, $C9, $9E, $97, $C1
 	dc.b	$F1, $1A, $7F, $94, $9F, $66, $2F, $D4, $A2, $30, $FF, $F0
-loc_65D64:
+;loc_65D64
+Track_bg_tiles_West_Germany:
 	dc.b	$80, $51, $80, $03, $00, $14, $06, $24, $07, $35, $12, $45, $19, $56, $37, $66, $39, $74, $0A, $81, $05, $18, $82, $03, $02, $16, $36, $83, $03, $01, $15, $17
 	dc.b	$27, $76, $84, $06, $38, $85, $08, $F7, $86, $05, $16, $87, $05, $13, $17, $77, $88, $07, $7A, $89, $05, $1A, $8A, $06, $3A, $8B, $04, $08, $17, $78, $8C, $07
 	dc.b	$79, $8D, $78, $F6, $FF, $AA, $AA, $16, $16, $16, $1F, $F6, $FF, $B7, $FD, $AC, $2C, $2C, $2C, $2D, $55, $5F, $8E, $7F, $C7, $3F, $E7, $87, $EB, $87, $FF, $BF
@@ -41266,7 +42075,8 @@ loc_65D64:
 	dc.b	$FC, $CF, $E6, $B5, $E3, $78, $1A, $1E, $5F, $C3, $79, $68, $F3, $1C, $C3, $40, $8E, $F0, $D1, $28, $50, $22, $79, $86, $F2, $23, $30, $D3, $79, $B4, $4A, $6F
 	dc.b	$DE, $53, $18, $EE, $26, $F8, $13, $13, $AE, $F9, $EF, $29, $E6, $63, $F4, $FB, $F7, $79, $89, $F3, $31, $DC, $4D, $A6, $D3, $13, $69, $89, $BA, $1D, $EA, $A6
 	dc.b	$D3, $79, $BC, $DA, $62, $75, $4E, $B9, $00, $00
-loc_6630E:
+;loc_6630E
+Track_bg_tilemap_Spain:
 	dc.b	$07, $03, $00, $00, $00, $03, $02, $78, $02, $78, $02, $78, $02, $70, $00, $09, $E0, $19, $C0, $10, $27, $80, $A7, $00, $80, $7D, $F7, $80, $7D, $E0, $14, $0B
 	dc.b	$0A, $20, $0E, $40, $74, $3A, $19, $C1, $60, $23, $40, $80, $89, $2E, $02, $70, $1E, $29, $D0, $E8, $90, $01, $A0, $F1, $07, $C3, $C0, $E6, $0F, $0B, $05, $E3
 	dc.b	$02, $71, $13, $8A, $82, $E0, $A8, $9E, $00, $9E, $00, $9E, $00, $9E, $00, $9E, $01, $9E, $01, $9E, $02, $9E, $02, $7D, $F7, $D7, $02, $00, $1C, $1E, $22, $F0
@@ -41279,7 +42089,8 @@ loc_6630E:
 	dc.b	$28, $13, $C0, $13, $C0, $13, $C0, $13, $C0, $13, $C0, $33, $C0, $33, $C0, $53, $C0, $4F, $BE, $FB, $EA, $F2, $26, $0C, $46, $60, $F9, $57, $8C, $D6, $60, $C7
 	dc.b	$20, $CD, $98, $64, $72, $0C, $C0, $E8, $4C, $06, $19, $1C, $A3, $35, $E0, $01, $81, $81, $2C, $12, $91, $AE, $00, $B8, $4C, $8F, $2E, $46, $97, $40, $6D, $28
 	dc.b	$2E, $38, $00, $D0, $68, $BC, $E0, $12, $83, $A4, $76, $80, $75, $13, $23, $F7, $AB, $CC, $EB, $2D, $22, $87, $93, $BF, $C0, $00
-loc_66488:
+;loc_66488
+Track_bg_tiles_Spain:
 	dc.b	$00, $7D, $80, $08, $F5, $81, $06, $31, $17, $6B, $28, $E7, $38, $EE, $58, $F3, $75, $12, $82, $03, $02, $15, $17, $26, $34, $38, $EF, $48, $F2, $83, $07, $71
 	dc.b	$84, $04, $06, $14, $08, $26, $30, $37, $6E, $48, $EA, $58, $E6, $78, $EB, $85, $03, $00, $15, $13, $26, $36, $86, $04, $02, $15, $16, $27, $66, $37, $72, $78
 	dc.b	$EC, $87, $05, $14, $17, $67, $28, $F1, $38, $F0, $48, $F4, $88, $04, $03, $15, $15, $27, $6A, $38, $F6, $89, $04, $07, $17, $6F, $28, $ED, $37, $70, $8A, $06
@@ -41359,7 +42170,8 @@ loc_66488:
 	dc.b	$FA, $70, $A6, $FA, $70, $FF, $BD, $09, $72, $44, $AD, $FD, $22, $FE, $BF, $FC, $91, $7F, $5F, $B3, $37, $A6, $6F, $2C, $DE, $9D, $99, $CB, $D2, $E5, $E5, $9C
 	dc.b	$BD, $3B, $3C, $4B, $C3, $42, $EF, $F1, $2F, $0E, $CF, $12, $F0, $D0, $BB, $FC, $4B, $C3, $B3, $C0, $BC, $7B, $CB, $4F, $02, $F1, $EC, $F0, $2F, $1E, $F2, $D3
 	dc.b	$C0, $BC, $7B, $3D, $0B, $3F, $91, $5F, $D0, $B3, $F6, $7A, $7F, $C8, $91, $7A, $15, $FB, $3F, $AE, $5F, $E2, $B7, $F5, $FB, $2C
-loc_66E62:
+;loc_66E62
+Track_bg_tilemap_Great_Britain:
 	dc.b	$08, $03, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $DF, $7D, $F7, $C0, $40, $05, $00, $A2, $00
 	dc.b	$87
 	dc.b	$00, $07, $02, $00, $0E, $07, $54, $24, $07, $01, $10, $20, $00, $02, $54, $08, $00, $50, $3D, $00, $80, $18, $03, $02, $00, $B3, $20, $82, $BE, $50, $A0, $54
@@ -41411,7 +42223,8 @@ loc_66E62:
 	dc.b	$A1, $70, $05, $69, $0F, $3C, $01, $5A, $43, $CC, $20, $56, $90, $F3, $14, $15, $06, $30, $FA, $15, $31, $F6, $98, $FB, $08, $7D, $A4, $3F
 	dc.b	$45
 	dc.b	$1F, $7F, $80
-loc_66FDE:
+;loc_66FDE
+Track_bg_tiles_Great_Britain:
 	dc.b	$00, $80, $80, $06, $26, $17, $73, $28, $EE, $75, $0E, $81, $04, $02, $17, $66, $28, $EF, $75, $16, $82, $05, $12, $18, $F4, $83, $03, $00, $14, $06, $25, $14
 	dc.b	$36, $2F, $46, $2E, $56, $30, $67, $76, $75, $0B, $84, $05, $0F, $16, $32, $27, $6A, $37, $70, $47, $72, $57, $6E, $68, $F2, $74, $04, $85, $04, $03, $15, $11
 	dc.b	$26, $34, $38, $F3, $86, $05, $0A, $17, $6B, $28, $F6, $48, $F1, $76, $31, $87, $05, $10, $17, $6F, $28, $F0, $76, $27, $88, $06, $36, $17, $71, $27, $74, $89
@@ -41469,7 +42282,8 @@ loc_66FDE:
 	dc.b	$EA, $1B, $35, $44, $F2, $79, $3C, $9F, $62, $32, $32, $32, $FF, $AF, $FD, $7F, $EA, $79, $F8, $E7, $FD, $C6, $7E, $39, $C9, $E5, $58, $79, $3F, $BF, $6F, $DC
 	dc.b	$91, $EC, $64, $65, $FF, $5F, $FA, $FF, $D4, $F3, $F1, $CF, $FB, $8C, $FC, $73, $93, $C9, $FD, $0B, $FF, $24, $38, $D7, $B3, $C6, $9C, $7A, $F9, $8E, $9F, $C5
 	dc.b	$11, $CF, $C7, $3F, $EE, $33, $F1, $CE, $4F, $2E, $84, $FD, $BF, $C2, $C4, $64, $64, $7D, $7F, $8B, $B3, $7F, $14, $7F, $97, $3F, $1C, $FF, $B8, $CF, $C7, $38
-loc_676FE:
+;loc_676FE
+Track_bg_tilemap_Brazil:
 	dc.b	$08, $03, $00, $00, $00, $10, $02, $10, $00, $04, $04, $04, $09, $00, $04, $04, $08, $09, $E0, $04, $04, $0C, $38, $00, $10, $31, $00, $0F, $28, $18, $0C, $83
 	dc.b	$00
 	dc.b	$60, $48, $00, $81
@@ -41574,7 +42388,8 @@ loc_676FE:
 	dc.b	$91, $90, $7E, $9B
 	dc.b	$07
 	dc.b	$49, $DA, $74, $07, $F0
-loc_679D8:
+;loc_679D8
+Track_bg_tiles_Brazil:
 	dc.b	$80, $80, $80, $03, $00, $14, $04, $25, $12, $35, $15, $46, $2F, $56, $30, $66, $38, $73, $01, $81, $04, $05, $16, $34, $28, $F1, $82, $04, $07, $17, $73, $28
 	dc.b	$F7, $83, $04, $06, $16, $31, $28, $EE, $38, $F4, $84, $05, $16, $17, $75, $85, $05, $14, $18, $ED, $86, $06, $2E, $18, $EC, $87, $04, $08, $17, $6F, $28, $F3
 	dc.b	$88, $05, $13, $17, $6E, $27, $74, $89, $06, $33, $18, $EF, $8A, $06, $32, $18, $F0, $8B, $07, $72, $8C, $06, $35, $8F, $06, $36, $18, $F2, $FF, $AF, $EA, $AB
@@ -41643,7 +42458,8 @@ loc_679D8:
 	dc.b	$F6, $B6, $AD, $FB, $C8, $24, $92, $4D, $B9, $5B, $F7, $71, $84, $61, $18, $45, $FB, $EB, $BC, $93, $FD, $54, $FD, $2A, $52, $FE, $D5, $E1, $6F, $F1, $28, $A9
 	dc.b	$E2, $8A, $47, $EC, $53, $44, $54, $51, $A0, $F1, $4D, $11, $51, $46, $83, $C4, $2C, $94, $28, $5B, $D5, $34, $4F, $D3, $7F, $1D, $42, $85, $0A, $8A, $14, $28
 	dc.b	$59, $40, $FE, $B8, $82, $4C, $80, $00
-loc_68240:
+;loc_68240
+Track_bg_tilemap_Canada:
 	dc.b	$07, $03, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $80, $9E, $01, $9C, $01, $02, $70, $08, $18, $00, $20, $66, $80, $84, $81, $89, $03, $0E, $22, $18, $0A
 	dc.b	$8C, $0F, $90, $0A, $07, $04, $9E, $02, $9A, $02, $06, $30, $08, $08, $00, $20, $20, $80, $8D, $80, $18, $02, $02, $5C, $28, $09, $51, $B8, $89, $D5, $21, $D1
 	dc.b	$16, $41, $16, $85, $08, $57, $00, $5A, $04, $01, $80, $1D, $15, $C3, $01, $80, $B4, $58, $34, $05, $A8, $1C, $05, $8F, $BE, $FB, $EF, $BF, $3C, $03, $3C, $03
@@ -41659,7 +42475,8 @@ loc_68240:
 	dc.b	$50, $0A, $8C, $0F, $E8, $0A, $07, $04, $03, $82, $31, $80, $9C, $5B, $60, $15, $59, $06, $62, $30, $F3, $C0, $52, $C0, $40, $42, $01, $71, $4A, $89, $41, $E8
 	dc.b	$A4, $74, $3A, $00, $42, $50, $38, $BA, $0D, $21, $72, $75, $89, $54, $80, $72, $74, $1A, $82, $00, $72, $37, $1A, $88, $41, $73, $35, $09, $0D, $C2, $E1, $78
 	dc.b	$3D, $A9, $1D, $A0, $1D, $42, $E4, $F9, $7B, $1D, $80, $C2, $78, $84, $7C, $E2, $77, $7B, $01, $04, $FB, $C8, $EE, $F4, $39, $FF
-loc_6841A:
+;loc_6841A
+Track_bg_tiles_Canada:
 	dc.b	$00, $7D, $80, $05, $13, $17, $74, $81, $04, $07, $17, $6E, $28, $F7, $78, $F5, $82, $04, $04, $16, $2E, $28, $F0, $83, $05, $12, $17, $66, $28, $F3, $84, $04
 	dc.b	$08, $16, $32, $28, $F1, $37, $67, $85, $04, $05, $15, $15, $26, $30, $36, $36, $47, $6B, $58, $EB, $67, $70, $74, $06, $86, $06, $2F, $16, $34, $28, $EE, $77
 	dc.b	$73, $87, $04, $02, $16, $2C, $26, $31, $37, $6F, $77, $71, $88, $08, $EA, $18, $EF, $89, $04, $03, $16, $2D, $27, $72, $38, $F4, $48, $F2, $77, $76, $8A, $03
@@ -41738,7 +42555,8 @@ loc_6841A:
 	dc.b	$99, $CC, $21, $8B, $41, $A0, $E4, $96, $8E, $DD, $BF, $D3, $2F, $29, $1C, $AD, $CC, $79, $A6, $7F, $A0, $3E, $96, $5B, $65, $B6, $72, $2B, $65, $FE, $9E, $F2
 	dc.b	$EA, $2E, $AC, $7B, $CB, $BC, $BA, $B3, $13, $94, $9C, $A7, $98, $B3, $14, $BA, $79, $FE, $83, $8F, $1E, $59, $8F, $37, $EA, $0B, $F5, $05, $D4, $5F, $A8, $2E
 	dc.b	$F2, $91, $66, $2C, $D3, $94, $E5, $39, $4E, $5F, $F0, $00
-loc_68DC6:
+;loc_68DC6
+Track_bg_tilemap_San_Marino:
 	dc.b	$07, $01, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $80, $9E, $03, $38, $04, $09, $E0, $53, $C0, $A7, $81, $4E, $02, $02, $04, $18, $BC, $22, $23, $81, $61
 	dc.b	$86, $A2, $0B, $08, $08, $38, $11, $A0, $C0, $8F, $23, $88, $AC, $A8, $3C, $46, $66, $82, $80, $38, $0C, $01, $D1, $68, $D2, $40, $A4, $1A, $01, $38, $9C, $2C
 	dc.b	$28, $98, $03, $02, $CC, $08, $06, $80, $70, $B5, $80, $6A, $14, $03, $80, $30, $9C, $C1, $39, $7D, $F7, $DF, $7D, $F9, $E0, $33, $C0, $67, $81, $4F, $02, $9E
@@ -41752,7 +42570,8 @@ loc_68DC6:
 	dc.b	$10, $70, $42, $62, $2E, $8F, $CE, $81, $80, $80, $81, $D2, $29, $0B, $71, $47, $45, $A4, $2D, $01, $18, $08, $09, $01, $40, $4B, $07, $AA, $52, $6E, $46, $79
 	dc.b	$21, $28, $3C, $5D, $39, $40, $E6, $2A, $21, $26, $C1, $50, $A3, $B1, $39, $69, $72, $A3, $33, $3A, $C8, $30, $16, $81, $E0, $D3, $14, $C7, $87, $4C, $33, $1E
 	dc.b	$2C, $15, $5F, $C0
-loc_68F4A:
+;loc_68F4A
+Track_bg_tiles_San_Marino:
 	dc.b	$00, $7E, $80, $06, $36, $81, $06, $30, $17, $73, $74, $08, $82, $05, $17, $17, $74, $77, $76, $83, $03, $00, $15, $15, $26, $31, $36, $35, $48, $EF, $58, $F3
 	dc.b	$68, $F4, $74, $05, $84, $03, $01, $15, $14, $25, $16, $36, $33, $47, $6F, $57, $72, $67, $78, $74, $06, $85, $05, $13, $86, $04, $04, $16, $32, $28, $F5, $87
 	dc.b	$04, $07, $16, $38, $28, $F6, $88, $05, $12, $18, $F7, $89, $06, $34, $17, $6E, $27, $75, $38, $EE, $48, $F2, $FF, $DB, $0D, $B0, $DB, $0D, $B9, $ED, $86, $D8
@@ -41807,7 +42626,8 @@ loc_68F4A:
 	dc.b	$F6, $52, $5F, $D9, $79, $FF, $5C, $19, $CA, $72, $9C, $A8, $F2, $79, $3C, $A8, $29, $C1, $74, $1D, $6C, $83, $DB, $7F, $05, $F3, $E3, $31, $61, $41, $BC, $78
 	dc.b	$1B, $FC, $92, $BF, $C7, $23, $C9, $CE, $92, $FE, $CC, $A7, $24, $9A, $6E, $FD, $43, $A3, $FE, $A2, $72, $79, $BC, $A7, $FA, $8F, $69, $39, $FE, $35, $93, $FB
 	dc.b	$25, $3F, $AF, $E5, $3F, $7F, $2F, $77, $FE, $44, $DD, $25, $39, $4E, $53, $43, $FC, $89, $94, $00
-loc_695FE:
+;loc_695FE
+Track_bg_tilemap_Australia:
 	dc.b	$07, $01, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $80, $9E, $03, $38, $04, $09, $E0, $53, $80, $80, $9E, $07, $3C, $0E, $20, $18, $51, $80, $C0, $9C, $06
 	dc.b	$64, $00, $D1, $B9, $06, $0A, $8C, $01, $C6, $72, $20, $0E, $71, $32, $21, $B1, $41, $52, $1E, $A4, $3D, $00, $78, $5E, $34, $84, $A1, $F1, $A4, $25, $07, $A9
 	dc.b	$35, $25, $21, $29, $31, $33, $EF, $BE, $FB, $EF, $CF, $01, $9E, $03, $3C, $0A, $78, $14, $90, $38, $10, $80, $CF, $03, $84, $06, $04, $00, $30, $61, $81, $E1
@@ -41819,7 +42639,8 @@ loc_695FE:
 	dc.b	$89, $00, $F3, $EF, $BE, $FB, $EF, $CF, $01, $9E, $03, $3C, $0A, $78, $14, $F0, $39, $E0, $78, $52, $F8, $64, $CF, $03, $8C, $07, $C0, $1A, $20, $1F, $15, $AE
 	dc.b	$20, $72, $EB, $F2, $9D, $18, $88, $03, $98, $C4, $40, $E8, $E0, $1F, $BC, $27, $22, $06, $03, $86, $03, $44, $22, $07, $62, $07, $46, $07, $C8, $3A, $B3, $0F
 	dc.b	$90, $0F, $12, $12, $85, $C1, $16, $99, $1F, $1A, $42, $B0, $7A, $16, $13, $22, $92, $12, $D2, $1E, $E6, $3C, $CE, $D0, $3F, $FC
-loc_69758:
+;loc_69758
+Track_bg_tiles_Australia:
 	dc.b	$00, $75, $80, $08, $F2, $81, $07, $6E, $82, $06, $30, $16, $34, $27, $6F, $37, $6B, $48, $F4, $74, $08, $83, $04, $04, $15, $14, $26, $31, $37, $74, $77, $70
 	dc.b	$84, $04, $09, $16, $33, $38, $F6, $85, $04, $06, $15, $16, $27, $6C, $37, $71, $58, $F1, $86, $03, $01, $15, $15, $28, $EA, $38, $F0, $87, $03, $00, $16, $2E
 	dc.b	$28, $F3, $88, $04, $05, $17, $6A, $28, $EF, $37, $6D, $78, $EE, $89, $04, $07, $16, $2F, $26, $32, $38, $EB, $77, $72, $8A, $07, $73, $17, $76, $FF, $DD, $E5
@@ -41890,7 +42711,8 @@ loc_69758:
 	dc.b	$CA, $96, $95, $2A, $54, $F0, $0E, $97, $20, $47, $41, $4B, $A8, $28, $12, $E4, $1D, $3F, $8F, $4B, $93, $FA, $F4, $B9, $C3, $F9, $F0, $B2, $B7, $B6, $A0, $B6
 	dc.b	$0D, $99, $EF, $2B, $FA, $45, $F6, $D4, $14, $A9, $0B, $4B, $4B, $14, $08, $CB, $2A, $78, $7B, $57, $60, $B1, $1D, $E7, $51, $0B, $FC, $42, $D9, $82, $B5, $0B
 	dc.b	$25, $A5, $8A, $32, $95, $95, $4B, $B8, $20, $00
-loc_6A002:
+;loc_6A002
+Track_bg_tilemap_Hungary:
 	dc.b	$07, $03, $00, $00, $00, $02, $02, $78, $02, $78, $02, $78, $02, $70, $00, $09, $E0, $19, $C0, $10, $1F, $7D, $F7, $DF, $78, $07, $DE, $1A, $00, $24, $08, $00
 	dc.b	$90, $60, $02, $41, $C4, $0A, $06, $00, $38, $08, $01, $20, $B8, $83, $52, $00, $E1, $05, $03, $C7, $30, $18, $02, $06, $64, $38, $01, $80, $20, $27, $01, $A2
 	dc.b	$1C, $E2, $1A, $CC, $83, $01, $40, $1C, $01, $30, $1C, $D3, $E2, $10, $E0, $76, $78, $02, $78, $02, $78, $02, $78, $02, $78, $06, $78, $05, $F7, $DF, $7D, $F7
@@ -41903,7 +42725,8 @@ loc_6A002:
 	dc.b	$36, $81, $C8, $54, $AC, $76, $2B, $D4, $D9, $84, $28, $AE, $67, $03, $80, $FA, $32, $77, $2C, $76, $43, $1C, $3E, $E7, $71, $A1, $E2, $D6, $4E, $1B, $A1, $40
 	dc.b	$C0, $61, $05, $61, $43, $F9, $0C, $51, $89, $96, $B2, $29, $18, $94, $35, $26, $19, $81, $FC, $66, $25, $0D, $49, $86, $63, $01, $30, $CC, $60, $33, $F2, $CD
 	dc.b	$07, $A5, $9B, $3F, $98, $64, $3C, $18, $C2, $03, $FC, $00
-loc_6A16E:
+;loc_6A16E
+Track_bg_tiles_Hungary:
 	dc.b	$00, $7D, $80, $07, $73, $81, $06, $2A, $18, $EF, $28, $F4, $82, $06, $31, $17, $78, $76, $30, $83, $04, $05, $16, $34, $28, $F2, $38, $F3, $78, $EE, $84, $05
 	dc.b	$12, $17, $74, $77, $6E, $85, $03, $01, $15, $13, $26, $2F, $36, $33, $47, $71, $58, $E4, $77, $75, $86, $04, $06, $15, $16, $27, $6A, $37, $6C, $48, $F6, $87
 	dc.b	$04, $07, $16, $2E, $27, $6F, $89, $04, $04, $15, $14, $26, $32, $38, $E5, $48, $F5, $8A, $03, $00, $14, $08, $26, $2B, $37, $6B, $47, $70, $57, $76, $77, $6D
@@ -41983,7 +42806,8 @@ loc_6A16E:
 	dc.b	$38, $B8, $B6, $6F, $3F, $C4, $5E, $F3, $FC, $43, $1B, $4D, $BF, $10, $C5, $AF, $FC, $43, $1B, $16, $FC, $43, $66, $DF, $88, $B4, $ED, $F8, $8B, $16, $21, $1E
 	dc.b	$10, $52, $E4, $0E, $5E, $2E, $2F, $34, $0E, $8F, $37, $09, $5B, $CD, $02, $3D, $E8, $12, $EB, $E1, $C2, $3A, $6B, $BA, $1C, $39, $74, $19, $4D, $C5, $C8, $E5
 	dc.b	$EF, $05, $E6, $E5, $CB, $87, $47, $37, $04, $08, $5E, $6E, $29, $30, $5C, $00
-loc_6AB3E:
+;loc_6AB3E
+Track_bg_tilemap_France:
 	dc.b	$07, $03, $00, $00, $00, $03, $02, $78, $02, $70, $00, $09, $E0, $19, $C0, $10, $27, $80, $A7, $00, $80, $7D, $F7, $40, $7D, $D1, $E8, $81, $E0, $02, $C0, $E4
 	dc.b	$0D, $46, $83, $00, $80, $0B, $01, $A2, $A0, $06, $00, $80, $1B, $0A, $00, $74, $08, $01, $90, $17, $A6, $10, $E4, $98, $0A, $86, $40, $80, $1C, $06, $06, $6C
 	dc.b	$08, $4A, $40, $60, $47, $80, $E3, $9F, $0D, $8D, $04, $58, $24, $01, $80, $34, $46, $22, $F1, $5D, $AE, $02, $80, $1C, $02, $00, $C8, $09, $E0, $09, $E0, $09
@@ -41996,7 +42820,8 @@ loc_6AB3E:
 	dc.b	$D5, $8A, $B1, $7A, $98, $4C, $8E, $06, $F8, $B9, $58, $04, $F0, $04, $F0, $04, $F0, $0C, $F0, $0C, $F0, $14, $F0, $13, $EF, $BE, $FB, $EF, $BE, $FA, $1C, $42
 	dc.b	$09, $05, $02, $A4, $66, $80, $66, $03, $89, $98, $D0, $90, $30, $0B, $61, $70, $34, $27, $48, $5F, $C5, $5E, $2C, $02, $00, $B4, $0E, $03, $9A, $45, $70, $60
 	dc.b	$0E, $80, $80, $BB, $03, $EB, $C0, $BE, $60, $31, $18, $CC, $43, $B3, $A0, $E9, $76, $F0, $37, $8B, $05, $BF, $C0, $00
-loc_6ACB6:
+;loc_6ACB6
+Track_bg_tiles_France:
 	dc.b	$00, $74, $80, $08, $F0, $81, $06, $30, $18, $EB, $28, $F1, $38, $F6, $58, $F7, $74, $08, $82, $04, $05, $15, $15, $26, $35, $38, $EE, $48, $F2, $83, $03, $00
 	dc.b	$15, $12, $26, $2E, $36, $31, $47, $76, $57, $69, $68, $F3, $77, $71, $84, $03, $01, $15, $16, $26, $36, $37, $74, $85, $04, $06, $16, $32, $28, $EA, $86, $04
 	dc.b	$04, $15, $13, $26, $33, $37, $70, $47, $73, $58, $F4, $68, $F5, $77, $68, $87, $05, $14, $17, $6F, $88, $07, $6E, $89, $04, $07, $16, $2F, $28, $EF, $8A, $07
@@ -42065,7 +42890,8 @@ loc_6ACB6:
 	dc.b	$FD, $D4, $FC, $C6, $FD, $D4, $DD, $4F, $CC, $53, $75, $37, $53, $75, $37, $53, $75, $37, $53, $FF, $1B, $98, $B1, $CB, $6E, $A3, $FB, $53, $96, $05, $8F, $56
 	dc.b	$05, $BF, $88, $C7, $02, $C5, $AC, $DF, $C4, $6D, $9A, $CD, $FD, $46, $2C, $72, $DB, $A8, $FE, $D4, $E5, $66, $3D, $56, $6F, $E2, $31, $62, $C5, $AC, $DF, $F4
 	dc.b	$FF, $A6, $C0, $00
-loc_6B51A:
+;loc_6B51A
+Track_bg_tilemap_Belgium:
 	dc.b	$07, $03, $00, $01, $00, $04, $02, $78, $06, $70, $04, $09, $E0, $29, $C0, $20, $27, $80, $E7, $00, $C0, $7D, $F7, $DF, $7D, $E1, $60, $02, $81, $E0, $85, $44
 	dc.b	$28, $08, $E1, $20, $23, $00, $E2, $06, $05, $03, $CC, $10, $15, $03, $22, $89, $E2, $99, $0C, $05, $84, $48, $2C, $05, $40, $14, $83, $D0, $03, $40, $70, $4D
 	dc.b	$40, $16, $09, $00, $62, $0D, $11, $8C, $05, $70, $3D, $86, $22, $F1, $78, $C4, $64, $2F, $17, $89, $44, $65, $04, $63, $C8, $34, $2B, $0D, $01, $3C, $03, $3C
@@ -42082,7 +42908,8 @@ loc_6B51A:
 	dc.b	$9A, $F0, $05, $7B, $3D, $88, $02, $7D, $F2, $B0, $51, $CD, $03, $F1, $05, $56, $28, $B3, $30, $43, $4A, $C7, $BD, $34, $50, $4E, $13, $87, $58, $24, $0E, $2C
 	dc.b	$31, $68, $1C, $9C, $A9, $21, $E0, $30, $0C, $A0, $F7, $16, $8E, $D5, $1C, $D5, $B0, $DC, $70, $59, $07, $C0, $C5, $6C, $59, $3E, $8C, $4B, $27, $D3, $F3, $06
 	dc.b	$98, $DF, $98, $A9, $50, $31, $3E, $01, $C9, $E0, $21, $4C, $FF, $00
-loc_6B708:
+;loc_6B708
+Track_bg_tiles_Belgium:
 	dc.b	$00, $7F, $80, $07, $78, $81, $05, $19, $16, $38, $38, $F5, $75, $18, $82, $06, $34, $18, $F2, $83, $06, $35, $18, $F3, $77, $74, $84, $08, $F6, $85, $07, $73
 	dc.b	$18, $F4, $87, $02, $00, $13, $04, $25, $17, $37, $6F, $47, $76, $88, $02, $01, $14, $0A, $25, $16, $37, $6E, $47, $75, $57, $77, $77, $72, $89, $06, $36, $FF
 	dc.b	$F1, $B7, $8D, $BC, $6D, $E3, $F3, $3E, $36, $F1, $B7, $8D, $BF, $21, $B7, $8D, $BC, $6D, $E3, $F3, $3E, $36, $F1, $B7, $8D, $BF, $21, $B7, $8D, $BC, $6D, $E3
@@ -42145,7 +42972,8 @@ loc_6B708:
 	dc.b	$37, $A2, $B1, $8C, $7F, $86, $FC, $39, $8D, $D1, $DE, $8F, $66, $31, $CB, $9B, $D5, $DE, $CD, $DF, $FB, $B1, $DE, $94, $33, $AD, $EC, $58, $4D, $DB, $DB, $A5
 	dc.b	$44, $63, $28, $A2, $8A, $94, $22, $72, $E4, $8C, $65, $09, $45, $14, $7F, $A0, $EF, $CE, $B9, $BC, $DF, $47, $D1, $FF, $AF, $F9, $51, $8C, $DD, $12, $8E, $54
 	dc.b	$72, $AE, $75, $CE, $DF, $A5, $7D, $1F, $FA, $FA, $22, $23, $74, $46, $58, $B1, $69, $62, $8D, $C3, $BE, $D1, $9C, $90
-loc_6BEC0:
+;loc_6BEC0
+Track_bg_tilemap_Usa:
 	dc.b	$07, $01, $00, $00, $00, $03, $02, $78, $04, $E0, $00, $27, $80, $CE, $01, $02, $78, $14, $E0, $20, $1F, $60, $07, $DD, $07, $80, $33, $EE, $03, $C4, $20, $0C
 	dc.b	$17, $D7, $06, $88, $3F, $40, $80, $30, $90, $A0, $30, $60, $47, $07, $84, $48, $38, $11, $E0, $20, $0C, $01, $80, $68, $8C, $51, $0B, $A2, $0F, $00, $20, $0A
 	dc.b	$21, $30, $06, $41, $81, $3C, $4C, $09, $F0, $20, $4E, $83, $00, $A8, $1A, $25, $40, $C0, $28, $02, $01, $80, $5C, $0A, $E7, $80, $4F, $00, $9E, $03, $3C, $06
@@ -42159,7 +42987,8 @@ loc_6BEC0:
 	dc.b	$31, $2D, $DA, $54, $54, $6A, $68, $64, $0C, $EC, $0A, $27, $BE, $0F, $9C, $62, $5C, $91, $25, $D0, $D0, $50, $00, $E2, $84, $C2, $0F, $13, $C5, $80, $3D, $87
 	dc.b	$9C, $B2, $8C, $4C, $CA, $8A, $A4, $A5, $16, $F6, $25, $81, $0B, $3F, $8A, $8D, $90, $1D, $14, $1B, $9F, $14, $07, $81, $F8, $4C, $DA, $9A, $9C, $CD, $D8, $3E
 	dc.b	$8E, $DC, $57, $56, $D6, $3F, $FC, $00
-loc_6C048:
+;loc_6C048
+Track_bg_tiles_Usa:
 	dc.b	$00, $7E, $80, $07, $74, $81, $07, $71, $82, $05, $15, $16, $33, $28, $EB, $36, $32, $48, $F0, $58, $F6, $75, $13, $83, $05, $17, $18, $F4, $84, $03, $00, $16
 	dc.b	$31, $27, $70, $58, $F2, $78, $EF, $85, $03, $01, $15, $16, $27, $6F, $37, $6E, $47, $73, $86, $04, $08, $16, $35, $87, $04, $07, $18, $F5, $27, $72, $88, $03
 	dc.b	$02, $16, $30, $26, $34, $36, $36, $57, $76, $75, $12, $89, $04, $06, $18, $F1, $38, $EA, $78, $F3, $8A, $05, $14, $18, $EE, $FF, $E3, $D3, $8F, $4E, $3D, $38
@@ -42230,7 +43059,8 @@ loc_6C048:
 	dc.b	$FA, $4B, $6A, $D9, $6D, $96, $D9, $6D, $96, $D9, $6C, $18, $30, $61, $E6, $DA, $B6, $AD, $AC, $E7, $3A, $8B, $03, $85, $45, $81, $C2, $A2, $C0, $E1, $53, $04
 	dc.b	$1D, $73, $44, $6F, $FF, $D7, $9C, $83, $06, $0C, $1A, $82, $82, $82, $98, $B0, $60, $C1, $A5, $2D, $0F, $05, $C3, $63, $2E, $08, $20, $50, $5D, $E8, $20, $65
 	dc.b	$29, $7F, $DA, $42, $04, $08, $10, $82, $08, $2C, $60, $40, $81, $12, $97, $51, $6B, $75, $16, $B4, $83, $06, $0C, $0B, $06, $04, $1C, $58, $30, $60, $65, $20
-loc_6C908:
+;loc_6C908
+Track_bg_tilemap_Mexico:
 	dc.b	$07, $01, $00, $00, $00, $02, $02, $78, $04, $F0, $09, $E0, $13, $C0, $27, $80, $4E, $00, $02, $78, $0C, $E0, $10, $1F, $7D, $F7, $DF, $7D, $20, $60, $02, $03
 	dc.b	$0C, $11, $10, $60, $44, $01, $02, $24, $74, $C8, $C2, $30, $04, $01, $81, $A0, $50, $15, $3C, $02, $78, $04, $F0, $09, $E0, $13, $C0, $27, $80, $4F, $01, $9E
 	dc.b	$02, $FB, $EF, $BE, $CD, $10, $70, $5F, $64, $18, $40, $00, $70, $0A, $54, $04, $81, $50, $88, $04, $42, $40, $23, $03, $89, $B1, $68, $50, $24, $88, $9E, $01
@@ -42238,7 +43068,8 @@ loc_6C908:
 	dc.b	$1E, $21, $61, $C8, $F3, $46, $12, $49, $4C, $02, $04, $C8, $10, $66, $30, $CB, $83, $00, $74, $0E, $5B, $47, $E8, $02, $40, $9E, $02, $01, $08, $B3, $C0, $27
 	dc.b	$80, $4F, $00, $9E, $01, $3C, $02, $78, $04, $F0, $19, $E0, $2F, $BE, $FB, $EF, $BE, $85, $10, $38, $20, $9C, $01, $50, $A4, $06, $88, $48, $86, $87, $30, $B0
 	dc.b	$D0, $E0, $2A, $41, $74, $43, $50, $E0, $6D, $48, $5B, $8E, $B8, $C8, $1D, $05, $86, $06, $4B, $11, $02, $E2, $6C, $59, $4D, $34, $98, $0D, $DF, $C0
-loc_6C9E6:
+;loc_6C9E6
+Track_bg_tiles_Mexico:
 	dc.b	$00, $7B, $80, $04, $06, $16, $2F, $28, $EA, $37, $6F, $48, $E7, $57, $71, $75, $10, $81, $05, $11, $17, $6B, $82, $06, $2E, $28, $F3, $83, $03, $00, $15, $12
 	dc.b	$27, $66, $38, $EB, $78, $E6, $84, $04, $04, $15, $14, $27, $67, $37, $76, $78, $F4, $85, $05, $0E, $16, $30, $28, $F0, $77, $6D, $86, $05, $0F, $16, $31, $27
 	dc.b	$6E, $78, $F6, $87, $06, $2B, $18, $F2, $88, $05, $13, $16, $32, $27, $6C, $37, $70, $48, $EE, $57, $6A, $68, $EF, $73, $01, $89, $05, $16, $17, $74, $8A, $04
@@ -42302,7 +43133,8 @@ loc_6C9E6:
 	dc.b	$F6, $28, $DD, $3F, $63, $87, $45, $FD, $08, $70, $B2, $C4, $45, $42, $85, $CC, $49, $82, $30, $64, $64, $64, $50, $81, $33, $54, $16, $5F, $DA, $15, $13, $3B
 	dc.b	$E7, $C6, $8D, $46, $A6, $2E, $CE, $F0, $E7, $D8, $6E, $0F, $4B, $3F, $5C, $9C, $1D, $27, $13, $D5, $DC, $8C, $8D, $46, $4E, $94, $C7, $3E, $2E, $47, $62, $31
 	dc.b	$74, $53, $19, $24, $42, $3E, $20, $00
-loc_6D1AE:
+;loc_6D1AE
+Track_bg_tilemap_Portugal:
 	dc.b	$08, $03, $00, $00, $00, $02, $02, $78, $01, $38, $00, $02, $78, $03, $38, $01, $01, $F7, $DF, $7D, $F5, $C3, $7D, $81, $F0, $A1, $02, $C1, $05, $20, $82, $7C
 	dc.b	$41, $20, $3C, $38, $00, $20, $3D, $10, $94, $14, $09, $02, $C0, $B0, $78, $81, $40, $E0, $1C, $A0, $D0, $2E, $0B, $0A, $06, $3E, $1C, $04, $88, $28, $09, $08
 	dc.b	$D0, $60, $D8, $18, $58, $1D, $50, $DC, $34, $0B, $C3, $50, $C4, $B8, $68, $21, $B0, $1C, $C3, $54, $DC, $37, $0D, $40, $80, $19
@@ -42375,7 +43207,8 @@ loc_6D1AE:
 	dc.b	$49, $F9, $04, $49, $22, $47, $48, $6F, $C2, $9A
 	dc.b	$77
 	dc.b	$5A, $46, $81, $C8, $73, $0E, $16, $90, $D4, $38, $FE, $00
-loc_6D3A2:
+;loc_6D3A2
+Track_bg_tiles_Portugal:
 	dc.b	$00, $80, $80, $07, $70, $81, $05, $16, $17, $75, $28, $F2, $48, $F4, $74, $06, $82, $06, $32, $17, $76, $28, $F6, $38, $F3, $75, $10, $83, $04, $05, $15, $11
 	dc.b	$26, $30, $36, $31, $46, $36, $57, $73, $67, $78, $75, $12, $85, $04, $04, $15, $15, $26, $35, $38, $F5, $86, $07, $74, $87, $03, $01, $15, $0F, $26, $2F, $36
 	dc.b	$34, $47, $6F, $57, $6E, $75, $14, $88, $03, $00, $15, $0E, $25, $13, $36, $33, $47, $72, $77, $77, $89, $06, $2E, $17, $71, $FF, $B7, $0B, $70, $B7, $0B, $7E
@@ -42432,7 +43265,8 @@ loc_6D3A2:
 	dc.b	$F7, $1C, $CF, $2B, $FB, $8A, $51, $EC, $EB, $38, $8B, $17, $11, $FE, $77, $3C, $5E, $0B, $8B, $8B, $A9, $4B, $C2, $EE, $14, $14, $C8, $E4, $61, $08, $43, $26
 	dc.b	$66, $66, $66, $8F, $A2, $B3, $33, $33, $7A, $3B, $D3, $36, $66, $6F, $E8, $8E, $A3, $F6, $2E, $B0, $B0, $33, $20, $F2, $66, $66, $FF, $08, $FD, $8F, $7E, $E0
 	dc.b	$8A, $52, $94, $84, $21, $0C, $80, $00
-loc_6DA8A:
+;loc_6DA8A
+Track_bg_tilemap_Monaco:
 	dc.b	$07, $03, $00, $00, $00, $00, $01, $F7, $DF, $7D, $F7, $DF, $7D, $60, $B8, $20, $55, $0D, $08, $08, $70, $38, $01, $D9, $0B, $9A, $24, $01, $09, $41, $81, $D1
 	dc.b	$07, $83, $01, $62, $40, $02, $F1, $08, $E4, $03, $80, $96, $05, $6C, $29, $80, $60, $06, $01, $E4, $1C, $43, $A5, $03, $80, $1E, $02, $06, $40, $0E, $19, $08
 	dc.b	$02, $20, $60, $29, $01, $48, $0C, $29, $88, $01, $60, $21, $8A, $28, $86, $E0, $07, $03, $80, $2A, $03, $8A, $74, $3C, $14, $00, $98, $1C, $D3, $C1, $38, $80
@@ -42453,7 +43287,8 @@ loc_6DA8A:
 	dc.b	$B4, $7B, $42, $70, $20, $94, $18, $0B, $07, $81, $47, $8C, $24, $06, $8F, $58, $08, $2C, $05, $89, $2C, $0B, $91, $E2, $F6, $3B, $25, $04, $81, $44, $36, $FA
 	dc.b	$5D, $8B, $02, $E0, $E0, $01, $EC, $76, $13, $A3, $04, $81, $44, $36, $84, $11, $3B, $FD, $8B, $02, $E0, $E0, $E9, $EC, $76, $1A, $03, $CC, $F2, $40, $0D, $87
 	dc.b	$00, $82, $34, $84, $32, $02, $01, $EC, $08, $C7, $B8, $43, $2F, $E0
-loc_6DCF8:
+;loc_6DCF8
+Track_bg_tiles_Monaco:
 	dc.b	$00, $7C, $80, $05, $12, $16, $36, $27, $74, $38, $E7, $48, $ED, $58, $F7, $68, $F0, $75, $14, $81, $04, $07, $16, $32, $27, $6E, $38, $F4, $82, $04, $04, $16
 	dc.b	$2F, $28, $EE, $38, $F1, $83, $03, $00, $15, $11, $26, $31, $38, $EF, $84, $05, $13, $17, $72, $28, $F3, $76, $35, $85, $06, $2E, $18, $EB, $86, $08, $EA, $18
 	dc.b	$E6, $87, $04, $06, $16, $30, $27, $71, $88, $05, $15, $17, $70, $89, $03, $01, $15, $10, $26, $33, $38, $EC, $48, $F2, $8A, $04, $05, $15, $16, $26, $34, $37
@@ -42562,14 +43397,16 @@ Ai_angle_table:
 	dc.w	$0025, $0025, $0025, $0025, $0025, $0025, $0025, $0025, $0028, $0028, $0028, $0028, $0028, $0028, $0028, $002B, $002B, $002B, $002B, $002B, $002F, $002F, $002F, $002F, $002F, $0032, $0032, $0032, $0032, $0032, $0035, $0035
 	dc.w	$0035, $0035, $0039, $0039, $0039, $003C, $003C, $003C, $003F, $003F, $003F, $0043, $0043, $0046, $0046, $0046, $0049, $0049, $004D, $004D, $0050, $0053, $0053, $0056, $0056, $005A, $005D, $0060, $0064, $0064, $0067, $006A
 	dc.w	$006E, $0071, $0078, $007B, $007E, $0085, $0088, $008F, $0096, $009C, $00A3, $00AD, $00B4, $00BE, $00CB, $00D5, $00E6, $00F3, $0107, $011B, $0135, $0150, $0175, $01A0
-loc_6E9D8:
+;Ai_angle_table_b
+Ai_angle_table_b:
 	dc.w	$0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0010, $0013, $0013, $0013, $0013, $0013, $0013, $0013, $0013, $0013, $0013, $0013, $0013
 	dc.w	$0013, $0013, $0013, $0013, $0013, $0013, $0013, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0016, $0018, $0018, $0018, $0018, $0018, $0018, $0018, $0018, $0018, $0018, $0018
 	dc.w	$0018, $001B, $001B, $001B, $001B, $001B, $001B, $001B, $001B, $001B, $001E, $001E, $001E, $001E, $001E, $001E, $001E, $001E, $0020, $0020, $0020, $0020, $0020, $0020, $0020, $0023, $0023, $0023, $0023, $0023, $0026, $0026
 	dc.w	$0026, $0026, $0026, $0028, $0028, $0028, $0028, $0028, $002B, $002B, $002B, $002B, $002E, $002E, $002E, $0030, $0030, $0030, $0033, $0033, $0033, $0036, $0036, $0039, $0039, $0039, $003B, $003B, $003E, $003E, $0041, $0043
 	dc.w	$0043, $0046, $0046, $0049, $004B, $004E, $0051, $0051, $0053, $0056, $0059, $005C, $0061, $0064, $0066, $006C, $006E, $0074, $0079, $007F, $0084, $008C, $0091, $009A, $00A4, $00AC, $00BA, $00C5, $00D5, $00E5, $00FA, $0110
 	dc.w	$012E, $0151
-loc_6EB1C:
+;Ai_screen_x_scale_table
+Ai_screen_x_scale_table:
 	dc.b	$0F, $35, $0F, $35, $0F, $35, $0F, $35
 	dc.w	$0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $0F35, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE, $11BE
 	dc.w	$11BE, $11BE, $11BE, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $1447, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $16D0, $1959, $1959, $1959
@@ -42593,7 +43430,8 @@ Speed_to_distance_table:
 	dc.l	$0007D0A0, $0007D64F, $0007DBFE, $0007E1AD, $0007E75C, $0007ED0B, $0007F2BA, $0007F869, $0007FE18, $000803C7, $00080976, $00080F25, $000814D4, $00081A83, $00082032, $000825E1, $00082B90, $0008313F, $000836EE, $00083C9D, $0008424C, $000847FB, $00084DAA, $00085359, $00085908, $00085EB7, $00086466, $00086A15, $00086FC4, $00087573, $00087B22, $000880D1
 	dc.l	$00088680, $00088C2F, $000891DE, $0008978D, $00089D3C, $0008A2EB, $0008A89A, $0008AE49, $0008B3F8, $0008B9A7, $0008BF56, $0008C505, $0008CAB4, $0008D063, $0008D612, $0008DBC1, $0008E170, $0008E71F, $0008ECCE, $0008F27D, $0008F82C, $0008FDDB, $0009038A, $00090939, $00090EE8, $00091497, $00091A46, $00091FF5, $000925A4, $00092B53, $00093102, $000936B1
 	dc.l	$00093C60, $0009420F, $000947BE, $00094D6D, $0009531C, $000958CB, $00095E7A, $00096429, $000969D8, $00096F87, $00097536, $00097AE5, $00098094, $00098643, $00098BF2, $000991A1, $00099750, $00099CFF, $0009A2AE, $0009A85D, $0009AE0C, $0009B3BB, $0009B96A, $0009BF19
-loc_6F340:
+;Curve_speed_factor_table
+Curve_speed_factor_table:
 	dc.l	$0009C4C8, $0009CA77, $0009D026, $0009D5D5, $0009DB84, $0009E133
 	dc.b	$00, $09, $E6, $E2, $00, $09, $EC, $91
 	dc.w	$0679, $065A, $0643, $062B, $0614, $05FD, $05E6, $05CF, $0598, $0581, $056A, $0553, $053B, $0524, $050D, $04EE, $0641, $062F, $061E, $060C, $05FB, $05EA, $05D8, $05C1, $059E, $058D, $057B, $056A, $0559, $0541, $0530, $051F
@@ -43502,321 +44340,368 @@ Road_scanline_descriptor_table:
 ;loc_7053C:
 Road_displacement_table: ; Used to render curves and slopes, from sharp to soft
 	dc.l	$FFA00000 ; first value not used
-	dc.l	loc_705FC
-	dc.l	loc_7061C
-	dc.l	loc_70646
-	dc.l	loc_70674
-	dc.l	loc_706A8
-	dc.l	loc_706E6
-	dc.l	loc_70728
-	dc.l	loc_70770
-	dc.l	loc_707BC
-	dc.l	loc_7080C
-	dc.l	loc_7085C
-	dc.l	loc_708AC
-	dc.l	loc_708FC
-	dc.l	loc_7094C
-	dc.l	loc_7099C
-	dc.l	loc_709EC
-	dc.l	loc_70A3C
-	dc.l	loc_70A8C
-	dc.l	loc_70ADC
-	dc.l	loc_70B2C
-	dc.l	loc_70B7C
-	dc.l	loc_70BCC
-	dc.l	loc_70C1C
-	dc.l	loc_70C6C
-	dc.l	loc_70CBC
-	dc.l	loc_70D0C
-	dc.l	loc_70D5C
-	dc.l	loc_70DAC
-	dc.l	loc_70DFC
-	dc.l	loc_70E4C
-	dc.l	loc_70E9C
-	dc.l	loc_70EEC
-	dc.l	loc_70F3C
-	dc.l	loc_70F8C
-	dc.l	loc_70FDC
-	dc.l	loc_7102C
-	dc.l	loc_7107C
-	dc.l	loc_710CC
-	dc.l	loc_7111C
-	dc.l	loc_7116C
-	dc.l	loc_711BC
-	dc.l	loc_7120C
-	dc.l	loc_7125C
-	dc.l	loc_712AC
-	dc.l	loc_712FC
-	dc.l	loc_7134C
-	dc.l	loc_7139C
-loc_705FC:
+	dc.l	Road_displacement_1
+	dc.l	Road_displacement_2
+	dc.l	Road_displacement_3
+	dc.l	Road_displacement_4
+	dc.l	Road_displacement_5
+	dc.l	Road_displacement_6
+	dc.l	Road_displacement_7
+	dc.l	Road_displacement_8
+	dc.l	Road_displacement_9
+	dc.l	Road_displacement_10
+	dc.l	Road_displacement_11
+	dc.l	Road_displacement_12
+	dc.l	Road_displacement_13
+	dc.l	Road_displacement_14
+	dc.l	Road_displacement_15
+	dc.l	Road_displacement_16
+	dc.l	Road_displacement_17
+	dc.l	Road_displacement_18
+	dc.l	Road_displacement_19
+	dc.l	Road_displacement_20
+	dc.l	Road_displacement_21
+	dc.l	Road_displacement_22
+	dc.l	Road_displacement_23
+	dc.l	Road_displacement_24
+	dc.l	Road_displacement_25
+	dc.l	Road_displacement_26
+	dc.l	Road_displacement_27
+	dc.l	Road_displacement_28
+	dc.l	Road_displacement_29
+	dc.l	Road_displacement_30
+	dc.l	Road_displacement_31
+	dc.l	Road_displacement_32
+	dc.l	Road_displacement_33
+	dc.l	Road_displacement_34
+	dc.l	Road_displacement_35
+	dc.l	Road_displacement_36
+	dc.l	Road_displacement_37
+	dc.l	Road_displacement_38
+	dc.l	Road_displacement_39
+	dc.l	Road_displacement_40
+	dc.l	Road_displacement_41
+	dc.l	Road_displacement_42
+	dc.l	Road_displacement_43
+	dc.l	Road_displacement_44
+	dc.l	Road_displacement_45
+	dc.l	Road_displacement_46
+	dc.l	Road_displacement_47
+;loc_705FC
+Road_displacement_1:
 	dc.w	$0004, $000D, $0016, $001F, $0028, $0032, $003E, $004A
 	dc.w	$0058, $0069, $007E, $0099, $00C2, $010D, $02B1, $FFFF
-loc_7061C:
+;loc_7061C
+Road_displacement_2:
 	dc.w	$0003, $000A, $0010, $0017, $001E, $0025, $002C, $0034
 	dc.w	$003C, $0045, $004F, $005A, $0067, $0075, $0087, $009D
 	dc.w	$00BB, $00E9, $013D, $031F, $FFFF
-loc_70646:
+;loc_70646
+Road_displacement_3:
 	dc.w	$0003, $0009, $000E, $0014, $001A, $0020, $0027, $002D
 	dc.w	$0034, $003C, $0044, $004C, $0056, $0060, $006C, $007A
 	dc.w	$008A, $009F, $00B9, $00DF, $011D, $01AE, $FFFF
-loc_70674:
+;loc_70674
+Road_displacement_4:
 	dc.w	$0003, $0008, $000D, $0012, $0017, $001D, $0022, $0028
 	dc.w	$002E, $0035, $003B, $0042, $004A, $0052, $005B, $0065
 	dc.w	$0071, $007E, $008D, $00A0, $00B8, $00D8, $010A, $0166
 	dc.w	$0380, $FFFF
-loc_706A8:
+;loc_706A8
+Road_displacement_5:
 	dc.w	$0002, $0006, $000B, $000F, $0013, $0018, $001C, $0021
 	dc.w	$0026, $002B, $0030, $0035, $003B, $0041, $0047, $004D
 	dc.w	$0054, $005C, $0064, $006E, $0078, $0084, $0091, $00A1
 	dc.w	$00B5, $00CF, $00F2, $0127, $018B, $03D7, $FFFF
-loc_706E6:
+;loc_706E6
+Road_displacement_6:
 	dc.w	$0002, $0006, $000A, $000E, $0012, $0016, $001A, $001E
 	dc.w	$0023, $0027, $002C, $0030, $0035, $003A, $0040, $0045
 	dc.w	$004B, $0052, $0059, $0060, $0068, $0071, $007B, $0086
 	dc.w	$0093, $00A2, $00B4, $00CC, $00EA, $0116, $015F, $020A
 	dc.w	$FFFF
-loc_70728:
+;loc_70728
+Road_displacement_7:
 	dc.w	$0002, $0005, $0009, $000D, $0011, $0014, $0018, $001C
 	dc.w	$0020, $0024, $0028, $002D, $0031, $0036, $003A, $003F
 	dc.w	$0044, $004A, $0050, $0056, $005D, $0064, $006B, $0074
 	dc.w	$007E, $0088, $0094, $00A3, $00B4, $00C9, $00E4, $0109
 	dc.w	$0142, $01AD, $0427, $FFFF
-loc_70770:
+;loc_70770
+Road_displacement_8:
 	dc.w	$0002, $0005, $0009, $000C, $000F, $0013, $0017, $001A
 	dc.w	$001E, $0022, $0025, $0029, $002D, $0031, $0036, $003A
 	dc.w	$003F, $0044, $0049, $004E, $0054, $005A, $0060, $0067
 	dc.w	$006E, $0077, $0080, $008A, $0096, $00A3, $00B3, $00C6
 	dc.w	$00DF, $00FF, $012E, $017B, $0233, $FFFF
-loc_707BC:
+;loc_707BC
+Road_displacement_9:
 	dc.w	$0002, $0005, $0008, $000B, $000E, $0012, $0015, $0018
 	dc.w	$001C, $001F, $0023, $0026, $002A, $002E, $0032, $0036
 	dc.w	$003A, $003E, $0043, $0047, $004C, $0052, $0057, $005D
 	dc.w	$0063, $006A, $0071, $0079, $0082, $008C, $0097, $00A4
 	dc.w	$00B3, $00C4, $00DA, $00F7, $011E, $015B, $01CD, $0472
-loc_7080C:
+;loc_7080C
+Road_displacement_10:
 	dc.w	$0001, $0004, $0007, $000A, $000D, $0010, $0013, $0016
 	dc.w	$0019, $001C, $001F, $0022, $0025, $0028, $002C, $002F
 	dc.w	$0032, $0036, $003A, $003E, $0042, $0046, $004A, $004E
 	dc.w	$0053, $0058, $005D, $0063, $0069, $006F, $0076, $007D
 	dc.w	$0086, $008F, $0099, $00A4, $00B2, $00C1, $00D4, $00EB
-loc_7085C:
+;loc_7085C
+Road_displacement_11:
 	dc.w	$0001, $0003, $0006, $0008, $000B, $000D, $000F, $0012
 	dc.w	$0014, $0016, $0019, $001B, $001E, $0020, $0023, $0026
 	dc.w	$0028, $002B, $002E, $0031, $0033, $0036, $0039, $003C
 	dc.w	$0040, $0043, $0046, $004A, $004E, $0051, $0055, $0059
 	dc.w	$005E, $0062, $0067, $006C, $0072, $0077, $007D, $0084
-loc_708AC:
+;loc_708AC
+Road_displacement_12:
 	dc.w	$0001, $0003, $0005, $0007, $000A, $000C, $000E, $0010
 	dc.w	$0012, $0015, $0017, $0019, $001B, $001E, $0020, $0022
 	dc.w	$0025, $0027, $0029, $002C, $002F, $0031, $0034, $0036
 	dc.w	$0039, $003C, $003F, $0042, $0045, $0048, $004C, $004F
 	dc.w	$0052, $0056, $005A, $005E, $0062, $0066, $006B, $0070
-loc_708FC:
+;loc_708FC
+Road_displacement_13:
 	dc.w	$0001, $0003, $0005, $0007, $0009, $000B, $000D, $000F
 	dc.w	$0011, $0013, $0015, $0017, $0019, $001B, $001D, $001F
 	dc.w	$0022, $0024, $0026, $0028, $002B, $002D, $002F, $0032
 	dc.w	$0034, $0037, $0039, $003C, $003E, $0041, $0044, $0047
 	dc.w	$004A, $004D, $0050, $0053, $0057, $005A, $005E, $0062
-loc_7094C:
+;loc_7094C
+Road_displacement_14:
 	dc.w	$0001, $0003, $0005, $0006, $0008, $000A, $000C, $000E
 	dc.w	$0010, $0012, $0013, $0015, $0017, $0019, $001B, $001D
 	dc.w	$001F, $0021, $0023, $0025, $0027, $0029, $002B, $002E
 	dc.w	$0030, $0032, $0034, $0037, $0039, $003B, $003E, $0041
 	dc.w	$0043, $0046, $0049, $004B, $004E, $0051, $0054, $0057
-loc_7099C:
+;loc_7099C
+Road_displacement_15:
 	dc.w	$0001, $0002, $0004, $0006, $0007, $0009, $000B, $000C
 	dc.w	$000E, $0010, $0012, $0013, $0015, $0017, $0018, $001A
 	dc.w	$001C, $001E, $001F, $0021, $0023, $0025, $0027, $0029
 	dc.w	$002B, $002D, $002F, $0031, $0033, $0035, $0037, $0039
 	dc.w	$003B, $003D, $0040, $0042, $0044, $0047, $0049, $004C
-loc_709EC:
+;loc_709EC
+Road_displacement_16:
 	dc.w	$0001, $0002, $0004, $0005, $0007, $0008, $000A, $000B
 	dc.w	$000D, $000E, $0010, $0011, $0013, $0015, $0016, $0018
 	dc.w	$0019, $001B, $001D, $001E, $0020, $0021, $0023, $0025
 	dc.w	$0027, $0028, $002A, $002C, $002E, $002F, $0031, $0033
 	dc.w	$0035, $0037, $0039, $003B, $003D, $003F, $0041, $0043
-loc_70A3C:
+;loc_70A3C
+Road_displacement_17:
 	dc.w	$0001, $0002, $0003, $0004, $0006, $0007, $0008, $000A
 	dc.w	$000B, $000C, $000E, $000F, $0010, $0011, $0013, $0014
 	dc.w	$0015, $0017, $0018, $0019, $001B, $001C, $001E, $001F
 	dc.w	$0020, $0022, $0023, $0025, $0026, $0028, $0029, $002A
 	dc.w	$002C, $002E, $002F, $0031, $0032, $0034, $0035, $0037
-loc_70A8C:
+;loc_70A8C
+Road_displacement_18:
 	dc.w	$0001, $0002, $0003, $0004, $0005, $0006, $0007, $0008
 	dc.w	$0009, $000B, $000C, $000D, $000E, $000F, $0010, $0011
 	dc.w	$0013, $0014, $0015, $0016, $0017, $0018, $001A, $001B
 	dc.w	$001C, $001D, $001E, $0020, $0021, $0022, $0023, $0024
 	dc.w	$0026, $0027, $0028, $002A, $002B, $002C, $002D, $002F
-loc_70ADC:
+;loc_70ADC
+Road_displacement_19:
 	dc.w	$0001, $0002, $0003, $0004, $0005, $0006, $0007, $0008
 	dc.w	$0009, $000A, $000B, $000C, $000D, $000E, $000F, $0010
 	dc.w	$0011, $0012, $0014, $0015, $0016, $0017, $0018, $0019
 	dc.w	$001A, $001B, $001C, $001D, $001F, $0020, $0021, $0022
 	dc.w	$0023, $0024, $0026, $0027, $0028, $0029, $002A, $002C
-loc_70B2C:
+;loc_70B2C
+Road_displacement_20:
 	dc.w	$0000, $0001, $0002, $0003, $0004, $0005, $0006, $0007
 	dc.w	$0008, $0009, $000A, $000B, $000C, $000D, $000E, $000F
 	dc.w	$000F, $0010, $0011, $0012, $0013, $0014, $0015, $0016
 	dc.w	$0017, $0018, $0019, $001A, $001B, $001C, $001D, $001E
 	dc.w	$001F, $0020, $0021, $0022, $0023, $0024, $0025, $0026
-loc_70B7C:
+;loc_70B7C
+Road_displacement_21:
 	dc.w	$0000, $0001, $0002, $0003, $0004, $0005, $0005, $0006
 	dc.w	$0007, $0008, $0009, $000A, $000A, $000B, $000C, $000D
 	dc.w	$000E, $000F, $000F, $0010, $0011, $0012, $0013, $0014
 	dc.w	$0014, $0015, $0016, $0017, $0018, $0019, $001A, $001B
 	dc.w	$001B, $001C, $001D, $001E, $001F, $0020, $0021, $0022
-loc_70BCC:
+;loc_70BCC
+Road_displacement_22:
 	dc.w	$0000, $0001, $0002, $0003, $0004, $0004, $0005, $0006
 	dc.w	$0007, $0008, $0008, $0009, $000A, $000B, $000C, $000C
 	dc.w	$000D, $000E, $000F, $0010, $0011, $0011, $0012, $0013
 	dc.w	$0014, $0015, $0015, $0016, $0017, $0018, $0019, $001A
 	dc.w	$001B, $001B, $001C, $001D, $001E, $001F, $0020, $0021
-loc_70C1C:
+;loc_70C1C
+Road_displacement_23:
 	dc.w	$0000, $0001, $0002, $0003, $0003, $0004, $0005, $0006
 	dc.w	$0006, $0007, $0008, $0009, $0009, $000A, $000B, $000C
 	dc.w	$000C, $000D, $000E, $000F, $0010, $0010, $0011, $0012
 	dc.w	$0013, $0013, $0014, $0015, $0016, $0017, $0017, $0018
 	dc.w	$0019, $001A, $001B, $001B, $001C, $001D, $001E, $001F
-loc_70C6C:
+;loc_70C6C
+Road_displacement_24:
 	dc.w	$0000, $0001, $0002, $0002, $0003, $0004, $0005, $0005
 	dc.w	$0006, $0007, $0007, $0008, $0009, $000A, $000A, $000B
 	dc.w	$000C, $000D, $000D, $000E, $000F, $000F, $0010, $0011
 	dc.w	$0012, $0012, $0013, $0014, $0015, $0015, $0016, $0017
 	dc.w	$0018, $0018, $0019, $001A, $001B, $001B, $001C, $001D
-loc_70CBC:
+;loc_70CBC
+Road_displacement_25:
 	dc.w	$0000, $0001, $0002, $0002, $0003, $0004, $0004, $0005
 	dc.w	$0006, $0006, $0007, $0008, $0009, $0009, $000A, $000B
 	dc.w	$000B, $000C, $000D, $000D, $000E, $000F, $000F, $0010
 	dc.w	$0011, $0012, $0012, $0013, $0014, $0014, $0015, $0016
 	dc.w	$0017, $0017, $0018, $0019, $0019, $001A, $001B, $001C
-loc_70D0C:
+;loc_70D0C
+Road_displacement_26:
 	dc.w	$0000, $0001, $0002, $0002, $0003, $0004, $0004, $0005
 	dc.w	$0005, $0006, $0007, $0007, $0008, $0009, $0009, $000A
 	dc.w	$000B, $000B, $000C, $000D, $000D, $000E, $000E, $000F
 	dc.w	$0010, $0010, $0011, $0012, $0012, $0013, $0014, $0014
 	dc.w	$0015, $0016, $0016, $0017, $0018, $0018, $0019, $001A
-loc_70D5C:
+;loc_70D5C
+Road_displacement_27:
 	dc.w	$0000, $0001, $0001, $0002, $0003, $0003, $0004, $0004
 	dc.w	$0005, $0006, $0006, $0007, $0007, $0008, $0009, $0009
 	dc.w	$000A, $000A, $000B, $000C, $000C, $000D, $000D, $000E
 	dc.w	$000F, $000F, $0010, $0010, $0011, $0012, $0012, $0013
 	dc.w	$0013, $0014, $0015, $0015, $0016, $0016, $0017, $0018
-loc_70DAC:
+;loc_70DAC
+Road_displacement_28:
 	dc.w	$0000, $0001, $0001, $0002, $0003, $0003, $0004, $0004
 	dc.w	$0005, $0005, $0006, $0007, $0007, $0008, $0008, $0009
 	dc.w	$0009, $000A, $000B, $000B, $000C, $000C, $000D, $000D
 	dc.w	$000E, $000F, $000F, $0010, $0010, $0011, $0012, $0012
 	dc.w	$0013, $0013, $0014, $0014, $0015, $0016, $0016, $0017
-loc_70DFC:
+;loc_70DFC
+Road_displacement_29:
 	dc.w	$0000, $0001, $0001, $0002, $0003, $0003, $0004, $0004
 	dc.w	$0005, $0005, $0006, $0006, $0007, $0008, $0008, $0009
 	dc.w	$0009, $000A, $000A, $000B, $000B, $000C, $000D, $000D
 	dc.w	$000E, $000E, $000F, $000F, $0010, $0011, $0011, $0012
 	dc.w	$0012, $0013, $0013, $0014, $0015, $0015, $0016, $0016
-loc_70E4C:
+;loc_70E4C
+Road_displacement_30:
 	dc.w	$0000, $0001, $0001, $0002, $0002, $0003, $0003, $0004
 	dc.w	$0004, $0005, $0005, $0006, $0006, $0007, $0007, $0008
 	dc.w	$0008, $0009, $0009, $000A, $000B, $000B, $000C, $000C
 	dc.w	$000D, $000D, $000E, $000E, $000F, $000F, $0010, $0010
 	dc.w	$0011, $0011, $0012, $0012, $0013, $0013, $0014, $0014
-loc_70E9C:
+;loc_70E9C
+Road_displacement_31:
 	dc.w	$0000, $0001, $0001, $0002, $0002, $0003, $0003, $0004
 	dc.w	$0004, $0005, $0005, $0005, $0006, $0006, $0007, $0007
 	dc.w	$0008, $0008, $0009, $0009, $000A, $000A, $000B, $000B
 	dc.w	$000C, $000C, $000D, $000D, $000E, $000E, $000F, $000F
 	dc.w	$0010, $0010, $0010, $0011, $0011, $0012, $0012, $0013
-loc_70EEC:
+;loc_70EEC
+Road_displacement_32:
 	dc.w	$0000, $0001, $0001, $0002, $0002, $0003, $0003, $0003
 	dc.w	$0004, $0004, $0005, $0005, $0006, $0006, $0007, $0007
 	dc.w	$0008, $0008, $0008, $0009, $0009, $000A, $000A, $000B
 	dc.w	$000B, $000C, $000C, $000D, $000D, $000E, $000E, $000E
 	dc.w	$000F, $000F, $0010, $0010, $0011, $0011, $0012, $0012
-loc_70F3C:
+;loc_70F3C
+Road_displacement_33:
 	dc.w	$0000, $0001, $0001, $0002, $0002, $0002, $0003, $0003
 	dc.w	$0004, $0004, $0005, $0005, $0006, $0006, $0007, $0007
 	dc.w	$0007, $0008, $0008, $0009, $0009, $000A, $000A, $000B
 	dc.w	$000B, $000C, $000C, $000D, $000D, $000D, $000E, $000E
 	dc.w	$000F, $000F, $0010, $0010, $0011, $0011, $0012, $0012
-loc_70F8C:
+;loc_70F8C
+Road_displacement_34:
 	dc.w	$0000, $0001, $0001, $0001, $0002, $0002, $0003, $0003
 	dc.w	$0004, $0004, $0004, $0005, $0005, $0006, $0006, $0007
 	dc.w	$0007, $0007, $0008, $0008, $0009, $0009, $0009, $000A
 	dc.w	$000A, $000B, $000B, $000C, $000C, $000C, $000D, $000D
 	dc.w	$000E, $000E, $000F, $000F, $000F, $0010, $0010, $0011
-loc_70FDC:
+;loc_70FDC
+Road_displacement_35:
 	dc.w	$0000, $0001, $0001, $0001, $0002, $0002, $0002, $0003
 	dc.w	$0003, $0004, $0004, $0004, $0005, $0005, $0006, $0006
 	dc.w	$0006, $0007, $0007, $0007, $0008, $0008, $0009, $0009
 	dc.w	$0009, $000A, $000A, $000B, $000B, $000B, $000C, $000C
 	dc.w	$000C, $000D, $000D, $000E, $000E, $000E, $000F, $000F
-loc_7102C:
+;loc_7102C
+Road_displacement_36:
 	dc.w	$0000, $0001, $0001, $0001, $0002, $0002, $0002, $0003
 	dc.w	$0003, $0004, $0004, $0004, $0005, $0005, $0005, $0006
 	dc.w	$0006, $0007, $0007, $0007, $0008, $0008, $0008, $0009
 	dc.w	$0009, $0009, $000A, $000A, $000B, $000B, $000B, $000C
 	dc.w	$000C, $000C, $000D, $000D, $000E, $000E, $000E, $000F
-loc_7107C:
+;loc_7107C
+Road_displacement_37:
 	dc.w	$0000, $0001, $0001, $0001, $0002, $0002, $0002, $0003
 	dc.w	$0003, $0003, $0004, $0004, $0005, $0005, $0005, $0006
 	dc.w	$0006, $0006, $0007, $0007, $0008, $0008, $0008, $0009
 	dc.w	$0009, $0009, $000A, $000A, $000A, $000B, $000B, $000C
 	dc.w	$000C, $000C, $000D, $000D, $000D, $000E, $000E, $000F
-loc_710CC:
+;loc_710CC
+Road_displacement_38:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0002, $0002, $0002
 	dc.w	$0003, $0003, $0004, $0004, $0004, $0004, $0005, $0005
 	dc.w	$0006, $0006, $0006, $0006, $0007, $0007, $0008, $0008
 	dc.w	$0008, $0008, $0009, $0009, $000A, $000A, $000A, $000A
 	dc.w	$000B, $000B, $000C, $000C, $000C, $000D, $000D, $000D
-loc_7111C:
+;loc_7111C
+Road_displacement_39:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0002, $0002, $0002
 	dc.w	$0003, $0003, $0003, $0004, $0004, $0004, $0005, $0005
 	dc.w	$0005, $0006, $0006, $0006, $0007, $0007, $0007, $0008
 	dc.w	$0008, $0008, $0009, $0009, $0009, $0009, $000A, $000A
 	dc.w	$000A, $000B, $000B, $000B, $000C, $000C, $000C, $000D
-loc_7116C:
+;loc_7116C
+Road_displacement_40:
 	dc.w	$0000, $0001, $0001, $0001, $0001, $0002, $0002, $0002
 	dc.w	$0003, $0003, $0003, $0004, $0004, $0004, $0005, $0005
 	dc.w	$0005, $0006, $0006, $0006, $0006, $0007, $0007, $0007
 	dc.w	$0008, $0008, $0008, $0009, $0009, $0009, $000A, $000A
 	dc.w	$000A, $000B, $000B, $000B, $000C, $000C, $000C, $000D
-loc_711BC:
+;loc_711BC
+Road_displacement_41:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0002, $0002, $0002
 	dc.w	$0002, $0003, $0003, $0003, $0004, $0004, $0004, $0004
 	dc.w	$0005, $0005, $0005, $0006, $0006, $0006, $0006, $0007
 	dc.w	$0007, $0007, $0008, $0008, $0008, $0008, $0009, $0009
 	dc.w	$0009, $000A, $000A, $000A, $000A, $000B, $000B, $000B
-loc_7120C:
+;loc_7120C
+Road_displacement_42:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0002, $0002, $0002
 	dc.w	$0002, $0003, $0003, $0003, $0003, $0004, $0004, $0004
 	dc.w	$0005, $0005, $0005, $0005, $0006, $0006, $0006, $0006
 	dc.w	$0007, $0007, $0007, $0008, $0008, $0008, $0008, $0009
 	dc.w	$0009, $0009, $0009, $000A, $000A, $000A, $000B, $000B
-loc_7125C:
+;loc_7125C
+Road_displacement_43:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0001, $0002, $0002
 	dc.w	$0002, $0003, $0003, $0003, $0003, $0004, $0004, $0004
 	dc.w	$0004, $0005, $0005, $0005, $0006, $0006, $0006, $0006
 	dc.w	$0007, $0007, $0007, $0007, $0008, $0008, $0008, $0008
 	dc.w	$0009, $0009, $0009, $000A, $000A, $000A, $000A, $000B
-loc_712AC:
+;loc_712AC
+Road_displacement_44:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0001, $0002, $0002
 	dc.w	$0002, $0003, $0003, $0003, $0003, $0004, $0004, $0004
 	dc.w	$0004, $0005, $0005, $0005, $0005, $0006, $0006, $0006
 	dc.w	$0006, $0007, $0007, $0007, $0008, $0008, $0008, $0008
 	dc.w	$0009, $0009, $0009, $0009, $000A, $000A, $000A, $000A
-loc_712FC:
+;loc_712FC
+Road_displacement_45:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0001, $0002, $0002
 	dc.w	$0002, $0002, $0003, $0003, $0003, $0003, $0004, $0004
 	dc.w	$0004, $0005, $0005, $0005, $0005, $0006, $0006, $0006
 	dc.w	$0006, $0007, $0007, $0007, $0007, $0008, $0008, $0008
 	dc.w	$0008, $0009, $0009, $0009, $0009, $000A, $000A, $000A
-loc_7134C:
+;loc_7134C
+Road_displacement_46:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0001, $0002, $0002
 	dc.w	$0002, $0002, $0003, $0003, $0003, $0003, $0004, $0004
 	dc.w	$0004, $0004, $0005, $0005, $0005, $0005, $0006, $0006
 	dc.w	$0006, $0006, $0007, $0007, $0007, $0007, $0008, $0008
 	dc.w	$0008, $0008, $0009, $0009, $0009, $0009, $000A, $000A
-loc_7139C:
+;loc_7139C
+Road_displacement_47:
 	dc.w	$0000, $0000, $0001, $0001, $0001, $0001, $0002, $0002
 	dc.w	$0002, $0002, $0003, $0003, $0003, $0003, $0003, $0004
 	dc.w	$0004, $0004, $0004, $0005, $0005, $0005, $0005, $0006
@@ -43824,131 +44709,162 @@ loc_7139C:
 	dc.w	$0008, $0008, $0008, $0008, $0009, $0009, $0009, $0009
 ;loc_713EC:
 Sign_lookup_table:
-	dc.l	loc_714B8
-	dc.l	loc_714BA
-	dc.l	loc_714BC
+	dc.l	Sign_seq_0
+	dc.l	Sign_seq_1
+	dc.l	Sign_seq_2
 	dc.l	$00000000
-	dc.l	loc_714CF
-	dc.l	loc_714D2
-	dc.l	loc_714D5
-	dc.l	loc_714DA
-	dc.l	loc_714BF
-	dc.l	loc_714C2
-	dc.l	loc_714C5
-	dc.l	loc_714CA
-	dc.l	loc_714DF
-	dc.l	loc_714E2
-	dc.l	loc_714E5
-	dc.l	loc_714EA
+	dc.l	Sign_seq_4
+	dc.l	Sign_seq_5
 	dc.l	Sign_seq_6
 	dc.l	Sign_seq_7
 	dc.l	Sign_seq_8
 	dc.l	Sign_seq_9
-	dc.l	loc_714FF
-	dc.l	loc_71502
-	dc.l	loc_71505
-	dc.l	loc_7150A
-	dc.l	Sign_seq_6
-	dc.l	Sign_seq_7
-	dc.l	Sign_seq_8
-	dc.l	Sign_seq_9
-	dc.l	loc_7150F
-	dc.l	loc_71511
-	dc.l	loc_71513
-	dc.l	loc_71515
-	dc.l	loc_71517
-	dc.l	loc_7151A
-	dc.l	loc_7151D
-	dc.l	loc_71522
-	dc.l	Sign_seq_6
-	dc.l	Sign_seq_7
-	dc.l	Sign_seq_8
-	dc.l	Sign_seq_9
-	dc.l	Sign_seq_6
-	dc.l	Sign_seq_7
-	dc.l	Sign_seq_8
-	dc.l	Sign_seq_9
-	dc.l	Sign_seq_6
-	dc.l	Sign_seq_7
-	dc.l	Sign_seq_8
-	dc.l	Sign_seq_9
-	dc.l	loc_71527
-	dc.l	loc_71529
-	dc.l	loc_7152B
-loc_714B8:
+	dc.l	Sign_seq_10
+	dc.l	Sign_seq_11
+	dc.l	Sign_seq_12
+	dc.l	Sign_seq_13
+	dc.l	Sign_seq_14
+	dc.l	Sign_seq_15
+	dc.l	Sign_seq_16
+	dc.l	Sign_seq_17
+	dc.l	Sign_seq_18
+	dc.l	Sign_seq_19
+	dc.l	Sign_seq_20
+	dc.l	Sign_seq_21
+	dc.l	Sign_seq_22
+	dc.l	Sign_seq_23
+	dc.l	Sign_seq_16
+	dc.l	Sign_seq_17
+	dc.l	Sign_seq_18
+	dc.l	Sign_seq_19
+	dc.l	Sign_seq_28
+	dc.l	Sign_seq_29
+	dc.l	Sign_seq_30
+	dc.l	Sign_seq_31
+	dc.l	Sign_seq_32
+	dc.l	Sign_seq_33
+	dc.l	Sign_seq_34
+	dc.l	Sign_seq_35
+	dc.l	Sign_seq_16
+	dc.l	Sign_seq_17
+	dc.l	Sign_seq_18
+	dc.l	Sign_seq_19
+	dc.l	Sign_seq_16
+	dc.l	Sign_seq_17
+	dc.l	Sign_seq_18
+	dc.l	Sign_seq_19
+	dc.l	Sign_seq_16
+	dc.l	Sign_seq_17
+	dc.l	Sign_seq_18
+	dc.l	Sign_seq_19
+	dc.l	Sign_seq_48
+	dc.l	Sign_seq_49
+	dc.l	Sign_seq_50
+;loc_714B8
+Sign_seq_0:
 	dc.b	$01, $FF
-loc_714BA:
+;loc_714BA
+Sign_seq_1:
 	dc.b	$02, $FF
-loc_714BC:
+;loc_714BC
+Sign_seq_2:
 	dc.b	$03, $04, $FF
-loc_714BF:
-	dc.b	$05, $05, $FF
-loc_714C2:
-	dc.b	$06, $06, $FF
-loc_714C5:
-	dc.b	$05, $06, $05, $06, $FF
-loc_714CA:
-	dc.b	$06, $05, $06, $05,	$FF
-loc_714CF:
-	dc.b	$07, $00, $FF
-loc_714D2:
-	dc.b	$08, $00, $FF
-loc_714D5:
-	dc.b	$07, $00, $08, $00, $FF
-loc_714DA:
-	dc.b	$08, $00, $07, $00, $FF
-loc_714DF:
-	dc.b	$09, $09, $FF
-loc_714E2:
-	dc.b	$0A, $0A, $FF
-loc_714E5:
-	dc.b	$09, $0A, $09, $0A, $FF
-loc_714EA:
-	dc.b	$0A, $09, $0A, $09, $FF
-;Sign_seq_6
-Sign_seq_6:
-	dc.b	$0B, $00, $FF
-;Sign_seq_7
-Sign_seq_7:
-	dc.b	$0C, $00, $FF
-;Sign_seq_8
+;loc_714BF
 Sign_seq_8:
-	dc.b	$0B, $00, $0C, $00, $FF
-;Sign_seq_9
+	dc.b	$05, $05, $FF
+;loc_714C2
 Sign_seq_9:
+	dc.b	$06, $06, $FF
+;loc_714C5
+Sign_seq_10:
+	dc.b	$05, $06, $05, $06, $FF
+;loc_714CA
+Sign_seq_11:
+	dc.b	$06, $05, $06, $05,	$FF
+;loc_714CF
+Sign_seq_4:
+	dc.b	$07, $00, $FF
+;loc_714D2
+Sign_seq_5:
+	dc.b	$08, $00, $FF
+;loc_714D5
+Sign_seq_6:
+	dc.b	$07, $00, $08, $00, $FF
+;loc_714DA
+Sign_seq_7:
+	dc.b	$08, $00, $07, $00, $FF
+;loc_714DF
+Sign_seq_12:
+	dc.b	$09, $09, $FF
+;loc_714E2
+Sign_seq_13:
+	dc.b	$0A, $0A, $FF
+;loc_714E5
+Sign_seq_14:
+	dc.b	$09, $0A, $09, $0A, $FF
+;loc_714EA
+Sign_seq_15:
+	dc.b	$0A, $09, $0A, $09, $FF
+;loc_714EF
+Sign_seq_16:
+	dc.b	$0B, $00, $FF
+;loc_714F2
+Sign_seq_17:
+	dc.b	$0C, $00, $FF
+;loc_714F5
+Sign_seq_18:
+	dc.b	$0B, $00, $0C, $00, $FF
+;loc_714FA
+Sign_seq_19:
 	dc.b	$0C, $00, $0B, $00, $FF
-loc_714FF:
+;loc_714FF
+Sign_seq_20:
 	dc.b	$0D, $00, $FF
-loc_71502:
+;loc_71502
+Sign_seq_21:
 	dc.b	$0E, $00, $FF
-loc_71505:
+;loc_71505
+Sign_seq_22:
 	dc.b	$0D, $00, $0E, $00, $FF
-loc_7150A:
+;loc_7150A
+Sign_seq_23:
 	dc.b	$0E, $00, $0D, $00,	$FF
-loc_7150F:
+;loc_7150F
+Sign_seq_28:
 	dc.b	$0F, $FF
-loc_71511:
+;loc_71511
+Sign_seq_29:
 	dc.b	$10, $FF
-loc_71513:
+;loc_71513
+Sign_seq_30:
 	dc.b	$11, $FF
-loc_71515:
+;loc_71515
+Sign_seq_31:
 	dc.b	$12, $FF
-loc_71517:
+;loc_71517
+Sign_seq_32:
 	dc.b	$13, $00, $FF
-loc_7151A:
+;loc_7151A
+Sign_seq_33:
 	dc.b	$14, $00, $FF
-loc_7151D:
+;loc_7151D
+Sign_seq_34:
 	dc.b	$13, $00, $14, $00, $FF
-loc_71522:
+;loc_71522
+Sign_seq_35:
 	dc.b	$14, $00, $13, $00, $FF
-loc_71527:
+;loc_71527
+Sign_seq_48:
 	dc.b	$15, $FF
-loc_71529:
+;loc_71529
+Sign_seq_49:
 	dc.b	$16, $FF
-loc_7152B:
+;loc_7152B
+Sign_seq_50:
 	dc.b	$17, $FF
 	dc.b	$00
-loc_7152E: ; curve data
+;loc_7152E
+San_Marino_curve_data:
 ; byte 1-2 = length
 ; byte 3   = curve (see notes.txt)
 ; byte 4-5 = relative horizontal background displacement (when curve!=0)
@@ -43991,7 +44907,8 @@ loc_7152E: ; curve data
 	dc.b	$00, $46, $68, $00, $1C
 	dc.b	$00, $09, $00
 	dc.b	$FF, $00
-loc_715EA: ; slope data
+;loc_715EA
+San_Marino_slope_data:
 	dc.b	$00 ; initial vertical background displacement
 	; byte 1-2 = length
 	; byte 3   = slope (see notes.txt)
@@ -44020,7 +44937,8 @@ loc_715EA: ; slope data
 	dc.b	$00, $0F, $2F, $70
 	dc.b	$00, $4F, $00
 	dc.b	$FF
-loc_7163C: ; San Marino physical slope data (RLE; decoded to Physical_slope_data by Load_track_data)
+;loc_7163C
+San_Marino_phys_slope_data:
 	dc.b	$02, $39, $00
 	dc.b	$00, $93, $FF
 	dc.b	$00, $35, $00
@@ -44033,7 +44951,8 @@ loc_7163C: ; San Marino physical slope data (RLE; decoded to Physical_slope_data
 	dc.b	$00, $8A, $FF
 	dc.b	$00, $4F, $00
 	dc.b	$FF, $36, $2D
-loc_71660: ; map for minimap position
+;loc_71660
+San_Marino_minimap_pos:
 	dc.b	$36, $28, $34, $28, $32, $29, $30, $29, $2E, $2A, $2C, $2A, $2A, $2B, $28, $2B, $26, $2B, $24, $2B, $22, $2B, $20, $2B, $1E, $2B, $1C, $2A, $1A, $28, $19, $27
 	dc.b	$18, $26, $17, $25, $16, $23, $15, $22, $14, $21, $13, $1F, $12, $1C, $11, $1A, $10, $19, $0F, $17, $0E, $15, $0D, $14, $0C, $13, $0A, $12, $08, $10, $06, $0F
 	dc.b	$04, $0E, $03, $0C, $04, $0A, $06, $0A, $08, $0A, $0A, $0B, $0B, $0C, $0D, $0C, $0E, $0C, $10, $0C, $11, $0C, $13, $0C, $14, $0C, $16, $0C, $17, $0B, $19, $0A
@@ -44041,7 +44960,8 @@ loc_71660: ; map for minimap position
 	dc.b	$2C, $1D, $2E, $1C, $2F, $1C, $31, $1C, $32, $1B, $34, $1A, $35, $1A, $37, $1A, $39, $1A, $3B, $1B, $3C, $1B, $3E, $1C, $3F, $1C, $41, $1C, $42, $1D, $44, $1E
 	dc.b	$45, $1E, $47, $1F, $48, $1F, $4A, $20, $4B, $20, $4D, $21, $4E, $21, $50, $21, $52, $22, $53, $23, $52, $25, $51, $26, $4F, $26, $4D, $26, $4C, $26, $4A, $26
 	dc.b	$49, $26, $47, $26, $46, $26, $44, $26, $43, $26, $41, $27, $40, $28, $3E, $29, $3D, $28, $3C, $28, $3C, $28, $3B, $28, $3A, $28, $38, $28
-loc_7173C: ; sign data
+;loc_7173C
+San_Marino_sign_data:
 ; first word: sign location (distance from start)
 ; second word byte 1: how many signs in a row
 ; second word byte 2: index in lookup table
@@ -44049,14 +44969,16 @@ loc_7173C: ; sign data
 	dc.w	$0BA0, $0401, $0C74, $0401, $0CD8, $0409, $0DE8, $0400, $0E1C, $0401, $0E60, $0900, $0F98, $0505, $1148, $041C
 	dc.w	$1198, $010A, $1248, $0408, $13E8, $0419, $15AC, $0401, $1688, $0401, $1714, $0411, $1858, $0408, $1940, $041C
 	dc.w	$1990, $010A, $19EC, $0400, $FFFF
-loc_717A6: ; tileset for signs
+;loc_717A6
+San_Marino_sign_tileset:
 ; 2 words per tilset
 ; first word: location
 ; second word: Sign_tileset_table offset
 	dc.w	$0306, $0038, $0716, $0018, $07A6, $0008, $0F7A, $0010
 	dc.w	$112A, $0000, $13CA, $0028, $16F6, $0018, $1922, $0000
 	dc.w	$FFFF
-loc_717C8:
+;loc_717C8
+Monaco_curve_data:
 	dc.b	$00, $57, $5E, $00, $39
 	dc.b	$00, $0F, $41, $00, $AB
 	dc.b	$00, $57, $2D, $00, $1C
@@ -44105,7 +45027,8 @@ loc_717C8:
 	dc.b	$00, $2B, $1E, $00, $1C
 	dc.b	$00, $82, $5E, $00, $56
 	dc.b	$FF
-loc_718AE:
+;loc_718AE
+Monaco_slope_data:
 	dc.b	$00
 	dc.b	$00, $31, $00
 	dc.b	$00, $35, $6F, $70
@@ -44119,10 +45042,12 @@ loc_718AE:
 	dc.b	$00, $0C, $2F, $70
 	dc.b	$00, $28, $00
 	dc.b	$FF
-loc_718D6:
+;loc_718D6
+Monaco_phys_slope_data:
 	dc.b	$00, $31, $00, $01, $0E, $FF, $01, $51, $01, $02, $CF, $00, $00, $79, $FF, $00, $28, $00, $FF
 	dc.b	$10, $1E
-loc_718EB:
+;loc_718EB
+Monaco_minimap_pos:
 	dc.b	$0C, $20, $0E, $22, $10, $24, $12, $26, $14, $28, $16, $2A, $18, $2B, $1B, $2A, $1D, $29, $20, $27, $22, $26, $25, $25, $27, $24, $2A, $22, $2C, $21, $2F, $20
 	dc.b	$31, $1E, $34, $1C, $37, $1B, $39, $1A, $3B, $1B, $3C, $1E, $3D, $21, $3E, $24, $41, $26, $44, $27, $47, $27, $4A, $28, $4D, $27, $4C, $23, $4B, $20, $4A, $1E
 	dc.b	$4A, $1C, $4C, $1A, $4E, $1C, $50, $1E, $53, $1D, $54, $1A, $53, $18, $50, $15, $4E, $13, $4C, $11, $49, $10, $47, $0F, $45, $0E, $42, $0D, $40, $0D, $3E, $0D
@@ -44130,15 +45055,18 @@ loc_718EB:
 	dc.b	$1A, $21, $19, $20, $17, $1F, $16, $1E, $15, $1D, $13, $1B, $12, $1A, $11, $18, $10, $17, $0F, $16, $0E, $15, $0D, $15, $0B, $12, $09, $0F, $07, $0C, $06, $0A
 	dc.b	$07, $08, $07, $06, $06, $06, $04, $06, $02, $07, $02, $09, $02, $0B, $03, $0D, $04, $0F, $04, $11, $05, $13, $06, $15, $07, $17, $07, $19, $08, $1B, $0A, $1E
 	dc.b	$00
-loc_719AC:
+;loc_719AC
+Monaco_sign_data:
 	dc.b	$01, $2C, $04, $00, $01, $7C, $03, $0A, $02, $C4, $04, $00, $03, $14, $03, $0A, $04, $70, $04, $01, $04, $C0, $03, $25, $05, $5C, $04, $00, $06, $1C, $04, $00
 	dc.b	$06, $D0, $04, $00, $07, $B8, $0B, $1F, $08, $88, $04, $00, $08, $9C, $04, $00, $09, $C4, $01, $31, $09, $E8, $0F, $02, $0B, $B4, $01, $32, $0C, $68, $04, $1D
 	dc.b	$0C, $B8, $08, $0B, $0F, $B8, $04, $01, $10, $08, $02, $0B, $11, $50, $04, $1D, $11, $A0, $01, $0B, $12, $18, $04, $1C, $12, $68, $03, $0A, $13, $AC, $04, $01
 	dc.b	$13, $F0, $08, $1E, $14, $84, $08, $00, $15, $14, $04, $2E, $15, $94, $03, $0A, $FF, $FF
-loc_71A1E:
+;loc_71A1E
+Monaco_sign_tileset:
 	dc.w	$015E, $0008, $04A2, $0038, $09CA, $0058, $0C4A, $0000, $0C9A, $0008, $14F6, $0048
 	dc.b	$FF, $FF
-loc_71A38:
+;loc_71A38
+Mexico_curve_data:
 	dc.b	$01, $99, $00
 	dc.b	$00, $17, $41, $01, $00
 	dc.b	$00, $23, $00
@@ -44170,7 +45098,8 @@ loc_71A38:
 	dc.b	$00, $DB, $4E, $02, $01
 	dc.b	$00, $37, $00
 	dc.b	$FF, $00
-loc_71AC0:
+;loc_71AC0
+Mexico_slope_data:
 	dc.b	$00
 	dc.b	$05, $A0, $00
 	dc.b	$00, $36, $2F, $70
@@ -44178,11 +45107,13 @@ loc_71AC0:
 	dc.b	$00, $36, $2F, $70
 	dc.b	$00, $38, $00
 	dc.b	$FF
-loc_71AD4:
+;loc_71AD4
+Mexico_phys_slope_data:
 	dc.b	$05, $A0, $00, $00, $6C, $01, $00, $6C, $FF, $00, $38, $00, $FF
 	dc.b	$46
 	dc.b	$0C
-loc_71AE3:
+;loc_71AE3
+Mexico_minimap_pos:
 	dc.b	$46, $08, $44, $08, $41, $08, $3F, $08, $3D, $08, $3A, $08, $38, $08, $36, $08, $33, $08, $31, $08, $2F, $08, $2C, $08, $2A, $08, $28, $08, $25, $08, $23, $08
 	dc.b	$21, $08, $1E, $08, $1C, $08, $1A, $08, $17, $08, $15, $08, $13, $08, $10, $08, $0E, $08, $0B, $08, $0A, $09, $09, $0A, $09, $0B, $09, $0C, $07, $0E, $05, $10
 	dc.b	$05, $11, $06, $13, $07, $14, $08, $16, $09, $17, $0A, $19, $0A, $1A, $0B, $1C, $0C, $1D, $0D, $1F, $0D, $20, $0E, $22, $0F, $23, $0F, $25, $0E, $27, $0D, $29
@@ -44191,14 +45122,17 @@ loc_71AE3:
 	dc.b	$36, $15, $38, $15, $3A, $15, $3C, $15, $3E, $15, $40, $15, $42, $15, $44, $15, $46, $15, $48, $15, $49, $15, $4B, $15, $4D, $14, $4E, $13, $4F, $12, $50, $11
 	dc.b	$50, $0F, $50, $0D, $50, $0B, $4F, $0A, $4E, $09, $4D, $09, $4C, $08, $4B, $08, $4A, $08, $49, $08, $48, $08
 	dc.b	$00
-loc_71BBA:
+;loc_71BBA
+Mexico_sign_data:
 	dc.b	$06, $04, $04, $05, $06, $34, $04, $00, $07, $1C, $04, $01, $07, $74, $04, $00, $07, $E0, $04, $18, $08, $A0, $04, $19, $09, $60, $04, $18, $0A, $FC, $04, $01
 	dc.b	$0B, $C4, $04, $00, $0C, $C4, $0C, $1E, $0D, $E4, $04, $01, $0E, $74, $04, $00, $0F, $68, $04, $01, $0F, $B8, $04, $09, $10, $D4, $04, $01, $11, $CC, $04, $00
 	dc.b	$12, $AC, $04, $01, $12, $FC, $02, $0B, $16, $48, $04, $00, $16, $D8, $04, $28, $17, $98, $04, $09, $18, $58, $04, $28, $FF, $FF
-loc_71C14:
+;loc_71C14
+Mexico_sign_tileset:
 	dc.w	$05E6, $0010, $07C2, $0028, $0CA6, $0008, $16BA, $0040
 	dc.b	$FF, $FF
-loc_71C26:
+;loc_71C26
+France_curve_data:
 	dc.b	$00, $E6, $00
 	dc.b	$00, $17, $41, $01, $00
 	dc.b	$00, $0A, $42, $00, $55
@@ -44228,7 +45162,8 @@ loc_71C26:
 	dc.b	$00, $17, $41, $01, $01
 	dc.b	$00, $32, $00
 	dc.b	$FF, $00
-loc_71CAC:
+;loc_71CAC
+France_slope_data:
 	dc.b	$00
 	dc.b	$00, $DE, $00
 	dc.b	$00, $0F, $2F, $70
@@ -44246,25 +45181,30 @@ loc_71CAC:
 	dc.b	$00, $0E, $6F, $70
 	dc.b	$01, $38, $00
 	dc.b	$FF
-loc_71CE2:
+;loc_71CE2
+France_phys_slope_data:
 	dc.b	$00, $DE, $00, $00, $65, $01, $00, $EF, $00, $00, $DC, $FF, $01, $23, $00, $00, $97, $01, $01, $38, $00, $FF
 	dc.b	$36, $1F
-loc_71CFA:
+;loc_71CFA
+France_minimap_pos:
 	dc.b	$37, $24, $38, $24, $3A, $23, $3C, $23, $3E, $22, $40, $22, $41, $21, $43, $20, $45, $20, $47, $1F, $48, $1F, $4A, $1E, $4C, $1D, $4E, $1C, $50, $1C, $53, $1A
 	dc.b	$52, $17, $53, $15, $53, $13, $52, $13, $50, $12, $4E, $12, $4C, $11, $4A, $10, $47, $10, $45, $10, $43, $0F, $40, $0F, $3E, $0F, $3C, $0F, $39, $0F, $37, $0E
 	dc.b	$35, $0E, $32, $0E, $30, $0E, $2E, $0E, $2B, $0E, $29, $0E, $27, $0E, $24, $0D, $22, $0D, $20, $0D, $1E, $0D, $1C, $0D, $1A, $0D, $18, $0D, $16, $0D, $14, $0D
 	dc.b	$12, $0D, $11, $0E, $0F, $0E, $0D, $0F, $0C, $10, $0A, $11, $08, $14, $06, $16, $05, $17, $04, $18, $03, $19, $03, $1A, $02, $1B, $03, $1D, $05, $20, $07, $21
 	dc.b	$09, $21, $0B, $21, $0D, $21, $0F, $20, $11, $1E, $11, $1C, $11, $1B, $11, $1A, $11, $19, $11, $18, $12, $17, $13, $17, $15, $18, $17, $1A, $19, $1B, $1B, $1C
 	dc.b	$1C, $1C, $1E, $1D, $20, $1D, $22, $1E, $24, $1E, $25, $1E, $27, $1F, $28, $20, $29, $22, $29, $24, $2A, $27, $2B, $29, $2D, $28, $2F, $27, $32, $26, $35, $25
-loc_71DBA:
+;loc_71DBA
+France_sign_data:
 	dc.b	$01, $BC, $04, $18, $03, $68, $04, $00, $03, $EC, $04, $01, $04, $44, $04, $00, $04, $94, $02, $0A, $05, $CC, $04, $11, $06, $8C, $04, $10, $07, $4C, $04, $11
 	dc.b	$08, $0C, $04, $10, $08, $CC, $04, $11, $0B, $CC, $04, $00, $0C, $58, $04, $09, $0D, $14, $04, $24, $0E, $BC, $04, $00, $0F, $0C, $04, $24, $10, $B0, $04, $00
 	dc.b	$11, $00, $04, $24, $12, $68, $04, $01, $12, $D4, $04, $01, $13, $24, $02, $0B, $14, $8C, $04, $14, $15, $78, $04, $01, $15, $C8, $02, $0B, $16, $AC, $04, $00
 	dc.b	$16, $FC, $01, $08, $FF, $FF
-loc_71E20:
+;loc_71E20
+France_sign_tileset:
 	dc.w	$019E, $0028, $0476, $0008, $05AE, $0018, $0CF6, $0038, $146E, $0020
 	dc.b	$FF, $FF
-loc_71E36:
+;loc_71E36
+Great_Britain_curve_data:
 	dc.b	$00, $A1, $00
 	dc.b	$00, $17, $41, $01, $00
 	dc.b	$00, $8A, $00
@@ -44287,7 +45227,8 @@ loc_71E36:
 	dc.b	$00, $11, $44, $00, $73
 	dc.b	$00, $2F, $00
 	dc.b	$FF
-loc_71E8C:
+;loc_71E8C
+Great_Britain_slope_data:
 	dc.b	$00
 	dc.b	$00, $7E, $00
 	dc.b	$00, $10, $6F, $70
@@ -44299,10 +45240,12 @@ loc_71E8C:
 	dc.b	$00, $11, $6F, $70
 	dc.b	$03, $83, $00
 	dc.b	$FF, $00
-loc_71EAE:
+;loc_71EAE
+Great_Britain_phys_slope_data:
 	dc.b	$00, $7E, $00, $01, $49, $FF, $00, $4A, $00, $01, $2C, $01, $03, $83, $00, $FF
 	dc.b	$13, $0B
-loc_71EC0:
+;loc_71EC0
+Great_Britain_minimap_pos:
 	dc.b	$0F, $08, $0E, $09, $0D, $0A, $0C, $0B, $0A, $0C, $09, $0D, $08, $0E, $07, $0F, $06, $10, $05, $11, $04, $12, $03, $14, $03, $15, $04, $16, $05, $18, $06, $19
 	dc.b	$08, $1A, $0A, $1C, $0C, $1D, $0F, $1F, $10, $20, $11, $21, $12, $23, $13, $25, $13, $26, $14, $28, $15, $2A, $15, $2B, $16, $2D, $17, $2F, $18, $30, $18, $32
 	dc.b	$19, $33, $1B, $32, $1D, $31, $1F, $30, $21, $30, $24, $2F, $26, $2E, $28, $2D, $2A, $2D, $2D, $2E, $2F, $2E, $31, $2F, $33, $2F, $35, $2F, $36, $30, $38, $30
@@ -44310,14 +45253,17 @@ loc_71EC0:
 	dc.b	$4D, $29, $4D, $27, $4D, $26, $4D, $24, $4D, $22, $4D, $21, $4D, $1F, $4D, $1D, $4D, $1C, $4D, $1A, $4C, $19, $4B, $18, $49, $18, $47, $18, $44, $18, $42, $18
 	dc.b	$40, $18, $3D, $18, $3B, $18, $39, $18, $36, $18, $34, $17, $32, $17, $30, $16, $2E, $15, $2D, $14, $2B, $12, $29, $11, $27, $10, $26, $0F, $24, $0E, $22, $0C
 	dc.b	$20, $0B, $1F, $09, $1D, $08, $1D, $07, $1D, $05, $1E, $03, $1C, $03, $19, $03, $16, $03, $14, $03, $13, $04, $11, $06
-loc_71F98:
+;loc_71F98
+Great_Britain_sign_data:
 	dc.b	$02, $54, $04, $00, $02, $A4, $04, $08, $04, $D8, $04, $01, $05, $28, $04, $08, $07, $74, $0B, $1E, $08, $44, $03, $0A, $09, $A8, $04, $18, $0A, $88, $04, $19
 	dc.b	$0C, $94, $04, $19, $0E, $0C, $04, $00, $0E, $5C, $04, $08, $0E, $FC, $04, $29, $12, $34, $04, $00, $12, $84, $04, $08, $14, $E4, $04, $01, $15, $34, $04, $10
 	dc.b	$15, $F4, $04, $11, $18, $48, $04, $01, $18, $94, $0B, $1E, $19, $D0, $04, $00, $FF, $FF
-loc_71FEA:
+;loc_71FEA
+Great_Britain_sign_tileset:
 	dc.w	$0286, $0008, $098A, $0028, $0EDE, $0040, $1516, $0018
 	dc.b	$FF, $FF
-loc_71FFC:
+;loc_71FFC
+West_Germany_curve_data:
 	dc.b	$00, $5A, $00
 	dc.b	$00, $14, $42, $00, $AB
 	dc.b	$00, $39, $00
@@ -44352,7 +45298,8 @@ loc_71FFC:
 	dc.b	$00, $14, $42, $00, $AC
 	dc.b	$00, $39, $00
 	dc.b	$FF
-loc_72090:
+;loc_72090
+West_Germany_slope_data:
 	dc.b	$00
 	dc.b	$01, $A0, $00
 	dc.b	$00, $13, $6F, $70
@@ -44365,10 +45312,12 @@ loc_72090:
 	dc.b	$00, $1A, $2F, $70
 	dc.b	$01, $84, $00
 	dc.b	$FF, $00
-loc_720B6:
+;loc_720B6
+West_Germany_phys_slope_data:
 	dc.b	$01, $A0, $00, $00, $E8, $FF, $01, $E7, $00, $00, $5B, $01, $01, $02, $FF, $01, $84, $00, $FF
 	dc.b	$4F, $22
-loc_720CB:
+;loc_720CB
+West_Germany_minimap_pos:
 	dc.b	$52, $22, $52, $20, $52, $1E, $52, $1C, $52, $1A, $52, $18, $52, $16, $51, $15, $50, $15, $4E, $14, $4C, $13, $4A, $13, $48, $12, $46, $11, $44, $11, $42, $10
 	dc.b	$40, $10, $3E, $0F, $3C, $0F, $3A, $0E, $38, $0D, $36, $0D, $34, $0D, $32, $0C, $30, $0C, $2E, $0C, $2C, $0C, $2A, $0D, $28, $0D, $26, $0E, $24, $11, $23, $12
 	dc.b	$22, $13, $20, $13, $1D, $13, $1B, $12, $1A, $12, $18, $12, $16, $12, $14, $14, $11, $15, $0F, $17, $0D, $18, $0B, $1A, $09, $1C, $07, $1E, $06, $20, $05, $21
@@ -44378,15 +45327,18 @@ loc_720CB:
 	dc.b	$43, $27, $45, $25, $47, $23, $4A, $21, $4C, $21, $4C, $22, $4C, $23, $4C, $24, $4B, $25, $4B, $26, $4B, $27, $4B, $29, $4B, $2B, $4C, $2D, $4D, $2D, $4E, $2D
 	dc.b	$4F, $2C, $50, $2B, $51, $2A, $52, $28, $52, $25
 	dc.b	$00
-loc_721B6:
+;loc_721B6
+West_Germany_sign_data:
 	dc.b	$01, $38, $04, $00, $01, $B8, $01, $0C, $01, $F8, $02, $0D, $02, $58, $02, $0E, $02, $F8, $0D, $0E, $07, $0C, $04, $00, $07, $5C, $01, $0C, $07, $A0, $04, $01
 	dc.b	$07, $F0, $0D, $0F, $0C, $1C, $02, $0E, $0C, $BC, $01, $0C, $0D, $0C, $04, $00, $0D, $FC, $04, $00, $0F, $04, $04, $24, $0F, $E4, $04, $25, $10, $C4, $04, $24
 	dc.b	$12, $AC, $04, $01, $13, $14, $04, $00, $13, $B8, $04, $01, $14, $08, $04, $09, $14, $C8, $04, $04, $16, $CC, $04, $00, $17, $1C, $04, $08, $18, $8C, $0C, $1F
 	dc.b	$19, $5C, $04, $2D, $19, $FC, $04, $2C, $1A, $BC, $04, $00, $1B, $0C, $04, $08, $1B, $DC, $04, $00, $FF, $FF
-loc_7222C:
+;loc_7222C
+West_Germany_sign_tileset:
 	dc.w	$019A, $0050, $0EE6, $0038, $13EA, $0008, $14AA, $0010, $193E, $0048
 	dc.b	$FF, $FF
-loc_72242:
+;loc_72242
+Hungary_curve_data:
 	dc.b	$00, $A4, $00
 	dc.b	$00, $3E, $42, $02, $00
 	dc.b	$00, $54, $00
@@ -44419,7 +45371,8 @@ loc_72242:
 	dc.b	$00, $3E, $42, $01, $FF
 	dc.b	$00, $5A, $00
 	dc.b	$FF
-loc_722CA:
+;loc_722CA
+Hungary_slope_data:
 	dc.b	$00
 	dc.b	$00, $90, $00
 	dc.b	$00, $08, $2F, $70
@@ -44439,10 +45392,12 @@ loc_722CA:
 	dc.b	$00, $08, $6F, $70
 	dc.b	$01, $77, $00
 	dc.b	$FF, $00
-loc_72308:
+;loc_72308
+Hungary_phys_slope_data:
 	dc.b	$00, $90, $00, $00, $61, $01, $00, $7C, $FF, $00, $82, $01, $00, $4F, $00, $00, $94, $FF, $01, $9D, $00, $00, $6A, $01, $01, $77, $00, $FF
 	dc.b	$47, $20
-loc_72326:
+;loc_72326
+Hungary_minimap_pos:
 	dc.b	$4B, $20, $4B, $1E, $4B, $1C, $4B, $1A, $4B, $18, $4B, $16, $4B, $14, $4B, $12, $4B, $10, $4B, $0E, $4B, $0C, $49, $0A, $46, $0B, $43, $0A, $42, $0C, $42, $0E
 	dc.b	$42, $10, $42, $12, $42, $14, $42, $16, $42, $18, $40, $19, $3E, $19, $3C, $18, $3A, $16, $38, $14, $36, $12, $34, $11, $32, $11, $30, $10, $2D, $10, $2B, $0F
 	dc.b	$29, $0F, $27, $0E, $24, $0E, $22, $0E, $20, $0D, $1E, $0D, $1B, $0C, $18, $0D, $16, $0E, $14, $0B, $12, $08, $11, $05, $0E, $03, $0B, $03, $09, $05, $09, $07
@@ -44450,15 +45405,18 @@ loc_72326:
 	dc.b	$13, $29, $17, $2B, $1B, $2D, $1C, $2F, $1D, $30, $1D, $32, $1E, $33, $1F, $34, $22, $33, $25, $33, $28, $33, $2B, $33, $2E, $33, $31, $33, $34, $33, $34, $31
 	dc.b	$35, $2E, $37, $2C, $39, $2A, $3B, $28, $3D, $27, $3F, $26, $41, $26, $43, $27, $43, $29, $43, $2B, $43, $2D, $45, $2F, $47, $2F, $49, $2F, $4B, $2E, $4B, $2C
 	dc.b	$4B, $2A, $4B, $28, $4B, $26, $4B, $24, $4B, $22
-loc_723F0:
+;loc_723F0
+Hungary_sign_data:
 	dc.b	$02, $60, $04, $00, $02, $B0, $05, $18, $04, $88, $0C, $1F, $05, $58, $02, $0B, $06, $48, $04, $00, $06, $98, $04, $08, $08, $3C, $04, $28, $09, $A8, $04, $01
 	dc.b	$09, $F8, $04, $09, $0A, $BC, $04, $00, $0B, $28, $04, $10, $0B, $C4, $04, $09, $0C, $D0, $04, $1C, $0D, $20, $01, $0A, $0E, $54, $04, $01, $0E, $E4, $04, $00
 	dc.b	$0F, $34, $04, $14, $10, $7C, $04, $01, $11, $3C, $04, $00, $11, $8C, $04, $2D, $13, $24, $04, $1C, $13, $74, $01, $0A, $15, $04, $0B, $1F, $15, $D4, $02, $0B
 	dc.b	$16, $B0, $04, $00, $17, $00, $05, $10, $FF, $FF
-loc_7245A:
+;loc_7245A
+Hungary_sign_tileset:
 	dc.w	$0292, $0028, $046A, $0008, $081E, $0040, $0B0A, $0018, $0CB2, $0000, $0F16, $0020, $116E, $0048, $1306, $0000, $16E2, $0018
 	dc.b	$FF, $FF
-loc_72480:
+;loc_72480
+Belgium_curve_data:
 	dc.b	$00, $49, $21, $00, $2B
 	dc.b	$00, $24, $41, $01, $8E
 	dc.b	$00, $62, $5C, $00, $47
@@ -44511,7 +45469,8 @@ loc_72480:
 	dc.b	$00, $13, $0B, $00, $39
 	dc.b	$00, $24, $00
 	dc.b	$FF
-loc_72578:
+;loc_72578
+Belgium_slope_data:
 	dc.b	$00
 	dc.b	$00, $18, $00
 	dc.b	$00, $10, $6F, $70
@@ -44533,10 +45492,12 @@ loc_72578:
 	dc.b	$00, $16, $2F, $70
 	dc.b	$00, $8D, $00
 	dc.b	$FF
-loc_725BC:
+;loc_725BC
+Belgium_phys_slope_data:
 	dc.b	$00, $18, $00, $00, $78, $FF, $00, $67, $01, $01, $B7, $FF, $00, $6C, $01, $00, $28, $00, $02, $09, $01, $00, $CB, $00, $00, $ED, $FF, $00, $8D, $00, $FF
 	dc.b	$46, $17
-loc_725DD:
+;loc_725DD
+Belgium_minimap_pos:
 	dc.b	$46, $1A, $49, $1A, $4C, $1B, $4F, $1C, $52, $1D, $53, $1D, $53, $1C, $53, $1B, $51, $19, $4F, $17, $4D, $16, $4B, $14, $49, $13, $47, $12, $45, $11, $43, $11
 	dc.b	$41, $10, $3E, $0E, $3B, $0C, $38, $0C, $36, $0D, $34, $0D, $33, $0D, $31, $0D, $2F, $0D, $2D, $0D, $2B, $0C, $29, $0C, $27, $0B, $25, $0B, $23, $0B, $21, $0B
 	dc.b	$1F, $0B, $1D, $0B, $1B, $0B, $19, $0B, $17, $0B, $15, $0B, $13, $0B, $11, $0B, $0F, $0B, $0D, $0E, $0B, $10, $09, $12, $07, $13, $05, $14, $04, $16, $04, $19
@@ -44546,16 +45507,19 @@ loc_725DD:
 	dc.b	$28, $20, $29, $20, $2A, $20, $2B, $1F, $2C, $1F, $2D, $1F, $2E, $1E, $2F, $1E, $31, $1E, $32, $1E, $33, $1E, $35, $1E, $36, $1E, $37, $1E, $39, $1E, $3A, $1E
 	dc.b	$3B, $1E, $3C, $1D, $3D, $1D, $3E, $1C, $3F, $1C, $40, $1B, $41, $1B, $42, $1A, $44, $1A
 	dc.b	$00
-loc_726D0:
+;loc_726D0
+Belgium_sign_data:
 	dc.b	$00, $D4, $0C, $00, $01, $B4, $02, $2E, $03, $22, $04, $2C, $03, $FC, $04, $01, $04, $70, $04, $00, $05, $0C, $04, $01, $05, $5C, $04, $09, $06, $E4, $04, $14
 	dc.b	$08, $94, $04, $15, $09, $FC, $04, $00, $0A, $54, $04, $01, $0A, $CC, $04, $00, $0B, $1C, $04, $08, $0C, $18, $0C, $1E, $0D, $94, $04, $01, $0D, $E4, $04, $09
 	dc.b	$0E, $84, $04, $18, $0F, $C8, $04, $01, $10, $38, $04, $19, $11, $C4, $04, $19, $12, $B8, $04, $00, $13, $08, $04, $18, $13, $98, $04, $01, $13, $DC, $04, $00
 	dc.b	$14, $80, $04, $00, $15, $48, $04, $00, $15, $E8, $04, $01, $16, $58, $04, $00, $17, $0C, $01, $0C, $17, $4C, $02, $0D, $17, $F8, $04, $0C, $18, $E4, $03, $0D
 	dc.b	$19, $64, $02, $0C, $19, $D4, $04, $0C, $1B, $A8, $04, $1D, $1C, $A8, $04, $1C, $1C, $F8, $02, $08, $FF, $FF
-loc_72766:
+;loc_72766
+Belgium_sign_tileset:
 	dc.w	$0196, $0048, $053E, $0008, $06C6, $0020, $0E66, $0028, $16EE, $0050, $1B8A, $0000, $1CDA, $0008
 	dc.b	$FF, $FF
-loc_72784:
+;loc_72784
+Portugal_curve_data:
 	dc.b	$00, $A0, $00
 	dc.b	$00, $1B, $42, $00, $E4
 	dc.b	$00, $45, $67, $00, $1C
@@ -44585,7 +45549,8 @@ loc_72784:
 	dc.b	$00, $43, $4F, $00, $8F
 	dc.b	$00, $BE, $00
 	dc.b	$FF, $00
-loc_72806:
+;loc_72806
+Portugal_slope_data:
 	dc.b	$00
 	dc.b	$02, $AA, $00
 	dc.b	$00, $0A, $2F, $70
@@ -44603,10 +45568,12 @@ loc_72806:
 	dc.b	$00, $11, $6F, $70
 	dc.b	$01, $B0, $00
 	dc.b	$FF
-loc_7283C:
+;loc_7283C
+Portugal_phys_slope_data:
 	dc.b	$02, $AA, $00, $00, $84, $01, $00, $25, $00, $00, $95, $FF, $00, $90, $00, $00, $48, $01, $01, $B0, $00, $FF
 	dc.b	$32, $27
-loc_72854:
+;loc_72854
+Portugal_minimap_pos:
 	dc.b	$32, $2B, $35, $2B, $38, $2B, $3A, $2B, $3D, $2B, $40, $2B, $42, $2B, $45, $2B, $48, $2B, $4B, $2B, $4E, $2B, $51, $29, $53, $27, $53, $25, $53, $22, $53, $1F
 	dc.b	$53, $1C, $53, $19, $50, $16, $4D, $15, $49, $14, $46, $15, $42, $16, $3F, $16, $3B, $17, $38, $18, $38, $19, $39, $1A, $39, $1B, $3B, $1D, $3D, $1F, $3F, $21
 	dc.b	$41, $23, $42, $24, $42, $25, $40, $25, $3F, $26, $3D, $25, $3B, $25, $39, $24, $37, $23, $35, $22, $33, $21, $31, $20, $2F, $21, $2C, $22, $29, $23, $26, $24
@@ -44614,14 +45581,17 @@ loc_72854:
 	dc.b	$2A, $16, $29, $14, $27, $13, $24, $11, $21, $10, $1D, $0E, $18, $0C, $16, $0C, $15, $0D, $12, $0F, $0F, $11, $0E, $13, $0F, $16, $10, $19, $10, $1B, $0E, $1D
 	dc.b	$0B, $1C, $09, $1B, $06, $1B, $04, $1D, $02, $1F, $02, $22, $02, $25, $03, $27, $05, $29, $07, $2A, $09, $2B, $0B, $2B, $0F, $2B, $12, $2B, $15, $2B, $19, $2B
 	dc.b	$1C, $2B, $1F, $2B, $23, $2B, $26, $2B, $29, $2B, $2D, $2B, $30, $2B
-loc_72922:
+;loc_72922
+Portugal_sign_data:
 	dc.b	$02, $50, $04, $00, $02, $A0, $04, $09, $04, $2C, $04, $00, $04, $7C, $04, $09, $05, $F0, $0B, $1E, $06, $E8, $04, $14, $07, $C0, $0C, $1F, $08, $90, $04, $09
 	dc.b	$0A, $10, $04, $29, $0A, $FC, $04, $28, $0C, $30, $0C, $1F, $0D, $00, $02, $27, $0F, $44, $04, $00, $0F, $94, $04, $08, $10, $54, $04, $05, $11, $68, $04, $00
 	dc.b	$12, $50, $04, $00, $12, $A0, $04, $08, $13, $64, $04, $01, $13, $B4, $04, $09, $14, $68, $04, $00, $14, $D8, $04, $18, $15, $5C, $03, $1A, $FF, $FF
-loc_72980:
+;loc_72980
+Portugal_sign_tileset:
 	dc.w	$0282, $0008, $06CA, $0020, $09F2, $0040, $0CE2, $0038, $1036, $0010, $14BA, $0028
 	dc.b	$FF, $FF
-loc_7299A:
+;loc_7299A
+Spain_curve_data:
 	dc.b	$00, $80, $00
 	dc.b	$00, $1F, $41, $01, $55
 	dc.b	$00, $43, $66, $00, $1C
@@ -44658,7 +45628,8 @@ loc_7299A:
 	dc.b	$00, $0C, $0E, $00, $1C
 	dc.b	$00, $6E, $00
 	dc.b	$FF
-loc_72A3C:
+;loc_72A3C
+Spain_slope_data:
 	dc.b	$00
 	dc.b	$00, $14, $6F, $70
 	dc.b	$00, $62, $00
@@ -44681,11 +45652,13 @@ loc_72A3C:
 	dc.b	$00, $16, $2F, $70
 	dc.b	$00, $A2, $00
 	dc.b	$FF
-loc_72A84:
+;loc_72A84
+Spain_phys_slope_data:
 	dc.b	$00, $8A, $FF, $00, $0B, $00, $00, $85, $FF, $01, $10, $00, $00, $BE, $01, $00, $27, $00, $00, $D4, $01, $01, $42, $00, $00, $D9, $FF, $00, $A2, $00, $FF
 	dc.b	$20
 	dc.b	$26
-loc_72AA5:
+;loc_72AA5
+Spain_minimap_pos:
 	dc.b	$20, $24, $1D, $24, $1A, $24, $17, $24, $14, $24, $11, $24, $0E, $24, $0B, $24, $07, $24, $04, $25, $04, $29, $05, $2B, $06, $2D, $08, $2F, $0B, $31, $0D, $2F
 	dc.b	$0E, $2E, $0F, $2D, $11, $2B, $14, $2A, $17, $2A, $19, $2A, $1C, $29, $1F, $29, $21, $29, $24, $2A, $27, $2B, $2A, $2D, $2C, $2E, $2F, $30, $32, $32, $34, $32
 	dc.b	$36, $32, $38, $32, $3A, $31, $3C, $2F, $3E, $2D, $40, $2A, $42, $28, $45, $27, $46, $25, $47, $23, $48, $21, $49, $1F, $49, $1D, $4A, $1B, $4A, $19, $4A, $17
@@ -44694,15 +45667,18 @@ loc_72AA5:
 	dc.b	$1F, $0E, $1D, $10, $1B, $12, $1A, $14, $1B, $15, $1D, $17, $1E, $18, $20, $1A, $22, $1B, $25, $1B, $28, $1C, $2B, $1D, $2E, $1D, $31, $1F, $34, $20, $37, $21
 	dc.b	$39, $22, $38, $24, $36, $24, $34, $24, $32, $24, $2F, $24, $2C, $24, $29, $24, $26, $24, $23, $24
 	dc.b	$00
-loc_72B7A:
+;loc_72B7A
+Spain_sign_data:
 	dc.b	$01, $B0, $0C, $1E, $02, $80, $02, $08, $03, $38, $0C, $1E, $04, $10, $04, $01, $04, $60, $04, $09, $05, $54, $04, $2C, $07, $0C, $04, $00, $08, $1C, $04, $00
 	dc.b	$08, $6C, $04, $09, $09, $4C, $04, $1D, $09, $9C, $01, $0B, $09, $F8, $04, $08, $0B, $50, $0C, $1E, $0C, $20, $03, $10, $0D, $18, $04, $01, $0D, $68, $04, $08
 	dc.b	$0F, $5C, $04, $01, $10, $38, $04, $01, $10, $88, $04, $08, $11, $78, $04, $00, $11, $C8, $04, $08, $12, $80, $04, $00, $12, $D0, $04, $08, $14, $54, $04, $00
 	dc.b	$14, $A4, $04, $18, $15, $9C, $04, $00, $16, $10, $04, $18, $17, $7C, $0C, $1F, $FF, $FF
-loc_72BEC:
+;loc_72BEC
+Spain_sign_tileset:
 	dc.w	$0192, $0008, $0536, $0048, $092E, $0000, $0C02, $0018, $1486, $0028
 	dc.b	$FF, $FF
-loc_72C02:
+;loc_72C02
+Australia_curve_data:
 	dc.b	$00, $70, $00
 	dc.b	$00, $0D, $01, $00, $8E
 	dc.b	$00, $0A, $41, $00, $72
@@ -44732,7 +45708,8 @@ loc_72C02:
 	dc.b	$00, $34, $42, $01, $AA
 	dc.b	$00, $70, $00
 	dc.b	$FF, $00
-loc_72C86:
+;loc_72C86
+Australia_slope_data:
 	dc.b	$00
 	dc.b	$02, $5D, $00
 	dc.b	$00, $12, $6F, $70
@@ -44744,25 +45721,30 @@ loc_72C86:
 	dc.b	$00, $14, $2F, $70
 	dc.b	$00, $DC, $00
 	dc.b	$FF, $00
-loc_72CA8:
+;loc_72CA8
+Australia_phys_slope_data:
 	dc.b	$02, $5D, $00, $00, $B3, $FF, $00, $ED, $01, $01, $17, $FF, $00, $DC, $00, $FF
 	dc.b	$45, $1C
-loc_72CBA:
+;loc_72CBA
+Australia_minimap_pos:
 	dc.b	$44, $19, $42, $19, $40, $19, $3F, $19, $3D, $19, $3B, $19, $3A, $19, $38, $19, $36, $17, $34, $16, $32, $15, $31, $14, $2F, $12, $2E, $11, $2C, $0F, $2B, $0E
 	dc.b	$29, $0C, $28, $0B, $27, $0B, $25, $0C, $23, $0D, $21, $0D, $1F, $0B, $1D, $09, $1B, $08, $19, $07, $17, $09, $15, $0B, $13, $0D, $11, $0F, $0F, $10, $0D, $11
 	dc.b	$0C, $11, $0A, $11, $08, $11, $06, $13, $04, $15, $03, $18, $05, $1C, $06, $1E, $08, $20, $09, $21, $0B, $23, $0C, $25, $0E, $27, $10, $27, $12, $27, $15, $28
 	dc.b	$17, $28, $1A, $29, $1C, $29, $1F, $29, $21, $29, $24, $2A, $26, $2A, $29, $2A, $2B, $2B, $2E, $2B, $30, $2B, $33, $2C, $35, $2C, $38, $2C, $3A, $2C, $3D, $2D
 	dc.b	$3F, $2D, $42, $2D, $44, $2D, $45, $2B, $43, $2A, $42, $2A, $40, $29, $3F, $28, $3D, $26, $3C, $25, $3E, $21, $40, $20, $42, $20, $43, $20, $45, $21, $47, $22
 	dc.b	$49, $22, $4A, $21, $4C, $20, $4E, $1F, $50, $1D, $52, $1B, $52, $1A, $51, $19, $4F, $19, $4E, $19, $4C, $19, $4B, $19, $49, $19, $48, $19, $46, $19
-loc_72D78:
+;loc_72D78
+Australia_sign_data:
 	dc.b	$01, $90, $04, $1D, $01, $E0, $01, $0B, $02, $50, $04, $01, $02, $A0, $04, $09, $04, $04, $04, $00, $04, $54, $04, $28, $05, $04, $04, $01, $05, $54, $03, $09
 	dc.b	$05, $D0, $04, $00, $06, $20, $04, $08, $07, $84, $04, $1D, $07, $D4, $01, $0B, $08, $74, $04, $00, $08, $E4, $04, $24, $0A, $DC, $04, $00, $0B, $40, $04, $18
 	dc.b	$0C, $00, $04, $19, $0C, $C0, $04, $18, $0D, $80, $04, $19, $0E, $40, $04, $18, $10, $30, $0C, $1E, $11, $00, $02, $0A, $12, $08, $04, $01, $12, $58, $04, $09
 	dc.b	$13, $8C, $04, $00, $13, $DC, $04, $10, $14, $E0, $0C, $1E, $15, $B0, $02, $2E, $FF, $FF
-loc_72DEA:
+;loc_72DEA
+Australia_sign_tileset:
 	dc.w	$0172, $0000, $01C2, $0008, $0436, $0040, $0766, $0000, $08C6, $0038, $0B22, $0028, $13BE, $0018, $1592, $0048
 	dc.b	$FF, $FF
-loc_72E0C:
+;loc_72E0C
+Usa_curve_data:
 	dc.b	$00, $CC, $00
 	dc.b	$00, $17, $41, $01, $00
 	dc.b	$00, $2F, $00
@@ -44794,7 +45776,8 @@ loc_72E0C:
 	dc.b	$00, $17, $01, $00, $FF
 	dc.b	$00, $66, $00
 	dc.b	$FF, $00
-loc_72E88:
+;loc_72E88
+Usa_slope_data:
 	dc.b	$00
 	dc.b	$03, $93, $00
 	dc.b	$00, $1E, $2F, $70
@@ -44802,11 +45785,13 @@ loc_72E88:
 	dc.b	$00, $1E, $2F, $70
 	dc.b	$02, $F5, $00
 	dc.b	$FF
-loc_72E9C:
+;loc_72E9C
+Usa_phys_slope_data:
 	dc.b	$03, $93, $00, $00, $3C, $01, $00, $3C, $FF, $02, $F5, $00, $FF
 	dc.b	$44
 	dc.b	$27
-loc_72EAB:
+;loc_72EAB
+Usa_minimap_pos:
 	dc.b	$44, $23, $42, $23, $40, $23, $3E, $23, $3C, $23, $3A, $23, $38, $23, $36, $23, $34, $23, $32, $23, $30, $23, $2E, $23, $2C, $23, $2A, $24, $29, $26, $29, $27
 	dc.b	$29, $28, $29, $29, $28, $2B, $27, $2C, $25, $2C, $23, $2C, $22, $2B, $21, $29, $21, $27, $20, $24, $1E, $24, $1D, $25, $1C, $27, $1B, $28, $19, $2A, $17, $2B
 	dc.b	$15, $2C, $13, $2C, $11, $2C, $0E, $2C, $0B, $2C, $08, $2C, $06, $2A, $05, $28, $05, $25, $05, $22, $05, $1F, $05, $1C, $05, $19, $05, $16, $05, $13, $05, $10
@@ -44815,16 +45800,19 @@ loc_72EAB:
 	dc.b	$37, $1A, $37, $19, $37, $18, $38, $16, $39, $15, $3B, $15, $3D, $15, $3F, $15, $41, $15, $43, $15, $45, $15, $45, $16, $45, $17, $45, $18, $45, $19, $45, $1A
 	dc.b	$46, $1C, $48, $1C, $4A, $1C, $4C, $1C, $4E, $1C, $51, $1D, $51, $1E, $51, $20, $51, $22, $50, $23, $4F, $23, $4D, $23, $4B, $23, $49, $23, $47, $23, $45, $23
 	dc.b	$00
-loc_72F8C:
+;loc_72F8C
+Usa_sign_data:
 	dc.b	$03, $00, $04, $00, $03, $50, $04, $08, $04, $18, $04, $01, $04, $68, $04, $09, $05, $30, $04, $01, $06, $0C, $0C, $1E, $06, $DC, $04, $14, $08, $C8, $04, $15
 	dc.b	$09, $58, $04, $01, $09, $A8, $04, $09, $0A, $48, $04, $08, $0A, $E8, $04, $09, $0C, $20, $04, $01, $0C, $70, $03, $09, $0C, $D0, $03, $08, $0D, $C0, $04, $01
 	dc.b	$0E, $10, $03, $09, $0E, $70, $03, $08, $0F, $60, $04, $00, $0F, $B0, $0A, $0A, $13, $58, $04, $00, $13, $A8, $04, $08, $14, $70, $04, $01, $14, $C0, $04, $09
 	dc.b	$15, $60, $04, $08, $16, $7C, $04, $01, $16, $CC, $04, $09, $17, $94, $04, $00, $17, $E4, $04, $08, $18, $F8, $04, $01, $19, $48, $03, $21, $19, $DC, $04, $01
 	dc.b	$FF, $FF
-loc_7300E:
+;loc_7300E
+Usa_sign_tileset:
 	dc.w	$0332, $0008, $06BE, $0020, $192A, $0030
 	dc.b	$FF, $FF
-loc_7301C:
+;loc_7301C
+Japan_curve_data:
 	dc.b	$00, $B0, $00
 	dc.b	$00, $24, $47, $00, $AB
 	dc.b	$00, $1D, $57, $00, $1C
@@ -44870,7 +45858,8 @@ loc_7301C:
 	dc.b	$00, $40, $53, $00, $55
 	dc.b	$00, $37, $00
 	dc.b	$FF, $00
-loc_730E6:
+;loc_730E6
+Japan_slope_data:
 	dc.b	$05
 	dc.b	$00, $B7, $00
 	dc.b	$00, $1B, $6F, $70
@@ -44902,11 +45891,13 @@ loc_730E6:
 	dc.b	$00, $23, $2F, $70
 	dc.b	$00, $59, $00
 	dc.b	$FF, $00
-loc_7314E:
+;loc_7314E
+Japan_phys_slope_data:
 	dc.b	$00, $D2, $01, $00, $1B, $00, $01, $2D, $FF, $00, $9F, $01, $01, $00, $00, $00, $44, $FF, $00, $51, $01, $00, $8F, $FF, $00, $86, $01, $00, $3C, $FF, $01, $2E
 	dc.b	$00, $00, $29, $FF, $00, $6A, $01, $FF
 	dc.b	$1D, $09
-loc_73178:
+;loc_73178
+Japan_minimap_pos:
 	dc.b	$1D, $06, $1B, $06, $19, $06, $17, $06, $15, $06, $13, $06, $11, $06, $0F, $06, $0D, $06, $0B, $06, $09, $06, $07, $06, $05, $07, $03, $09, $02, $0B, $03, $0C
 	dc.b	$04, $0D, $05, $0E, $06, $0E, $07, $0E, $09, $0E, $0B, $0E, $0D, $0F, $0F, $10, $12, $0F, $14, $0F, $16, $0F, $19, $0F, $1C, $10, $1E, $10, $20, $0E, $22, $0D
 	dc.b	$25, $0D, $28, $0F, $2B, $11, $2C, $13, $2B, $15, $2A, $17, $29, $19, $29, $1B, $28, $1C, $28, $1D, $27, $1E, $26, $1F, $26, $21, $28, $23, $2A, $25, $2C, $26
@@ -44915,16 +45906,19 @@ loc_73178:
 	dc.b	$52, $2F, $51, $30, $50, $30, $4E, $30, $4C, $30, $4A, $2F, $48, $2E, $46, $2D, $44, $2C, $42, $2B, $40, $2A, $3E, $29, $3C, $28, $3A, $27, $38, $26, $36, $25
 	dc.b	$34, $24, $32, $23, $30, $22, $2E, $21, $2D, $1F, $2F, $1D, $2F, $1C, $31, $1A, $31, $19, $32, $17, $33, $16, $33, $14, $33, $11, $32, $0E, $2E, $0C, $2D, $0A
 	dc.b	$2B, $08, $2A, $07, $29, $07, $26, $06, $23, $06, $20, $06
-loc_73264:
+;loc_73264
+Japan_sign_data:
 	dc.b	$02, $90, $04, $00, $02, $E0, $04, $28, $03, $94, $04, $00, $03, $E4, $05, $28, $05, $38, $04, $01, $05, $84, $04, $00, $05, $D4, $04, $09, $06, $68, $04, $01
 	dc.b	$06, $B8, $03, $08, $07, $30, $04, $00, $07, $80, $03, $09, $07, $FC, $04, $01, $08, $A8, $04, $01, $08, $F8, $04, $05, $09, $D8, $04, $04, $0A, $B4, $04, $00
 	dc.b	$0B, $58, $04, $00, $0B, $A8, $04, $08, $0C, $4C, $01, $30, $0D, $1C, $04, $00, $0D, $A8, $0C, $1F, $0E, $78, $02, $1B, $0F, $8C, $04, $00, $0F, $DC, $06, $18
 	dc.b	$11, $54, $04, $00, $11, $A4, $04, $09, $12, $AC, $04, $01, $13, $7C, $04, $01, $13, $CC, $06, $11, $15, $9C, $04, $10, $17, $8C, $04, $25, $18, $9C, $04, $01
 	dc.b	$18, $EC, $04, $08, $19, $CC, $04, $09, $1B, $04, $04, $1C, $1B, $54, $01, $0A, $FF, $FF
-loc_732F6:
+;loc_732F6
+Japan_sign_tileset:
 	dc.w	$02C2, $0040, $05B6, $0008, $08DA, $0010, $0E5A, $0028, $13AE, $0018, $176E, $0038, $1AE6, $0000
 	dc.b	$FF, $FF
-loc_73314:
+;loc_73314
+Canada_curve_data:
 	dc.b	$00, $20, $00
 	dc.b	$00, $43, $66, $00, $1C
 	dc.b	$00, $0D, $01, $00, $8E
@@ -44976,7 +45970,8 @@ loc_73314:
 	dc.b	$00, $35, $62, $00, $1B
 	dc.b	$00, $20, $00
 	dc.b	$FF, $00
-loc_73404:
+;loc_73404
+Canada_slope_data:
 	dc.b	$00
 	dc.b	$00, $E8, $00
 	dc.b	$00, $0C, $2F, $70
@@ -45000,10 +45995,12 @@ loc_73404:
 	dc.b	$00, $0D, $6F, $70
 	dc.b	$00, $80, $00
 	dc.b	$FF, $00
-loc_73450:
+;loc_73450
+Canada_phys_slope_data:
 	dc.b	$00, $E8, $00, $00, $77, $01, $00, $CD, $00, $00, $F8, $FF, $00, $53, $00, $00, $C0, $01, $00, $15, $00, $00, $CB, $FF, $00, $3F, $00, $00, $BA, $01, $00, $80
 	dc.b	$00, $FF, $18, $1E
-loc_73474:
+;loc_73474
+Canada_minimap_pos:
 	dc.b	$18, $1B, $17, $1B, $16, $1B, $15, $1B, $14, $1B, $13, $1B, $12, $1B, $11, $1A, $0F, $19, $0D, $18, $0B, $18, $08, $18, $05, $17, $02, $17, $02, $18, $02, $19
 	dc.b	$03, $1A, $04, $1C, $06, $1E, $08, $20, $0A, $22, $0B, $23, $0C, $22, $0E, $22, $0F, $21, $11, $21, $13, $21, $15, $22, $17, $23, $19, $23, $1B, $23, $1D, $22
 	dc.b	$1F, $21, $20, $22, $21, $23, $22, $24, $24, $26, $25, $26, $26, $26, $27, $26, $28, $26, $29, $26, $2A, $26, $2B, $26, $2C, $26, $2D, $26, $2E, $26, $2F, $26
@@ -45011,15 +46008,18 @@ loc_73474:
 	dc.b	$4B, $19, $4D, $19, $4F, $19, $50, $19, $52, $18, $53, $15, $50, $13, $4D, $13, $4A, $14, $48, $14, $46, $14, $44, $13, $41, $11, $3E, $0F, $3D, $0F, $3C, $0F
 	dc.b	$3B, $0F, $3A, $0F, $39, $0F, $38, $0F, $37, $10, $36, $11, $34, $12, $33, $13, $31, $14, $30, $14, $2E, $14, $2C, $13, $2A, $13, $28, $14, $26, $14, $24, $15
 	dc.b	$22, $16, $20, $18, $1F, $19, $1E, $19, $1D, $1A, $1C, $1A, $1B, $1B, $1A, $1B, $19, $1B
-loc_73546:
+;loc_73546
+Canada_sign_data:
 	dc.b	$01, $5C, $04, $01, $01, $C4, $04, $00, $02, $80, $04, $01, $03, $00, $0B, $1E, $03, $D0, $04, $18, $05, $34, $04, $00, $05, $C4, $04, $01, $06, $3C, $04, $00
 	dc.b	$06, $8C, $04, $18, $07, $BC, $04, $01, $08, $2C, $04, $01, $08, $B4, $04, $00, $09, $2C, $04, $10, $0A, $5C, $04, $11, $0C, $2C, $04, $00, $0C, $C0, $04, $01
 	dc.b	$0D, $10, $04, $25, $0F, $38, $03, $0A, $10, $74, $0C, $1E, $11, $44, $04, $14, $12, $70, $04, $01, $13, $74, $04, $08, $14, $D4, $04, $00, $15, $24, $04, $08
 	dc.b	$16, $04, $04, $01, $16, $B4, $04, $00, $17, $04, $04, $09, $18, $60, $04, $1C, $18, $B0, $01, $0A, $FF, $FF
-loc_735BC:
+;loc_735BC
+Canada_sign_tileset:
 	dc.w	$02E2, $0008, $03B2, $0028, $090E, $0018, $0CF2, $0038, $1126, $0020, $1842, $0000
 	dc.b	$FF, $FF
-loc_735D6:
+;loc_735D6
+Italy_curve_data:
 	dc.b	$00, $FA, $00
 	dc.b	$00, $08, $44, $00, $39
 	dc.b	$00, $28, $12, $00, $39
@@ -45049,7 +46049,8 @@ loc_735D6:
 	dc.b	$00, $78, $52, $00, $AA
 	dc.b	$00, $65, $00
 	dc.b	$FF, $00
-loc_7365C:
+;loc_7365C
+Italy_slope_data:
 	dc.b	$00
 	dc.b	$01, $E4, $00
 	dc.b	$00, $17, $6F, $70
@@ -45067,10 +46068,12 @@ loc_7365C:
 	dc.b	$00, $12, $6F, $70
 	dc.b	$01, $29, $00
 	dc.b	$FF, $00
-loc_73694:
+;loc_73694
+Italy_phys_slope_data:
 	dc.b	$01, $E4, $00, $00, $E8, $FF, $01, $25, $00, $00, $3E, $01, $00, $38, $00, $00, $3E, $FF, $00, $AB, $00, $00, $F7, $01, $01, $29, $00, $FF
 	dc.b	$3D, $0B
-loc_736B2:
+;loc_736B2
+Italy_minimap_pos:
 	dc.b	$3D, $07, $3B, $07, $39, $07, $37, $07, $34, $07, $32, $07, $30, $07, $2E, $07, $2C, $07, $29, $07, $27, $07, $25, $07, $23, $07, $21, $07, $1E, $07, $1B, $08
 	dc.b	$1A, $09, $19, $08, $18, $07, $17, $07, $16, $07, $15, $07, $14, $07, $13, $08, $12, $08, $11, $09, $10, $0A, $0F, $0B, $0E, $0C, $0D, $0E, $0C, $0F, $0B, $11
 	dc.b	$0B, $12, $0B, $13, $0A, $15, $0A, $16, $0A, $17, $0A, $19, $09, $1A, $09, $1B, $09, $1D, $08, $1E, $08, $1F, $08, $21, $07, $22, $06, $24, $04, $26, $03, $27
@@ -45079,15 +46082,18 @@ loc_736B2:
 	dc.b	$2B, $18, $2C, $18, $2D, $19, $2E, $19, $31, $16, $33, $14, $34, $13, $36, $13, $38, $13, $3A, $13, $3C, $13, $3E, $13, $40, $13, $42, $13, $44, $13, $46, $13
 	dc.b	$48, $13, $4A, $13, $4C, $13, $4E, $13, $50, $13, $52, $13, $53, $12, $54, $10, $54, $0F, $54, $0E, $53, $0D, $52, $0C, $51, $0B, $50, $0A, $4F, $09, $4E, $08
 	dc.b	$4D, $07, $4B, $07, $49, $07, $46, $07, $44, $07, $42, $07, $3F, $07
-loc_737A0:
+;loc_737A0
+Italy_sign_data:
 	dc.b	$03, $E8, $04, $04, $04, $D4, $04, $00, $05, $48, $04, $01, $05, $98, $04, $08, $06, $58, $04, $19, $07, $18, $04, $18, $09, $60, $04, $10, $0B, $00, $04, $01
 	dc.b	$0B, $78, $04, $00, $0B, $C8, $02, $0C, $0C, $08, $02, $0D, $0C, $A0, $04, $00, $0D, $04, $02, $0E, $0E, $58, $04, $00, $0E, $C8, $04, $0C, $0F, $A8, $04, $0D
 	dc.b	$10, $BC, $04, $0C, $11, $9C, $04, $0D, $13, $40, $04, $01, $13, $90, $04, $0F, $14, $C0, $04, $01, $15, $10, $04, $0D, $15, $D0, $04, $0C, $16, $90, $04, $0D
 	dc.b	$17, $50, $03, $0C, $17, $D0, $02, $0D, $19, $4C, $04, $00, $1A, $4C, $04, $20, $1B, $0C, $04, $21, $FF, $FF
-loc_73816:
+;loc_73816
+Italy_sign_tileset:
 	dc.w	$03CA, $0010, $057A, $0008, $063A, $0028, $0942, $0018, $0BAA, $0050, $1A2E, $0030
 	dc.b	$FF, $FF
-loc_73830:
+;loc_73830
+Brazil_curve_data:
 	dc.b	$00, $90, $00
 	dc.b	$00, $5B, $47, $01, $AB
 	dc.b	$00, $5A, $00
@@ -45113,7 +46119,8 @@ loc_73830:
 	dc.b	$00, $3E, $42, $02, $00
 	dc.b	$00, $51, $00
 	dc.b	$FF, $00
-loc_73894:
+;loc_73894
+Brazil_slope_data:
 	dc.b	$00
 	dc.b	$04, $D7, $00
 	dc.b	$00, $14, $6F, $70
@@ -45126,11 +46133,13 @@ loc_73894:
 	dc.b	$00, $0D, $2F, $70
 	dc.b	$00, $9D, $00
 	dc.b	$FF, $00
-loc_738BA:
+;loc_738BA
+Brazil_phys_slope_data:
 	dc.b	$04, $D7, $00, $00, $56, $FF, $00, $92, $00, $00, $57, $01, $00, $1D, $FF, $00, $9D, $00, $FF
 	dc.b	$1A
 	dc.b	$26
-loc_738CF:
+;loc_738CF
+Brazil_minimap_pos:
 	dc.b	$1A, $2B, $1D, $2B, $20, $2B, $23, $2B, $26, $2B, $29, $2B, $2C, $2B, $2F, $2B, $32, $2B, $35, $2B, $38, $2B, $3A, $2A, $3C, $28, $3C, $24, $3B, $21, $38, $1E
 	dc.b	$37, $1C, $35, $1A, $32, $18, $30, $16, $2E, $14, $2D, $12, $2E, $10, $30, $10, $32, $10, $34, $10, $36, $12, $39, $14, $3B, $16, $3E, $18, $41, $1A, $42, $1C
 	dc.b	$43, $1E, $43, $21, $43, $24, $43, $27, $43, $2A, $45, $2B, $48, $2B, $4B, $29, $4F, $28, $51, $2A, $50, $2D, $4D, $2F, $4A, $31, $47, $32, $44, $32, $41, $32
@@ -45139,16 +46148,19 @@ loc_738CF:
 	dc.b	$12, $0B, $15, $08, $19, $05, $1C, $04, $1F, $07, $1F, $09, $1F, $0C, $1F, $0F, $1F, $11, $1F, $14, $1F, $17, $1F, $1A, $1E, $1C, $1B, $1E, $19, $1F, $17, $20
 	dc.b	$15, $21, $14, $22, $12, $23, $11, $24, $10, $25, $0E, $27, $0E, $29, $0F, $2A, $10, $2B, $12, $2B, $14, $2B, $16, $2B, $18, $2B
 	dc.b	$00
-loc_739AA:
+;loc_739AA
+Brazil_sign_data:
 	dc.b	$01, $70, $04, $14, $02, $10, $04, $00, $02, $80, $04, $09, $03, $00, $04, $08, $04, $E4, $04, $01, $05, $54, $04, $08, $05, $EC, $04, $21, $06, $6C, $04, $20
 	dc.b	$07, $84, $04, $01, $07, $D4, $03, $08, $08, $B4, $04, $00, $09, $04, $05, $20, $09, $B8, $0B, $1F, $0A, $A4, $02, $0B, $0B, $2C, $04, $28, $0C, $0C, $04, $29
 	dc.b	$0C, $EC, $04, $28, $0D, $CC, $04, $29, $0E, $AC, $04, $28, $0F, $F8, $04, $01, $10, $48, $04, $08, $11, $84, $04, $09, $12, $50, $04, $00, $12, $A0, $04, $08
 	dc.b	$13, $54, $04, $01, $13, $A4, $04, $09, $14, $64, $0A, $1F, $15, $14, $06, $25, $16, $A4, $04, $01, $16, $F4, $04, $08, $18, $D4, $04, $00, $19, $24, $03, $16
 	dc.b	$1A, $1C, $02, $14, $FF, $FF
-loc_73A30:
+;loc_73A30
+Brazil_sign_tileset:
 	dc.w	$0152, $0020, $0262, $0008, $05CE, $0030, $0B0E, $0040, $14F6, $0038, $1906, $0020
 	dc.b	$FF, $FF
-loc_73A4A:
+;loc_73A4A
+Monaco_arcade_prelim_curve_data:
 	dc.b	$00, $B5, $00
 	dc.b	$00, $39, $4B, $00, $AB
 	dc.b	$00, $1D, $00
@@ -45165,7 +46177,8 @@ loc_73A4A:
 	dc.b	$00, $51, $55, $00, $55
 	dc.b	$00, $36, $00
 	dc.b	$FF
-loc_73A8A:
+;loc_73A8A
+Monaco_arcade_prelim_slope_data:
 	dc.b	$00
 	dc.b	$02, $03, $00
 	dc.b	$00, $1A, $2F, $70
@@ -45177,20 +46190,25 @@ loc_73A8A:
 	dc.b	$00, $0F, $6F, $70
 	dc.b	$00, $2F, $00
 	dc.b	$FF, $00
-loc_73AAC:
+;loc_73AAC
+Monaco_arcade_prelim_phys_slope_data:
 	dc.b	$02, $03, $00, $00, $41, $01, $00, $85, $FF, $00, $58, $01, $00, $2F, $00, $FF
-loc_73ABC:
+;loc_73ABC
+Monaco_arcade_prelim_minimap_pos:
 	dc.b	$36, $31, $38, $31, $3A, $31, $3C, $31, $3E, $31, $40, $31, $42, $31, $44, $31, $46, $31, $48, $31, $4A, $31, $4C, $31, $4E, $31, $50, $30, $52, $2F, $53, $2D
 	dc.b	$53, $2B, $53, $29, $51, $28, $4F, $27, $4D, $26, $4B, $26, $49, $27, $47, $27, $45, $27, $43, $27, $41, $27, $3D, $26, $3A, $25, $39, $26, $38, $27, $37, $28
 	dc.b	$36, $28, $35, $29, $34, $2A, $33, $2B, $31, $2C, $2F, $2B, $2D, $2B, $2B, $2B, $29, $2B, $27, $2B, $25, $2B, $25, $2D, $25, $2F, $25, $31, $27, $31, $29, $31
 	dc.b	$2B, $31, $2D, $31, $2F, $31, $31, $31, $34, $31
-loc_73B26:
+;loc_73B26
+Monaco_arcade_prelim_sign_data:
 	dc.b	$02, $A4, $04, $00, $02, $F4, $03, $10, $03, $FC, $04, $00, $04, $68, $08, $10, $06, $3C, $04, $01, $06, $8C, $03, $09, $06, $F4, $04, $00, $07, $44, $03, $08
 	dc.b	$08, $40, $04, $09, $0A, $38, $0B, $1E, $0A, $F8, $02, $0A, $FF, $FF
-loc_73B54:
+;loc_73B54
+Monaco_arcade_prelim_sign_tileset:
 	dc.w	$02D6, $0018, $066E, $0008
 	dc.b	$FF, $FF
-loc_73B5E:
+;loc_73B5E
+Monaco_arcade_curve_data:
 	dc.b	$00, $B5, $00
 	dc.b	$00, $39, $4B, $00, $AB
 	dc.b	$00, $1D, $00
@@ -45234,7 +46252,8 @@ loc_73B5E:
 	dc.b	$00, $09, $4B, $00, $1D
 	dc.b	$00, $53, $00
 	dc.b	$FF, $00
-loc_73C16:
+;loc_73C16
+Monaco_arcade_slope_data:
 	dc.b	$00
 	dc.b	$02, $03, $00
 	dc.b	$00, $1A, $2F, $70
@@ -45259,11 +46278,13 @@ loc_73C16:
 	dc.b	$00, $1C, $2F, $70
 	dc.b	$00, $AD, $00
 	dc.b	$FF, $00
-loc_73C66:
+;loc_73C66
+Monaco_arcade_phys_slope_data:
 	dc.b	$02, $03, $00, $00, $41, $01, $00, $66, $FF, $01, $41, $00, $00, $4C, $FF, $00, $49, $00, $00, $84, $FF, $00, $C6, $00, $00, $6E, $FF, $00, $62, $01, $00, $29
 	dc.b	$FF, $00, $AD, $00, $FF
 	dc.b	$37, $2E
-loc_73C8D:
+;loc_73C8D
+Monaco_arcade_minimap_pos:
 	dc.b	$36, $31, $38, $31, $3A, $31, $3C, $31, $3E, $31, $40, $31, $42, $31, $44, $31, $46, $31, $48, $31, $4A, $31, $4C, $31, $4E, $31, $50, $30, $52, $2F, $53, $2D
 	dc.b	$53, $2B, $53, $29, $51, $28, $4F, $27, $4D, $26, $4B, $26, $49, $27, $47, $27, $45, $27, $43, $27, $41, $27, $3D, $26, $3A, $25, $39, $26, $38, $27, $37, $28
 	dc.b	$36, $28, $35, $29, $34, $2A, $33, $2B, $31, $2C, $2E, $2B, $2C, $2B, $29, $2B, $27, $2B, $24, $2B, $22, $2B, $20, $29, $1F, $28, $1E, $26, $1E, $25, $1D, $23
@@ -45273,12 +46294,14 @@ loc_73C8D:
 	dc.b	$04, $2C, $05, $2D, $07, $2D, $09, $2D, $0B, $2D, $0D, $2D, $0F, $2D, $11, $2E, $12, $2F, $13, $2F, $14, $30, $15, $31, $16, $31, $19, $31, $1C, $31, $1F, $31
 	dc.b	$22, $31, $25, $31, $28, $31, $2B, $31, $2E, $31, $31, $31, $34, $31
 	dc.b	$00
-loc_73D7C:
+;loc_73D7C
+Monaco_arcade_sign_data:
 	dc.b	$02, $A4, $04, $00, $02, $F4, $04, $10, $03, $FC, $04, $00, $04, $68, $08, $10, $06, $3C, $04, $01, $06, $8C, $03, $09, $06, $F4, $04, $00, $07, $44, $03, $08
 	dc.b	$08, $40, $04, $09, $0A, $58, $04, $01, $0A, $A8, $02, $0B, $0C, $20, $04, $1D, $0C, $70, $01, $0B, $0D, $04, $04, $1C, $0D, $54, $01, $0A, $10, $44, $04, $00
 	dc.b	$10, $94, $06, $04, $11, $FC, $04, $00, $12, $4C, $03, $04, $13, $5C, $01, $31, $13, $80, $18, $02, $16, $6C, $01, $32, $17, $98, $0C, $1E, $18, $68, $04, $18
 	dc.b	$19, $9C, $04, $01, $1A, $50, $04, $09, $1A, $F8, $04, $08, $FF, $FF
-loc_73DEA:
+;loc_73DEA
+Monaco_arcade_sign_tileset:
 	dc.w	$02D6, $0018, $066E, $0008, $0C02, $0000, $1076, $0010, $1362, $0058, $177A, $0008, $184A, $0028
 	dc.b	$FF, $FF, $00
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $10, $10, $10, $10, $10, $10, $10, $10, $10, $10, $10, $10
@@ -45575,101 +46598,112 @@ Update_audio_engine:
 ;   2. Count down fade-in/out counter (+$12); suppress pitch writes while non-zero.
 ;   3. Count down sequence timer (+$22):
 ;        - positive → decrement and return (wait for next step)
-;        - zero     → process next sequence step (loc_75C9C)
-;        - negative ($8000) → halted; reset all channels (loc_76176)
-;   4. If Audio_ctrl_mode (+$24) is non-zero → dispatch pending command (loc_761C4).
+;        - zero     → process next sequence step (Audio_engine_step)
+;        - negative ($8000) → halted; reset all channels (Audio_engine_halt_reset)
+;   4. If Audio_ctrl_mode (+$24) is non-zero → dispatch pending command (Audio_engine_send_ctrl).
 ;   5. Process music mode bits from +$02 (silence, send music cmd, etc.).
 ;   6. Write channel-enable byte to Z80 via Write_byte_to_z80_ram → Z80_audio_pitch_sfm.
 ;   7. If engine channel active: compute YM pitch from speed/shift/RPM, encode
 ;      note bytes via Encode_z80_note, write 12-byte block to Z80_audio_engine_ch1.
-;   8. Compute PSG ch1 and ch2 note blocks via loc_75F06 / loc_75F58 and write them
+;   8. Compute PSG ch1 and ch2 note blocks via Audio_engine_psg_ch1 / Audio_engine_psg_ch2 and write them
 ;      to Z80_audio_engine_ch1 ($A01FA0) and Z80_audio_engine_ch2 ($A01FC0).
 	LEA	Audio_engine_state, A6
 	LEA	Audio_engine_scratch, A4
 	ADDQ.w	#1, $1C(A6)
 	MOVE.w	$12(A6), D0
-	BEQ.b	loc_75C8A
+	BEQ.b	Audio_engine_seq_timer_check
 	SUBQ.w	#1, D0
 	MOVE.w	D0, $12(A6)
-loc_75C8A:
+;loc_75C8A
+Audio_engine_seq_timer_check:
 	MOVE.w	$22(A6), D0
-	BEQ.b	loc_75C9C
-	BMI.w	loc_76176
+	BEQ.b	Audio_engine_step
+	BMI.w	Audio_engine_halt_reset
 	SUBQ.w	#1, D0
 	MOVE.w	D0, $22(A6)
 	RTS
-loc_75C9C:
+;loc_75C9C
+Audio_engine_step:
 	MOVE.b	$24(A6), D0
-	BNE.w	loc_761C4
+	BNE.w	Audio_engine_send_ctrl
 	MOVE.w	$2(A6), D0
 	ANDI.w	#$000F, D0
-	BEQ.b	loc_75CF8
+	BEQ.b	Audio_engine_seq_done
 	CMPI.w	#$000F, D0
-	BNE.b	loc_75CDA
-	LEA	loc_761FE(PC), A5
+	BNE.b	Audio_engine_mode_check
+	LEA	Audio_engine_silence_block(PC), A5
 	LEA	$00A01FA2, A3
 	MOVEQ	#$0000000F, D7
 	JSR	Z80_bus_arbitrate_and_copy(PC)
-	LEA	loc_761FE(PC), A5
+	LEA	Audio_engine_silence_block(PC), A5
 	LEA	$00A01FC2, A3
 	MOVEQ	#3, D7
 	JSR	Z80_bus_arbitrate_and_copy(PC)
 	BSET.b	#1, $1E(A6)
-loc_75CDA:
+;loc_75CDA
+Audio_engine_mode_check:
 	CMPI.w	#4, D0
-	BCC.b	loc_75CE6
+	BCC.b	Audio_engine_mode_write
 	MOVE.w	#$0080, $12(A6)
-loc_75CE6:
+;loc_75CE6
+Audio_engine_mode_write:
 	MOVE.w	#0, $2(A6)
 	MOVE.b	D0, (A4)
 	LEA	$00A01FB7, A3
 	JSR	Write_byte_to_z80_ram(PC)
-loc_75CF8:
-	JSR	loc_7620E(PC)
+;loc_75CF8
+Audio_engine_seq_done:
+	JSR	$7620E(PC)
 	MOVE.w	$20(A6), D0
 	ANDI.w	#$001F, D0
-	BNE.w	loc_76224
+	BNE.w	$76224
 	MOVE.w	$0(A6), D0
 	MOVE.w	#0, $0(A6)
 	TST.w	D0
-	BEQ.b	loc_75D30
+	BEQ.b	Audio_engine_music_cmd_done
 	CMPI.w	#$0011, D0
-	BEQ.w	loc_76308
-	BCC.b	loc_75D30
+	BEQ.w	Audio_engine_music_reset
+	BCC.b	Audio_engine_music_cmd_done
 	ADDI.w	#$0080, D0
 	MOVE.b	D0, (A4)
 	LEA	$00A01C09, A3
 	JSR	Write_byte_to_z80_ram(PC)
-loc_75D30:
+;loc_75D30
+Audio_engine_music_cmd_done:
 	MOVE.w	$6(A6), D0
 	ANDI.w	#1, D0
 	MOVE.b	D0, (A4)
 	LEA	$00A01FB3, A3
 	JSR	Write_byte_to_z80_ram(PC)
 	LSR.w	#1, D0
-	BCS.b	loc_75D4A
-loc_75D48:
+	BCS.b	Audio_engine_channel_active
+;loc_75D48
+Audio_engine_channel_off:
 	RTS
-loc_75D4A:
+;loc_75D4A
+Audio_engine_channel_active:
 	BTST.b	#1, $1E(A6)
-	BNE.b	loc_75D48
-	JSR	loc_75D60(PC)
-	JSR	loc_75F06(PC)
-	JSR	loc_75F58(PC)
+	BNE.b	Audio_engine_channel_off
+	JSR	Audio_engine_update_pitch(PC)
+	JSR	Audio_engine_psg_ch1(PC)
+	JSR	Audio_engine_psg_ch2(PC)
 	RTS
-loc_75D60:
+;loc_75D60
+Audio_engine_update_pitch:
 	MOVE.w	$26(A6), D0
-	BNE.b	loc_75D6E
+	BNE.b	Audio_engine_screech_tick
 	BCLR.b	#0, $1E(A6)
-	BRA.b	loc_75D74
-loc_75D6E:
+	BRA.b	Audio_engine_rpm_compare
+;loc_75D6E
+Audio_engine_screech_tick:
 	SUBQ.w	#1, D0
 	MOVE.w	D0, $26(A6)
-loc_75D74:
+;loc_75D74
+Audio_engine_rpm_compare:
 	MOVE.w	$00FF9100, D0
 	CMP.w	$14(A6), D0
-	BEQ.b	loc_75DBE
-	BCC.b	loc_75DB2
+	BEQ.b	Audio_engine_rpm_equal
+	BCC.b	Audio_engine_rpm_higher
 	MOVE.w	D0, $14(A6)
 	MOVE.w	#$0050, D0
 	MOVE.w	D0, $16(A6)
@@ -45681,11 +46715,13 @@ loc_75D74:
 	LEA	$00A01FB7, A3
 	JSR	Write_byte_to_z80_ram(PC)
 	BRA.b	Audio_engine_pitch_resume
-loc_75DB2:
+;loc_75DB2
+Audio_engine_rpm_higher:
 	MOVE.w	#$0100, $16(A6)
 	MOVE.w	D0, $14(A6)
 	BRA.b	Audio_engine_pitch_resume
-loc_75DBE:
+;loc_75DBE
+Audio_engine_rpm_equal:
 	MOVE.w	$16(A6), D0
 	BEQ.b	Audio_engine_pitch_resume
 	SUBQ.w	#1, D0
@@ -45701,27 +46737,30 @@ Audio_engine_pitch_resume:
 	ADDI.w	#$2800, D0
 	MOVE.w	D0, $1A(A6)
 	MOVE.w	$00FF9100, D0
-	BEQ.b	loc_75E02
+	BEQ.b	Audio_engine_vol_clamp
 	MOVE.w	#$0018, D1
 	MOVE.w	$16(A6), D0
-	BEQ.b	loc_75E06
+	BEQ.b	Audio_engine_vol_speed_check
 	CMPI.w	#$0100, D0
-	BCC.b	loc_75E02
+	BCC.b	Audio_engine_vol_clamp
 	LSR.w	#5, D0
 	SUB.w	D0, D1
-	BRA.b	loc_75E06
-loc_75E02:
+	BRA.b	Audio_engine_vol_speed_check
+;loc_75E02
+Audio_engine_vol_clamp:
 	MOVEQ	#$00000010, D1
 	BRA.b	Audio_engine_write_volume
-loc_75E06:
+;loc_75E06
+Audio_engine_vol_speed_check:
 	MOVE.w	$4(A6), D0
 	SUBI.w	#$0420, D0
 	BCS.b	Audio_engine_write_volume
 	CMPI.w	#$0100, D0
-	BCS.b	loc_75E1A
+	BCS.b	Audio_engine_vol_reduce
 	MOVEQ	#$00000010, D1
 	BRA.b	Audio_engine_write_volume
-loc_75E1A:
+;loc_75E1A
+Audio_engine_vol_reduce:
 	ANDI.w	#$00F0, D0
 	LSR.w	#5, D0
 	SUB.w	D0, D1
@@ -45743,58 +46782,66 @@ Audio_engine_write_volume:
 	BSR.w	Encode_z80_note
 	MOVE.w	$18(A6), D1
 	BTST.b	#0, $1E(A6)
-	BEQ.b	loc_75E6E
+	BEQ.b	Audio_engine_ym_vol_write
 	MOVE.w	$12(A6), D0
-	BEQ.b	loc_75E6C
+	BEQ.b	Audio_engine_ym_vol_max
 	MOVE.w	$16(A6), D0
 	LSR.w	#6, D0
 	SUB.w	D0, D1
-	BRA.b	loc_75E6E
-loc_75E6C:
+	BRA.b	Audio_engine_ym_vol_write
+;loc_75E6C
+Audio_engine_ym_vol_max:
 	MOVEQ	#$0000007F, D1
-loc_75E6E:
+;loc_75E6E
+Audio_engine_ym_vol_write:
 	MOVE.b	D1, (A5)+
 	MOVE.w	$1A(A6), D1
 	BTST.b	#1, $7(A6)
-	BNE.b	loc_75E8C
+	BNE.b	Audio_engine_ym_vibrato
 	ADDI.w	#$0020, D1
 	SUBI.w	#$2800, D1
 	LSR.w	#1, D1
 	ADDI.w	#$2800, D1
-	BRA.b	loc_75EA8
-loc_75E8C:
+	BRA.b	Audio_engine_ym_ch2_note
+;loc_75E8C
+Audio_engine_ym_vibrato:
 	MOVE.w	$1C(A6), D0
 	ANDI.w	#$000F, D0
 	CMPI.w	#8, D0
-	BCS.b	loc_75EA0
+	BCS.b	Audio_engine_ym_vibrato_lo
 	NOT.w	D0
 	ANDI.w	#7, D0
-loc_75EA0:
+;loc_75EA0
+Audio_engine_ym_vibrato_lo:
 	LSL.w	#5, D0
 	ADDI.w	#$0040, D0
 	ADD.w	D0, D1
-loc_75EA8:
+;loc_75EA8
+Audio_engine_ym_ch2_note:
 	BSR.w	Encode_z80_note
 	MOVE.b	D1, D4
 	MOVE.b	D2, D5
 	MOVE.w	$18(A6), D1
 	BTST.b	#1, $7(A6)
-	BNE.b	loc_75ED8
+	BNE.b	Audio_engine_ym_ch2_vol
 	BTST.b	#0, $1E(A6)
-	BEQ.b	loc_75ED4
+	BEQ.b	Audio_engine_ym_vol_boost
 	MOVE.w	$16(A6), D0
 	LSR.w	#5, D0
 	NOT.w	D0
 	ANDI.w	#$000F, D0
 	ADD.w	D0, D1
-	BRA.b	loc_75ED8
-loc_75ED4:
+	BRA.b	Audio_engine_ym_ch2_vol
+;loc_75ED4
+Audio_engine_ym_vol_boost:
 	ADDI.w	#$0010, D1
-loc_75ED8:
+;loc_75ED8
+Audio_engine_ym_ch2_vol:
 	BTST.b	#0, $1E(A6)
-	BEQ.b	loc_75EE2
+	BEQ.b	Audio_engine_ym_ch2_write
 	MOVEQ	#$0000007F, D1
-loc_75EE2:
+;loc_75EE2
+Audio_engine_ym_ch2_write:
 	MOVE.b	D1, (A5)
 	MOVEQ	#$0000000B, D7
 	LEA	$00A01FA6, A3
@@ -45807,98 +46854,118 @@ loc_75EE2:
 	MOVEQ	#2, D7
 	LEA	$00A01FC6, A3
 	BRA.w	Copy_scratch_to_z80_ram
-loc_75F06:
+;loc_75F06
+Audio_engine_psg_ch1:
 	MOVEA.l	A4, A5
 	MOVE.w	$8(A6), D0
 	CMPI.w	#$00FF, D0
-	BEQ.w	loc_75F40
-	BSR.w	loc_75FEA
+	BEQ.w	Audio_engine_psg_ch1_mute
+	BSR.w	Audio_engine_note_freq
 	MOVE.w	D0, D4
-	BSR.w	loc_75FAA
+	BSR.w	Audio_engine_lfo_delta
 	ADD.w	D4, D0
 	MOVE.w	D0, D5
 	MOVE.w	$8(A6), D0
 	MOVE.w	$A(A6), D1
-	BSR.w	loc_75FC6
+	BSR.w	Audio_engine_note_split
 	MOVE.w	D4, D1
 	BSR.w	Encode_z80_note
 	MOVE.b	D6, (A5)+
 	MOVE.w	D5, D1
 	BSR.w	Encode_z80_note
 	MOVE.b	D7, (A5)+
-	BRA.b	loc_75F4C
-loc_75F40:
+	BRA.b	Audio_engine_psg_ch1_send
+;loc_75F40
+Audio_engine_psg_ch1_mute:
 	MOVE.b	#$7F, $2(A5)
 	MOVE.b	#$7F, $5(A5)
-loc_75F4C:
+;loc_75F4C
+Audio_engine_psg_ch1_send:
 	LEA	$00A01FA0, A3
 	MOVEQ	#5, D7
 	BRA.w	Copy_scratch_to_z80_ram
-loc_75F58:
+;loc_75F58
+Audio_engine_psg_ch2:
 	MOVEA.l	A4, A5
 	MOVE.w	$C(A6), D0
 	CMPI.w	#$00FF, D0
-	BEQ.w	loc_75F92
-	BSR.w	loc_75FEA
+	BEQ.w	Audio_engine_psg_ch2_mute
+	BSR.w	Audio_engine_note_freq
 	MOVE.w	D0, D4
-	BSR.w	loc_75FAA
+	BSR.w	Audio_engine_lfo_delta
 	ADD.w	D4, D0
 	MOVE.w	D0, D5
 	MOVE.w	$C(A6), D0
 	MOVE.w	$E(A6), D1
-	BSR.w	loc_75FC6
+	BSR.w	Audio_engine_note_split
 	MOVE.w	D4, D1
 	BSR.w	Encode_z80_note
 	MOVE.b	D6, (A5)+
 	MOVE.w	D5, D1
 	BSR.w	Encode_z80_note
 	MOVE.b	D7, (A5)+
-	BRA.b	loc_75F9E
-loc_75F92:
+	BRA.b	Audio_engine_psg_ch2_send
+;loc_75F92
+Audio_engine_psg_ch2_mute:
 	MOVE.b	#$7F, $2(A5)
 	MOVE.b	#$7F, $5(A5)
-loc_75F9E:
+;loc_75F9E
+Audio_engine_psg_ch2_send:
 	LEA	$00A01FC0, A3
 	MOVEQ	#5, D7
 	BRA.w	Copy_scratch_to_z80_ram
-loc_75FAA:
+;loc_75FAA
+Audio_engine_lfo_delta:
+; Compute frame-based LFO oscillation offset from the frame counter (+$1C).
+; Uses lower 4 bits of frame counter; maps [0..7] → positive, [8..15] → inverted negative.
+; Returns an offset in [0..56] increments of 8 in D0.
 	MOVE.w	$1C(A6), D0
 	ANDI.w	#$000F, D0
 	CMPI.w	#8, D0
-	BCC.b	loc_75FBE
+	BCC.b	Audio_engine_lfo_hi
 	NEG.w	D0
 	ANDI.w	#7, D0
-loc_75FBE:
+;loc_75FBE
+Audio_engine_lfo_hi:
 	LSL.w	#3, D0
 	ADDI.w	#$0010, D0
 	RTS
-loc_75FC6:
+;loc_75FC6
+Audio_engine_note_split:
+; Split a 7-bit note value (D0) and a 4-bit volume/channel byte (D1) into two
+; PSG channel bytes stored in D6 (ch1 detune) and D7 (ch2 detune).
+; Uses Audio_engine_psg_detune_table for per-step detune offsets.
 	ANDI.w	#$007F, D0
 	LSR.w	#1, D0
 	ADDI.w	#0, D0
 	MOVE.b	D0, D6
 	MOVE.b	D0, D7
-	LEA	loc_75FFC(PC), A1
+	LEA	Audio_engine_psg_detune_table(PC), A1
 	ANDI.w	#$000F, D1
 	LSL.w	#1, D1
 	ADD.b	(A1,D1.w), D6
 	ADDQ.w	#1, D1
 	ADD.b	(A1,D1.w), D7
 	RTS
-loc_75FEA:
+;loc_75FEA
+Audio_engine_note_freq:
+; Compute YM/PSG frequency word from a 7-bit note value in D0.
+; Maps note [0..$7F] to a 16-bit frequency suitable for the note lookup tables.
+; Result is masked to even steps ($FFE0) so it aligns with the frequency table stride.
 	ANDI.w	#$007F, D0
 	LSL.w	#4, D0
 	SUBI.w	#$4000, D0
 	NEG.w	D0
 	ANDI.w	#$FFE0, D0
 	RTS
-loc_75FFC:
+;loc_75FFC
+Audio_engine_psg_detune_table:
 	dc.b	$00, $00, $00, $04, $00, $08, $00, $0C, $00, $10, $00, $14, $00, $18, $00, $1C, $00, $00, $04, $00, $08, $00, $0C, $00, $10, $00, $14, $00, $18, $00, $1C, $00
 ;loc_7601C
 Encode_z80_note:
 	MOVE.w	D1, D3
 	LSR.w	#8, D1
-	LEA	loc_76056(PC), A1
+	LEA	Audio_engine_ym_semitone_table(PC), A1
 	MOVE.b	(A1,D1.w), D1
 	MOVE.b	D1, D2
 	ANDI.b	#$F0, D1
@@ -45906,7 +46973,7 @@ Encode_z80_note:
 	LSR.b	#4, D3
 	OR.b	D3, D1
 	ANDI.w	#$00FE, D1
-	LEA	loc_760B6(PC), A1
+	LEA	Audio_engine_ym_octave_table(PC), A1
 	MOVE.w	(A1,D1.w), D1
 	ANDI.w	#7, D2
 	LSL.w	#8, D2
@@ -45917,17 +46984,24 @@ Encode_z80_note:
 	MOVE.b	D2, (A5)+
 	MOVE.b	D1, (A5)+
 	RTS
-loc_76056:
+;loc_76056
+Audio_engine_ym_semitone_table:
 	dc.b	$00, $10, $20, $30, $40, $50, $60, $70, $80, $90, $A0, $B0, $01, $11, $21, $31, $41, $51, $61, $71, $81, $91, $A1, $B1, $02, $12, $22, $32, $42, $52, $62, $72
 	dc.b	$82, $92, $A2, $B2, $03, $13, $23, $33
 	dc.b	$43, $53, $63, $73, $83, $93, $A3, $B3, $04, $14, $24, $34, $44, $54, $64, $74, $84, $94, $A4, $B4, $05, $15, $25, $35, $45, $55, $65, $75, $85, $95, $A5, $B5
 	dc.b	$06, $16, $26, $36, $46, $56, $66, $76, $86, $96, $A6
 	dc.b	$B6, $07, $17, $27, $37, $47, $57, $67, $77, $87, $97, $A7, $B7
-loc_760B6:
+;loc_760B6
+Audio_engine_ym_octave_table:
 	dc.w	$0284, $0288, $028C, $0290, $0294, $0298, $029C, $02A0, $02AB, $02B0, $02B5, $02BA, $02BF, $02C4, $02C9, $02CE, $02D3, $02D8, $02DD, $02E2, $02E7, $02EC, $02F1, $02F6, $02FE, $0303, $0308, $030D, $0312, $0317, $031C, $0321
 	dc.w	$032D, $0332, $0337, $033C, $0341, $0346, $034B, $0350, $035C, $0362, $0368, $036E, $0374, $037A, $0380, $0386, $038F, $0395, $039B, $03A1, $03A7, $03AD, $03B3, $03B9, $03C5, $03CC, $03D3, $03DA, $03E1, $03E8, $03EF, $03F6
 	dc.w	$03FF, $0406, $040D, $0414, $041B, $0422, $0429, $0430, $043C, $0444, $044C, $0454, $045C, $0464, $046C, $0474, $047C, $0484, $048C, $0494, $049C, $04A4, $04AC, $04B4, $04C0, $04C9, $04D2, $04DB, $04E4, $04ED, $04F6, $04FF
-loc_76176:
+;loc_76176
+Audio_engine_halt_reset:
+; Halted state: reset all engine state channels and send silence/clear commands to Z80.
+; Called when sequence timer goes negative ($8000 = halted).
+; Clears all pitch/volume/mode fields, then sends halt ($80) to Z80_audio_pitch_sfm
+; and clear ($C0) to Z80_audio_music_cmd.
 	MOVEQ	#0, D0
 	MOVE.w	#3, $22(A6)
 	MOVE.w	D0, $14(A6)
@@ -45947,7 +47021,11 @@ loc_76176:
 	MOVE.b	#$C0, (A4)
 	LEA	$00A01C09, A3
 	BRA.b	Write_byte_to_z80_ram
-loc_761C4:
+;loc_761C4
+Audio_engine_send_ctrl:
+; Dispatch a pending audio control command to the Z80.
+; Called when Audio_ctrl_mode (+$24) is non-zero.
+; Writes the command byte to Z80_audio_ctrl ($A01C10) and clears the latch.
 	MOVE.b	D0, (A4)
 	MOVEQ	#0, D0
 	MOVE.b	D0, $24(A6)
@@ -45975,11 +47053,11 @@ Write_byte_to_z80_ram:
 ;     Used when the caller wants to send a variable-length block from the scratch
 ;     buffer (e.g. Encode_z80_note callers writing 12-byte note blocks).
 ;
-;   loc_761DC ($761DC):
+;   Z80_bus_arbitrate_and_copy ($761DC):
 ;     Arbitrates and copies D7+1 bytes from A5 to Z80 RAM[A3].
 ;     → Copies D7+1 bytes starting from caller-supplied A5 to Z80 RAM[A3].
 ;     Used when A5 already points to a ROM data table (e.g. the silence-all block
-;     at loc_761FE).
+;     at Audio_engine_silence_block).
 ;
 ; Bus arbitration protocol used by all three entry points:
 ;   1. Write $0100 to Z80_bus_request to request 68K ownership.
@@ -45995,74 +47073,87 @@ Copy_scratch_to_z80_ram:
 ;loc_761DC
 Z80_bus_arbitrate_and_copy:
 	MOVE.w	#$0100, Z80_bus_request
-loc_761E4:
+;loc_761E4
+Z80_bus_wait_loop:
 	BTST.b	#0, Z80_bus_request
-	BNE.b	loc_761E4
-loc_761EE:
+	BNE.b	Z80_bus_wait_loop
+;loc_761EE
+Z80_bus_copy_loop:
 	MOVE.b	(A5)+, (A3)+
-	DBF	D7, loc_761EE
+	DBF	D7, Z80_bus_copy_loop
 	MOVE.w	#0, Z80_bus_request
 	RTS
-loc_761FE:
+;loc_761FE
+Audio_engine_silence_block:
 	dc.b	$7F, $00, $00, $7F, $00, $00, $00, $00, $00, $00, $00, $00, $7F, $00, $00, $7F
-loc_7620E:
+;loc_7620E
+Audio_engine_seq_interval:
 	MOVEQ	#0, D2
 	MOVE.b	$29(A6), D0
-	BEQ.b	loc_7621E
+	BEQ.b	Audio_engine_seq_interval_clear
 	SUBQ.b	#1, D0
 	MOVE.b	D0, $29(A6)
-	BNE.b	loc_76222
-loc_7621E:
+	BNE.b	Audio_engine_seq_interval_rts
+;loc_7621E
+Audio_engine_seq_interval_clear:
 	MOVE.b	D2, $28(A6)
-loc_76222:
+;loc_76222
+Audio_engine_seq_interval_rts:
 	RTS
-loc_76224:
+;loc_76224
+Audio_engine_seq_step:
 	SUBQ.w	#1, D0
-	BEQ.w	loc_7628A
-	LEA	loc_762AA(PC), A1
+	BEQ.w	Audio_engine_seq_pitch_write
+	LEA	Audio_engine_seq_step_table(PC), A1
 	MOVE.w	D0, D1
 	ADD.w	D0, D0
 	ADD.w	D1, D0
 	MOVE.b	(A1,D0.w), D1
-	BMI.b	loc_7625E
-	BEQ.b	loc_7627E
+	BMI.b	Audio_engine_seq_vibrato
+	BEQ.b	Audio_engine_seq_screech
 	CMPI.b	#$40, D1
-	BNE.w	loc_762A2
+	BNE.w	Audio_engine_seq_clear
 	MOVE.b	$28(A6), D2
 	MOVE.b	$1(A1,D0.w), D1
 	CMP.b	D1, D2
-	BHI.b	loc_762A2
+	BHI.b	Audio_engine_seq_clear
 	MOVE.b	D1, $28(A6)
 	MOVE.b	$2(A1,D0.w), D0
 	MOVE.b	D0, $29(A6)
-	BRA.b	loc_7628A
-loc_7625E:
+	BRA.b	Audio_engine_seq_pitch_write
+;loc_7625E
+Audio_engine_seq_vibrato:
 	MOVE.b	$28(A6), D0
-	BNE.b	loc_7628A
+	BNE.b	Audio_engine_seq_pitch_write
 	MOVE.w	$20(A6), D0
 	CMPI.w	#$000B, D0
-	BNE.b	loc_76276
+	BNE.b	Audio_engine_seq_advance
 	MOVEQ	#$0000000A, D0
 	MOVE.w	D0, $20(A6)
-	BRA.b	loc_76224
-loc_76276:
+	BRA.b	Audio_engine_seq_step
+;loc_76276
+Audio_engine_seq_advance:
 	ADDQ.w	#3, D0
 	MOVE.w	D0, $20(A6)
-	BRA.b	loc_76224
-loc_7627E:
+	BRA.b	Audio_engine_seq_step
+;loc_7627E
+Audio_engine_seq_screech:
 	MOVE.b	#7, $28(A6)
 	MOVE.b	#1, $29(A6)
-loc_7628A:
+;loc_7628A
+Audio_engine_seq_pitch_write:
 	MOVE.w	$20(A6), D0
 	ANDI.w	#$001F, D0
 	ADDI.w	#$009F, D0
 	MOVE.b	D0, (A4)
 	LEA	$00A01C09, A3
 	JSR	Write_byte_to_z80_ram(PC)
-loc_762A2:
+;loc_762A2
+Audio_engine_seq_clear:
 	MOVE.w	#0, $20(A6)
 	RTS
-loc_762AA:
+;loc_762AA
+Audio_engine_seq_step_table:
 	dc.b	$C0, $00, $01
 	dc.b	$00
 	dc.b	$00, $01, $20, $00, $01
@@ -46094,7 +47185,8 @@ loc_762AA:
 	dc.b	$03
 	dc.b	$10
 	dc.b	$20, $00, $01, $00
-loc_76308:
+;loc_76308
+Audio_engine_music_reset:
 	MOVEA.l	A4, A5
 	MOVE.b	#$A8, (A5)+
 	MOVE.b	#3, (A5)+
