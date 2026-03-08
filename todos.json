@@ -94,7 +94,7 @@
           "effort": "very_large",
           "depends_on": "LABEL-001",
           "status": "in_progress",
-          "progress_notes": "Batches 1-22 complete. 1861 loc_ labels remain after a normalized-source cleanup pass. Recent high-impact renames include Championship_team_select_animate_cursor (loc_E5AC), Setup_message_panel_dimensions (loc_F830), Finalize_save_data_buffer (loc_131EC), Save_player_state_to_buffer (loc_13170), Load_player_state_from_buffer (loc_13218), Restore_saved_frame_callback (loc_132A0), Update_endgame_portrait_animation (loc_137EC), Load_endgame_portrait_tilemap (loc_13858), Draw_endgame_portrait_tilemap (loc_1387E), Copy_endgame_portrait_palette_strip (loc_138B0), Render_text_special_char_with_tile_76/77 (loc_F806/loc_F80C), and Championship_team_select_substate_* helpers (loc_E4DA/loc_E4DC/loc_E532/loc_E534). Build verified bit-perfect after each batch."
+          "progress_notes": "Batches 1-26 complete. 1526 loc_ labels remain (down from 1861). Batch 26 (121 labels): named all 19 per-track background palette tables (San_Marino_bg_palette..Monaco_arcade_wet_bg_palette), 57 road-style/sideline/finish-line data tables (per-track triples), 17 per-track lap-time target tables (*_lap_targets), 11 sprite-frame pointer tables (Rival/Ai_sprite_frames_depth_*, Player_car_sprite_frames), 9 crash car frame data tables (Crash_car_frame_0..3, Crash_car_tile_offsets/sizes/frame_a/b/table), player car sprite frame index tables (Player_car_sprite_frames_crash/normal), and 10 code branch/loop labels in AI car routines (Apply_sorted_positions_loop, Update_ai_car_screen_x_Y_from_table, Assign_ai_sprite_depth_frame_apply, Check_ai_lateral_bounds_entry/Positive/At_zero/Neg_side/Apply/Positive_d7). Build verified bit-perfect (SHA256 9046c9d6...)."
         },
         {
           "id": "LABEL-003",
@@ -104,7 +104,7 @@
           "priority": "high",
           "effort": "large",
           "status": "in_progress",
-          "progress_notes": "Original ROM offset comments are now preserved for newly renamed loc_ labels in recent naming batches, including macro-cleanup-era UI/save/endgame helper renames. Earlier renames should still be audited for consistency project-wide."
+          "progress_notes": "Batch 26 named all 19 background palette tables, 57 road-style data tables (sideline/road/finish per track), 17 lap-time target tables, 11 sprite-frame pointer tables, 9 crash car frame data labels, and 2 player car sprite frame index tables. Original ROM offset comments preserved for all renamed loc_ labels. Earlier renames should still be audited for consistency project-wide."
         },
         {
           "id": "LABEL-004",

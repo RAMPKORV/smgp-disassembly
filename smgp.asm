@@ -8859,7 +8859,7 @@ Load_track_data_Bcd_next:
 Load_track_data_Steering_init:
 	MOVE.l	(A1)+, Steering_divisor_straight.w ; Track_data +$44: steering divisors (.w straight, .w curve)
 	MOVE.w	Track_length.w, $FFFF922C.w
-	MOVE.l	loc_FDCA, $FFFF922E.w
+	MOVE.l	Track_sky_palette_ptr, $FFFF922E.w
 	LEA	Arcade_placement_seq_v1(PC), A6
 	CMPI.w	#1, Track_index_arcade_mode.w
 	BEQ.b	Load_track_data_Arcade_placement
@@ -10914,7 +10914,7 @@ Lap_end_obj_Next_lap:
 	BNE.b	Lap_end_obj_Overtake
 	MOVE.w	#1, Overtake_flag.w
 Lap_end_obj_Overtake:
-	LEA	loc_797C(PC), A1
+	LEA	Crash_car_frame_a(PC), A1
 	LEA	$FFFFE88C.w, A3
 	MOVEQ	#3, D0
 Lap_end_obj_Copy_tilemap:
@@ -10953,7 +10953,7 @@ Lap_end_obj_Draw:
 	TST.w	$1A(A0)
 	BEQ.b	Lap_end_obj_Draw_queue
 	LEA	$FFFFE88C.w, A6
-	LEA	loc_798C(PC), A4
+	LEA	Crash_car_frame_b(PC), A4
 Lap_end_obj_Draw_queue:
 	MOVE.l	#$64D00003, D7
 	MOVEQ	#$0000000F, D6
@@ -10971,14 +10971,14 @@ Lap_end_obj_Flash_rts:
 Advance_rival_position_bcd:
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Advance_rival_position_bcd_Rts
-	LEA	loc_7968(PC), A1
+	LEA	Crash_car_tile_offsets(PC), A1
 	MOVE.w	Laps_completed.w, D0
 	CMPI.w	#3, D0
 	BNE.b	Advance_rival_position_bcd_Offset
 	MOVE.w	Player_grid_position.w, D0
 	CMPI.w	#8, D0
 	BCC.b	Advance_rival_position_bcd_Rts
-	LEA	loc_796E(PC), A1
+	LEA	Crash_car_tile_sizes(PC), A1
 Advance_rival_position_bcd_Offset:
 	ADD.w	D0, D0
 	ADDA.w	D0, A1
@@ -11054,7 +11054,7 @@ Update_gap_to_rival_Dma:
 	MOVE.l	#$60400003, D7
 	JSR	Queue_tilemap_draw
 Update_gap_to_rival_Position:
-	LEA	loc_799E(PC), A6
+	LEA	Crash_car_frame_table(PC), A6
 	TST.w	Has_rival_flag.w
 	BEQ.b	Update_gap_to_rival_No_rival
 	ADDQ.w	#4, A6
@@ -11084,26 +11084,35 @@ Update_gap_to_rival_Queue_pos:
 	JSR	Queue_tilemap_draw
 Update_gap_to_rival_Rts:
 	RTS
-loc_7968:
+;Crash_car_tile_offsets
+Crash_car_tile_offsets:
 	dc.b	$01, $00, $02, $00, $10, $00
-loc_796E:
+;Crash_car_tile_sizes
+Crash_car_tile_sizes:
 	dc.b	$08, $00, $06, $00, $05, $00, $04, $50, $04, $00, $03, $50, $03, $00
-loc_797C:
+;Crash_car_frame_a
+Crash_car_frame_a:
 	dc.l	$C7D5C7CA, $C7D90000, $C7DDC7D2, $C7D6C7CE
-loc_798C:
+;Crash_car_frame_b
+Crash_car_frame_b:
 	dc.w	$C7CF, $C7D2, $C7D7, $C7CA, $C7D5, $0000, $C7D5, $C7CA, $C7D9
-loc_799E:
-	dc.l	loc_79AE
-	dc.l	loc_79EE
-	dc.l	loc_79CE
-	dc.l	loc_7A16
-loc_79AE:
+;Crash_car_frame_table
+Crash_car_frame_table:
+	dc.l	Crash_car_frame_0
+	dc.l	Crash_car_frame_2
+	dc.l	Crash_car_frame_1
+	dc.l	Crash_car_frame_3
+;Crash_car_frame_0
+Crash_car_frame_0:
 	dc.w	$0000, $0000, $0000, $0000, $0000, $84B6, $0000, $0000, $A7CF, $A7DB, $A7D8, $A7D6, $0000, $84B7, $A7D7, $A7CD
-loc_79CE:
+;Crash_car_frame_1
+Crash_car_frame_1:
 	dc.w	$0000, $0000, $0000, $84B4, $0000, $0000, $0000, $0000, $A7DD, $A7D8, $0000, $84B5, $A7DC, $A7DD, $0000, $0000
-loc_79EE:
+;Crash_car_frame_2
+Crash_car_frame_2:
 	dc.w	$0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $A7CF, $A7DB, $A7D8, $A7D6, $0000, $A7DB, $A7D2, $A7DF, $A7CA, $A7D5
-loc_7A16:
+;Crash_car_frame_3
+Crash_car_frame_3:
 	dc.w	$0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $A7DD, $A7D8, $0000, $A7DB, $A7D2, $A7DF, $A7CA, $A7D5, $0000, $0000
 	MOVE.l	#Crash_obj_phase1, (A0)
 	MOVE.l	#loc_129AE, $4(A0)
@@ -11485,13 +11494,13 @@ Retire_car_obj_queue:
 	JMP	Queue_object_for_sprite_buffer
 ;loc_7EE2
 Slide_car_obj_init_from_bottom:
-	MOVE.l	#loc_10640, $8(A0)
+	MOVE.l	#Player_car_sprite_frames_crash, $8(A0)
 	MOVE.w	#$00F0, $18(A0)
 	MOVE.w	#$FFF9, $2E(A0)
 	BRA.b	Slide_car_obj_init_common
 ;loc_7EF8
 Slide_car_obj_init_from_top:
-	MOVE.l	#loc_10648, $8(A0)
+	MOVE.l	#Player_car_sprite_frames_normal, $8(A0)
 	MOVE.w	#$0110, $18(A0)
 	MOVE.w	#7, $2E(A0)
 ;loc_7F0C
@@ -13903,7 +13912,7 @@ Compute_ai_screen_x_Offscreen:
 ;loc_976C
 Compute_ai_screen_x_Onscreen:
 	CMPI.b	#1, $24(A0)
-	BEQ.w	loc_97EA
+	BEQ.w	Assign_ai_sprite_depth_frame_apply
 	TST.b	$10(A0)
 	BEQ.b	Compute_ai_screen_x_No_forced_frame
 	MOVE.b	$11(A0), D1
@@ -13958,7 +13967,8 @@ Assign_ai_sprite_depth_frame:
 	LEA	Ai_sprite_depth_frame_ptrs(PC), A1
 	MOVE.l	(A1,D1.w), $8(A0)
 	MOVE.b	D1, $2A(A0)
-loc_97EA:
+;Assign_ai_sprite_depth_frame_apply
+Assign_ai_sprite_depth_frame_apply:
 	LEA	$FFFF9480.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
 	LEA	Ai_screen_x_to_angle_table(PC), A1
@@ -14435,20 +14445,20 @@ Update_engine_and_tire_sounds_Pan_write:
 ; Rival variant: indexed from Rival_sprite_depth_frame_ptrs with offset D1 ∈ {-8,-4,0,+4,+8}.
 ; AI variant:    indexed from Ai_sprite_depth_frame_ptrs  with offset D1 ∈ {-8,-4,0,+4,+8}.
 ; The two tables share entries at Ai_sprite_depth_frame_ptrs-8 and -4 (= Rival +12 and +16).
-	dc.l	loc_104F0                          ; rival depth -8
-	dc.l	loc_104A8                          ; rival depth -4
+	dc.l	Rival_sprite_frames_depth_m8                          ; rival depth -8
+	dc.l	Rival_sprite_frames_depth_m4                          ; rival depth -4
 ;loc_9C08
 Rival_sprite_depth_frame_ptrs:
-	dc.l	loc_10484                          ; rival depth  0
-	dc.l	loc_104CC                          ; rival depth +4
-	dc.l	loc_10514                          ; rival depth +8 / AI depth -8 (shared)
-	dc.l	loc_10598                          ; rival depth +12 / AI depth -4 (shared)
-	dc.l	loc_10568                          ; rival depth +16 / AI depth  0 (shared, = Ai_sprite_depth_frame_ptrs)
+	dc.l	Rival_sprite_frames_depth0                          ; rival depth  0
+	dc.l	Rival_sprite_frames_depth_p4                          ; rival depth +4
+	dc.l	Rival_sprite_frames_depth_p8                          ; rival depth +8 / AI depth -8 (shared)
+	dc.l	Rival_sprite_frames_depth_p12                          ; rival depth +12 / AI depth -4 (shared)
+	dc.l	Ai_sprite_frames_depth0                          ; rival depth +16 / AI depth  0 (shared, = Ai_sprite_depth_frame_ptrs)
 ;loc_9C1C
 Ai_sprite_depth_frame_ptrs:
-	dc.l	loc_10538                          ; AI depth +4
-	dc.l	loc_10550                          ; AI depth +8
-	dc.l	loc_10580                          ; AI depth +12 (unused upper end)
+	dc.l	Ai_sprite_frames_depth_p4                          ; AI depth +4
+	dc.l	Ai_sprite_frames_depth_p8                          ; AI depth +8
+	dc.l	Ai_sprite_frames_depth_p12                          ; AI depth +12 (unused upper end)
 ;loc_9C28
 Ai_screen_x_to_angle_table:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
@@ -14858,7 +14868,7 @@ Ai_oscillation_phase_Lookup:
 ; Displays a brief dust/wake effect sprite near the fast-moving rival.
 Rival_dust_obj_init:
 	MOVE.l	#Rival_dust_obj, (A0)
-	MOVE.l	#loc_105B0, $8(A0)
+	MOVE.l	#Player_car_sprite_frames, $8(A0)
 	MOVE.b	#1, $24(A0)
 	MOVE.w	#9, $36(A0)
 ;loc_A0E6
@@ -15021,7 +15031,8 @@ Flagkeeper_car_obj_Bounce_move:
 Apply_sorted_positions_to_cars:
 	LEA	Score_scratch_buf.w, A0
 	MOVEQ	#$0000000D, D7
-loc_A27E:
+;Apply_sorted_positions_loop
+Apply_sorted_positions_loop:
 	MOVE.w	(A0)+, D0
 	BEQ.b	Apply_sorted_positions_skip
 	CMPI.w	#$FFFF, D0
@@ -15030,7 +15041,7 @@ loc_A27E:
 	MOVE.w	(A0), $38(A1)
 	MOVE.w	$2(A0), $3A(A1)
 Apply_sorted_positions_skip:
-	DBF	D7, loc_A27E
+	DBF	D7, Apply_sorted_positions_loop
 	MOVE.w	(A0)+, D0
 	BEQ.b	Apply_sorted_positions_done
 	CMPI.w	#$FFFF, D0
@@ -15131,7 +15142,7 @@ Crash_retire_obj:
 	MOVE.l	#$0000BD56, D1
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Set_retire_frame_callback
-	MOVE.l	#loc_E0D4, D1
+	MOVE.l	#Arcade_car_spec_result_init, D1
 	SUBQ.w	#1, D0
 	BEQ.b	Set_retire_frame_callback
 	MOVE.l	#Race_finish_credits_init, D1
@@ -15646,7 +15657,8 @@ Update_ai_car_screen_x:
 	SUB.w	D0, D4
 	MOVEQ	#0, D3
 	MOVEQ	#4, D7
-loc_AB04:
+;Update_ai_car_screen_x_Y_from_table
+Update_ai_car_screen_x_Y_from_table:
 	LEA	Ai_screen_y_table, A1
 	MOVE.b	(A1,D4.w), D0
 	EXT.w	D0
@@ -15669,7 +15681,7 @@ Update_ai_car_screen_x_Behind:
 	SUB.w	D0, D4
 	MOVE.w	#$8000, D3
 	MOVEQ	#8, D7
-	BRA.b	loc_AB04
+	BRA.b	Update_ai_car_screen_x_Y_from_table
 ;loc_AB3E
 Crash_car_obj_init:
 	MOVE.l	#Crash_shadow_obj_init, $FFFFB040.w
@@ -16317,37 +16329,43 @@ Write_approach_scroll_strip_Done:
 ;Check_ai_lateral_bounds
 Check_ai_lateral_bounds:
 	MOVE.w	#$00D8, D7
-	BRA.b	loc_B258
+	BRA.b	Check_ai_lateral_bounds_entry
 ;Check_ai_lateral_bounds_wide
 Check_ai_lateral_bounds_wide:
 	MOVE.w	#$0118, D7
-loc_B258:
+;Check_ai_lateral_bounds_entry
+Check_ai_lateral_bounds_entry:
 	TST.w	Overtake_delta.w
 	BNE.b	Check_ai_lateral_bounds_wide_Done
 	MOVE.w	$E(A0), D0
-	BPL.b	loc_B270
+	BPL.b	Check_ai_lateral_bounds_Positive
 	TST.w	$36(A0)
 	BNE.b	Check_ai_lateral_bounds_wide_Done
 	ADDQ.w	#1, D0
-	BEQ.b	loc_B276
+	BEQ.b	Check_ai_lateral_bounds_At_zero
 	BRA.b	Check_ai_lateral_bounds_wide_Done
-loc_B270:
+;Check_ai_lateral_bounds_Positive
+Check_ai_lateral_bounds_Positive:
 	CMPI.w	#$009B, D0
 	BCS.b	Check_ai_lateral_bounds_wide_Done
-loc_B276:
+;Check_ai_lateral_bounds_At_zero
+Check_ai_lateral_bounds_At_zero:
 	TST.w	$12(A0)
-	BMI.b	loc_B284
+	BMI.b	Check_ai_lateral_bounds_Neg_side
 	SUB.w	Horizontal_position.w, D7
 	BGE.b	Check_ai_lateral_bounds_wide_Done
-	BRA.b	loc_B28C
-loc_B284:
+	BRA.b	Check_ai_lateral_bounds_Apply
+;Check_ai_lateral_bounds_Neg_side
+Check_ai_lateral_bounds_Neg_side:
 	NEG.w	D7
 	SUB.w	Horizontal_position.w, D7
 	BLE.b	Check_ai_lateral_bounds_wide_Done
-loc_B28C:
-	BPL.b	loc_B290
+;Check_ai_lateral_bounds_Apply
+Check_ai_lateral_bounds_Apply:
+	BPL.b	Check_ai_lateral_bounds_Positive_d7
 	NEG.w	D7
-loc_B290:
+;Check_ai_lateral_bounds_Positive_d7
+Check_ai_lateral_bounds_Positive_d7:
 	MOVE.w	D7, $FFFFFC52.w
 	MOVE.w	#1, $36(A0)
 	MOVE.w	Horizontal_position.w, D0
@@ -17061,6 +17079,7 @@ Pre_race_scroll_Update_Clamp:
 	SUB.l	D0, Screen_data_ptr.w
 	RTS
 ;loc_BBB6
+;loc_E584
 Championship_team_select_confirm:
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	Championship_team_select_confirm_Arcade
@@ -19686,13 +19705,14 @@ Credits_object_anim_frame:
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
-	BNE.w	loc_E05E
+	BNE.w	Credits_exit
 	RTS
-loc_DE60:
+;loc_DE60
+Credits_car_obj_update:
 	CMPI.w	#$0140, $FFFFB956.w
-	BEQ.w	loc_DFDA
+	BEQ.w	Credits_car_setup
 	TST.w	$12(A0)
-	BNE.b	loc_DED6
+	BNE.b	Credits_car_obj_ascend
 	MOVE.l	#$FFF80000, D0
 	MOVE.l	#$000281AE, $FFFFB8C4.w
 	CMPI.w	#$0180, $18(A0)
@@ -19711,23 +19731,26 @@ loc_DE60:
 	BCC.b	Credits_car_apply_y_delta
 	MOVE.w	#$FFFF, $12(A0)
 	MOVE.l	#$00016F76, $FFFFB8C4.w
-loc_DED6:
+;loc_DED6
+Credits_car_obj_ascend:
 	MOVE.l	#$00004000, D0
 Credits_car_apply_y_delta:
 	ADD.l	D0, $52(A0)
 	MOVE.w	$52(A0), D0
 	MOVE.w	D0, $18(A0)
 	TST.w	$10(A0)
-	BNE.b	loc_DF08
+	BNE.b	Credits_car_obj_scroll_x_inc
 	MOVE.l	#$FFFFA000, D0
 	CMPI.w	#$00EA, $16(A0)
-	BNE.b	loc_DF16
+	BNE.b	Credits_car_obj_apply_x
 	MOVE.w	#$FFFF, $10(A0)
 	MOVE.w	#0, $C(A0)
-loc_DF08:
+;loc_DF08
+Credits_car_obj_scroll_x_inc:
 	MOVE.l	#$00010000, D0
 	ADDI.l	#$FFFFF800, $FFFFB898.w
-loc_DF16:
+;loc_DF16
+Credits_car_obj_apply_x:
 	ADD.l	D0, $58(A0)
 	MOVE.w	$58(A0), D0
 	MOVE.w	D0, $16(A0)
@@ -19739,7 +19762,7 @@ Credits_sequence_init:
 	JSR	Halt_audio_sequence
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
-	LEA	loc_E074(PC), A1
+	LEA	Credits_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_28000, A0
 	MOVE.w	#$421B, D0
@@ -19759,7 +19782,7 @@ Credits_sequence_init:
 	MOVEQ	#$00000027, D6
 	MOVEQ	#$0000000F, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
-	BSR.w	loc_DFDA
+	BSR.w	Credits_car_setup
 	LEA	loc_27F30, A6
 	JSR	Copy_word_run_from_stream
 	MOVE.l	#Credits_object_anim_frame, Frame_callback.w
@@ -19771,18 +19794,20 @@ Credits_sequence_init:
 	MOVE.w	#$8174, VDP_control_port
 	RTS
 
-loc_DFDA:
+;loc_DFDA
+Credits_car_setup:
 	CMPI.w	#4, Screen_timer.w
-	BEQ.b	loc_E05E
+	BEQ.b	Credits_exit
 	MOVE.w	#$000E, $00FF5AC2
 	LEA	Aux_object_pool.w, A1
-	LEA	loc_E068, A2
+	LEA	Credits_car_frame_table, A2
 	LEA	loc_27F90, A3
 	LEA	$FFFFE982.w, A4
 	MOVE.w	#2, D0
 	MOVE.w	#$0010, D1
-loc_E006:
-	MOVE.l	#loc_DE60, (A1)
+;loc_E006
+Credits_car_setup_loop:
+	MOVE.l	#Credits_car_obj_update, (A1)
 	MOVE.w	#$0228, $18(A1)
 	MOVE.w	#$0228, $52(A1)
 	CLR.w	$12(A1)
@@ -19794,22 +19819,26 @@ loc_E006:
 	MOVE.l	(A2)+, $4(A1)
 	SUBQ.w	#4, D1
 	ADDA.w	#$0080, A1
-	DBF	D0, loc_E006
+	DBF	D0, Credits_car_setup_loop
 	MOVE.w	Screen_timer.w, D0
 	MULS.w	#$001C, D0
 	ADDA.l	D0, A3
 	MOVE.w	#7, D0
-loc_E052:
+;loc_E052
+Credits_car_scroll_loop:
 	MOVE.l	(A3)+, (A4)+
-	DBF	D0, loc_E052
+	DBF	D0, Credits_car_scroll_loop
 	ADDQ.w	#1, Screen_timer.w
 	RTS
-loc_E05E:
+;loc_E05E
+Credits_exit:
 	MOVE.l	#$00004976, Frame_callback.w
 	RTS
-loc_E068:
+;loc_E068
+Credits_car_frame_table:
 	dc.b	$00, $02, $81, $E6, $00, $02, $81, $AE, $00, $02, $81, $40
-loc_E074:
+;loc_E074
+Credits_asset_list:
 	dc.b	$00, $02
 	dc.b	$00, $20
 	dc.l	loc_281EE
@@ -19821,28 +19850,33 @@ loc_E074:
 Endgame_car_anim_frame:
 	JSR	Wait_for_vblank
 	TST.w	Screen_subcounter.w
-	BEQ.b	loc_E0B6
-	LEA	loc_E39A-2(PC), A6
+	BEQ.b	Endgame_car_anim_update
+	LEA	Endgame_car_anim_tile_table-2(PC), A6
 	BTST.b	#5, Frame_counter.w
-	BNE.b	loc_E0A6
+	BNE.b	Endgame_car_anim_alt_buf
 	LEA	$00FF5980, A6
-loc_E0A6:
+;loc_E0A6
+Endgame_car_anim_alt_buf:
 	MOVE.l	#$69A40003, D7
 	MOVEQ	#$00000012, D6
 	MOVEQ	#0, D5
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
-loc_E0B6:
+;loc_E0B6
+Endgame_car_anim_update:
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
-	BNE.b	loc_E0CC
+	BNE.b	Endgame_car_anim_restore_cb
 	SUBQ.w	#1, Race_frame_counter.w
-	BNE.b	loc_E0D2
-loc_E0CC:
+	BNE.b	Endgame_car_anim_Rts
+;loc_E0CC
+Endgame_car_anim_restore_cb:
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
-loc_E0D2:
+;loc_E0D2
+Endgame_car_anim_Rts:
 	RTS
-loc_E0D4:
+;loc_E0D4
+Arcade_car_spec_result_init:
 	JSR	Fade_palette_to_black
 	JSR	Halt_audio_sequence
 	JSR	Initialize_h40_vdp_state
@@ -19851,11 +19885,12 @@ loc_E0D4:
 	MOVE.l	$FFFF92DC.w, $FFFFFF40.w
 	JSR	Accumulate_bcd_race_time
 	TST.w	Player_overtaken_flag.w
-	BEQ.b	loc_E10C
+	BEQ.b	Arcade_car_spec_continue
 	CLR.w	Race_time_bcd.w
 	CLR.w	Player_overtaken_flag.w
-loc_E10C:
-	LEA	loc_E326(PC), A1
+;loc_E10C
+Arcade_car_spec_continue:
+	LEA	Arcade_car_spec_asset_list(PC), A1
 	JSR	Decompress_asset_list_to_vdp
 	LEA	loc_2F220, A0
 	MOVE.w	#$2001, D0
@@ -19876,22 +19911,23 @@ loc_E10C:
 	MOVEQ	#4, D5
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	LEA	Aux_object_pool.w, A0
-	LEA	loc_E334(PC), A1
+	LEA	Arcade_car_spec_car_positions(PC), A1
 	MOVEQ	#3, D0
-loc_E16E:
+;loc_E16E
+Arcade_car_spec_obj_loop:
 	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
 	MOVE.w	(A1)+, $18(A0)
 	MOVE.w	(A1)+, $16(A0)
 	MOVE.l	(A1)+, $4(A0)
 	LEA	$40(A0), A0
-	DBF	D0, loc_E16E
-	LEA	loc_E354(PC), A1
+	DBF	D0, Arcade_car_spec_obj_loop
+	LEA	Arcade_car_spec_tilemap_list(PC), A1
 	JSR	Draw_packed_tilemap_list
 	MOVE.w	#$E7AA, Screen_timer.w
 	MOVE.w	#$E8B6, Screen_scroll.w
 	JSR	Draw_car_selection_screen(PC)
-	LEA	loc_E3BE(PC), A3
-	LEA	loc_E3CE(PC), A4
+	LEA	Arcade_car_spec_stat_ptrs(PC), A3
+	LEA	Arcade_car_spec_vdp_addrs(PC), A4
 	MOVE.w	#4, Screen_timer.w
 	JSR	Draw_car_stat_rows(PC)
 	MOVE.w	#$EC30, Screen_timer.w
@@ -19903,12 +19939,13 @@ loc_E16E:
 	MOVE.l	#$0000452A, D2
 	MOVEQ	#1, D3
 	CMPI.w	#2, Player_grid_position.w
-	BLS.b	loc_E1EE
+	BLS.b	Arcade_car_spec_setup_cbs
 	MOVE.w	#$0168, D0
 	MOVEQ	#2, D1
 	MOVE.l	#$00004976, D2
 	MOVEQ	#0, D3
-loc_E1EE:
+;loc_E1EE
+Arcade_car_spec_setup_cbs:
 	MOVE.w	D0, Race_frame_counter.w
 	MOVE.w	D1, Options_cursor_update.w
 	MOVE.l	D2, Saved_frame_callback.w
@@ -19944,9 +19981,10 @@ Draw_car_selection_screen:
 	JSR	Send_D567_to_VDP
 	MOVE.w	Player_grid_position.w, D0
 	CMPI.w	#3, D0
-	BLS.b	loc_E29C
+	BLS.b	Draw_car_selection_clamp
 	MOVEQ	#3, D0
-loc_E29C:
+;loc_E29C
+Draw_car_selection_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	MOVE.w	Screen_scroll.w, D7
@@ -19987,19 +20025,23 @@ Draw_bcd_value_display:
 	MOVEQ	#1, D5
 	LEA	$FFFFE800.w, A6
 	JMP	Draw_tilemap_buffer_to_vdp_64_cell_rows
-loc_E326:
+;loc_E326
+Arcade_car_spec_asset_list:
 	dc.b	$00, $01
 	dc.b	$00, $20
 	dc.l	loc_2F2D0
 	dc.b	$1C, $A0
 	dc.l	loc_3049A
-loc_E334:
+;loc_E334
+Arcade_car_spec_car_positions:
 	dc.b	$00, $BD, $00, $CC, $00, $02, $F1, $B4, $01, $26, $00, $BF, $00, $02, $F1, $C2, $01, $8A, $00, $CB, $00, $02, $F1, $D0, $00, $E7, $00, $B0, $00, $02, $F1, $E4
-loc_E354:
+;loc_E354
+Arcade_car_spec_tilemap_list:
 	dc.b	$00, $01
-	dc.l	loc_E35E
-	dc.l	loc_E386
-loc_E35E:
+	dc.l	Arcade_car_spec_tilemap_a
+	dc.l	Arcade_car_spec_tilemap_b
+;loc_E35E
+Arcade_car_spec_tilemap_a:
 	dc.l	$E786FBC7
 	dc.l	$C0FA150A
 	dc.l	$19FAFAFA
@@ -20010,13 +20052,15 @@ loc_E35E:
 	dc.l	$FA031B0D
 	dc.l	$FCFD1D18
 	dc.l	$1D0A15FF
-loc_E386:
+;loc_E386
+Arcade_car_spec_tilemap_b:
 	dc.l	$EB260D1B
 	dc.l	$121F0E1B
 	dc.l	$261CFA19
 	dc.l	$1812171D
 	dc.l	$1CFF87D9
-loc_E39A:
+;loc_E39A
+Endgame_car_anim_tile_table:
 	dc.l	$87DB87CE
 	dc.l	$87D987CA
 	dc.l	$87DB87CE
@@ -20026,12 +20070,14 @@ loc_E39A:
 	dc.l	$87CD0000
 	dc.l	$87DB87CA
 	dc.l	$87CC87CE
-loc_E3BE:
+;loc_E3BE
+Arcade_car_spec_stat_ptrs:
 	dc.l	Lap_time_table_ptr
 	dc.l	$FFFF92E8
 	dc.l	$FFFF92EC
 	dc.l	$FFFF92DC
-loc_E3CE:
+;loc_E3CE
+Arcade_car_spec_vdp_addrs:
 	dc.w	$E890, $E990, $EA90, $EC10
 ;$0000E3D6
 ; Championship_team_select_frame — per-frame handler for the championship team-pairing
@@ -20045,35 +20091,40 @@ loc_E3CE:
 Championship_team_select_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
-	LEA	loc_E3F4, A1
+	LEA	Championship_team_select_dispatch, A1
 	MOVE.w	Screen_scroll.w, D0
 	MOVEA.l	(A1,D0.w), A2
 	JSR	(A2)
 	RTS
-loc_E3F4:
-	dc.l	loc_E40C
-	dc.l	loc_E43E
+;loc_E3F4
+Championship_team_select_dispatch:
+	dc.l	Championship_team_select_scroll_logo
+	dc.l	Championship_team_select_init_objs
 	dc.l	Championship_team_select_substate_Copy_row
 	dc.l	Championship_team_select_substate_Scroll_text
-	dc.l	loc_E55E
-	dc.l	loc_E5EA
-loc_E40C:
+	dc.l	Championship_team_select_input
+	dc.l	Championship_team_select_to_title
+;loc_E40C
+Championship_team_select_scroll_logo:
 	SUBQ.w	#1, Screen_subcounter.w
-	BNE.b	loc_E43C
+	BNE.b	Championship_team_select_logo_Rts
 	MOVE.w	#$0014, Screen_subcounter.w
 	LEA	$FFFFE9E0.w, A1
 	LEA	loc_33850, A2
 	MOVE.w	Screen_data_ptr.w, D0
 	ADDA.l	D0, A2
 	MOVE.w	#7, D0
-loc_E42C:
+;loc_E42C
+Championship_team_select_logo_loop:
 	MOVE.l	(A2)+, (A1)+
-	DBF	D0, loc_E42C
+	DBF	D0, Championship_team_select_logo_loop
 	SUBI.w	#$0020, Screen_data_ptr.w
 	BCS.w	Championship_team_select_scroll_reset
-loc_E43C:
+;loc_E43C
+Championship_team_select_logo_Rts:
 	RTS
-loc_E43E:
+;loc_E43E
+Championship_team_select_init_objs:
 	SUBQ.w	#1, Screen_subcounter.w
 	BNE.w	Championship_team_select_substate_Rts
 	LEA	Aux_object_pool.w, A1
@@ -20117,9 +20168,10 @@ Championship_team_select_substate_Copy_row:
 	MOVEA.l	Temp_distance.w, A1
 	LEA	$FFFF905E.w, A2
 	MOVE.b	#$5F, D0
-loc_E50A:
+;loc_E50A
+Championship_team_select_tilemap_loop:
 	MOVE.b	(A1)+, (A2)+
-	DBF	D0, loc_E50A
+	DBF	D0, Championship_team_select_tilemap_loop
 	LEA	$FFFF905E.w, A6
 	MOVE.w	$FFFFFC16.w, D0
 	ADDQ.w	#5, D0
@@ -20134,58 +20186,66 @@ Championship_team_select_copy_row_Rts:
 ;loc_E534:
 Championship_team_select_substate_Scroll_text:
 	TST.b	Menu_substate.w
-	BEQ.b	loc_E53E
+	BEQ.b	Championship_team_select_text_body
 	ADDQ.w	#8, Screen_scroll.w
-loc_E53E:
+;loc_E53E
+Championship_team_select_text_body:
 	SUBQ.w	#1, Screen_subcounter.w
-	BNE.b	loc_E55C
-	LEA	loc_E72A, A6
+	BNE.b	Championship_team_select_text_Rts
+	LEA	Championship_team_select_banner_text, A6
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	BSR.w	Championship_team_select_scroll_reset
-loc_E55C:
+;loc_E55C
+Championship_team_select_text_Rts:
 	RTS
-loc_E55E:
+;loc_E55E
+Championship_team_select_input:
 	BSR.b	Championship_team_select_animate_cursor
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$E3, D0
 	BEQ.b	Championship_team_select_animate_cursor
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$E0, D0
-	BNE.b	loc_E584
+	BNE.b	Championship_team_select_face_btn
 	CLR.b	Menu_cursor.w
 	BSR.b	Championship_team_select_animate_cursor
 	ADDQ.b	#1, $FFFFFC11.w
 	RTS
-loc_E584:
+;loc_E584
+Championship_team_select_face_btn:
 	BSET.b	#2, Player_state_flags.w
 	MOVE.l	#$00004FDC, Frame_callback.w
 	BTST.b	#0, $FFFFFC11.w
-	BEQ.b	loc_E5AA
+	BEQ.b	Championship_team_select_input_Rts
 	MOVE.l	#$00004FDC, Saved_frame_callback.w
 	MOVE.l	#$0000F288, Frame_callback.w
-loc_E5AA:
+;loc_E5AA
+Championship_team_select_input_Rts:
 	RTS
 ;loc_E5AC:
 Championship_team_select_animate_cursor:
 	MOVE.l	#$6B320003, D7
 	BTST.b	#0, $FFFFFC11.w
-	BEQ.b	loc_E5C0
+	BEQ.b	Championship_team_select_blink_c1
 	MOVE.l	#$6C320003, D7
-loc_E5C0:
+;loc_E5C0
+Championship_team_select_blink_c1:
 	MOVE.w	#$C41A, D0
 	BTST.b	#3, Menu_cursor.w
-	BEQ.b	loc_E5D0
+	BEQ.b	Championship_team_select_blink_draw
 	MOVE.w	#$C418, D0
-loc_E5D0:
+;loc_E5D0
+Championship_team_select_blink_draw:
 	ORI	#$0700, SR
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, Menu_cursor.w
 	RTS
-loc_E5EA:
+;loc_E5EA
+Championship_team_select_to_title:
 	MOVE.l	#$00002592, Frame_callback.w
 	RTS
 
@@ -20219,23 +20279,26 @@ Championship_driver_select_init:
 	JSR	Decompress_tilemap_to_vdp_64_cell_rows
 	MOVE.l	#$00033756, Temp_distance.w
 	BTST.b	#6, Player_team.w
-	BEQ.b	loc_E6C8
+	BEQ.b	Championship_driver_select_not_leader
 	CLR.l	D0
 	LEA	Driver_points_by_team.w, A1
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	(A1,D0.w), D1
 	MOVE.w	#$0010, D0
-loc_E6B0:
+;loc_E6B0
+Championship_driver_select_leader_loop:
 	CMP.b	(A1)+, D1
-	BCS.b	loc_E6C8
-	DBF	D0, loc_E6B0
+	BCS.b	Championship_driver_select_not_leader
+	DBF	D0, Championship_driver_select_leader_loop
 	MOVE.l	#$000337B4, Temp_distance.w
 	MOVE.b	#$FF, Menu_substate.w
-	BRA.b	loc_E6CE
-loc_E6C8:
+	BRA.b	Championship_driver_select_continue
+;loc_E6C8
+Championship_driver_select_not_leader:
 	BSET.b	#6, Player_team.w
-loc_E6CE:
+;loc_E6CE
+Championship_driver_select_continue:
 	JSR	Clear_driver_points
 	JSR	Initialize_drivers_and_teams
 	LEA	loc_337EE, A6
@@ -20254,7 +20317,8 @@ loc_E6CE:
 Queue_sprite_thunk:
 	JSR	Queue_object_for_sprite_buffer
 	RTS
-loc_E72A:
+;loc_E72A
+Championship_team_select_banner_text:
 	dc.b	$EA, $AE, $FB, $C3, $E8, $37, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $38, $39, $FD, $3A, $32, $32, $17, $0E, $21, $1D, $32, $22, $0E, $0A, $1B
 	dc.b	$32, $3B, $FD, $3A, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $32, $3B, $FD, $3A, $32, $32, $19, $0A, $1C, $1C, $20, $18, $1B, $0D, $32, $32, $3B
 	dc.b	$FD, $3C, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3D, $3E, $FF
@@ -21725,10 +21789,10 @@ Track_data:
 	dc.l	loc_68F4A ; San Marino tiles used for background
 	dc.l	loc_68DC6 ; San Marino background tile mapping
 	dc.l	loc_5519A ; San Marino tile mapping for minimap
-	dc.l	loc_FDCE ; San Marino background palette
-	dc.l	loc_FF96 ; San Marino sideline style
-	dc.l	loc_FFA0 ; San Marino road style data
-	dc.l	loc_FFAA ; San Marino finish line style
+	dc.l	San_Marino_bg_palette ; San Marino background palette
+	dc.l	San_Marino_sideline_style ; San Marino sideline style
+	dc.l	San_Marino_road_style ; San Marino road style data
+	dc.l	San_Marino_finish_line_style ; San Marino finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7040 ; track length
 	dc.l	loc_7173C ; San Marino signs data
@@ -21738,17 +21802,17 @@ Track_data:
 	dc.l	loc_715EA ; San Marino slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_7163C ; San Marino physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	Track_lap_time_records ; San Marino BCD lap-time record pointer (base = $FFFFFD00, +$08 per track)
-	dc.l	loc_10176 ; San Marino per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	San_Marino_lap_targets ; San Marino per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B (both 43)
 ; Brazil
 	dc.l	loc_5683C ; Brazil tiles used for minimap
 	dc.l	loc_679D8 ; Brazil tiles used used for background
 	dc.l	loc_676FE ; Brazil background tile mapping
 	dc.l	loc_569EE ; Brazil tile mapping for minimap
-	dc.l	loc_FF18 ; Brazil background palette
-	dc.l	loc_FFB4 ; Brazil sideline style
-	dc.l	loc_FFBE ; Brazil road style data
-	dc.l	loc_FFC8 ; Brazil finish line style
+	dc.l	Brazil_bg_palette ; Brazil background palette
+	dc.l	Brazil_sideline_style ; Brazil sideline style
+	dc.l	Brazil_road_style ; Brazil road style data
+	dc.l	Brazil_finish_line_style ; Brazil finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6976 ; track length
 	dc.l	loc_739AA ; Brazil signs data
@@ -21758,17 +21822,17 @@ Track_data:
 	dc.l	loc_73894 ; Brazil slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_738BA ; Brazil physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD08 ; Brazil BCD lap-time record pointer (Track_lap_time_records + $08)
-	dc.l	loc_101A4 ; Brazil per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Brazil_lap_targets ; Brazil per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; France
 	dc.l	loc_55516 ; France tiles used for minimap
 	dc.l	loc_6ACB6 ; France tiles used used for background
 	dc.l	loc_6AB3E ; France background tile mapping
 	dc.l	loc_5566C ; France tile mapping for minimap
-	dc.l	loc_FE10 ; France background palette
-	dc.l	loc_FFD2 ; France sideline style
-	dc.l	loc_FFDC ; France road style data
-	dc.l	loc_FFE6 ; France finish line style
+	dc.l	France_bg_palette ; France background palette
+	dc.l	France_sideline_style ; France sideline style
+	dc.l	France_road_style ; France road style data
+	dc.l	France_finish_line_style ; France finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6144 ; track length
 	dc.l	loc_71DBA ; France signs data
@@ -21778,17 +21842,17 @@ Track_data:
 	dc.l	loc_71CAC ; France slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_71CE2 ; France physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD10 ; France BCD lap-time record pointer (Track_lap_time_records + $10)
-	dc.l	loc_101D2 ; France per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	France_lap_targets ; France per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Hungary
 	dc.l	loc_559D0 ; Hungary tiles used for minimap
 	dc.l	loc_6A16E ; Hungary tiles used used for background
 	dc.l	loc_6A002 ; Hungary background tile mapping
 	dc.l	loc_55B6E ; Hungary tile mapping for minimap
-	dc.l	loc_FE52 ; Hungary background palette
-	dc.l	loc_FFF0 ; Hungary sideline style
-	dc.l	loc_FFFA ; Hungary road style data
-	dc.l	loc_10004 ; Hungary finish line style
+	dc.l	Hungary_bg_palette ; Hungary background palette
+	dc.l	Hungary_sideline_style ; Hungary sideline style
+	dc.l	Hungary_road_style ; Hungary road style data
+	dc.l	Hungary_finish_line_style ; Hungary finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6464 ; track length
 	dc.l	loc_723F0 ; Hungary signs data
@@ -21798,17 +21862,17 @@ Track_data:
 	dc.l	loc_722CA ; Hungary slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_72308 ; Hungary physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD18 ; Hungary BCD lap-time record pointer (Track_lap_time_records + $18)
-	dc.l	loc_10200 ; Hungary per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Hungary_lap_targets ; Hungary per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002c002e ; steering divisors: straight=$002C, curve=$002E (slightly less sensitive on curves)
 ; West Germany
 	dc.l	loc_5583E ; West Germany tiles used for minimap
 	dc.l	loc_65D64 ; West Germany tiles used used for background
 	dc.l	loc_65B18 ; West Germany background tile mapping
 	dc.l	loc_559A8 ; West Germany tile mapping for minimap
-	dc.l	loc_FE3C ; West Germany background palette
-	dc.l	loc_1000E ; West Germany sideline style
-	dc.l	loc_10018 ; West Germany road style data
-	dc.l	loc_10022 ; West Germany finish line style
+	dc.l	West_Germany_bg_palette ; West Germany background palette
+	dc.l	West_Germany_sideline_style ; West Germany sideline style
+	dc.l	West_Germany_road_style ; West Germany road style data
+	dc.l	West_Germany_finish_line_style ; West Germany finish line style
 	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7488 ; track length
 	dc.l	loc_721B6 ; West Germany signs data
@@ -21818,17 +21882,17 @@ Track_data:
 	dc.l	loc_72090 ; West Germany slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_720B6 ; West Germany physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD20 ; West Germany BCD lap-time record pointer (Track_lap_time_records + $20)
-	dc.l	loc_1022E ; West Germany per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	West_Germany_lap_targets ; West Germany per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; USA
 	dc.l	loc_5627E ; USA tiles used for minimap
 	dc.l	loc_6C048 ; USA tiles used used for background
 	dc.l	loc_6BEC0 ; USA background tile mapping
 	dc.l	loc_5638C ; USA tile mapping for minimap
-	dc.l	loc_FEC0 ; USA background palette
-	dc.l	loc_1002C ; USA sideline style
-	dc.l	loc_10036 ; USA road style data
-	dc.l	loc_10040 ; USA finish line style
+	dc.l	Usa_bg_palette ; USA background palette
+	dc.l	Usa_sideline_style ; USA sideline style
+	dc.l	Usa_road_style ; USA road style data
+	dc.l	Usa_finish_line_style ; USA finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7168 ; track length
 	dc.l	loc_72F8C ; USA signs data
@@ -21838,17 +21902,17 @@ Track_data:
 	dc.l	loc_72E88 ; USA slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_72E9C ; USA physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD28 ; USA BCD lap-time record pointer (Track_lap_time_records + $28)
-	dc.l	loc_1025C ; USA per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Canada_lap_targets ; USA per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Canada
 	dc.l	loc_5655C ; Canada tiles used for minimap
 	dc.l	loc_6841A ; Canada tiles used used for background
 	dc.l	loc_68240 ; Canada background tile mapping
 	dc.l	loc_5669E ; Canada tile mapping for minimap
-	dc.l	loc_FEEC ; Canada background palette
-	dc.l	loc_1004A ; Canada sideline style
-	dc.l	loc_10054 ; Canada road style data
-	dc.l	loc_1005E ; Canada finish line style
+	dc.l	Canada_bg_palette ; Canada background palette
+	dc.l	Canada_sideline_style ; Canada sideline style
+	dc.l	Canada_road_style ; Canada road style data
+	dc.l	Canada_finish_line_style ; Canada finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6720 ; track length
 	dc.l	loc_73546 ; Canada signs data
@@ -21858,17 +21922,17 @@ Track_data:
 	dc.l	loc_73404 ; Canada slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_73450 ; Canada physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD30 ; Canada BCD lap-time record pointer (Track_lap_time_records + $30)
-	dc.l	loc_1028A; Canada per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Great_Britain_lap_targets; Canada per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Great Britain
 	dc.l	loc_5568C  ; Great Britain tiles used for minimap
 	dc.l	loc_66FDE  ; Great Britain tiles used used for background
 	dc.l	loc_66E62  ; Great Britain background tile mapping
 	dc.l	loc_55812  ; Great Britain tile mapping for minimap
-	dc.l	loc_FE26  ; Great Britain background palette
-	dc.l	loc_10068 ; Great Britain sideline style
-	dc.l	loc_10072  ; Great Britain road style data
-	dc.l	loc_1007C  ; Great Britain finish line style
+	dc.l	Great_Britain_bg_palette  ; Great Britain background palette
+	dc.l	Great_Britain_sideline_style ; Great Britain sideline style
+	dc.l	Great_Britain_road_style  ; Great Britain road style data
+	dc.l	Great_Britain_finish_line_style  ; Great Britain finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6912 ; track length
 	dc.l	loc_71F98 ; Great Britain signs data
@@ -21878,17 +21942,17 @@ Track_data:
 	dc.l	loc_71E8C ; Great Britain slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_71EAE; Great Britain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD38 ; Great Britain BCD lap-time record pointer (Track_lap_time_records + $38)
-	dc.l	loc_102B8; Great Britain per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Italy_lap_targets; Great Britain per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Italy
 	dc.l	loc_566BC ; Italy tiles used for minimap
 	dc.l	loc_651F0 ; Italy tiles used used for background
 	dc.l	loc_65090 ; Italy background tile mapping
 	dc.l	loc_5681A ; Italy tile mapping for minimap
-	dc.l	loc_FF04-2 ; Italy background palette
-	dc.l	loc_10086 ; Italy sideline style
-	dc.l	loc_10090 ; Italy road style data
-	dc.l	loc_1009A ; Italy finish line style
+	dc.l	Italy_bg_palette-2 ; Italy background palette
+	dc.l	Italy_sideline_style ; Italy sideline style
+	dc.l	Italy_road_style ; Italy road style data
+	dc.l	Italy_finish_line_style ; Italy finish line style
 	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7616 ; track length
 	dc.l	loc_737A0 ; Italy signs data
@@ -21898,17 +21962,17 @@ Track_data:
 	dc.l	loc_7365C ; Italy slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_73694 ; Italy physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD40 ; Italy BCD lap-time record pointer (Track_lap_time_records + $40)
-	dc.l	loc_102E6 ; Italy per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Spain_lap_targets ; Italy per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Portugal
 	dc.l	loc_55D3A ; Portugal tiles used for minimap
 	dc.l	loc_6D3A2 ; Portugal tiles used used for background
 	dc.l	loc_6D1AE ; Portugal background tile mapping
 	dc.l	loc_55ED2 ; Portugal tile mapping for minimap
-	dc.l	loc_FE7E ; Portugal background palette
-	dc.l	loc_100A4 ; Portugal sideline style
-	dc.l	loc_100AE ; Portugal road style data
-	dc.l	loc_100B8 ; Portugal finish line style
+	dc.l	Portugal_bg_palette ; Portugal background palette
+	dc.l	Portugal_sideline_style ; Portugal sideline style
+	dc.l	Portugal_road_style ; Portugal road style data
+	dc.l	Portugal_finish_line_style ; Portugal finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6592 ; track length
 	dc.l	loc_72922 ; Portugal signs data
@@ -21918,17 +21982,17 @@ Track_data:
 	dc.l	loc_72806 ; Portugal slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_7283C ; Portugal physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD48 ; Portugal BCD lap-time record pointer (Track_lap_time_records + $48)
-	dc.l	loc_10314 ; Portugal per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Mexico_lap_targets ; Portugal per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Spain
 	dc.l	loc_55EF2 ; Spain tiles used for minimap
 	dc.l	loc_66488 ; Spain tiles used used for background
 	dc.l	loc_6630E ; Spain background tile mapping
 	dc.l	loc_560BC ; Spain tile mapping for minimap
-	dc.l	loc_FE94 ; Spain background palette
-	dc.l	loc_100C2 ; Spain sideline style
-	dc.l	loc_100CC ; Spain road style data
-	dc.l	loc_100D6 ; Spain finish line style
+	dc.l	Spain_bg_palette ; Spain background palette
+	dc.l	Spain_sideline_style ; Spain sideline style
+	dc.l	Spain_road_style ; Spain road style data
+	dc.l	Spain_finish_line_style ; Spain finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6784 ; track length
 	dc.l	loc_72B7A ; Spain signs data
@@ -21938,17 +22002,17 @@ Track_data:
 	dc.l	loc_72A3C ; Spain slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_72A84 ; Spain physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD50 ; Spain BCD lap-time record pointer (Track_lap_time_records + $50)
-	dc.l	loc_10342 ; Spain per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Japan_lap_targets ; Spain per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Mexico
 	dc.l	loc_553B6 ; Mexico tiles used for minimap
 	dc.l	loc_6C9E6 ; Mexico tiles used used for background
 	dc.l	loc_6C908 ; Mexico background tile mapping
 	dc.l	loc_554E8 ; Mexico tile mapping for minimap
-	dc.l	loc_FDFA ; Mexico background palette
-	dc.l	loc_100E0 ; Mexico sideline style
-	dc.l	loc_100EA ; Mexico road style data
-	dc.l	loc_100F4 ; Mexico finish line style
+	dc.l	Mexico_bg_palette ; Mexico background palette
+	dc.l	Mexico_sideline_style ; Mexico sideline style
+	dc.l	Mexico_road_style ; Mexico road style data
+	dc.l	Mexico_finish_line_style ; Mexico finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6848 ; track length
 	dc.l	loc_71BBA ; Mexico signs data
@@ -21958,17 +22022,17 @@ Track_data:
 	dc.l	loc_71AC0 ; Mexico slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_71AD4 ; Mexico physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD58 ; Mexico BCD lap-time record pointer (Track_lap_time_records + $58)
-	dc.l	loc_10370 ; Mexico per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Australia_lap_targets ; Mexico per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Japan
 	dc.l	loc_563B6 ; Japan tiles used for minimap
 	dc.l	loc_649FC ; Japan tiles used used for background
 	dc.l	loc_64884 ; Japan background tile mapping
 	dc.l	loc_56542 ; Japan tile mapping for minimap
-	dc.l	loc_FED6 ; Japan background palette
-	dc.l	loc_100FE ; Japan sideline style
-	dc.l	loc_10108 ; Japan road style data
-	dc.l	loc_10112 ; Japan finish line style
+	dc.l	Japan_bg_palette ; Japan background palette
+	dc.l	Japan_sideline_style ; Japan sideline style
+	dc.l	Japan_road_style ; Japan road style data
+	dc.l	Japan_finish_line_style ; Japan finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7552 ; track length
 	dc.l	loc_73264 ; Japan signs data
@@ -21978,17 +22042,17 @@ Track_data:
 	dc.l	loc_730E6 ; Japan slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_7314E ; Japan physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD60 ; Japan BCD lap-time record pointer (Track_lap_time_records + $60)
-	dc.l	loc_1039E ; Japan per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Portugal_lap_targets ; Japan per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Belgium
 	dc.l	loc_55B8A ; Belgium tiles used for minimap
 	dc.l	loc_6B708 ; Belgium tiles used used for background
 	dc.l	loc_6B51A ; Belgium background tile mapping
 	dc.l	loc_55D18 ; Belgium tile mapping for minimap
-	dc.l	loc_FE68 ; Belgium background palette
-	dc.l	loc_1011C ; Belgium sideline style
-	dc.l	loc_10126 ; Belgium road style data
-	dc.l	loc_10130 ; Belgium finish line style
+	dc.l	Belgium_bg_palette ; Belgium background palette
+	dc.l	Belgium_sideline_style ; Belgium sideline style
+	dc.l	Belgium_road_style ; Belgium road style data
+	dc.l	Belgium_finish_line_style ; Belgium finish line style
 	dc.w	$0001 ; horizon override flag (1 = special sky colour patch applied each frame)
 	dc.w	7744 ; track length
 	dc.l	loc_726D0 ; Belgium signs data
@@ -21998,17 +22062,17 @@ Track_data:
 	dc.l	loc_72578 ; Belgium slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_725BC ; Belgium physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD68 ; Belgium BCD lap-time record pointer (Track_lap_time_records + $68)
-	dc.l	loc_103CC ; Belgium per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Belgium_lap_targets ; Belgium per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Australia
 	dc.l	loc_560D4 ; Australia tiles used for minimap
 	dc.l	loc_69758 ; Australia tiles used used for background
 	dc.l	loc_695FE ; Australia background tile mapping
 	dc.l	loc_56258 ; Australia tile mapping for minimap
-	dc.l	loc_FEAA ; Australia background palette
-	dc.l	loc_1013A ; Australia sideline style
-	dc.l	loc_10144 ; Australia road style data
-	dc.l	loc_1014E ; Australia finish line style
+	dc.l	Australia_bg_palette ; Australia background palette
+	dc.l	Australia_sideline_style ; Australia sideline style
+	dc.l	Australia_road_style ; Australia road style data
+	dc.l	Australia_finish_line_style ; Australia finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6080 ; track length
 	dc.l	loc_72D78 ; Australia signs data
@@ -22018,17 +22082,17 @@ Track_data:
 	dc.l	loc_72C86 ; Australia slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_72CA8 ; Australia physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD70 ; Australia BCD lap-time record pointer (Track_lap_time_records + $70)
-	dc.l	loc_103FA ; Australia per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Usa_lap_targets ; Australia per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco
 	dc.l	loc_551B4 ; Monaco tiles used for minimap
 	dc.l	loc_6DCF8 ; Monaco tiles used used for background
 	dc.l	loc_6DA8A ; Monaco background tile mapping
 	dc.l	loc_5539C ; Monaco tile mapping for minimap
-	dc.l	loc_FDE4 ; Monaco background palette
-	dc.l	loc_10158 ; Monaco sideline style
-	dc.l	loc_10162 ; Monaco road style data
-	dc.l	loc_1016C ; Monaco finish line style
+	dc.l	Monaco_bg_palette ; Monaco background palette
+	dc.l	Monaco_sideline_style ; Monaco sideline style
+	dc.l	Monaco_road_style ; Monaco road style data
+	dc.l	Monaco_finish_line_style ; Monaco finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	6144 ; track length
 	dc.l	loc_719AC ; Monaco signs data
@@ -22038,17 +22102,17 @@ Track_data:
 	dc.l	loc_718AE ; Monaco slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_718D6 ; Monaco physical slope data (decoded to Physical_slope_data; hill RPM modifier)
 	dc.l	$FFFFFD78 ; Monaco BCD lap-time record pointer (Track_lap_time_records + $78)
-	dc.l	loc_10428 ; Monaco per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Monaco_lap_targets ; Monaco per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco (Arcade preliminary)
 	dc.l	loc_54CB2 ; Monaco (Arcade preliminary) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade preliminary) tiles used used for background
 	dc.l	loc_63910 ; Monaco (Arcade preliminary) background tile mapping
 	dc.l	loc_54E6A ; Monaco (Arcade preliminary) tile mapping for minimap
-	dc.l	loc_FF2E ; Monaco (Arcade preliminary) background palette
-	dc.l	loc_FF5C-2 ; Monaco (Arcade preliminary) sideline style
-	dc.l	loc_FF64 ; Monaco (Arcade preliminary) road style data
-	dc.l	loc_FF6E ; Monaco (Arcade preliminary) finish line style
+	dc.l	Monaco_arcade_bg_palette ; Monaco (Arcade preliminary) background palette
+	dc.l	Monaco_arcade_sideline_style-2 ; Monaco (Arcade preliminary) sideline style
+	dc.l	Monaco_arcade_road_style ; Monaco (Arcade preliminary) road style data
+	dc.l	Monaco_arcade_finish_line_style ; Monaco (Arcade preliminary) finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	3392 ; track length
 	dc.l	loc_73B26 ; Monaco (Arcade preliminary) signs data
@@ -22058,17 +22122,17 @@ Track_data:
 	dc.l	loc_73A8A ; Monaco (Arcade preliminary) slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_73AAC ; Monaco (Arcade preliminary) physical slope data (decoded to Physical_slope_data)
 	dc.l	$FFFFFD80 ; Monaco (Arcade preliminary) BCD lap-time record pointer (Track_lap_time_records + $80)
-	dc.l	loc_10456 ; Monaco (Arcade preliminary) per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Monaco_arcade_lap_targets ; Monaco (Arcade preliminary) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco (Arcade main)
 	dc.l	loc_54E88 ; Monaco (Arcade main) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade main) tiles used used for background
 	dc.l	loc_63910 ; Monaco (Arcade main) background tile mapping
 	dc.l	loc_55012 ; Monaco (Arcade main) tile mapping for minimap
-	dc.l	loc_FF2E  ; Monaco (Arcade main) background palette
-	dc.l	loc_FF5C-2 ; Monaco (Arcade main) sideline style
-	dc.l	loc_FF64 ; Monaco (Arcade main) road style data
-	dc.l	loc_FF6E ; Monaco (Arcade main) finish line style
+	dc.l	Monaco_arcade_bg_palette  ; Monaco (Arcade main) background palette
+	dc.l	Monaco_arcade_sideline_style-2 ; Monaco (Arcade main) sideline style
+	dc.l	Monaco_arcade_road_style ; Monaco (Arcade main) road style data
+	dc.l	Monaco_arcade_finish_line_style ; Monaco (Arcade main) finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7616 ; track length
 	dc.l	loc_73D7C ; Monaco (Arcade main) signs data
@@ -22078,17 +22142,17 @@ Track_data:
 	dc.l	loc_73C16 ; Monaco (Arcade main) slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_73C66 ; Monaco (Arcade main) physical slope data (decoded to Physical_slope_data)
 	dc.l	$FFFFFD88 ; Monaco (Arcade main) BCD lap-time record pointer (Track_lap_time_records + $88)
-	dc.l	loc_10456 ; Monaco (Arcade main) per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Monaco_arcade_lap_targets ; Monaco (Arcade main) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Monaco (Arcade Wet Condition)
 	dc.l	loc_54E88 ; Monaco (Arcade Wet Condition) tiles used for minimap
 	dc.l	loc_63ECA ; Monaco (Arcade Wet Condition) tiles used used for background
 	dc.l	loc_63C10 ; Monaco (Arcade Wet Condition) background tile mapping
 	dc.l	loc_55012 ; Monaco (Arcade Wet Condition) tile mapping for minimap
-	dc.l	loc_FF44 ; Monaco (Arcade Wet Condition) background palette
-	dc.l	loc_FF78 ; Monaco (Arcade Wet Condition) sideline style
-	dc.l	loc_FF82 ; Monaco (Arcade Wet Condition) road style data
-	dc.l	loc_FF8C ; Monaco (Arcade Wet Condition) finish line style
+	dc.l	Monaco_arcade_wet_bg_palette ; Monaco (Arcade Wet Condition) background palette
+	dc.l	Monaco_arcade_wet_sideline_style ; Monaco (Arcade Wet Condition) sideline style
+	dc.l	Monaco_arcade_wet_road_style ; Monaco (Arcade Wet Condition) road style data
+	dc.l	Monaco_arcade_wet_finish_line_style ; Monaco (Arcade Wet Condition) finish line style
 	dc.w	$0000 ; horizon override flag (0 = default sky)
 	dc.w	7616 ; track length
 	dc.l	loc_73D7C ; Monaco (Arcade Wet Condition) signs data
@@ -22098,40 +22162,56 @@ Track_data:
 	dc.l	loc_73C16 ; Monaco (Arcade Wet Condition) slope data (visual; decoded to Visual_slope_data)
 	dc.l	loc_73C66 ; Monaco (Arcade Wet Condition) physical slope data (decoded to Physical_slope_data)
 	dc.l	$FFFFFD88 ; Monaco (Arcade Wet Condition) BCD lap-time record pointer (shares Monaco Arcade main)
-	dc.l	loc_10456 ; Monaco (Arcade Wet Condition) per-lap target time table (15 × 3-byte BCD entries)
+	dc.l	Monaco_arcade_lap_targets ; Monaco (Arcade Wet Condition) per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002f0038 ; steering divisors: straight=$002F (47), curve=$0038 (56) — wet tyres, reduced sensitivity
-loc_FDCA:
+;Track_sky_palette_ptr
+Track_sky_palette_ptr:
 	dc.l	$0A1014F0
-loc_FDCE:
+;San_Marino_bg_palette
+San_Marino_bg_palette:
 	dc.w	$0EC8, $0CCA, $0A86, $0664, $0242, $0244, $0488, $06AA, $08CC, $026A, $0000
-loc_FDE4:
+;Monaco_bg_palette
+Monaco_bg_palette:
 	dc.w	$0EEA, $0EEE, $0CCC, $0888, $0EC8, $0EA6, $048A, $08AA, $02A8, $0286, $0464
-loc_FDFA:
+;Mexico_bg_palette
+Mexico_bg_palette:
 	dc.w	$0CC8, $06AC, $046C, $0264, $0A86, $0888, $0CCC, $0EEE, $0CCA, $0468, $0244
-loc_FE10:
+;France_bg_palette
+France_bg_palette:
 	dc.w	$0EC8, $0CCA, $0ACC, $0AAA, $0664, $0486, $0CA8, $0CEE, $046A, $0886, $0ECA
-loc_FE26:
+;Great_Britain_bg_palette
+Great_Britain_bg_palette:
 	dc.w	$0CCA, $0464, $0486, $0442, $0664, $0264, $0688, $0488, $0888, $0AAA, $0246
-loc_FE3C:
+;West_Germany_bg_palette
+West_Germany_bg_palette:
 	dc.w	$0EC6, $0442, $0264, $0664, $0686, $0CA6, $0EC8, $0266, $0ECA, $0086, $0000
-loc_FE52:
+;Hungary_bg_palette
+Hungary_bg_palette:
 	dc.w	$0EC8, $08CE, $0ECA, $0664, $0AA8, $0288, $06AA, $0466, $0CEE, $0264, $0242
-loc_FE68:
+;Belgium_bg_palette
+Belgium_bg_palette:
 	dc.w	$0EE6, $0EEA, $0664, $0886, $0AA8, $0466, $0688, $0286, $0444, $0EE8, $0000
-loc_FE7E:
+;Portugal_bg_palette
+Portugal_bg_palette:
 	dc.w	$0ECA, $0ECC, $06AC, $0886, $0000, $0888, $0CCC, $0244, $0288, $0AAA, $066C
-loc_FE94:
+;Spain_bg_palette
+Spain_bg_palette:
 	dc.w	$0EE8, $0EEC, $06AC, $0EEA, $0044, $0466, $048A, $08CE, $0066, $0888, $0688
-loc_FEAA:
+;Australia_bg_palette
+Australia_bg_palette:
 	dc.w	$0EC6, $0CC8, $0CCA, $0486, $0CCC, $0888, $0666, $0444, $0AAA, $0864, $066C
-loc_FEC0:
+;Usa_bg_palette
+Usa_bg_palette:
 	dc.w	$0EE4, $0EE8, $0EEA, $0486, $0EEE, $0888, $0666, $0444, $0AAA, $0ACC, $068A
-loc_FED6:
+;Japan_bg_palette
+Japan_bg_palette:
 	dc.w	$0CA8, $0264, $0688, $0442, $0864, $0666, $0AAA, $0CCC, $0CAA, $0286, $0888
-loc_FEEC:
+;Canada_bg_palette
+Canada_bg_palette:
 	dc.w	$0ECA, $0666, $0286, $0EAA, $0AAA, $0CCA, $0CCC, $0888, $068A, $0644
 	dc.l	$02660EEA
-loc_FF04:
+;Italy_bg_palette
+Italy_bg_palette:
 	dc.b	$06
 	dc.b	$64
 	dc.b	$02, $86
@@ -22141,7 +22221,8 @@ loc_FF04:
 	dc.l	$066C0ACC
 	dc.w	$0888
 	dc.w	$0EEC
-loc_FF18:
+;Brazil_bg_palette
+Brazil_bg_palette:
 	dc.w	$0EC8
 	dc.b	$0E
 	dc.b	$CA
@@ -22152,7 +22233,8 @@ loc_FF18:
 	dc.w	$0888
 	dc.w	$0AAA
 	dc.l	$0CCC0EEE
-loc_FF2E:
+;Monaco_arcade_bg_palette
+Monaco_arcade_bg_palette:
 	dc.w	$0EEA
 	dc.w	$0EEE
 	dc.b	$0C, $CC, $08
@@ -22166,7 +22248,8 @@ loc_FF2E:
 	dc.b	$02
 	dc.b	$86
 	dc.b	$04, $64
-loc_FF44:
+;Monaco_arcade_wet_bg_palette
+Monaco_arcade_wet_bg_palette:
 	dc.w	$0A88, $0CCC
 	dc.w	$0888
 	dc.b	$04
@@ -22177,185 +22260,257 @@ loc_FF44:
 	dc.b	$04, $66, $02, $64
 	dc.w	$0042
 	dc.l	$002000A0
-loc_FF5C:
+;Monaco_arcade_sideline_style
+Monaco_arcade_sideline_style:
 	dc.w	$0E00
 	dc.w	$0EEE
 	dc.b	$06, $66, $06, $66
-loc_FF64:
+;Monaco_arcade_road_style
+Monaco_arcade_road_style:
 	dc.w	$0080, $0EEE, $0EEE, $0EEE, $0666
-loc_FF6E:
+;Monaco_arcade_finish_line_style
+Monaco_arcade_finish_line_style:
 	dc.w	$0080, $0EEE, $0EEE, $0CCC, $0CCC
-loc_FF78:
+;Monaco_arcade_wet_sideline_style
+Monaco_arcade_wet_sideline_style:
 	dc.w	$0080, $0C00, $0CCC, $0444, $0444
-loc_FF82:
+;Monaco_arcade_wet_road_style
+Monaco_arcade_wet_road_style:
 	dc.w	$0060, $0CCC, $0CCC, $0CCC, $0444
-loc_FF8C:
+;Monaco_arcade_wet_finish_line_style
+Monaco_arcade_wet_finish_line_style:
 	dc.w	$0060, $0CCC, $0CCC, $0AAA, $0AAA
-loc_FF96:
+;San_Marino_sideline_style
+San_Marino_sideline_style:
 	dc.w	$02A0, $022C, $0EEE, $0666, $0666
-loc_FFA0:
+;San_Marino_road_style
+San_Marino_road_style:
 	dc.w	$0480, $0EEE, $0EEE, $0EEE, $0666
-loc_FFAA:
+;San_Marino_finish_line_style
+San_Marino_finish_line_style:
 	dc.w	$0480, $0EEE, $0EEE, $0CCC, $0CCC
-loc_FFB4:
+;Brazil_sideline_style
+Brazil_sideline_style:
 	dc.w	$04A4, $022C, $0EEE, $0666, $0666
-loc_FFBE:
+;Brazil_road_style
+Brazil_road_style:
 	dc.w	$0282, $0EEE, $0EEE, $0466, $0466
-loc_FFC8:
+;Brazil_finish_line_style
+Brazil_finish_line_style:
 	dc.w	$0282, $0EEE, $0EEE, $0CCC, $0CCC
-loc_FFD2:
+;France_sideline_style
+France_sideline_style:
 	dc.w	$02A2, $0E00, $0EEE, $0888, $0888
-loc_FFDC:
+;France_road_style
+France_road_style:
 	dc.w	$0484, $0EEE, $0EEE, $0EEE, $0888
-loc_FFE6:
+;France_finish_line_style
+France_finish_line_style:
 	dc.w	$0484, $0EEE, $0EEE, $0CCC, $0CCC
-loc_FFF0:
+;Hungary_sideline_style
+Hungary_sideline_style:
 	dc.w	$00A8, $022C, $0EEE, $0466, $0466
-loc_FFFA:
+;Hungary_road_style
+Hungary_road_style:
 	dc.w	$0086, $0EEE, $0EEE, $0666, $0666
-loc_10004:
+;Hungary_finish_line_style
+Hungary_finish_line_style:
 	dc.w	$0086, $0EEE, $0EEE, $0CCC, $0CCC
-loc_1000E:
+;West_Germany_sideline_style
+West_Germany_sideline_style:
 	dc.w	$00A2, $0E00, $0EEE, $0666, $0666
-loc_10018:
+;West_Germany_road_style
+West_Germany_road_style:
 	dc.w	$0482, $0EEE, $0EEE, $0EEE, $0666
-loc_10022:
+;West_Germany_finish_line_style
+West_Germany_finish_line_style:
 	dc.w	$0482, $0EEE, $0EEE, $0CCC, $0CCC
-loc_1002C:
+;Usa_sideline_style
+Usa_sideline_style:
 	dc.w	$08AA, $044C, $0EEE, $0666, $0666
-loc_10036:
+;Usa_road_style
+Usa_road_style:
 	dc.w	$0888, $0EEE, $0EEE, $0EEE, $0666
-loc_10040:
+;Usa_finish_line_style
+Usa_finish_line_style:
 	dc.w	$0888, $0EEE, $0EEE, $0CCC, $0CCC
-loc_1004A:
+;Canada_sideline_style
+Canada_sideline_style:
 	dc.w	$02A0, $022C, $0EEE, $0888, $0888
-loc_10054:
+;Canada_road_style
+Canada_road_style:
 	dc.w	$0280, $0EEE, $0EEE, $0888, $0888
-loc_1005E:
+;Canada_finish_line_style
+Canada_finish_line_style:
 	dc.w	$0280, $0EEE, $0EEE, $0CCC, $0CCC
-loc_10068:
+;Great_Britain_sideline_style
+Great_Britain_sideline_style:
 	dc.w	$00A0, $0222, $0EEE, $0666, $0666
-loc_10072:
+;Great_Britain_road_style
+Great_Britain_road_style:
 	dc.w	$0480, $0EEE, $0EEE, $0EEE, $0666
-loc_1007C:
+;Great_Britain_finish_line_style
+Great_Britain_finish_line_style:
 	dc.w	$0480, $0EEE, $0EEE, $0CCC, $0CCC
-loc_10086:
+;Italy_sideline_style
+Italy_sideline_style:
 	dc.w	$02A0, $022C, $0EEE, $0666, $0666
-loc_10090:
+;Italy_road_style
+Italy_road_style:
 	dc.w	$0480, $0EEE, $0EEE, $0EEE, $0666
-loc_1009A:
+;Italy_finish_line_style
+Italy_finish_line_style:
 	dc.w	$0480, $0EEE, $0EEE, $0CCC, $0CCC
-loc_100A4:
+;Portugal_sideline_style
+Portugal_sideline_style:
 	dc.w	$02AA, $022A, $0EEE, $0688, $0688
-loc_100AE:
+;Portugal_road_style
+Portugal_road_style:
 	dc.w	$06AC, $0EEE, $0EEE, $0EEE, $0688
-loc_100B8:
+;Portugal_finish_line_style
+Portugal_finish_line_style:
 	dc.w	$06AC, $0EEE, $0EEE, $0CCC, $0CCC
-loc_100C2:
+;Spain_sideline_style
+Spain_sideline_style:
 	dc.w	$04AA, $0C22, $0EEE, $0888, $0888
-loc_100CC:
+;Spain_road_style
+Spain_road_style:
 	dc.w	$0488, $0EEE, $0EEE, $0EEE, $0888
-loc_100D6:
+;Spain_finish_line_style
+Spain_finish_line_style:
 	dc.w	$0488, $0EEE, $0EEE, $0CCC, $0CCC
-loc_100E0:
+;Mexico_sideline_style
+Mexico_sideline_style:
 	dc.w	$00A8, $024E, $0EEE, $0888, $0888
-loc_100EA:
+;Mexico_road_style
+Mexico_road_style:
 	dc.w	$0288, $0EEE, $0EEE, $0688, $0688
-loc_100F4:
+;Mexico_finish_line_style
+Mexico_finish_line_style:
 	dc.w	$0288, $0EEE, $0EEE, $0CCC, $0CCC
-loc_100FE:
+;Japan_sideline_style
+Japan_sideline_style:
 	dc.w	$0086, $022C, $0EEE, $0666, $0666
-loc_10108:
+;Japan_road_style
+Japan_road_style:
 	dc.w	$0284, $0EEE, $0EEE, $0666, $0666
-loc_10112:
+;Japan_finish_line_style
+Japan_finish_line_style:
 	dc.w	$0284, $0EEE, $0EEE, $0CCC, $0CCC
-loc_1011C:
+;Belgium_sideline_style
+Belgium_sideline_style:
 	dc.w	$04A2, $022C, $0EEE, $0666, $0666
-loc_10126:
+;Belgium_road_style
+Belgium_road_style:
 	dc.w	$0480, $0EEE, $0EEE, $0EEE, $0666
-loc_10130:
+;Belgium_finish_line_style
+Belgium_finish_line_style:
 	dc.w	$0480, $0EEE, $0EEE, $0CCC, $0CCC
-loc_1013A:
+;Australia_sideline_style
+Australia_sideline_style:
 	dc.w	$00A2, $0C22, $0EEE, $0666, $0666
-loc_10144:
+;Australia_road_style
+Australia_road_style:
 	dc.w	$0280, $0EEE, $0EEE, $0EEE, $0666
-loc_1014E:
+;Australia_finish_line_style
+Australia_finish_line_style:
 	dc.w	$0280, $0EEE, $0EEE, $0CCC, $0CCC
-loc_10158:
+;Monaco_sideline_style
+Monaco_sideline_style:
 	dc.w	$00A0, $022A, $0EEE, $0888, $0888
-loc_10162:
+;Monaco_road_style
+Monaco_road_style:
 	dc.w	$0480, $0EEE, $0EEE, $0EEE, $0888
-loc_1016C:
+;Monaco_finish_line_style
+Monaco_finish_line_style:
 	dc.w	$0480, $0EEE, $0EEE, $0CCC, $0CCC
-loc_10176:
+;San_Marino_lap_targets
+San_Marino_lap_targets:
 	dc.b	$00, $47, $50, $00, $47, $65, $00, $47, $86, $00, $48, $55, $00, $49, $75, $00, $50, $51, $00, $52, $36, $00, $53, $12, $00, $54, $23, $00, $55, $45, $00, $56
 	dc.b	$28, $00, $57, $11, $00, $57, $82, $00, $59, $55, $99, $00, $00
 	dc.b	$00
-loc_101A4:
+;Brazil_lap_targets
+Brazil_lap_targets:
 	dc.b	$00, $47, $93, $00, $48, $10, $00, $48, $32, $00, $49, $01, $00, $50, $22, $00, $51, $84, $00, $53, $62, $00, $54, $74, $00, $55, $97, $00, $57, $31, $00, $59
 	dc.b	$14, $01, $01, $02, $01, $02, $88, $01, $04, $75, $99, $00, $00
 	dc.b	$00
-loc_101D2:
+;France_lap_targets
+France_lap_targets:
 	dc.b	$00, $41, $15, $00, $41, $28, $00, $41, $47, $00, $41, $76, $00, $42, $97, $00, $44, $03, $00, $45, $20, $00, $46, $11, $00, $47, $09, $00, $48, $48, $00, $49
 	dc.b	$32, $00, $50, $25, $00, $51, $42, $00, $53, $25, $99, $00, $00
 	dc.b	$00
-loc_10200:
+;Hungary_lap_targets
+Hungary_lap_targets:
 	dc.b	$00, $45, $55, $00, $45, $69, $00, $45, $90, $00, $46, $57, $00, $47, $72, $00, $48, $91, $00, $50, $04, $00, $51, $29, $00, $52, $22, $00, $52, $87, $00, $54
 	dc.b	$36, $00, $54, $67, $00, $55, $79, $00, $58, $00, $99, $00, $00
 	dc.b	$00
-loc_1022E:
+;West_Germany_lap_targets
+West_Germany_lap_targets:
 	dc.b	$00, $50, $75, $00, $50, $91, $00, $51, $13, $00, $51, $62, $00, $52, $50, $00, $53, $55, $00, $54, $71, $00, $55, $84, $00, $56, $97, $00, $58, $02, $00, $59
 	dc.b	$14, $01, $00, $25, $01, $01, $38, $01, $02, $40, $99, $00, $00
 	dc.b	$00
-loc_1025C:
+;Canada_lap_targets
+Canada_lap_targets:
 	dc.b	$00, $48, $90, $00, $49, $06, $00, $49, $27, $00, $49, $61, $00, $50, $71, $00, $51, $77, $00, $52, $86, $00, $53, $97, $00, $55, $16, $00, $56, $33, $00, $57
 	dc.b	$24, $00, $58, $22, $01, $00, $36, $01, $02, $65, $99, $00, $00
 	dc.b	$00
-loc_1028A:
+;Great_Britain_lap_targets
+Great_Britain_lap_targets:
 	dc.b	$00, $45, $90, $00, $46, $04, $00, $46, $25, $00, $46, $59, $00, $47, $62, $00, $48, $92, $00, $49, $84, $00, $51, $08, $00, $52, $21, $00, $53, $43, $00, $54
 	dc.b	$62, $00, $55, $76, $00, $57, $47, $00, $59, $45, $99, $00, $00
 	dc.b	$00
-loc_102B8:
+;Italy_lap_targets
+Italy_lap_targets:
 	dc.b	$00, $47, $45, $00, $47, $60, $00, $47, $81, $00, $48, $14, $00, $48, $64, $00, $48, $86, $00, $49, $21, $00, $49, $69, $00, $50, $25, $00, $50, $64, $00, $52
 	dc.b	$31, $00, $53, $07, $00, $54, $18, $00, $55, $25, $99, $00, $00
 	dc.b	$00
-loc_102E6:
+;Spain_lap_targets
+Spain_lap_targets:
 	dc.b	$00, $51, $35, $00, $51, $51, $00, $51, $74, $00, $52, $09, $00, $52, $83, $00, $53, $24, $00, $53, $76, $00, $54, $78, $00, $55, $87, $00, $57, $01, $00, $57
 	dc.b	$74, $00, $58, $56, $00, $59, $86, $01, $01, $00, $99, $00, $00
 	dc.b	$00
-loc_10314:
+;Mexico_lap_targets
+Mexico_lap_targets:
 	dc.b	$00, $44, $80, $00, $44, $94, $00, $45, $14, $00, $45, $80, $00, $46, $50, $00, $47, $70, $00, $48, $81, $00, $49, $85, $00, $51, $16, $00, $52, $23, $00, $53
 	dc.b	$75, $00, $55, $47, $00, $57, $36, $00, $59, $40, $99, $00, $00
 	dc.b	$00
-loc_10342:
+;Japan_lap_targets
+Japan_lap_targets:
 	dc.b	$00, $47, $45, $00, $47, $60, $00, $47, $81, $00, $48, $50, $00, $49, $69, $00, $50, $80, $00, $52, $11, $00, $53, $73, $00, $54, $94, $00, $57, $28, $00, $59
 	dc.b	$31, $01, $01, $10, $01, $03, $02, $01, $04, $95, $99, $00, $00
 	dc.b	$00
-loc_10370:
+;Australia_lap_targets
+Australia_lap_targets:
 	dc.b	$00, $46, $20, $00, $46, $36, $00, $46, $55, $00, $46, $87, $00, $47, $58, $00, $48, $69, $00, $49, $76, $00, $50, $92, $00, $52, $05, $00, $53, $19, $00, $54
 	dc.b	$23, $00, $55, $41, $00, $56, $19, $00, $57, $30, $99, $00, $00
 	dc.b	$00
-loc_1039E:
+;Portugal_lap_targets
+Portugal_lap_targets:
 	dc.b	$00, $52, $95, $00, $53, $11, $00, $53, $35, $00, $53, $74, $00, $54, $86, $00, $55, $71, $00, $56, $92, $00, $58, $50, $01, $00, $61, $01, $02, $90, $01, $05
 	dc.b	$25, $01, $07, $18, $01, $09, $42, $01, $11, $60, $99, $00, $00
 	dc.b	$00
-loc_103CC:
+;Belgium_lap_targets
+Belgium_lap_targets:
 	dc.b	$00, $52, $80, $00, $52, $96, $00, $53, $20, $00, $53, $58, $00, $53, $96, $00, $55, $27, $00, $55, $93, $00, $57, $03, $00, $58, $97, $01, $00, $20, $01, $01
 	dc.b	$54, $01, $03, $63, $01, $05, $77, $01, $09, $00, $99, $00, $00
 	dc.b	$00
-loc_103FA:
+;Usa_lap_targets
+Usa_lap_targets:
 	dc.b	$00, $41, $50, $00, $41, $66, $00, $41, $83, $00, $42, $51, $00, $43, $66, $00, $44, $73, $00, $45, $94, $00, $47, $13, $00, $48, $20, $00, $49, $49, $00, $50
 	dc.b	$54, $00, $52, $57, $00, $54, $62, $00, $56, $65, $99, $00, $00
 	dc.b	$00
-loc_10428:
+;Monaco_lap_targets
+Monaco_lap_targets:
 	dc.b	$00, $45, $20, $00, $45, $36, $00, $45, $55, $00, $46, $71, $00, $47, $89, $00, $48, $92, $00, $50, $08, $00, $51, $22, $00, $52, $39, $00, $53, $58, $00, $55
 	dc.b	$86, $00, $58, $05, $01, $00, $16, $01, $02, $35, $99, $00, $00
 	dc.b	$00
-loc_10456:
+;Monaco_arcade_lap_targets
+Monaco_arcade_lap_targets:
 	dc.b	$00, $32, $00, $00, $32, $18, $00, $32, $43, $00, $32, $70, $00, $32, $85, $00, $33, $46, $00, $33, $73, $00, $34, $16, $00, $34, $75, $00, $35, $42, $00, $35
 	dc.b	$91, $00, $36, $72, $00, $38, $88, $00, $40, $41, $99, $00, $00
 	dc.b	$00
-loc_10484:
+;Rival_sprite_frames_depth0
+Rival_sprite_frames_depth0:
 	dc.l	loc_10B7C
 	dc.l	loc_10B6E
 	dc.l	loc_10B60
@@ -22365,7 +22520,8 @@ loc_10484:
 	dc.l	loc_10AF8
 	dc.l	loc_10AD2
 	dc.l	loc_10AAC
-loc_104A8:
+;Rival_sprite_frames_depth_m4
+Rival_sprite_frames_depth_m4:
 	dc.l	loc_10C30
 	dc.l	loc_10C28
 	dc.l	loc_10C20
@@ -22375,7 +22531,8 @@ loc_104A8:
 	dc.l	loc_10BDC
 	dc.l	loc_10BBC
 	dc.l	loc_10B84
-loc_104CC:
+;Rival_sprite_frames_depth_p4
+Rival_sprite_frames_depth_p4:
 	dc.l	loc_10DB0
 	dc.l	loc_10DA8
 	dc.l	loc_10DA0
@@ -22385,7 +22542,8 @@ loc_104CC:
 	dc.l	loc_10D5C
 	dc.l	loc_10D3C
 	dc.l	loc_10D04
-loc_104F0:
+;Rival_sprite_frames_depth_m8
+Rival_sprite_frames_depth_m8:
 	dc.l	loc_10CFC
 	dc.l	loc_10CF4
 	dc.l	loc_10CEC
@@ -22395,7 +22553,8 @@ loc_104F0:
 	dc.l	loc_10CA2
 	dc.l	loc_10C76
 	dc.l	loc_10C38
-loc_10514:
+;Rival_sprite_frames_depth_p8
+Rival_sprite_frames_depth_p8:
 	dc.l	loc_10E7C
 	dc.l	loc_10E74
 	dc.l	loc_10E6C
@@ -22405,42 +22564,48 @@ loc_10514:
 	dc.l	loc_10E22
 	dc.l	loc_10DF6
 	dc.l	loc_10DB8
-loc_10538:
+;Ai_sprite_frames_depth_p4
+Ai_sprite_frames_depth_p4:
 	dc.l	loc_10E84
 	dc.l	loc_10E8C
 	dc.l	loc_10E9A
 	dc.l	loc_10EA8
 	dc.l	loc_10EC2
 	dc.l	loc_10ED0
-loc_10550:
+;Ai_sprite_frames_depth_p8
+Ai_sprite_frames_depth_p8:
 	dc.l	loc_10EEA
 	dc.l	loc_10EF2
 	dc.l	loc_10EFA
 	dc.l	loc_10F02
 	dc.l	loc_10F10
 	dc.l	loc_10F18
-loc_10568:
+;Ai_sprite_frames_depth0
+Ai_sprite_frames_depth0:
 	dc.l	loc_10F2C
 	dc.l	loc_10F34
 	dc.l	loc_10F3C
 	dc.l	loc_10F44
 	dc.l	loc_10F52
 	dc.l	loc_10F5A
-loc_10580:
+;Ai_sprite_frames_depth_p12
+Ai_sprite_frames_depth_p12:
 	dc.l	loc_10F6E
 	dc.l	loc_10F76
 	dc.l	loc_10F7E
 	dc.l	loc_10F86
 	dc.l	loc_10F94
 	dc.l	loc_10FA2
-loc_10598:
+;Rival_sprite_frames_depth_p12
+Rival_sprite_frames_depth_p12:
 	dc.l	loc_10FB6
 	dc.l	loc_10FBE
 	dc.l	loc_10FC6
 	dc.l	loc_10FCE
 	dc.l	loc_10FDC
 	dc.l	loc_10FEA
-loc_105B0:
+;Player_car_sprite_frames
+Player_car_sprite_frames:
 	dc.l	Sprite_frame_data_112F2
 	dc.l	Sprite_frame_data_112F2
 	dc.l	Sprite_frame_data_112F2
@@ -22477,10 +22642,12 @@ loc_105B0:
 	dc.l	Sprite_frame_data_113C2
 	dc.l	Sprite_frame_data_113C2
 	dc.l	Sprite_frame_data_113C2
-loc_10640:
+;Player_car_sprite_frames_crash
+Player_car_sprite_frames_crash:
 	dc.l	loc_1266C
 	dc.l	loc_12686
-loc_10648:
+;Player_car_sprite_frames_normal
+Player_car_sprite_frames_normal:
 	dc.l	loc_126AC
 	dc.l	loc_126C6
 	dc.l	loc_10FFE
