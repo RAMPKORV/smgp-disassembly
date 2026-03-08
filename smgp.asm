@@ -12917,8 +12917,8 @@ Sign_handler_dispatch_rts:
 ;loc_8B6E
 Special_sign_dispatch_table:
 	dc.l	Crash_car_obj_init
-	dc.l	loc_AF2A
-	dc.l	loc_B09E
+	dc.l	Crash_approach_obj_init
+	dc.l	Rival_approach_obj_init
 ; Init_ai_sign_pass: initialise the AI sign-pass object (installed via Special_sign_dispatch_table + $C)
 	MOVE.l	#Update_ai_sign_pass_Frame, (A0)
 	MOVE.w	$12(A0), $36(A0)
@@ -15505,10 +15505,10 @@ Queue_gear_diagram_draw:
 	LEA	$00FF5980, A6
 	TST.w	D1
 	BEQ.b	Queue_gear_diagram_draw_Dispatch
-	LEA	loc_B2DA(PC), A6
+	LEA	Crash_approach_tile_data_a(PC), A6
 	TST.w	Shift_type.w
 	BEQ.b	Queue_gear_diagram_draw_Dispatch
-	LEA	loc_B2F8(PC), A6
+	LEA	Crash_approach_tile_data_b(PC), A6
 ;loc_A6DC
 Queue_gear_diagram_draw_Dispatch:
 	JMP	Queue_tilemap_draw
@@ -15946,7 +15946,7 @@ Crash_car_obj_setup:
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
-	LEA	loc_B2D0, A1
+	LEA	Crash_approach_palette_data, A1
 	LEA	$FFFFE9F6.w, A2
 	MOVEQ	#4, D0
 ;loc_ABB4
@@ -16300,7 +16300,8 @@ Crash_shadow_obj_Rts:
 ;loc_AF1C
 Crash_shadow_sprite_data:
 	dc.b	$00, $01, $F1, $01, $FF, $FE, $00, $00, $F1, $01, $FF, $FF, $00, $00
-loc_AF2A:
+;loc_AF2A
+Crash_approach_obj_init:
 	MOVE.l	#Crash_shadow_obj_init, $FFFFB040.w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
@@ -16313,28 +16314,29 @@ loc_AF2A:
 	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
 	MOVE.w	#1, $FFFF9238.w
-	LEA	loc_B2BC, A1
+	LEA	Crash_approach_scroll_data, A1
 	LEA	$FFFFE9F6.w, A2
 	MOVEQ	#4, D0
-loc_AF74:
+Crash_approach_obj_init_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
-	DBF	D0, loc_AF74
+	DBF	D0, Crash_approach_obj_init_Copy_loop
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
-	BEQ.b	loc_AFAE
+	BEQ.b	Crash_approach_obj_Onscreen
 	MOVEQ	#2, D0
 	MOVE.w	D0, $FFFF9238.w
 	MOVE.w	D0, $FFFF923A.w
 	MOVE.w	D0, $FFFF9280.w
-	LEA	loc_B2BC, A1
+	LEA	Crash_approach_scroll_data, A1
 	LEA	$FFFFE9B6.w, A2
 	MOVEQ	#4, D0
-loc_AF9E:
+Crash_approach_obj_init_Offscreen_copy:
 	MOVE.w	(A1)+, (A2)+
 	MOVE.w	$8(A1), $1E(A2)
-	DBF	D0, loc_AF9E
-	BRA.w	loc_B04C
-loc_AFAE:
+	DBF	D0, Crash_approach_obj_init_Offscreen_copy
+	BRA.w	Crash_approach_obj_Park
+;loc_AFAE
+Crash_approach_obj_Onscreen:
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
@@ -16346,9 +16348,10 @@ loc_AFAE:
 	MOVEQ	#0, D0
 	MOVE.b	(A2,D4.w), D0
 	CMPI.w	#$005F, D0
-	BLS.b	loc_AFDC
+	BLS.b	Crash_approach_obj_Onscreen_Clamp
 	MOVE.w	#$005F, D0
-loc_AFDC:
+;loc_AFDC
+Crash_approach_obj_Onscreen_Clamp:
 	MOVE.w	D0, $2C(A0)
 	MOVE.b	(A1,D4.w), D4
 	MOVE.w	D4, D2
@@ -16358,9 +16361,10 @@ loc_AFDC:
 	MOVE.w	D3, $FFFFFC36.w
 	SUB.w	D2, D3
 	SUBI.w	#$00C2, D3
-	BCC.b	loc_AFFC
+	BCC.b	Crash_approach_obj_Onscreen_Depth
 	ADD.w	D3, D2
-loc_AFFC:
+;loc_AFFC
+Crash_approach_obj_Onscreen_Depth:
 	MOVE.w	D2, $FFFFFC38.w
 	MOVE.w	#1, $FFFF9280.w
 	RTS
@@ -16372,26 +16376,30 @@ loc_AFFC:
 	CLR.w	$24(A0)
 	JSR	Update_ai_car_screen_x(PC)
 	TST.w	$E(A0)
-	BPL.b	loc_B032
+	BPL.b	Crash_approach_obj_Reenter
 	JMP	Clear_object_slot
-loc_B032:
+;loc_B032
+Crash_approach_obj_Reenter:
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	#$0432, D7
 	MOVE.w	#$0442, D6
-	BRA.w	loc_B1C2
-loc_B04C:
-	MOVE.l	#loc_B05E, (A0)
+	BRA.w	Write_approach_scroll_strip
+;loc_B04C
+Crash_approach_obj_Park:
+	MOVE.l	#Crash_approach_obj_Park_Poll, (A0)
 	ADDI.w	#$00A2, $1E(A0)
 	MOVE.w	#$FFFF, $FFFF923C.w
-loc_B05E:
+;loc_B05E
+Crash_approach_obj_Park_Poll:
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
-	BEQ.b	loc_B072
+	BEQ.b	Crash_approach_obj_Park_Onscreen
 	CLR.w	$FFFF923C.w
 	JMP	Clear_object_slot
-loc_B072:
+;loc_B072
+Crash_approach_obj_Park_Onscreen:
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	CLR.l	$4(A0)
@@ -16401,12 +16409,14 @@ loc_B072:
 	MOVE.b	(A2,D4.w), D4
 	MOVE.w	#$005F, D0
 	SUB.w	D4, D0
-	BPL.b	loc_B098
+	BPL.b	Crash_approach_obj_Park_Onscreen_Clamp
 	MOVEQ	#0, D0
-loc_B098:
+;loc_B098
+Crash_approach_obj_Park_Onscreen_Clamp:
 	MOVE.w	D0, $2C(A0)
 	RTS
-loc_B09E:
+;loc_B09E
+Rival_approach_obj_init:
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
 	MOVE.l	#$0000B182, $FFFFB000.w
@@ -16422,13 +16432,13 @@ loc_B09E:
 	LEA	$FFFFAD00.w, A1
 	LEA	$FFFFE9F6.w, A2
 	MOVEQ	#4, D0
-loc_B0E4:
+Rival_approach_obj_init_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
-	DBF	D0, loc_B0E4
+	DBF	D0, Rival_approach_obj_init_Copy_loop
 	MOVE.w	-$A(A1), -$8(A2)
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
-	BEQ.b	loc_B128
+	BEQ.b	Rival_approach_obj_Onscreen
 	CLR.w	$FFFF9238.w
 	CLR.w	$FFFF923A.w
 	MOVE.w	#2, $FFFF927E.w
@@ -16436,12 +16446,13 @@ loc_B0E4:
 	LEA	$FFFFAD00.w, A1
 	LEA	$FFFFE9B6.w, A2
 	MOVEQ	#4, D0
-loc_B118:
+Rival_approach_obj_init_Offscreen_copy:
 	MOVE.w	(A1)+, (A2)+
 	MOVE.w	$8(A1), $1E(A2)
-	DBF	D0, loc_B118
-	BRA.w	loc_B04C
-loc_B128:
+	DBF	D0, Rival_approach_obj_init_Offscreen_copy
+	BRA.w	Crash_approach_obj_Park
+;loc_B128
+Rival_approach_obj_Onscreen:
 	MOVE.w	#1, $FFFF927E.w
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
@@ -16454,9 +16465,10 @@ loc_B128:
 	MOVEQ	#0, D0
 	MOVE.b	(A2,D4.w), D0
 	CMPI.w	#$005F, D0
-	BLS.b	loc_B15C
+	BLS.b	Rival_approach_obj_Onscreen_Clamp
 	MOVE.w	#$005F, D0
-loc_B15C:
+;loc_B15C
+Rival_approach_obj_Onscreen_Clamp:
 	MOVE.w	D0, $2C(A0)
 	MOVE.b	(A1,D4.w), D4
 	MOVE.w	D4, $28(A0)
@@ -16475,81 +16487,96 @@ loc_B15C:
 	CLR.w	$24(A0)
 	JSR	Update_ai_car_screen_x(PC)
 	TST.w	$E(A0)
-	BPL.b	loc_B1AC
+	BPL.b	Rival_approach_obj_Reenter
 	JMP	Clear_object_slot
-loc_B1AC:
+;loc_B1AC
+Rival_approach_obj_Reenter:
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
 	MOVE.w	#$0442, D7
 	MOVE.w	#0, D6
-loc_B1C2:
+;loc_B1C2
+Write_approach_scroll_strip:
 	LEA	$FFFFE900.w, A1
 	MOVE.w	#$0020, D5
 	MOVE.w	$FFFFAFD8.w, D0
 	MOVE.w	$18(A0), D1
 	SUBI.w	#$008C, D0
-	BMI.b	loc_B20E
+	BMI.b	Write_approach_scroll_strip_BySpeed
 	LSR.w	#3, D0
-	BEQ.b	loc_B20E
+	BEQ.b	Write_approach_scroll_strip_BySpeed
 	CMP.w	D5, D0
-	BCC.b	loc_B238
+	BCC.b	Write_approach_scroll_strip_Uniform_Near
 	SUBI.w	#$006B, D1
 	LSR.w	#3, D1
 	CMP.w	D5, D1
-	BCC.b	loc_B208
+	BCC.b	Write_approach_scroll_strip_SwapZones
 	SUB.w	D1, D5
 	SUB.w	D0, D1
 	SUBQ.w	#1, D0
 	SUBQ.w	#1, D1
 	SUBQ.w	#1, D5
-loc_B1F4:
+;loc_B1F4
+Write_approach_scroll_strip_Near:
 	MOVE.w	D7, (A1)+
-	DBF	D0, loc_B1F4
-loc_B1FA:
+	DBF	D0, Write_approach_scroll_strip_Near
+;loc_B1FA
+Write_approach_scroll_strip_Mid:
 	MOVE.w	D6, (A1)+
-	DBF	D1, loc_B1FA
-loc_B200:
+	DBF	D1, Write_approach_scroll_strip_Mid
+;loc_B200
+Write_approach_scroll_strip_Far:
 	MOVE.w	D7, (A1)+
-	DBF	D5, loc_B200
-	BRA.b	loc_B246
-loc_B208:
+	DBF	D5, Write_approach_scroll_strip_Far
+	BRA.b	Write_approach_scroll_strip_Done
+;loc_B208
+Write_approach_scroll_strip_SwapZones:
 	MOVE.w	D0, D1
 	EXG	D6, D7
-	BRA.b	loc_B21C
-loc_B20E:
+	BRA.b	Write_approach_scroll_strip_TwoZone
+;loc_B20E
+Write_approach_scroll_strip_BySpeed:
 	SUBI.w	#$006B, D1
-	BMI.b	loc_B238
+	BMI.b	Write_approach_scroll_strip_Uniform_Near
 	LSR.w	#3, D1
-	BEQ.b	loc_B238
+	BEQ.b	Write_approach_scroll_strip_Uniform_Near
 	CMP.w	D5, D1
-	BCC.b	loc_B230
-loc_B21C:
+	BCC.b	Write_approach_scroll_strip_Uniform_Far
+;loc_B21C
+Write_approach_scroll_strip_TwoZone:
 	SUB.w	D1, D5
 	SUBQ.w	#1, D5
 	SUBQ.w	#1, D1
-loc_B222:
+;loc_B222
+Write_approach_scroll_strip_TwoZone_Near:
 	MOVE.w	D6, (A1)+
-	DBF	D1, loc_B222
-loc_B228:
+	DBF	D1, Write_approach_scroll_strip_TwoZone_Near
+;loc_B228
+Write_approach_scroll_strip_TwoZone_Far:
 	MOVE.w	D7, (A1)+
-	DBF	D5, loc_B228
-	BRA.b	loc_B246
-loc_B230:
+	DBF	D5, Write_approach_scroll_strip_TwoZone_Far
+	BRA.b	Write_approach_scroll_strip_Done
+;loc_B230
+Write_approach_scroll_strip_Uniform_Far:
 	MOVE.w	D6, D0
 	SWAP	D0
 	MOVE.w	D6, D0
-	BRA.b	loc_B23E
-loc_B238:
+	BRA.b	Write_approach_scroll_strip_Uniform_Fill
+;loc_B238
+Write_approach_scroll_strip_Uniform_Near:
 	MOVE.w	D7, D0
 	SWAP	D0
 	MOVE.w	D7, D0
-loc_B23E:
+;loc_B23E
+Write_approach_scroll_strip_Uniform_Fill:
 	MOVEQ	#$0000001F, D1
-loc_B240:
+;loc_B240
+Write_approach_scroll_strip_Uniform_Loop:
 	MOVE.l	D0, (A1)+
-	DBF	D1, loc_B240
-loc_B246:
+	DBF	D1, Write_approach_scroll_strip_Uniform_Loop
+;loc_B246
+Write_approach_scroll_strip_Done:
 	MOVE.w	#$FFFF, $FFFF927C.w
 	RTS
 
@@ -16601,13 +16628,17 @@ loc_B290:
 ;loc_B2BA
 Check_ai_lateral_bounds_wide_Done:
 	RTS
-loc_B2BC:
+;loc_B2BC
+Crash_approach_scroll_data:
 	dc.w	$0000, $0000, $0888, $0222, $0222, $0000, $0000, $0888, $0888, $0222
-loc_B2D0:
+;loc_B2D0
+Crash_approach_palette_data:
 	dc.w	$0040, $0AAA, $0AAA, $0444, $0444
-loc_B2DA:
+;loc_B2DA
+Crash_approach_tile_data_a:
 	dc.w	$A7CA, $A7DE, $A7DD, $A7D8, $A7D6, $A7CA, $A7DD, $A7D2, $A7CC, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD
-loc_B2F8:
+;loc_B2F8
+Crash_approach_tile_data_b:
 	dc.w	$0000, $A7D6, $A7CA, $A7D7, $A7DE, $A7CA, $A7D5, $0000, $A7DC, $A7D1, $A7D2, $A7CF, $A7DD, $0000, $0000
 ;$0000B316
 ; Race_result_overlay_frame — per-frame handler for the championship between-race
@@ -16621,9 +16652,10 @@ Race_result_overlay_frame:
 	MOVE.l	#$462E0000, D7
 	MOVE.w	Temp_x_pos.w, D0
 	LSR.w	#3, D0
-loc_B328:
+;loc_B328
+Race_result_overlay_frame_Scroll_loop:
 	SUBI.l	#$00020000, D7
-	DBF	D0, loc_B328
+	DBF	D0, Race_result_overlay_frame_Scroll_loop
 	MOVEM.l	D7, -(A7)
 	MOVEQ	#6, D6
 	MOVEQ	#$0000000A, D5
@@ -16633,14 +16665,15 @@ loc_B328:
 	JSR	Write_tilemap_rows_to_vdp
 	MOVEM.l	(A7)+, D7
 	BTST.b	#4, Player_state_flags.w
-	BEQ.b	loc_B37E
+	BEQ.b	Race_result_overlay_frame_Render
 	SUBI.l	#$00100000, Screen_data_ptr.w
 	CMPI.l	#$FD805C60, Screen_data_ptr.w
-	BNE.b	loc_B37E
+	BNE.b	Race_result_overlay_frame_Render
 	BCLR.b	#4, Player_state_flags.w
 	MOVE.l	#$01805C60, Screen_data_ptr.w
 	CLR.w	$FFFFFCC0.w
-loc_B37E:
+;loc_B37E
+Race_result_overlay_frame_Render:
 	LEA	$00FF5980, A6
 	ADDI.l	#$000E0000, D7
 	MOVEQ	#0, D6
@@ -16653,23 +16686,24 @@ loc_B37E:
 	JSR	Update_race_position_Champ
 	JSR	Update_race_timer
 	BSR.w	loc_C12E
-	LEA	loc_B42C, A1
+	LEA	Race_result_phase_table_1, A1
 	BRA.w	Race_result_dispatch_phase
 ;$0000B3C0
 Race_result_frame_2:
 	JSR	Wait_for_vblank
 	SUBI.l	#$00120000, Screen_data_ptr.w
-	LEA	loc_B43C, A1
+	LEA	Race_result_phase_table_2, A1
 	BRA.w	Race_result_dispatch_phase
 ;$0000B3D8
 Race_result_frame_3:
 	JSR	Wait_for_vblank
 	SUBI.l	#$00090000, Screen_data_ptr.w
 	TST.l	Saved_frame_callback.w
-	BNE.b	loc_B3F4
-	LEA	loc_B454, A1
+	BNE.b	Race_result_frame_3_Alt
+	LEA	Race_result_phase_table_3, A1
 	BRA.b	Race_result_dispatch_phase
-loc_B3F4:
+;loc_B3F4
+Race_result_frame_3_Alt:
 	BSR.w	loc_CB3C
 	BSR.w	loc_CB60
 	BSR.w	Draw_lap_counter_tiles
@@ -16680,26 +16714,30 @@ Race_result_dispatch_phase:
 	JSR	(A1)
 	MOVE.w	#$FFFF, Race_timer_freeze.w
 	SUBQ.w	#1, Race_timer_phase.w
-	BPL.b	loc_B422
+	BPL.b	Race_result_dispatch_phase_Objects
 	MOVE.w	#2, Race_timer_phase.w
 	CLR.w	Race_timer_freeze.w
-loc_B422:
+;loc_B422
+Race_result_dispatch_phase_Objects:
 	JSR	Update_objects_and_build_sprite_buffer
-	BSR.b	loc_B480
+	BSR.b	Build_result_scroll_table
 	RTS
-loc_B42C:
+;loc_B42C
+Race_result_phase_table_1:
 	dc.l	loc_BB06
-	dc.l	loc_B4E8
-	dc.l	loc_B500
+	dc.l	Race_result_scroll_in
+	dc.l	Race_result_mirror_activate
 	dc.l	loc_BB36
-loc_B43C:
+;loc_B43C
+Race_result_phase_table_2:
 	dc.l	loc_BB06
-	dc.l	loc_B5F4
+	dc.l	Race_result_show_text
 	dc.l	Wait_for_button_press
 	dc.l	loc_B648
 	dc.l	loc_B674
 	dc.l	loc_BBB6
-loc_B454:
+;loc_B454
+Race_result_phase_table_3:
 	dc.l	loc_BB1E
 	dc.l	loc_C34C
 	dc.l	loc_B762
@@ -16712,7 +16750,8 @@ loc_B454:
 	dc.l	loc_CA44
 	dc.l	loc_CA94
 
-loc_B480:
+;loc_B480
+Build_result_scroll_table:
 	LEA	$FFFF9D40.w, A1
 	MOVE.w	Screen_scroll.w, D1
 	MOVE.w	Screen_subcounter.w, D2
@@ -16720,91 +16759,107 @@ loc_B480:
 	MOVE.w	Menu_cursor.w, D4
 	MOVE.w	Temp_x_pos.w, D5
 	MOVE.w	#$002F, D0
-loc_B49C:
+;loc_B49C
+Build_result_scroll_table_Sky:
 	MOVE.w	#0, (A1)+
 	MOVE.w	#0, (A1)+
-	DBF	D0, loc_B49C
+	DBF	D0, Build_result_scroll_table_Sky
 	MOVE.w	#$005F, D0
-loc_B4AC:
+;loc_B4AC
+Build_result_scroll_table_Road:
 	MOVE.w	D5, (A1)+
 	MOVE.w	D2, (A1)+
-	DBF	D0, loc_B4AC
+	DBF	D0, Build_result_scroll_table_Road
 	MOVE.w	#$0017, D0
-loc_B4B8:
+;loc_B4B8
+Build_result_scroll_table_Verge:
 	MOVE.w	#0, (A1)+
 	MOVE.w	D2, (A1)+
-	DBF	D0, loc_B4B8
+	DBF	D0, Build_result_scroll_table_Verge
 	MOVE.w	#$001F, D0
-loc_B4C6:
+;loc_B4C6
+Build_result_scroll_table_Stripe:
 	MOVE.w	D1, (A1)+
 	MOVE.w	D2, (A1)+
-	DBF	D0, loc_B4C6
+	DBF	D0, Build_result_scroll_table_Stripe
 	MOVE.w	#2, D0
-loc_B4D2:
+;loc_B4D2
+Build_result_scroll_table_Panel_a:
 	MOVE.w	D3, (A1)+
 	MOVE.w	D2, (A1)+
-	DBF	D0, loc_B4D2
+	DBF	D0, Build_result_scroll_table_Panel_a
 	MOVE.w	#$0017, D0
-loc_B4DE:
+;loc_B4DE
+Build_result_scroll_table_Panel_b:
 	MOVE.w	D3, (A1)+
 	MOVE.w	D4, (A1)+
-	DBF	D0, loc_B4DE
+	DBF	D0, Build_result_scroll_table_Panel_b
 	RTS
-loc_B4E8:
+;loc_B4E8
+Race_result_scroll_in:
 	ADDQ.w	#8, Temp_x_pos.w
 	CMPI.w	#$00B0, Temp_x_pos.w
-	BCS.b	loc_B4FE
+	BCS.b	Race_result_scroll_in_Rts
 	MOVE.w	#$00B0, Temp_x_pos.w
 	ADDQ.w	#4, Anim_delay.w
-loc_B4FE:
+;loc_B4FE
+Race_result_scroll_in_Rts:
 	RTS
-loc_B500:
+;loc_B500
+Race_result_mirror_activate:
 	MOVE.b	$FFFFFCC1.w, D0
-	BEQ.b	loc_B528
+	BEQ.b	Race_result_event_sequence
 	LEA	$FFFF8FD2.w, A1
 	BTST.l	#0, D0
-	BNE.b	loc_B514
+	BNE.b	Race_result_mirror_activate_Copy
 	LEA	$FFFF8FDA.w, A1
-loc_B514:
+;loc_B514
+Race_result_mirror_activate_Copy:
 	BSET.b	#4, Player_state_flags.w
 	LEA	$FFFFE9AC.w, A2
 	MOVE.w	#3, D0
-loc_B522:
+;loc_B522
+Race_result_mirror_activate_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
-	DBF	D0, loc_B522
-loc_B528:
+	DBF	D0, Race_result_mirror_activate_Copy_loop
+;loc_B528
+Race_result_event_sequence:
 	MOVE.b	Race_event_flags.w, D0
-	BEQ.b	loc_B562
+	BEQ.b	Race_result_event_sequence_Flags
 	SUBQ.w	#1, $FFFFFC1A.w
-	BNE.b	loc_B562
+	BNE.b	Race_result_event_sequence_Flags
 	MOVE.w	#6, $FFFFFC1A.w
 	LEA	$FFFF901A.w, A1
 	LEA	$FFFF9010.w, A2
 	LEA	$FFFF9024.w, A3
 	MOVE.w	#4, D0
-loc_B54A:
+;loc_B54A
+Race_result_event_sequence_Loop:
 	MOVE.w	(A3)+, D1
 	ADD.w	D1, (A1)
 	MOVE.w	(A2)+, D1
 	CMP.w	(A1), D1
-	BCC.w	loc_B55C
+	BCC.w	Race_result_event_sequence_Next
 	MOVE.w	D1, (A1)
 	BCLR.b	D0, Race_event_flags.w
-loc_B55C:
+;loc_B55C
+Race_result_event_sequence_Next:
 	MOVE.w	(A1)+, D1
-	DBF	D0, loc_B54A
-loc_B562:
+	DBF	D0, Race_result_event_sequence_Loop
+;loc_B562
+Race_result_event_sequence_Flags:
 	BTST.b	#6, Race_event_flags.w
-	BEQ.b	loc_B592
+	BEQ.b	Race_result_event_sequence_Pit
 	MOVE.b	Race_event_flags.w, D0
 	ANDI.b	#$1A, D0
-	BNE.b	loc_B592
+	BNE.b	Race_result_event_sequence_Pit
 	BCLR.b	#6, Race_event_flags.w
 	MOVE.w	#$FFFF, $FFFFB8DE.w
 	MOVE.w	#$FFFF, $FFFFB91E.w
 	MOVE.w	#$0010, $FFFFBADE.w
 	MOVE.w	#$0010, $FFFFBB1E.w
-loc_B592:
+;loc_B592
+Race_result_event_sequence_Pit:
 	BTST.b	#7, Race_event_flags.w
 	BEQ.b	Race_result_scan_tires
 	MOVE.b	Race_event_flags.w, D0
@@ -16815,24 +16870,28 @@ loc_B592:
 	MOVE.w	#$0010, $FFFFBA9E.w
 	MOVE.w	#$0010, $FFFFBADE.w
 	BTST.b	#5, Race_event_flags.w
-	BEQ.b	loc_B5CC
+	BEQ.b	Race_result_scan_tires_Alt
 	MOVE.w	#$FFFF, $FFFFBADE.w
 	BRA.b	Race_result_scan_tires
-loc_B5CC:
+;loc_B5CC
+Race_result_scan_tires_Alt:
 	MOVE.w	#$FFFF, $FFFFBA5E.w
 	MOVE.w	#$FFFF, $FFFFBA9E.w
 Race_result_scan_tires:
 	LEA	$FFFFB85E.w, A1
 	MOVE.w	#$000B, D0
-loc_B5E0:
+;loc_B5E0
+Race_result_scan_tires_Loop:
 	CMPI.w	#$F000, (A1)
-	BCS.b	loc_B5F2
+	BCS.b	Race_result_scan_tires_Rts
 	ADDA.w	#$0040, A1
-	DBF	D0, loc_B5E0
+	DBF	D0, Race_result_scan_tires_Loop
 	ADDQ.w	#4, Anim_delay.w
-loc_B5F2:
+;loc_B5F2
+Race_result_scan_tires_Rts:
 	RTS
-loc_B5F4:
+;loc_B5F4
+Race_result_show_text:
 	SUBQ.w	#1, $FFFFFC1A.w
 	BNE.b	loc_B636
 	MOVE.w	#$431D, $FFFF905A.w
@@ -18413,7 +18472,7 @@ loc_CBD0:
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
 	ADDQ.b	#1, $FFFFFC19.w
-	BSR.w	loc_B480
+	BSR.w	Build_result_scroll_table
 	RTS
 ;$0000CBEE
 ; Driver_standings_frame — per-frame handler for the scrolling championship standings
