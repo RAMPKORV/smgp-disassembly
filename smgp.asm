@@ -1730,7 +1730,7 @@ Update_objects_next:
 	LEA	Sprite_attr_buf.w, A6
 	MOVEQ	#$00000052, D0
 	LEA	$FFFFA7A0.w, A5
-	MOVE.w	Vdp_plane_row_bytes.w, $FFFFFC30.w
+	MOVE.w	Vdp_plane_row_bytes.w, Sprite_slots_remaining.w
 	MOVE.w	Vdp_plane_tile_count.w, D7
 ;loc_DB8
 Build_sprites_bg_row:
@@ -1767,7 +1767,7 @@ Build_sprites_bg_sprite:
 	CMPI.w	#$0060, D5
 	BLS.b	Build_sprites_bg_sprite_skip
 	ADDQ.w	#8, A6
-	SUBQ.w	#1, $FFFFFC30.w
+	SUBQ.w	#1, Sprite_slots_remaining.w
 	BEQ.w	Build_sprites_link_chain
 ;loc_E0A
 Build_sprites_bg_sprite_skip:
@@ -1817,7 +1817,7 @@ Build_sprites_fg_sprite:
 	CMPI.w	#$0070, D5
 	BLS.b	Build_sprites_fg_sprite_skip
 	ADDQ.w	#8, A6
-	SUBQ.w	#1, $FFFFFC30.w
+	SUBQ.w	#1, Sprite_slots_remaining.w
 	BEQ.w	Build_sprites_link_chain
 ;loc_E76
 Build_sprites_fg_sprite_skip:
@@ -1858,7 +1858,7 @@ Build_sprites_fix_link_next:
 	DBF	D0, Build_sprites_fix_link_loop
 	LEA	Sprite_attr_buf+3.w, A0
 	MOVE.w	Vdp_plane_row_bytes.w, D0
-	SUB.w	$FFFFFC30.w, D0
+	SUB.w	Sprite_slots_remaining.w, D0
 	BNE.b	Build_sprites_write_links
 	MOVE.w	#$0168, -$3(A0)
 	CLR.b	(A0)
@@ -2282,7 +2282,7 @@ Initialize_hud_objects:
 	BNE.b	Init_hud_objects_copy_palette
 	MOVEQ	#$0000000F, D7
 	MOVE.b	Player_team.w, D0
-	LEA	$FFFFE98C.w, A1
+	LEA	(Palette_buffer+$C).w, A1
 	BSR.b	Load_team_palette_entry
 	TST.w	Track_index_arcade_mode.w
 	BNE.b	Init_hud_objects_rival
@@ -2290,7 +2290,7 @@ Initialize_hud_objects:
 ;loc_1418
 Init_hud_objects_rival:
 	MOVE.b	Rival_team.w, D0
-	LEA	$FFFFE9CC.w, A1
+	LEA	(Palette_buffer+$4C).w, A1
 	BSR.b	Load_team_palette_entry
 	MOVEQ	#$0000007F, D6
 	TST.w	Has_rival_flag.w
@@ -2308,15 +2308,15 @@ Init_hud_objects_car3_check:
 	ADDQ.w	#2, D0
 ;loc_1440
 Init_hud_objects_car3_load:
-	LEA	$FFFFE9AC.w, A1
+	LEA	(Palette_buffer+$2C).w, A1
 	BSR.b	Load_team_palette_entry
 ;loc_1446
 Init_hud_objects_copy_palette:
-	LEA	$FFFF8FD2.w, A0
-	MOVE.l	$FFFFE9AC.w, (A0)+
-	MOVE.l	$FFFFE9B0.w, (A0)+
-	MOVE.l	$FFFFE9CC.w, (A0)+
-	MOVE.l	$FFFFE9D0.w, (A0)+
+	LEA	Team_palette_copy_buf.w, A0
+	MOVE.l	(Palette_buffer+$2C).w, (A0)+
+	MOVE.l	(Palette_buffer+$30).w, (A0)+
+	MOVE.l	(Palette_buffer+$4C).w, (A0)+
+	MOVE.l	(Palette_buffer+$50).w, (A0)+
 	RTS
 ;Load_team_palette_entry
 Load_team_palette_entry:
@@ -2431,7 +2431,7 @@ Render_speed:
 ; (speedometer area, plane B) via Queue_tilemap_draw.
 	MOVE.w	Player_speed.w, D0
 	JSR	Binary_to_decimal(PC) ; Output value D1 is $0123 if speed is 123km/h
-	LEA	$FFFFE800.w, A1
+	LEA	Digit_tilemap_buf.w, A1
 	MOVEQ	#2, D0
 	MOVEQ	#0, D7
 	JSR	Unpack_bcd_digits_to_buffer(PC)
@@ -2440,7 +2440,7 @@ Render_speed:
 	MOVE.l	#$66720003, D7
 	MOVEQ	#2, D6
 	MOVEQ	#1, D5
-	LEA	$FFFFE800.w, A6
+	LEA	Digit_tilemap_buf.w, A6
 	JMP	Queue_tilemap_draw(PC)
 ;Unpack_bcd_digits_to_buffer
 Unpack_bcd_digits_to_buffer:
@@ -2687,7 +2687,7 @@ Flush_dma_crash_done:
 	RTS
 ;loc_1778
 Update_car_palette_dma:
-	MOVE.w	$FFFFFCA2.w, D0
+	MOVE.w	Car_palette_dma_id.w, D0
 	BEQ.b	Update_hud_overtake_check
 	LEA	Car_livery_palette_1_dma, A0
 	SUBQ.w	#1, D0
@@ -2905,7 +2905,7 @@ Build_car_tilemap_buffers:
 	MOVEQ	#8, D5
 	LEA	$FFFFC1C0.w, A5
 	JSR	Copy_tilemap_block_with_base
-	LEA	$FFFFCE00.w, A1
+	LEA	Road_car_priority_buf.w, A1
 	LEA	$FFFFC8C0.w, A0
 	BSR.b	Copy_tiles_with_priority_flip
 	LEA	$FFFFCE40.w, A1
@@ -2953,16 +2953,16 @@ Initialize_car_tile_scroll:
 ; Set_vdp_mode_h32_variant_a before the final DMA commit.
 ; Called from Initialize_race_hud (step 9) once before the first Race_loop frame.
 	MOVE.w	Player_distance_steps.w, D0
-	MOVE.w	D0, $FFFF9266.w
+	MOVE.w	D0, Road_scroll_distance_prev.w
 	SUBI.w	#$0080, D0
 	LSR.w	#2, D0
 	ANDI.w	#$00FC, D0
-	LEA	$FFFFCE00.w, A0
+	LEA	Road_car_priority_buf.w, A0
 	ADDA.w	D0, A0
 	MOVEQ	#$0000007C, D1
 	AND.w	D1, D0
 	MOVEQ	#3, D2
-	LEA	$FFFF8B00.w, A1
+	LEA	Road_car_scroll_buf.w, A1
 ;loc_1A9E
 Initialize_car_tile_scroll_Outer:
 	MOVEQ	#$0000001F, D3
@@ -2987,9 +2987,9 @@ Initialize_car_tile_scroll_Inner:
 ;loc_1AE0
 Update_car_scroll_column:
 	MOVEQ	#8, D2
-	CMPI.w	#2, $FFFF927E.w
+	CMPI.w	#2, Road_column_update_pending.w
 	BEQ.b	Fill_opponent_scroll_ring
-	MOVE.w	$FFFFAFE8.w, D0
+	MOVE.w	Opponent_scroll_column_span.w, D0
 	LSR.w	#3, D0
 	CMPI.w	#8, D0
 	BHI.b	Fill_opponent_scroll_ring
@@ -3006,7 +3006,7 @@ Fill_opponent_scroll_ring:
 	MOVEQ	#$0000007C, D1
 	AND.w	D1, D0
 	MOVE.w	D0, D7
-	LEA	$FFFF8B00.w, A1
+	LEA	Road_car_scroll_buf.w, A1
 	MOVEQ	#8, D5
 	SUB.w	D2, D5
 	LSL.w	#7, D5
@@ -3060,53 +3060,53 @@ Update_background_scroll_delta:
 ; using Fill_tilemap_column_stride, based on $FFFFAFD8 (road width) and
 ; $FFFFB018.  Sets $FFFF9276 = 2 to signal a full column update.
 	MOVE.w	Player_distance_steps.w, D0
-	MOVE.w	$FFFF9266.w, D1
-	MOVE.w	D0, $FFFF9266.w
+	MOVE.w	Road_scroll_distance_prev.w, D1
+	MOVE.w	D0, Road_scroll_distance_prev.w
 	SUB.w	D0, D1
 	BEQ.b	Update_background_scroll_delta_Column_check
 	BMI.w	Update_background_scroll_delta_Reverse
-	MOVE.w	#1, $FFFF9276.w
+	MOVE.w	#1, Road_column_update_state.w
 	LSR.w	#3, D1
-	MOVE.w	D1, $FFFF9274.w
+	MOVE.w	D1, Road_column_step.w
 	MOVE.w	D0, D2
 	NEG.w	D0
-	LEA	$FFFF9268.w, A1
+	LEA	Road_column_src_ptr.w, A1
 	LEA	$FFFFC080.w, A0
 	JSR	Compute_vram_tile_address(PC)
 	MOVE.w	D2, D0
-	LEA	$FFFFCE00.w, A0
+	LEA	Road_car_priority_buf.w, A0
 	JSR	Compute_vram_tile_address_neg(PC)
 	BRA.b	Update_background_scroll_delta_Column_check
 ;loc_1BBC
 Update_background_scroll_delta_Reverse:
-	MOVE.w	#1, $FFFF9276.w
+	MOVE.w	#1, Road_column_update_state.w
 	NEG.w	D1
 	LSR.w	#3, D1
 	ORI.w	#$8000, D1
-	MOVE.w	D1, $FFFF9274.w
+	MOVE.w	D1, Road_column_step.w
 	MOVE.w	D0, D2
 	NEG.w	D0
-	LEA	$FFFF9268.w, A1
+	LEA	Road_column_src_ptr.w, A1
 	LEA	$FFFFC080.w, A0
 	JSR	Compute_vram_tile_address_neg(PC)
 	MOVE.w	D2, D0
-	LEA	$FFFFCE00.w, A0
+	LEA	Road_car_priority_buf.w, A0
 	JSR	Compute_vram_tile_address(PC)
 ;loc_1BE8
 Update_background_scroll_delta_Column_check:
-	MOVE.w	$FFFF927E.w, D4
+	MOVE.w	Road_column_update_pending.w, D4
 	BEQ.b	Update_background_scroll_delta_Rts
-	CLR.w	$FFFF927E.w
+	CLR.w	Road_column_update_pending.w
 	JSR	Update_car_scroll_column(PC)
 	SUBQ.w	#2, D4
 	BEQ.b	Update_background_scroll_delta_Signal_full
-	LEA	$FFFF8B00.w, A0
+	LEA	Road_car_scroll_buf.w, A0
 	MOVE.l	#$04420442, D3
 	MOVEQ	#$0000007C, D4
 	MOVE.w	Player_distance_steps.w, D1
 	NEG.w	D1
 	ANDI.w	#$01FF, D1
-	MOVE.w	$FFFFAFD8.w, D0
+	MOVE.w	Road_scroll_origin_x.w, D0
 	SUBI.w	#$0094, D0
 	BMI.b	Update_background_scroll_delta_Left_edge_skip
 	MOVE.w	D0, D5
@@ -3143,7 +3143,7 @@ Update_background_scroll_delta_Left_edge:
 	JSR	Fill_tilemap_column_stride(PC)
 ;loc_1C5C
 Update_background_scroll_delta_Signal_full:
-	MOVE.w	#2, $FFFF9276.w
+	MOVE.w	#2, Road_column_update_state.w
 ;loc_1C62
 Update_background_scroll_delta_Rts:
 	RTS
@@ -3193,17 +3193,17 @@ Compute_vram_tile_address_neg_Wrap:
 ;loc_1CCC
 Flush_road_column_dma:
 	LEA	VDP_data_port, A6
-	TST.w	$FFFF927C.w
+	TST.w	Road_column_tiles_dirty.w
 	BEQ.b	Flush_road_column_dma_Skip_tiles
 	MOVE.l	#$5F000003, $4(A6)
-	LEA	$FFFFE900.w, A0
+	LEA	Road_column_tile_buf.w, A0
 	MOVE.w	#$000F, D0
 Flush_road_column_dma_Tile_loop:
 	MOVE.l	(A0)+, (A6)
 	DBF	D0, Flush_road_column_dma_Tile_loop
-	CLR.w	$FFFF927C.w
+	CLR.w	Road_column_tiles_dirty.w
 Flush_road_column_dma_Skip_tiles:
-	MOVE.w	$FFFF9276.w, D4
+	MOVE.w	Road_column_update_state.w, D4
 	BNE.b	Flush_road_column_dma_Scroll_pending
 	RTS
 Flush_road_column_dma_Scroll_pending:
@@ -3214,8 +3214,8 @@ Flush_road_column_dma_Write_cols:
 	MOVE.w	#$8F80, VDP_control_port
 	MOVE.w	#$C280, D0
 	MOVE.w	#$007E, D1
-	MOVEA.l	$FFFF9268.w, A0
-	MOVE.w	$FFFF9274.w, D2
+	MOVEA.l	Road_column_src_ptr.w, A0
+	MOVE.w	Road_column_step.w, D2
 	BPL.w	Flush_road_column_dma_Fwd
 	ANDI.w	#$7FFF, D2
 	MOVEQ	#-2, D3
@@ -3229,7 +3229,7 @@ Flush_road_column_dma_Col_loop_init:
 	MOVE.w	D2, D6
 	CMPI.w	#2, D4
 	BEQ.b	Flush_road_column_dma_Priority_cols
-	MOVE.w	$FFFF926C.w, D4
+	MOVE.w	Road_column_tile_base.w, D4
 Flush_road_column_dma_Col_loop:
 	MOVE.w	D0, D7
 	ADD.w	D4, D7
@@ -3250,8 +3250,8 @@ Flush_road_column_dma_Col_loop:
 	DBF	D2, Flush_road_column_dma_Col_loop
 Flush_road_column_dma_Priority_cols:
 	MOVE.w	#$C080, D0
-	MOVEA.l	$FFFF926E.w, A0
-	MOVE.w	$FFFF9272.w, D4
+	MOVEA.l	Road_column_priority_ptr.w, A0
+	MOVE.w	Road_column_priority_step.w, D4
 Flush_road_column_dma_Priority_loop:
 	MOVE.w	D0, D7
 	ADD.w	D4, D7
@@ -3266,7 +3266,7 @@ Flush_road_column_dma_Priority_loop:
 	ADDA.w	D5, A0
 	DBF	D6, Flush_road_column_dma_Priority_loop
 	MOVE.w	#$8F02, VDP_control_port
-	CLR.w	$FFFF9276.w
+	CLR.w	Road_column_update_state.w
 	RTS
 ;loc_1DB6:
 Send_sign_tileset_to_VDP:
@@ -3282,7 +3282,7 @@ Send_sign_tileset_to_VDP:
 ; DMA setup words D5/D6/D7 are built by packing the source address into
 ; VDP DMA length/address registers ($94/$93/$96/$95/$97) and the DMA command
 ; is stored in Vdp_dma_setup before calling Send_D567_to_VDP.
-	TST.w	$FFFF9264.w
+	TST.w	Sign_tileset_dma_pending.w
 	BEQ.b	Send_sign_tileset_to_VDP_Rts
 	MOVE.w	$FFFF9262.w, D0 ; sign tilset byte 7-8
 	SUBI.w	#$01E1, D0
@@ -3293,7 +3293,7 @@ Send_sign_tileset_to_VDP:
 	BRA.b	Send_sign_tileset_to_VDP_Send
 ;loc_1DD2
 Send_sign_tileset_to_VDP_Last_frame:
-	CLR.w	$FFFF9264.w
+	CLR.w	Sign_tileset_dma_pending.w
 	ADDI.w	#$01E1, D0
 ;loc_1DDA
 Send_sign_tileset_to_VDP_Send:
@@ -3326,8 +3326,8 @@ Send_sign_tileset_to_VDP_Rts:
 	RTS
 ;loc_1E32
 Copy_ai_scroll_data_to_objects:
-	LEA	$FFFFE9B6.w, A0
-	LEA	$FFFFAD00.w, A1
+	LEA	(Palette_buffer+$36).w, A0
+	LEA	Crash_approach_scroll_buf.w, A1
 	MOVEQ	#4, D0
 Copy_ai_scroll_data_to_objects_loop:
 	MOVE.w	(A0)+, (A1)+
@@ -3704,7 +3704,7 @@ Attract_screen_logo_dispatch:
 	CLR.w	Warm_up.w
 	CLR.w	Practice_flag.w
 	MOVE.w	#2, Current_lap.w
-	MOVE.w	#$003C, Engine_data_offset.w
+	MOVE.w	#Engine_data_offset_practice, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
 	MOVE.l	#Practice_mode_init, Frame_callback.w
 	RTS
@@ -3793,7 +3793,7 @@ Attract_screen_frame:
 	RTS
 ;loc_2476
 Attract_screen_frame_No_start:
-	TST.w	$FFFFFB08.w
+	TST.w	Attract_anim_cell_count.w
 	BEQ.b	Attract_screen_frame_Tilemap
 	MOVEQ	#$0000001F, D7
 	LEA	Decomp_code_table.w, A6
@@ -3813,7 +3813,7 @@ Attract_screen_frame_Code_pos:
 Attract_screen_frame_Code_next:
 	LEA	$8(A6), A6
 	DBF	D7, Attract_screen_frame_Code_loop
-	LEA	$FFFFF200.w, A0
+	LEA	Attract_anim_tile_buf.w, A0
 	BRA.w	Upload_words_to_vram
 ;loc_24A8
 Attract_screen_frame_Tilemap:
@@ -3834,7 +3834,7 @@ Attract_screen_frame_No_delay:
 	MOVE.w	Screen_scroll.w, D7
 	MOVE.w	Screen_data_ptr.w, D5
 	ADDI.w	#$0111, D5
-	LEA	$FFFFE984.w, A1
+	LEA	(Palette_buffer+$4).w, A1
 	MOVEQ	#$0000000D, D2
 ;loc_24DE
 Attract_screen_frame_Pos_loop:
@@ -3846,7 +3846,7 @@ Attract_screen_frame_Pos_loop:
 	MOVE.w	D7, Screen_scroll.w
 	BPL.b	Attract_screen_frame_Return
 	ADDQ.w	#1, Screen_timer.w
-	LEA	$FFFFFB0E.w, A1
+	LEA	Attract_anim_slot_buf.w, A1
 	MOVE.w	#7, (A1)+
 	MOVE.w	#$000A, (A1)+
 	MOVE.w	#$000D, Screen_scroll.w
@@ -3857,8 +3857,8 @@ Attract_screen_frame_Return:
 Attract_screen_frame_Timer:
 	BTST.b	#0, Frame_counter.w
 	BEQ.b	Attract_screen_frame_Return
-	LEA	$FFFFFB0E.w, A1
-	LEA	$FFFFE984.w, A5
+	LEA	Attract_anim_slot_buf.w, A1
+	LEA	(Palette_buffer+$4).w, A5
 	MOVE.w	Screen_scroll.w, D7
 	CMPI.w	#6, D7
 	BCS.b	Attract_screen_frame_No_adj
@@ -3867,8 +3867,8 @@ Attract_screen_frame_Timer:
 ;loc_2530
 Attract_screen_frame_No_adj:
 	LEA	Attract_car_segment_data(PC), A2
-	LEA	$FFFFFB0E.w, A3
-	LEA	$FFFFE988.w, A4
+	LEA	Attract_anim_slot_buf.w, A3
+	LEA	(Palette_buffer+$8).w, A4
 	MOVEQ	#1, D6
 ;loc_253E
 Attract_screen_frame_Car_loop:
@@ -3923,12 +3923,12 @@ Startup_screen_init:
 	LEA	Tilemap_work_buf.w, A4
 	JSR	Decompress_to_ram
 	MOVE.w	#$0187, D2
-	LEA	$FFFFF200.w, A0
+	LEA	Attract_anim_tile_buf.w, A0
 ;loc_25DC
 Startup_screen_init_Clear_loop:
 	CLR.l	(A0)+
 	DBF	D2, Startup_screen_init_Clear_loop
-	LEA	$FFFFF200.w, A0
+	LEA	Attract_anim_tile_buf.w, A0
 	BSR.w	Upload_words_to_vram
 	MOVEQ	#1, D4
 	MOVE.l	#$00800000, D0
@@ -3962,7 +3962,7 @@ Startup_screen_init_Zero_loop:
 	CLR.l	(A1)+
 	DBF	D2, Startup_screen_init_Zero_loop
 	DBF	D3, Startup_screen_init_Pal_loop
-	MOVE.w	#1, $FFFFFB08.w
+	MOVE.w	#1, Attract_anim_cell_count.w
 	LEA	Decomp_code_table_init(PC), A0
 	LEA	Decomp_code_table.w, A1
 	MOVE.l	(A0)+, (A1)+
@@ -3999,7 +3999,7 @@ Upload_words_to_vram_Loop:
 	RTS
 ;loc_26B4
 Attract_anim_cell_update:
-	CLR.b	$FFFFFB12.w
+	CLR.b	Attract_anim_restore_flag.w
 	MOVE.w	$6(A6), D5
 	ADDQ.w	#4, D5
 	ANDI.w	#$000E, D5
@@ -4008,7 +4008,7 @@ Attract_anim_cell_update:
 ;loc_26C6
 Attract_anim_cell_update_Loop:
 	DBF	D6, Attract_anim_cell_update_Step
-	BCLR.b	#7, $FFFFFB12.w
+	BCLR.b	#7, Attract_anim_restore_flag.w
 	BEQ.b	Attract_anim_cell_update_Clear
 	LEA	$FFFFFB00.w, A0
 	MOVEA.l	A6, A1
@@ -4017,7 +4017,7 @@ Attract_anim_cell_update_Loop:
 	RTS
 ;loc_26DE
 Attract_anim_cell_update_Clear:
-	SUBQ.w	#1, $FFFFFB08.w
+	SUBQ.w	#1, Attract_anim_cell_count.w
 	MOVE.w	#$FFFF, (A6)
 	RTS
 ;loc_26E8
@@ -4051,14 +4051,14 @@ Attract_anim_cell_update_Right:
 	AND.w	D7, D0
 	CMP.b	D5, D0
 	BNE.b	Attract_anim_cell_update_No_match
-	LEA	$FFFFF200.w, A1
+	LEA	Attract_anim_tile_buf.w, A1
 	ADDA.w	D6, A1
 	MOVE.b	(A1), D0
 	AND.w	D7, D0
 	CMP.w	D5, D0
 	BEQ.b	Attract_anim_cell_update_No_match
 	OR.b	D5, (A1)
-	BSET.b	#7, $FFFFFB12.w
+	BSET.b	#7, Attract_anim_restore_flag.w
 	BNE.b	Attract_anim_cell_update_Queue
 	SWAP	D5
 	MOVE.w	D5, $6(A6)
@@ -4070,7 +4070,7 @@ Attract_anim_cell_update_Right:
 ;loc_274C
 Attract_anim_cell_update_Queue:
 	LEA	$FFFFF9F8.w, A1
-	ADDQ.w	#1, $FFFFFB08.w
+	ADDQ.w	#1, Attract_anim_cell_count.w
 ;loc_2754
 Attract_anim_cell_update_Queue_loop:
 	LEA	$8(A1), A1
@@ -4213,7 +4213,7 @@ Title_anim_car_seq_tick:
 	BSR.b	Title_anim_alloc_car_obj
 	MOVE.w	(A1)+, D0
 	MOVE.w	D0, $26(A0)
-	LEA	$FFFFE98E.w, A3
+	LEA	(Palette_buffer+$E).w, A3
 	CMPI.w	#0, (A1)
 	BEQ.b	Title_anim_car_seq_Load_pal
 	LEA	$20(A3), A3
@@ -4783,7 +4783,7 @@ Title_menu_sel_Free_practice:
 	CLR.w	Practice_mode.w
 	CLR.w	Warm_up.w
 	MOVE.w	#1, Practice_flag.w
-	MOVE.w	#$003C, Engine_data_offset.w
+	MOVE.w	#Engine_data_offset_practice, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
 	MOVE.l	#$00003800, Saved_frame_callback.w
 	MOVE.l	#$000032FA, Frame_callback.w
@@ -4934,7 +4934,7 @@ Options_setup_frame_Idle:
 	MOVE.b	D2, $FFFFFC01.w
 ;loc_3256
 Options_setup_frame_Laps_display:
-	LEA	$FFFFE800.w, A1
+	LEA	Digit_tilemap_buf.w, A1
 	MOVE.b	$FFFFFC01.w, D1
 	MOVEQ	#1, D0
 	MOVEQ	#0, D7
@@ -4944,7 +4944,7 @@ Options_setup_frame_Laps_display:
 	MOVE.l	#$61460003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#1, D5
-	LEA	$FFFFE800.w, A6
+	LEA	Digit_tilemap_buf.w, A6
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 ;loc_3284
 Options_setup_frame_Input:
@@ -5424,7 +5424,7 @@ Init_race_object_pool:
 	MOVE.l	#$00007D7A, $FFFFAE40.w
 	MOVE.l	#$00007DAC, $FFFFAE80.w
 	MOVE.l	#$0000A6E2, $FFFFAF80.w
-	LEA	$FFFFB440.w, A0
+	LEA	(Main_object_pool+$6C0).w, A0
 	MOVEQ	#$0000000F, D1
 ;loc_38E0
 Init_race_object_pool_Obj_loop:
@@ -5674,7 +5674,7 @@ Init_ai_placement_Rival_Next:
 Initialize_race_objects:
 	JSR	Clear_partial_main_object_pool(PC)
 	JSR	Clear_aux_object_pool(PC)
-	LEA	$FFFFB440.w, A0
+	LEA	(Main_object_pool+$6C0).w, A0
 	MOVEQ	#$0000000F, D0
 ;loc_3BA4
 Initialize_race_objects_Loop:
@@ -6187,7 +6187,7 @@ Ai_placement_champ_offsets:
 ;   arcade path → resets Track_index_arcade_mode=1, jumps to Arcade_race_init
 Race_results_frame:
 	JSR	Wait_for_vblank
-	LEA	$FFFFE800.w, A0
+	LEA	Digit_tilemap_buf.w, A0
 	BTST.b	#1, Frame_counter.w
 	BEQ.b	Race_results_frame_Bottom
 	LEA	$1A(A0), A0
@@ -6337,7 +6337,7 @@ Race_finish_results_init_Current_row:
 	MOVE.w	(A0,D0.w), D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, Screen_timer.w
-	LEA	$FFFFE800.w, A0
+	LEA	Digit_tilemap_buf.w, A0
 	BCLR.l	#$1E, D7
 	MOVE.l	D7, $4(A1)
 	MOVE.l	(A1), (A0)+
@@ -6566,7 +6566,7 @@ Name_entry_frame_Bcd_body:
 	MOVE.b	D2, Race_frame_counter.w
 ;loc_47CA
 Name_entry_frame_Bcd_write:
-	LEA	$FFFFE800.w, A1
+	LEA	Digit_tilemap_buf.w, A1
 	MOVE.b	Race_frame_counter.w, D1
 	MOVEQ	#1, D0
 	MOVEQ	#0, D7
@@ -6576,7 +6576,7 @@ Name_entry_frame_Bcd_write:
 	MOVE.l	#$6AC40003, D7
 	MOVEQ	#1, D6
 	MOVEQ	#1, D5
-	LEA	$FFFFE800.w, A6
+	LEA	Digit_tilemap_buf.w, A6
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	BTST.b	#KEY_START, Input_click_bitset.w
 	BEQ.b	Name_entry_frame_End_rts
@@ -6665,15 +6665,15 @@ Update_initials_entry_selection:
 	MOVE.b	Input_state_bitset.w, D0
 	ANDI.w	#$000C, D0 ; Keys left+right? (assuming D0 high was 0)
 	BNE.b	Update_initials_entry_selection_Active
-	CLR.b	$FFFFFC11.w
+	CLR.b	Selection_repeat_state.w
 ;loc_48E4
 Update_initials_entry_selection_Rts:
 	RTS
 ;loc_48E6
 Update_initials_entry_selection_Active:
-	SUBQ.b	#1, $FFFFFC11.w
+	SUBQ.b	#1, Selection_repeat_state.w
 	BPL.b	Update_initials_entry_selection_Rts
-	MOVE.b	#7, $FFFFFC11.w
+	MOVE.b	#7, Selection_repeat_state.w
 	MOVE.b	Menu_cursor.w, D1
 	BTST.l	#2, D0
 	BNE.b	Update_initials_entry_selection_Left
@@ -6807,7 +6807,7 @@ Read_vram_row_strip_priority:
 	MOVE.l	D7, Screen_scroll.w
 	BCLR.l	#$1E, D7
 	MOVE.l	D7, VDP_control_port
-	LEA	$FFFFCE00.w, A0
+	LEA	Road_car_priority_buf.w, A0
 	MOVEQ	#$0000001F, D0
 	MOVE.w	D0, D1
 ;loc_4A9E
@@ -6834,7 +6834,7 @@ Upload_palette_buffer_to_vdp:
 	BEQ.b	Upload_palette_buffer_to_vdp_Rts
 	LEA	VDP_data_port, A6
 	MOVE.l	D0, $4(A6)
-	LEA	$FFFFCE00.w, A0
+	LEA	Road_car_priority_buf.w, A0
 	MOVE.b	Frame_counter.w, D0
 	ANDI.w	#1, D0
 	LSL.w	#6, D0
@@ -6866,7 +6866,7 @@ Load_pre_race_qualifying_data:
 	MOVE.w	Race_time_bcd.w, D0
 	MOVEQ	#0, D1
 	MOVEQ	#8, D2
-	LEA	$FFFFFD90.w, A0
+	LEA	Qualifying_time_table_buf.w, A0
 ;loc_4B24
 Load_pre_race_qualifying_data_Search_loop:
 	CMP.w	(A0), D0
@@ -6964,7 +6964,7 @@ Pre_race_screen_init_Common:
 ;Initialize_race_track_scroll_tables
 Initialize_race_track_scroll_tables:
 	LEA	Road_scale_table.w, A0
-	LEA	$FFFF9600.w, A1
+	LEA	Road_scanline_x_buf.w, A1
 	MOVEQ	#$00000077, D0
 	MOVE.l	#$00000148, D1
 	MOVE.l	#$00003500, D2
@@ -7015,7 +7015,7 @@ Update_car_selection_screen_Rts:
 ;loc_4CD6
 Draw_pre_race_standings:
 	LEA	Position_text_1_4(PC), A4
-	LEA	$FFFFFD90.w, A0
+	LEA	Qualifying_time_table_buf.w, A0
 	MOVE.w	Screen_subcounter.w, D0
 	SUBQ.w	#4, D0
 	BLS.b	Draw_pre_race_standings_Offset
@@ -7063,7 +7063,7 @@ Draw_pre_race_standings_Time_found:
 ;loc_4D54
 Draw_pre_race_standings_Championship:
 	LEA	Position_text_1_4(PC), A4
-	LEA	$FFFFFD90.w, A0
+	LEA	Qualifying_time_table_buf.w, A0
 	MOVE.w	#$E204, D6
 	MOVE.w	#9, Screen_item_count.w
 ;loc_4D66
@@ -7328,7 +7328,7 @@ Car_intro_object_Spin_Body:
 	ADD.w	D1, D1
 	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D1.w), $16(A0)
-	LEA	$FFFF9600.w, A1
+	LEA	Road_scanline_x_buf.w, A1
 	MOVE.w	(A1,D1.w), $18(A0)
 	LEA	Ai_screen_x_to_angle_table, A1
 	MOVE.b	(A1,D0.w), D0
@@ -7533,7 +7533,7 @@ Draw_team_driver_lineup_Draw:
 Sort_and_apply_championship_standings:
 	JSR	Sort_championship_standings(PC)
 	LEA	Score_scratch_buf.w, A0
-	LEA	$FFFF8FC0.w, A1
+	LEA	Standings_team_order_tmp.w, A1
 	LEA	Drivers_and_teams_map.w, A2
 	MOVE.b	Player_team.w, D7
 	ANDI.w	#$00F0, D7
@@ -7557,7 +7557,7 @@ Sort_and_apply_championship_standings_Store:
 	ADDQ.w	#1, D0
 	CMPI.w	#$0010, D0
 	BNE.b	Sort_and_apply_championship_standings_Loop
-	LEA	$FFFF8FC0.w, A0
+	LEA	Standings_team_order_tmp.w, A0
 	LEA	Drivers_and_teams_map.w, A1
 	MOVEQ	#$0000000F, D0
 ;loc_522A
@@ -7811,7 +7811,7 @@ Championship_start_init_Fill_loop:
 	MOVE.w	#1, Practice_mode.w
 	CLR.w	Warm_up.w
 	MOVE.w	#1, Practice_flag.w
-	MOVE.w	#$003C, Engine_data_offset.w
+	MOVE.w	#Engine_data_offset_practice, Engine_data_offset.w
 	CLR.w	Acceleration_modifier.w
 	MOVE.l	#Title_menu_frame, Frame_callback.w
 	MOVE.l	#$0000584E, Vblank_callback.w
@@ -8317,7 +8317,7 @@ Update_rpm_Return:
 	RTS
 ;loc_5CC4
 Update_rpm_Collision_speed:
-	MOVE.w	$FFFFFC5A.w, D0
+	MOVE.w	Collision_speed_penalty.w, D0
 	BEQ.b	Update_rpm_Collision_speed_skip
 	LSR.w	#3, D0
 	ADDQ.w	#1, D0
@@ -8900,8 +8900,8 @@ Load_track_data_Bcd_next:
 ;loc_63B8
 Load_track_data_Steering_init:
 	MOVE.l	(A1)+, Steering_divisor_straight.w ; Track_data +$44: steering divisors (.w straight, .w curve)
-	MOVE.w	Track_length.w, $FFFF922C.w
-	MOVE.l	Track_sky_palette_ptr, $FFFF922E.w
+	MOVE.w	Track_length.w, Track_placement_distance_table.w
+	MOVE.l	Track_sky_palette_ptr, Track_sky_palette_ptr_buf.w
 	LEA	Arcade_placement_seq_v1(PC), A6
 	CMPI.w	#1, Track_index_arcade_mode.w
 	BEQ.b	Load_track_data_Arcade_placement
@@ -8934,7 +8934,7 @@ Initialize_road_graphics_state_Scale_loop:
 	MOVE.w	D1, (A0)+
 	SUBQ.w	#1, D1
 	DBF	D0, Initialize_road_graphics_state_Scale_loop
-	LEA	$FFFF9480.w, A0
+	LEA	Road_row_y_buf.w, A0
 	MOVE.w	#$00B4, D0
 	MOVEQ	#$00000012, D1
 Initialize_road_graphics_state_Y_loop:
@@ -8971,7 +8971,7 @@ Initialize_ui_tilemap_buffers:
 ;  5. Repeat for a second packed tilemap (H32-mode variant or second set of
 ;     screens) with additional Copy_2d_rect_words calls.
 ;  6. Copy the assembled set to $FFFFE000 (the tilemap draw queue input area).
-	LEA	$FFFFD900.w, A0
+	LEA	Ui_tilemap_scratch_a.w, A0
 	MOVE.w	#$04F9, D0
 	MOVE.w	#$06FF, D1
 Initialize_ui_tilemap_buffers_Clear_loop:
@@ -8984,83 +8984,83 @@ Initialize_ui_tilemap_buffers_Clear_loop:
 	MOVE.w	#$0024, D4
 	MOVE.w	#$0080, D3
 	LEA	$FFFFEA14.w, A6
-	LEA	$FFFFD400.w, A5
+	LEA	Ui_tilemap_panel_a.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#4, D5
 	LEA	$FFFFF030.w, A6
-	LEA	$FFFFD470.w, A5
+	LEA	Ui_tilemap_panel_b.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000017, D6
 	MOVEQ	#4, D5
 	MOVE.w	#$0030, D4
 	LEA	$FFFFEBB0.w, A6
-	LEA	$FFFFD410.w, A5
+	LEA	Ui_tilemap_panel_a_alt.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#4, D5
 	LEA	$FFFFEDF0.w, A6
-	LEA	$FFFFD440.w, A5
+	LEA	Ui_tilemap_panel_b_alt.w, A5
 	JSR	Copy_2d_rect_words(PC)
-	LEA	$FFFFD400.w, A0
-	LEA	$FFFFD680.w, A1
+	LEA	Ui_tilemap_panel_a.w, A0
+	LEA	Ui_tilemap_panel_a_copy.w, A1
 	MOVE.w	#$009F, D0
 Initialize_ui_tilemap_buffers_Copy_loop:
 	MOVE.l	(A0)+, (A1)+
 	DBF	D0, Initialize_ui_tilemap_buffers_Copy_loop
 	MOVEQ	#4, D5
 	LEA	$FFFFF1E0.w, A6
-	LEA	$FFFFD6C0.w, A5
+	LEA	Ui_tilemap_panel_c.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#7, D6
 	MOVEQ	#4, D5
 	MOVE.w	#$0024, D4
 	LEA	$FFFFF420.w, A6
-	LEA	$FFFFD6F0.w, A5
+	LEA	Ui_tilemap_panel_d.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000011, D6
 	MOVEQ	#6, D5
 	MOVE.w	#$0024, D4
 	MOVE.w	#$0100, D3
 	LEA	$FFFFEAB4.w, A6
-	LEA	$FFFFD92C.w, A5
+	LEA	Ui_tilemap_panel_e.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#6, D5
 	LEA	$FFFFF0E4.w, A6
-	LEA	$FFFFD9B0.w, A5
+	LEA	Ui_tilemap_panel_f.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000017, D6
 	MOVEQ	#6, D5
 	MOVE.w	#$0030, D4
 	LEA	$FFFFECA0.w, A6
-	LEA	$FFFFD950.w, A5
+	LEA	Ui_tilemap_panel_g.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#6, D5
 	LEA	$FFFFEEE0.w, A6
-	LEA	$FFFFD980.w, A5
+	LEA	Ui_tilemap_panel_h.w, A5
 	JSR	Copy_2d_rect_words(PC)
-	LEA	$FFFFD900.w, A0
-	LEA	$FFFFE000.w, A1
+	LEA	Ui_tilemap_scratch_a.w, A0
+	LEA	Ui_tilemap_scratch_b.w, A1
 	MOVE.w	#$01BF, D0
 Initialize_ui_tilemap_buffers_Copy2_loop:
 	MOVE.l	(A0)+, (A1)+
 	DBF	D0, Initialize_ui_tilemap_buffers_Copy2_loop
 	MOVEQ	#6, D5
 	LEA	$FFFFF2D0.w, A6
-	LEA	$FFFFE080.w, A5
+	LEA	Ui_tilemap_panel_i.w, A5
 	JSR	Copy_2d_rect_words(PC)
 	MOVEQ	#$00000011, D6
 	MOVEQ	#6, D5
 	MOVE.w	#$0024, D4
 	LEA	$FFFFF4D4.w, A6
-	LEA	$FFFFE0B0.w, A5
+	LEA	Ui_tilemap_panel_j.w, A5
 	JSR	Copy_2d_rect_words(PC)
-	LEA	$FFFFD400.w, A0
-	LEA	$FFFFD680.w, A1
+	LEA	Ui_tilemap_panel_a.w, A0
+	LEA	Ui_tilemap_panel_a_copy.w, A1
 	MOVE.l	#$60006000, D1
 	MOVE.l	#$20002000, D2
 	MOVE.w	#$009F, D0
 	BSR.b	Apply_tilemap_attr_Or_loop
-	LEA	$FFFFD900.w, A0
-	LEA	$FFFFE000.w, A1
+	LEA	Ui_tilemap_scratch_a.w, A0
+	LEA	Ui_tilemap_scratch_b.w, A1
 	MOVE.w	#$01BF, D0
 Apply_tilemap_attr_Or_loop:
 	MOVE.l	(A0), D3
@@ -9089,43 +9089,43 @@ Copy_2d_rect_words_Inner_loop:
 	RTS
 ;loc_658C
 Initialize_road_scroll_state:
-	LEA	$FFFF9658.w, A0
-	LEA	$FFFF91BA.w, A1
+	LEA	Road_curve_interp_buf.w, A0
+	LEA	Road_curve_prev_buf.w, A1
 	MOVEQ	#6, D0
 Initialize_road_scroll_state_Loop:
 	MOVE.w	(A0), (A1)
 	LEA	$10(A0), A0
 	LEA	$A(A1), A1
 	DBF	D0, Initialize_road_scroll_state_Loop
-	LEA	$FFFFD400.w, A0
-	LEA	$FFFFD900.w, A1
+	LEA	Ui_tilemap_panel_a.w, A0
+	LEA	Ui_tilemap_scratch_a.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$2000, D0
 	MOVE.l	#$59000003, VDP_control_port
 	JSR	Write_road_scroll_with_sky_to_vdp(PC)
-	LEA	$FFFFD400.w, A0
-	LEA	$FFFFD900.w, A1
+	LEA	Ui_tilemap_panel_a.w, A0
+	LEA	Ui_tilemap_scratch_a.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$4000, D0
 	MOVE.l	#$53000003, VDP_control_port
 	JSR	Write_road_scroll_with_sky_to_vdp(PC)
-	LEA	$FFFFD680.w, A0
-	LEA	$FFFFE000.w, A1
+	LEA	Ui_tilemap_panel_a_copy.w, A0
+	LEA	Ui_tilemap_scratch_b.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$4000, D0
 	MOVE.l	#$47000003, VDP_control_port
 	JSR	Write_road_scroll_with_sky_to_vdp(PC)
 	TST.w	Background_zone_index.w
 	BNE.b	Render_road_bg_Zone_nonzero
-	LEA	$FFFFD400.w, A0
-	LEA	$FFFFD900.w, A1
+	LEA	Ui_tilemap_panel_a.w, A0
+	LEA	Ui_tilemap_scratch_a.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$6000, D0
 	MOVE.l	#$4D000003, VDP_control_port
 	BRA.w	Write_road_scroll_with_sky_to_vdp
 Render_road_bg_Zone_nonzero:
-	LEA	$FFFFD680.w, A0
-	LEA	$FFFFE000.w, A1
+	LEA	Ui_tilemap_panel_a_copy.w, A0
+	LEA	Ui_tilemap_scratch_b.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$2000, D0
 	MOVE.l	#$4D000003, VDP_control_port
@@ -9144,7 +9144,7 @@ Write_road_scroll_with_sky_to_vdp:
 ;  D0.w = sky colour / palette bits to OR into each HScroll word
 	MOVE.w	#$02FF, D1
 	MOVE.w	#$9FFF, D2
-	LEA	$FFFFF600.w, A0
+	LEA	Road_hscroll_buf.w, A0
 	LEA	VDP_data_port, A1
 Write_road_scroll_with_sky_to_vdp_Loop:
 	MOVE.w	(A0)+, D3
@@ -9170,7 +9170,7 @@ Copy_displacement_rows_to_work_buffer:
 ;  A1 = base of displacement reference table (set by caller in Update_road_tile_scroll)
 ; Outputs:
 ;  $FFFFF600 = updated road H-scroll work buffer (ready for Write_road_scroll_with_sky_to_vdp)
-	LEA	$FFFFF600.w, A2
+	LEA	Road_hscroll_buf.w, A2
 	MOVEM.l	(A0)+, D0-D7/A3-A6
 	MOVEM.l	D0-D7/A3-A6, (A2)
 	LEA	$30(A2), A2
@@ -9275,7 +9275,7 @@ Update_road_graphics:
 	LEA	Background_vertical_displacement, A0
 	MOVE.b	(A0,D0.w), D0
 	EXT.w	D0
-	MOVE.w	D0, $FFFF9236.w
+	MOVE.w	D0, Background_vertical_offset.w
 	MOVEQ	#0, D0
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#1, D0
@@ -9317,7 +9317,7 @@ Update_road_graphics:
 	ADD.w	D0, D0
 	ADDA.w	D0, A5
 	MOVE.w	#$FF40, D1
-	MOVE.w	$FFFFFC48.w, D0
+	MOVE.w	HUD_blank_row_count.w, D0
 Update_road_graphics_Hud_blank_loop:
 	MOVE.w	D1, (A5)+
 	DBF	D0, Update_road_graphics_Hud_blank_loop
@@ -9326,16 +9326,16 @@ Update_road_graphics_Hud_blank_loop:
 Update_road_graphics_Hud_blank_done:
 	BTST.b	#0, $FFFF9239.w
 	BEQ.b	Update_road_graphics_Retire_flash_done
-	MOVE.w	$FFFFAFEC.w, D0
+	MOVE.w	Road_blank_row_count.w, D0
 	MOVE.w	#$FF40, D1
 Update_road_graphics_Retire_flash_loop:
 	MOVE.w	D1, (A5)+
 	DBF	D0, Update_road_graphics_Retire_flash_loop
 	LEA	(A6), A5
 Update_road_graphics_Retire_flash_done:
-	TST.w	$FFFF923C.w
+	TST.w	Special_road_blank_bg_flag.w
 	BEQ.b	Update_road_graphics_Sign_row_done
-	MOVE.w	$FFFFAFEC.w, D0
+	MOVE.w	Road_blank_row_count.w, D0
 	MOVE.w	#$FF40, D1
 	LEA	$C0(A5), A5
 Update_road_graphics_Sign_row_loop:
@@ -9343,7 +9343,7 @@ Update_road_graphics_Sign_row_loop:
 	DBF	D0, Update_road_graphics_Sign_row_loop
 	LEA	(A6), A5
 Update_road_graphics_Sign_row_done:
-	LEA	$FFFF922A.w, A0
+	LEA	Road_sign_rotation_index.w, A0
 	MOVE.w	(A0)+, D2
 	MOVE.w	(A0,D2.w), D2
 	MOVE.w	D2, D0
@@ -9375,9 +9375,9 @@ Update_road_graphics_Sign_height_lookup:
 Update_road_graphics_Sign_fill_loop:
 	MOVE.w	#$FF40, (A5)+
 	DBF	D0, Update_road_graphics_Sign_fill_loop
-	MOVE.w	#1, $FFFFFC86.w
+	MOVE.w	#1, Road_sign_fill_flag.w
 	LEA	$FFFFAD14.w, A0
-	TST.w	$FFFF9238.w
+	TST.w	Special_road_scene.w
 	BEQ.b	Update_road_graphics_Bg_load
 	LEA	Default_bg_scroll_row_data(PC), A0
 	BRA.b	Update_road_graphics_Bg_load
@@ -9386,23 +9386,23 @@ Update_road_graphics_Sign_skip:
 	BNE.b	Render_road_bg_entry
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	Render_road_bg_entry
-	TST.w	$FFFFFC86.w
+	TST.w	Road_sign_fill_flag.w
 	BEQ.b	Render_road_bg_entry
-	CLR.w	$FFFFFC86.w
-	MOVE.w	$FFFF922A.w, D0
+	CLR.w	Road_sign_fill_flag.w
+	MOVE.w	Road_sign_rotation_index.w, D0
 	ADDQ.w	#2, D0
 	CMPI.w	#6, D0
 	BCS.b	Update_road_graphics_Rot_wrap_done
 	MOVEQ	#0, D0
 Update_road_graphics_Rot_wrap_done:
-	MOVE.w	D0, $FFFF922A.w
+	MOVE.w	D0, Road_sign_rotation_index.w
 ;loc_68CA
 Render_road_bg_entry:
 	TST.w	Track_horizon_override_flag.w
 	BEQ.b	Update_road_graphics_Bg_done
 	LEA	Arcade_bg_scroll_row_data(PC), A0
 Update_road_graphics_Bg_load:
-	LEA	$FFFFE9F6.w, A1
+	LEA	(Palette_buffer+$76).w, A1
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0)+, (A1)+
 	MOVE.w	(A0), (A1)
@@ -9431,10 +9431,10 @@ Update_road_graphics_Gnd_fill_loop:
 	ADD.w	D7, -(A5)
 	DBF	D0, Update_road_graphics_Gnd_fill_loop
 Update_road_graphics_Road_tiles:
-	LEA	$FFFF9900.w, A5
-	LEA	$FFFF9600.w, A4
+	LEA	Road_tile_id_buf.w, A5
+	LEA	Road_scanline_x_buf.w, A4
 	LEA	$FFFFA0C0.w, A1
-	LEA	$FFFF9D40.w, A0
+	LEA	Screen_scroll_table_buf.w, A0
 	MOVE.w	Tileset_base_offset.w, D7
 	EORI.w	#$01C0, D7
 	ADDA.w	D7, A0
@@ -9483,7 +9483,7 @@ Update_road_graphics_Minimap:
 	MOVE.w	D4, Minimap_scroll_pos.w
 	LEA	$FFFF9DC0.w, A1
 	ADDA.w	D7, A1
-	CMPI.w	#2, $FFFF9238.w
+	CMPI.w	#2, Special_road_scene.w
 	BNE.b	Update_road_graphics_Bg_scroll
 	SUBI.w	#$0041, D4
 	MOVE.w	#$FFC2, D3
@@ -9493,7 +9493,7 @@ Update_road_graphics_Tunnel_loop:
 	DBF	D4, Update_road_graphics_Tunnel_loop
 	BRA.b	Update_road_graphics_Road_header
 Update_road_graphics_Bg_scroll:
-	MOVE.w	$FFFF9236.w, D0
+	MOVE.w	Background_vertical_offset.w, D0
 	MOVEQ	#$00000027, D1
 	SUB.w	D0, D1
 	MOVE.w	D1, D2
@@ -9520,7 +9520,7 @@ Update_road_graphics_Horizon_loop:
 Update_road_graphics_Horizon_mid:
 	DBF	D4, Update_road_graphics_Horizon_loop
 Update_road_graphics_Road_header:
-	LEA	$FFFF9D40.w, A0
+	LEA	Screen_scroll_table_buf.w, A0
 	ADDA.w	D7, A0
 	LEA	Road_tile_offset_table(PC), A1
 	MOVEQ	#$00000019, D0
@@ -9530,7 +9530,7 @@ Update_road_graphics_Road_hdr_loop:
 	LEA	$380(A0), A1
 	SUBA.w	D7, A1
 	MOVEQ	#$00000019, D6
-	CMPI.w	#2, $FFFF9238.w
+	CMPI.w	#2, Special_road_scene.w
 	BCS.b	Update_road_graphics_Normal_upper
 	MOVE.w	#$FFE8, D0
 Update_road_graphics_Tunnel_upper_loop:
@@ -9548,7 +9548,7 @@ Update_road_graphics_Normal_upper_loop:
 	MOVE.w	D1, (A0)+
 	DBF	D6, Update_road_graphics_Normal_upper_loop
 Update_road_graphics_Bg_check:
-	TST.w	$FFFF923C.w
+	TST.w	Special_road_blank_bg_flag.w
 	BEQ.b	Update_road_graphics_Substep
 	LEA	Blank_bg_scroll_row_data(PC), A6
 	BRA.b	Update_road_graphics_Edge_write
@@ -9563,7 +9563,7 @@ Update_road_graphics_Substep:
 	LEA	Road_scanline_descriptor_table, A6
 	ADDA.w	D0, A6
 Update_road_graphics_Edge_write:
-	LEA	$FFFF9400.w, A4
+	LEA	Road_row_x_buf.w, A4
 	MOVE.w	#$000B, D3
 	MOVE.w	#$015C, D2
 Update_road_graphics_Edge_loop:
@@ -9574,15 +9574,15 @@ Update_road_graphics_Edge_loop:
 	ADDQ.w	#1, D2
 	MOVE.w	(A4)+, (A1)+
 	DBF	D3, Update_road_graphics_Edge_loop
-	LEA	$FFFF9D40.w, A0
+	LEA	Screen_scroll_table_buf.w, A0
 	ADDA.w	D7, A0
 	MOVEQ	#0, D3
-	MOVE.w	$FFFF9238.w, D0
+	MOVE.w	Special_road_scene.w, D0
 	SUBQ.w	#1, D0
 	BEQ.b	Update_road_graphics_Horizon2
 	SUBQ.w	#2, D0
 	BNE.b	Update_road_graphics_Signs
-	MOVE.w	$FFFFFC3E.w, D0
+	MOVE.w	Crash_scene_compare_depth.w, D0
 	BEQ.b	Update_road_graphics_Signs
 	SUBI.w	#$0080, D0
 	MOVE.w	Minimap_track_offset.w, D2
@@ -9602,7 +9602,7 @@ Update_road_graphics_Horizon_center_loop:
 	DBF	D2, Update_road_graphics_Horizon_center_loop
 	BRA.b	Update_road_graphics_Signs
 Update_road_graphics_Horizon2:
-	MOVE.w	$FFFFFC36.w, D0
+	MOVE.w	Crash_scene_hud_span.w, D0
 	BEQ.b	Update_road_graphics_Signs
 	SUBI.w	#$0080, D0
 	MOVE.w	Minimap_scroll_pos.w, D2
@@ -9621,7 +9621,7 @@ Update_road_graphics_Horizon2_loop:
 	DBF	D2, Update_road_graphics_Horizon2_loop
 ;Update_road_graphics_Signs
 Update_road_graphics_Signs:
-	LEA	$FFFFFC36.w, A1
+	LEA	Crash_scene_hud_span.w, A1
 	MOVEQ	#1, D6
 Update_road_graphics_Signs_loop:
 	MOVE.w	(A1), D0
@@ -9726,7 +9726,7 @@ Update_road_graphics_Zone_nonzero:
 	BNE.b	Update_road_graphics_Render
 ;loc_6C00
 Update_road_graphics_Zone_signal:
-	MOVE.w	#2, $FFFF9280.w
+	MOVE.w	#2, Road_scroll_update_mode.w
 ;Update_road_graphics_Render
 Update_road_graphics_Render:
 	LEA	$FFFF9850.w, A6
@@ -9757,7 +9757,7 @@ Update_road_graphics_Read_sentinel:
 ;loc_6C3C
 Update_road_graphics_Scale_setup:
 	LEA	Slope_scale_factors(PC), A6
-	LEA	$FFFF9800.w, A5
+	LEA	(Road_scale_table+$100).w, A5
 	MOVEQ	#$00000027, D0
 ;loc_6C46
 Update_road_graphics_Scale_loop:
@@ -9766,8 +9766,8 @@ Update_road_graphics_Scale_loop:
 	MOVEQ	#$00000027, D1
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D3
-	LEA	$FFFF95C0.w, A6
-	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
+	LEA	(Road_row_y_buf+$140).w, A6
+	LEA	(Road_scale_table+$14E).w, A5 ; array output of Integrate_curveslope
 	LEA	Curve_interp_segment_counts(PC), A4
 ;loc_6C60
 Update_road_graphics_Interp_loop:
@@ -9803,7 +9803,7 @@ Update_road_graphics_X_accum:
 	ADD.l	D7, D0
 	ADD.l	D7, D0
 	ADDI.l	#$FF800000, D0
-	LEA	$FFFF9600.w, A0
+	LEA	Road_scanline_x_buf.w, A0
 	MOVEQ	#$00000077, D6
 ;loc_6CAA
 Update_road_graphics_X_fill:
@@ -9811,8 +9811,8 @@ Update_road_graphics_X_fill:
 	ADDQ.w	#2, A0
 	ADD.l	D7, D0
 	DBF	D6, Update_road_graphics_X_fill
-	LEA	$FFFF9600.w, A0
-	LEA	$FFFF9400.w, A1
+	LEA	Road_scanline_x_buf.w, A0
+	LEA	Road_row_x_buf.w, A1
 	MOVEQ	#$00000012, D0
 ;loc_6CBE
 Update_road_graphics_X_copy:
@@ -9820,7 +9820,7 @@ Update_road_graphics_X_copy:
 	ADDQ.w	#4, A0
 	DBF	D0, Update_road_graphics_X_copy
 	LEA	$FFFF9500.w, A0
-	LEA	$FFFF9600.w, A1
+	LEA	Road_scanline_x_buf.w, A1
 	MOVEQ	#$0000005F, D0
 ;loc_6CD0
 Update_road_graphics_X_slope_add:
@@ -9857,7 +9857,7 @@ Update_road_graphics_Bg_read_sentinel:
 ;loc_6D16
 Update_road_graphics_Bg_scale_setup:
 	LEA	Slope_scale_factors(PC), A6
-	LEA	$FFFF9800.w, A5
+	LEA	(Road_scale_table+$100).w, A5
 	MOVEQ	#$00000021, D0
 ;loc_6D20
 Update_road_graphics_Bg_scale_loop:
@@ -9883,7 +9883,7 @@ Update_road_graphics_Bg_interp_sentinel:
 ;loc_6D50
 Update_road_graphics_Bg_combine_setup:
 	LEA	$FFFF9300.w, A0
-	LEA	$FFFF9400.w, A1
+	LEA	Road_row_x_buf.w, A1
 	MOVEQ	#$00000018, D0
 ;loc_6D5A
 Update_road_graphics_Bg_combine_loop:
@@ -9947,7 +9947,7 @@ Update_slope_data_Read_sentinel:
 ;loc_6DAE
 Update_slope_data_Scale_setup:
 	LEA	Slope_scale_factors(PC), A6
-	LEA	$FFFF9800.w, A5
+	LEA	(Road_scale_table+$100).w, A5
 	MOVEQ	#$00000027, D0
 ;loc_6DB8
 Update_slope_data_Scale_loop:
@@ -9957,7 +9957,7 @@ Update_slope_data_Scale_loop:
 	MOVEQ	#0, D2
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF97C0.w, A6
-	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
+	LEA	(Road_scale_table+$14E).w, A5 ; array output of Integrate_curveslope
 	LEA	Curve_interp_segment_counts(PC), A4
 ;loc_6DD2
 Update_slope_data_Interp_loop:
@@ -9998,7 +9998,7 @@ Update_slope_data_Ramp_loop:
 	LEA	$FFFFAEDA.w, A2
 	CLR.w	(A2)
 	LEA	Road_scale_table.w, A1
-	LEA	$FFFF9900.w, A0
+	LEA	Road_tile_id_buf.w, A0
 	MOVE.w	(A1)+, D0
 	BMI.w	Update_slope_data_Rts
 	MOVE.w	D0, D6
@@ -10317,26 +10317,26 @@ Update_road_tile_scroll:
 ;     displacement and interpolate intermediate scroll values in $FFFFEA00
 ;     buffers for smooth curve entry/exit transitions.
 ;  8. Clear $FFFF9280, set $FFFF9282 = 1 (scroll updated flag).
-	TST.w	$FFFF9280.w
+	TST.w	Road_scroll_update_mode.w
 	BEQ.w	Update_road_tile_scroll_curve
 	TST.w	Background_zone_index.w
 	BNE.b	Update_road_tile_scroll_zone_b
-	LEA	$FFFFD400.w, A0
-	LEA	$FFFFD900.w, A1
+	LEA	Ui_tilemap_panel_a.w, A0
+	LEA	Ui_tilemap_scratch_a.w, A1
 	BRA.b	Update_road_tile_scroll_copy
 Update_road_tile_scroll_zone_b:
-	LEA	$FFFFD680.w, A0
-	LEA	$FFFFE000.w, A1
+	LEA	Ui_tilemap_panel_a_copy.w, A0
+	LEA	Ui_tilemap_scratch_b.w, A1
 Update_road_tile_scroll_copy:
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
-	CMPI.w	#2, $FFFF9280.w
+	CMPI.w	#2, Road_scroll_update_mode.w
 	BEQ.w	Update_road_tile_scroll_clear
 	MOVE.l	#$04420442, D3
-	CMPI.w	#1, $FFFF9238.w
+	CMPI.w	#1, Special_road_scene.w
 	BNE.b	Update_road_tile_scroll_rail
 	MOVE.l	#$04320432, D3
 Update_road_tile_scroll_rail:
-	LEA	$FFFFF600.w, A0
+	LEA	Road_hscroll_buf.w, A0
 	LEA	$FFFF9608.w, A1
 	MOVEQ	#$0000007C, D4
 	MOVE.w	$FFFFAFD6.w, D7
@@ -10349,7 +10349,7 @@ Update_road_tile_scroll_rail_row:
 	MOVE.w	(A1), D1
 	NEG.w	D1
 	ANDI.w	#$01FF, D1
-	MOVE.w	$FFFFAFD8.w, D0
+	MOVE.w	Road_scroll_origin_x.w, D0
 	SUBI.w	#$00A0, D0
 	BMI.b	Update_road_tile_scroll_rail_right
 	MOVE.w	D0, D5
@@ -10387,8 +10387,8 @@ Update_road_tile_scroll_rail_next:
 	LEA	$80(A0), A0
 	DBF	D7, Update_road_tile_scroll_rail_row
 Update_road_tile_scroll_clear:
-	CLR.w	$FFFF9280.w
-	MOVE.w	#1, $FFFF9282.w
+	CLR.w	Road_scroll_update_mode.w
+	MOVE.w	#1, Road_scroll_updated_flag.w
 Update_road_tile_scroll_curve:
 	LEA	$FFFF9658.w, A0
 	LEA	$FFFF91BA.w, A1
@@ -10426,8 +10426,8 @@ Update_road_tile_scroll_right_clamp:
 	ADDI.w	#$0220, D4
 	LSR.w	#2, D4
 	ANDI.w	#$00FE, D4
-	LEA	$FFFFE000.w, A5
-	LEA	$FFFFD900.w, A6
+	LEA	Ui_tilemap_scratch_b.w, A5
+	LEA	Ui_tilemap_scratch_a.w, A6
 	ADDA.w	D0, A5
 	ADDA.w	D0, A6
 Update_road_tile_scroll_right_fill:
@@ -10475,8 +10475,8 @@ Update_road_tile_scroll_left_clamp:
 	ADDI.w	#$00D8, D4
 	LSR.w	#2, D4
 	ANDI.w	#$00FE, D4
-	LEA	$FFFFE000.w, A5
-	LEA	$FFFFD900.w, A6
+	LEA	Ui_tilemap_scratch_b.w, A5
+	LEA	Ui_tilemap_scratch_a.w, A6
 	ADDA.w	D0, A5
 	ADDA.w	D0, A6
 Update_road_tile_scroll_left_fill:
@@ -10532,18 +10532,18 @@ Update_road_tile_scroll_next_row:
 	RTS
 ;loc_7298
 Flush_vdp_mode_and_signs:
-	CMPI.w	#2, $FFFF9276.w
+	CMPI.w	#2, Road_column_update_state.w
 	BNE.b	Flush_vdp_mode_and_signs_Check
 	JSR	Set_vdp_mode_h32_variant_b
 Flush_vdp_mode_and_signs_Check:
-	TST.w	$FFFF9282.w
+	TST.w	Road_scroll_updated_flag.w
 	BEQ.b	Flush_vdp_mode_and_signs_Skip
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96FB9500, D6
 	MOVE.l	#$94039300, D5
 	MOVE.l	#$4D000083, Vdp_dma_setup.w
 	JSR	Send_D567_to_VDP
-	CLR.w	$FFFF9282.w
+	CLR.w	Road_scroll_updated_flag.w
 	RTS
 Flush_vdp_mode_and_signs_Skip:
 	JMP	Send_sign_tileset_to_VDP
@@ -10803,11 +10803,11 @@ Update_race_timer_Format_display:
 	JSR	Queue_tilemap_draw
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Update_race_timer_Return
-	MOVE.l	$FFFF92DC.w, $FFFF92D8.w
+	MOVE.l	Rival_race_time_bcd.w, Rival_race_time_bcd_prev.w
 	LEA	Track_lap_time_base_ptr.w, A1
-	LEA	$FFFF92DC.w, A2
+	LEA	Rival_race_time_bcd.w, A2
 	JSR	Bcd_add_lap_time(PC)
-	MOVE.l	$FFFF92D8.w, D0
+	MOVE.l	Rival_race_time_bcd_prev.w, D0
 	LEA	$FFFFE81C.w, A1
 	JSR	Pack_hex_digits_to_tilemap
 	MOVEQ	#7, D0
@@ -10849,7 +10849,7 @@ Update_best_lap_Return:
 Update_rival_best_lap_time:
 	MOVEA.l	$4(A0), A1
 	ADDQ.w	#4, A1
-	MOVE.l	$FFFF92DC.w, D0
+	MOVE.l	Rival_race_time_bcd.w, D0
 	CMP.l	(A1), D0
 	BCC.b	Update_rival_best_lap_Return
 	MOVE.l	D0, (A1)
@@ -11188,7 +11188,7 @@ Crash_obj_phase1_sprite:
 	MOVE.w	$1A(A0), D0
 	MOVE.w	D0, $1E(A0)
 	ADDI.w	#$003C, D0
-	MOVE.w	D0, $FFFFFC8E.w
+	MOVE.w	D0, Lap_checkpoint_target.w
 	MOVE.w	#$FFFF, $28(A0)
 	MOVE.w	#$FFFF, Laps_completed.w
 	MOVE.w	#$FFFF, Best_ai_distance.w
@@ -11260,7 +11260,7 @@ Crash_obj_Retire_done:
 	MOVE.w	#$000F, $00FF5AC2
 	RTS
 Crash_obj_Overtake:
-	CLR.w	$FFFFFC5A.w
+	CLR.w	Collision_speed_penalty.w
 	MOVE.w	Overtake_delta.w, D0
 	BEQ.b	Crash_obj_Overtake2
 	BMI.b	Crash_obj_Overtake_neg
@@ -11272,12 +11272,12 @@ Crash_obj_Overtake_neg:
 	ADDQ.w	#1, D0
 Crash_obj_Overtake_write:
 	MOVE.w	D0, Overtake_delta.w
-	CLR.w	$FFFFFC52.w
+	CLR.w	Crash_lateral_gap.w
 	BRA.b	Crash_obj_Speed_delta
 Crash_obj_Overtake2:
-	MOVE.w	$FFFFFC52.w, D0
+	MOVE.w	Crash_lateral_gap.w, D0
 	BEQ.b	Crash_obj_Speed_delta
-	MOVE.w	D0, $FFFFFC5A.w
+	MOVE.w	D0, Collision_speed_penalty.w
 	LSR.w	#6, D0
 	ADDQ.w	#1, D0
 	MOVE.w	D0, Overtake_delta.w
@@ -11785,7 +11785,7 @@ Update_horizontal_position:
 	MOVE.w	Player_speed.w, D3
 	BEQ.w	Update_horizontal_position_Done
 	MOVE.l	#$01900000, D6
-	CMPI.w	#2, $FFFF9238.w
+	CMPI.w	#2, Special_road_scene.w
 	BCS.b	Update_horizontal_position_Load_curve
 	MOVE.l	#$01500000, D6
 ;loc_8176
@@ -12070,9 +12070,9 @@ Update_race_position_One_ahead:
 	MOVEQ	#1, D1
 ;loc_843E
 Update_race_position_Award_countdown:
-	SUBQ.w	#1, $FFFFFCAE.w
+	SUBQ.w	#1, Race_position_award_cooldown.w
 	BPL.b	Update_race_position_Check_award
-	MOVE.w	D1, $FFFFFCAE.w
+	MOVE.w	D1, Race_position_award_cooldown.w
 	TST.w	Retire_flag.w
 	BNE.b	Update_race_position_Check_award
 	MOVE.w	#Sfx_checkpoint, Audio_sfx_cmd      ; checkpoint / lap event SFX
@@ -12302,14 +12302,14 @@ Award_race_position_points_Add:
 	BRA.b	Decrement_lap_time_Check
 ;loc_867C
 Advance_lap_checkpoint:
-	MOVE.w	$FFFFFC8E.w, D0
+	MOVE.w	Lap_checkpoint_target.w, D0
 	CMP.w	Player_place_score.w, D0
 	BLS.b	Advance_lap_checkpoint_Add
 	RTS
 ;loc_8688
 Advance_lap_checkpoint_Add:
 	ADDI.w	#$003C, D0
-	MOVE.w	D0, $FFFFFC8E.w
+	MOVE.w	D0, Lap_checkpoint_target.w
 	MOVEQ	#1, D2
 	BRA.b	Award_race_position_points_Add
 ;loc_8694
@@ -12397,7 +12397,7 @@ Update_pit_prompt:
 	TST.w	Track_index_arcade_mode.w
 	BEQ.w	Update_pit_prompt_Return
 	CLR.w	Pit_prompt_flag.w
-	TST.w	$FFFF9150.w
+	TST.w	Tire_wear_degrade_level.w
 	BEQ.b	Update_pit_prompt_Return
 	CMPI.w	#4, Laps_completed.w
 	BEQ.b	Update_pit_prompt_Display
@@ -12435,7 +12435,7 @@ Update_pit_prompt_Hide:
 	LEA	$00FF5980, A6
 	MOVEQ	#0, D0
 Update_pit_prompt_Queue:
-	MOVE.w	D0, $FFFFFCA2.w
+	MOVE.w	D0, Car_palette_dma_id.w
 	MOVE.l	#$63960003, D7
 	MOVEQ	#9, D6
 	MOVEQ	#1, D5
@@ -12451,30 +12451,30 @@ Update_tire_wear_counter:
 Update_tire_wear_counter_Arcade:
 	BEQ.w	Update_tire_wear_counter_Return
 	MOVEQ	#0, D7
-	MOVE.w	$FFFF9156.w, D0
-	SUB.w	D0, $FFFF901A.w
+	MOVE.w	Tire_steering_wear_rate.w, D0
+	SUB.w	D0, Tire_steering_durability_acc.w
 	BCC.b	Update_tire_wear_counter_Steering_pct
-	CLR.w	$FFFF901A.w
+	CLR.w	Tire_steering_durability_acc.w
 ;loc_87F2
 Update_tire_wear_counter_Steering_pct:
-	SUB.w	D0, $FFFF916A.w
+	SUB.w	D0, Tire_steering_durability.w
 	BCC.b	Update_tire_wear_counter_Engine_setup
-	ADDI.w	#$0014, $FFFF916A.w
+	ADDI.w	#$0014, Tire_steering_durability.w
 	MOVEQ	#1, D7
 	SUBQ.w	#2, Track_steering_index.w
 	BCC.b	Update_tire_wear_counter_Engine_setup
 	CLR.w	Track_steering_index.w
 ;loc_880A
 Update_tire_wear_counter_Engine_setup:
-	MOVE.w	$FFFF9154.w, D0
-	SUB.w	D0, $FFFF9022.w
+	MOVE.w	Tire_engine_wear_rate.w, D0
+	SUB.w	D0, Tire_engine_durability_acc.w
 	BCC.b	Update_tire_wear_counter_Engine_pct
-	CLR.w	$FFFF9022.w
+	CLR.w	Tire_engine_durability_acc.w
 ;loc_8818
 Update_tire_wear_counter_Engine_pct:
-	SUB.w	D0, $FFFF9168.w
+	SUB.w	D0, Tire_engine_durability.w
 	BCC.b	Update_tire_wear_counter_Accel_setup
-	ADDI.w	#$0014, $FFFF9168.w
+	ADDI.w	#$0014, Tire_engine_durability.w
 	MOVEQ	#2, D7
 	SUBQ.w	#2, Team_car_engine_data.w
 	BCC.b	Update_tire_wear_counter_Accel_setup
@@ -12723,7 +12723,7 @@ Parse_sign_data_Special:
 	SUBI.w	#$0015, D1
 	ADD.w	D1, D1
 	ADD.w	D1, D1
-	MOVE.l	Special_sign_dispatch_table(PC,D1.w), $FFFFAFC0.w
+	MOVE.l	Special_sign_dispatch_table(PC,D1.w), Special_sign_obj_ptr.w
 	ADD.w	Total_distance.w, D0
 	MOVE.w	D0, $FFFFAFDE.w
 ;loc_8B1C
@@ -13168,9 +13168,9 @@ Advance_ai_track_position:
 	BEQ.b	Advance_ai_track_position_Lap_std
 	TST.w	Ai_active_flag.w
 	BEQ.b	Advance_ai_track_position_Lap_rival
-	TST.w	$FFFFFCC0.w
+	TST.w	Ai_lap_transition_flag.w
 	BNE.b	Advance_ai_track_position_Lap_rival
-	MOVE.w	#1, $FFFFFCC0.w
+	MOVE.w	#1, Ai_lap_transition_flag.w
 ;loc_8FB8
 Advance_ai_track_position_Lap_rival:
 	CMPI.w	#5, $22(A0)
@@ -13709,9 +13709,9 @@ Advance_rival_track_position_Step:
 	BCS.b	Advance_rival_track_position_Done
 	TST.w	Ai_active_flag.w
 	BEQ.b	Advance_rival_track_position_Lap
-	TST.w	$FFFFFCC0.w
+	TST.w	Ai_lap_transition_flag.w
 	BNE.b	Advance_rival_track_position_Lap
-	MOVE.w	#2, $FFFFFCC0.w
+	MOVE.w	#2, Ai_lap_transition_flag.w
 ;loc_951E
 Advance_rival_track_position_Lap:
 	SUB.w	Track_length.w, D0
@@ -13923,7 +13923,7 @@ Compute_ai_screen_x:
 	MOVE.w	D0, D1
 	LSR.w	#1, D1
 	ANDI.w	#$FFFE, D1
-	LEA	$FFFF9400.w, A1
+	LEA	Road_row_x_buf.w, A1
 	MOVE.w	(A1,D1.w), D1
 	ADDI.w	#$0180, D1
 	ADD.w	D3, D3
@@ -14011,7 +14011,7 @@ Assign_ai_sprite_depth_frame:
 	MOVE.b	D1, $2A(A0)
 ;Assign_ai_sprite_depth_frame_apply
 Assign_ai_sprite_depth_frame_apply:
-	LEA	$FFFF9480.w, A1
+	LEA	Road_row_y_buf.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
 	LEA	Ai_screen_x_to_angle_table(PC), A1
 	MOVE.b	(A1,D4.w), D4
@@ -14020,7 +14020,7 @@ Assign_ai_sprite_depth_frame_apply:
 	JMP	Queue_object_for_alt_sprite_buffer
 ;loc_980C
 Compute_rival_screen_x:
-	LEA	$FFFF9600.w, A1
+	LEA	Road_scanline_x_buf.w, A1
 	MOVE.w	(A1,D0.w), D1
 	ADDI.w	#$0180, D1
 	ADD.w	D3, D3
@@ -14188,16 +14188,16 @@ Compute_ai_position_Ahead_far_leader:
 	CMP.w	Depth_sort_value.w, D2
 	BCC.b	Compute_ai_position_Ahead_far_prev_leader
 	MOVE.w	Depth_sort_value.w, Depth_sort_prev.w
-	MOVE.w	$FFFF928C.w, $FFFF928E.w
+	MOVE.w	Depth_sort_leader_ptr.w, Depth_sort_prev_ptr.w
 	MOVE.w	D2, Depth_sort_value.w
-	MOVE.w	A0, $FFFF928C.w
+	MOVE.w	A0, Depth_sort_leader_ptr.w
 	BRA.b	Compute_ai_position_Ahead_far_screen_y
 ;loc_99AA
 Compute_ai_position_Ahead_far_prev_leader:
 	CMP.w	Depth_sort_prev.w, D2
 	BCC.b	Compute_ai_position_Ahead_far_screen_y
 	MOVE.w	D2, Depth_sort_prev.w
-	MOVE.w	A0, $FFFF928E.w
+	MOVE.w	A0, Depth_sort_prev_ptr.w
 ;loc_99B8
 Compute_ai_position_Ahead_far_screen_y:
 	SUBQ.w	#8, D2
@@ -14239,16 +14239,16 @@ Compute_ai_position_Behind_leader:
 	CMP.w	Depth_sort_value.w, D1
 	BCC.b	Compute_ai_position_Behind_prev_leader
 	MOVE.w	Depth_sort_value.w, Depth_sort_prev.w
-	MOVE.w	$FFFF928C.w, $FFFF928E.w
+	MOVE.w	Depth_sort_leader_ptr.w, Depth_sort_prev_ptr.w
 	MOVE.w	D1, Depth_sort_value.w
-	MOVE.w	A0, $FFFF928C.w
+	MOVE.w	A0, Depth_sort_leader_ptr.w
 	BRA.b	Compute_ai_position_Behind_screen_y
 ;loc_9A1A
 Compute_ai_position_Behind_prev_leader:
 	CMP.w	Depth_sort_prev.w, D1
 	BCC.b	Compute_ai_position_Behind_screen_y
 	MOVE.w	D1, Depth_sort_prev.w
-	MOVE.w	A0, $FFFF928E.w
+	MOVE.w	A0, Depth_sort_prev_ptr.w
 ;loc_9A28
 Compute_ai_position_Behind_screen_y:
 	CMPI.w	#$001C, D1
@@ -14375,24 +14375,24 @@ Update_engine_and_tire_sounds_Clamp_rpm:
 ;loc_9B0C
 Update_engine_and_tire_sounds_Write_rpm:
 	MOVE.w	D0, $00FF5AC4
-	MOVE.w	$FFFF923A.w, D0
+	MOVE.w	Special_road_audio_mode.w, D0
 	ADDQ.w	#1, D0
 	MOVE.w	D0, Audio_engine_flags
 ;loc_9B1E
 Update_engine_and_tire_sounds_Road_sfx:
-	MOVE.w	$FFFFFC5E.w, D0
+	MOVE.w	Road_surface_prev_state.w, D0
 	MOVE.w	Road_marker_state.w, D2
-	MOVE.w	D2, $FFFFFC5E.w
+	MOVE.w	D2, Road_surface_prev_state.w
 	BEQ.b	Update_engine_and_tire_sounds_Off_road
 	TST.w	D0
 	BNE.b	Update_engine_and_tire_sounds_On_road
-	CLR.w	$FFFFFC50.w
+	CLR.w	Road_sfx_cooldown.w
 ;loc_9B34
 Update_engine_and_tire_sounds_On_road:
-	CLR.w	$FFFFFC56.w
+	CLR.w	Collision_prev_flag.w
 	MOVE.w	Player_speed.w, D0
 	BEQ.b	Send_collision_sfx
-	SUBQ.w	#1, $FFFFFC50.w
+	SUBQ.w	#1, Road_sfx_cooldown.w
 	BPL.b	Send_collision_sfx
 	LSR.w	#5, D0
 	MOVEQ	#5, D1
@@ -14405,7 +14405,7 @@ Update_engine_and_tire_sounds_Interval_clamp:
 	MOVEQ	#1, D1
 ;loc_9B54
 Update_engine_and_tire_sounds_Set_interval:
-	MOVE.w	D1, $FFFFFC50.w
+	MOVE.w	D1, Road_sfx_cooldown.w
 	MOVEQ	#$00000011, D0
 	SUBQ.w	#2, D2
 	BEQ.b	Update_engine_and_tire_sounds_Write_sfx
@@ -14416,18 +14416,18 @@ Update_engine_and_tire_sounds_Set_interval:
 	BRA.b	Update_engine_and_tire_sounds_Write_sfx
 ;loc_9B6A
 Update_engine_and_tire_sounds_Off_road:
-	MOVE.w	$FFFFFC56.w, D0
+	MOVE.w	Collision_prev_flag.w, D0
 	MOVE.w	Collision_flag.w, D1
-	MOVE.w	D1, $FFFFFC56.w
+	MOVE.w	D1, Collision_prev_flag.w
 	BEQ.b	Send_collision_sfx
 	TST.w	D0
 	BNE.b	Update_engine_and_tire_sounds_Collision_cooldown
-	CLR.w	$FFFFFC4E.w
+	CLR.w	Collision_sfx_cooldown.w
 ;loc_9B80
 Update_engine_and_tire_sounds_Collision_cooldown:
-	SUBQ.w	#1, $FFFFFC4E.w
+	SUBQ.w	#1, Collision_sfx_cooldown.w
 	BPL.b	Send_collision_sfx
-	MOVE.w	#5, $FFFFFC4E.w
+	MOVE.w	#5, Collision_sfx_cooldown.w
 	MOVEQ	#$0000000B, D0
 ;loc_9B8E
 Update_engine_and_tire_sounds_Write_sfx:
@@ -14441,7 +14441,7 @@ Send_collision_sfx:
 Update_engine_and_tire_sounds_Overtake_sfx:
 	LEA	$00FF5AC8, A4
 	LEA	Depth_sort_value.w, A5
-	LEA	$FFFF928C.w, A6
+	LEA	Depth_sort_leader_ptr.w, A6
 	BSR.b	Update_engine_and_tire_sounds_Set_engine_vol
 	ADDQ.w	#4, A4
 	ADDQ.w	#2, A5
@@ -14982,7 +14982,7 @@ Update_rival_sprite_tiles_Return:
 ; Gate for the flagkeeper car: returns early if a sign DMA is pending this frame.
 ; Otherwise falls through to Flagkeeper_car_obj_init.
 Flagkeeper_car_obj_guard:
-	TST.w	$FFFF9264.w
+	TST.w	Sign_tileset_dma_pending.w
 	BEQ.b	Flagkeeper_car_obj_init
 	RTS
 ;loc_A17C
@@ -15202,7 +15202,7 @@ Rival_crowd_car_obj_init:
 	BNE.b	Rival_crowd_car_obj_init_champ_check
 	MOVE.l	#$000127B8, D0
 	MOVE.w	#$F9C0, D1
-	MOVE.w	#$009F, $FFFFFC2E.w
+	MOVE.w	#$009F, Countdown_lights_x_pos.w
 	MOVE.l	#Rival_crowd_car_obj_Draw, (A0)
 ;loc_A592
 Rival_crowd_car_obj_init_champ_check:
@@ -15222,14 +15222,14 @@ Rival_crowd_car_obj_init_validate:
 Rival_crowd_car_obj_init_store:
 	MOVE.l	D0, $4(A0)
 	MOVE.w	D1, $2A(A0)
-	MOVE.w	$FFFFFC2E.w, $E(A0)
-	SUBQ.w	#4, $FFFFFC2E.w
+	MOVE.w	Countdown_lights_x_pos.w, $E(A0)
+	SUBQ.w	#4, Countdown_lights_x_pos.w
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Rival_crowd_car_obj
 	MOVE.w	#8, $2C(A0)
 ;loc_A5D4
 Rival_crowd_car_obj:
-	TST.w	$FFFFFC34.w
+	TST.w	Countdown_lights_active_flag.w
 	BEQ.b	Rival_crowd_car_obj_Draw
 	RTS
 ;loc_A5DC
@@ -15327,7 +15327,7 @@ Queue_gear_diagram_draw_Dispatch:
 	MOVE.w	#$0084, $18(A0)
 	MOVE.w	Player_place_score.w, $2A(A0)
 	MOVE.w	#$0028, $2C(A0)
-	MOVE.w	#$FFFF, $FFFFFC34.w
+	MOVE.w	#$FFFF, Countdown_lights_active_flag.w
 	BRA.b	Queue_countdown_lights
 ;loc_A716
 Countdown_lights_Wait:
@@ -15367,7 +15367,7 @@ Countdown_lights_Tick_frame:
 ;loc_A77E
 Countdown_lights_Tick_clamp:
 	ADD.w	D0, D0
-	MOVE.w	Countdown_lights_tick_x_table-2(PC,D0.w), $FFFFE998.w
+	MOVE.w	Countdown_lights_tick_x_table-2(PC,D0.w), (Palette_buffer+$18).w
 	BRA.b	Queue_countdown_lights
 ;loc_A788
 Countdown_lights_Slide_out:
@@ -15386,7 +15386,7 @@ Countdown_lights_Slide_frame:
 ;loc_A7B0
 Countdown_lights_Slide_clamp:
 	ADD.w	D0, D0
-	MOVE.w	Countdown_lights_slide_x_table(PC,D0.w), $FFFFE998.w
+	MOVE.w	Countdown_lights_slide_x_table(PC,D0.w), (Palette_buffer+$18).w
 	BRA.b	Queue_countdown_lights
 ;loc_A7BA
 Countdown_lights_Finish_check:
@@ -15394,7 +15394,7 @@ Countdown_lights_Finish_check:
 	SUB.w	$2A(A0), D0
 	CMPI.w	#$0080, D0
 	BCS.b	Countdown_lights_Flash
-	CLR.w	$FFFFFC34.w
+	CLR.w	Countdown_lights_active_flag.w
 	JMP	Clear_object_slot
 ;loc_A7D2
 Countdown_lights_Flash:
@@ -15404,7 +15404,7 @@ Countdown_lights_Flash:
 	MOVE.w	#$000A, $2C(A0)
 	MOVE.w	#3, $2E(A0)
 	MOVE.l	#Countdown_lights_Slide_out, (A0)
-	CLR.w	$FFFFFC34.w
+	CLR.w	Countdown_lights_active_flag.w
 	BRA.w	Queue_countdown_lights
 ;loc_A7FA
 Countdown_lights_tick_x_table:
@@ -15575,7 +15575,7 @@ Background_ai_car_d_obj:
 	RTS
 ;Check_despawn_ai_car
 Check_despawn_ai_car:
-	MOVE.w	$FFFF9238.w, D1
+	MOVE.w	Special_road_scene.w, D1
 	BNE.b	Check_despawn_ai_car_active
 	MOVE.l	(A7)+, D1
 	JMP	Clear_object_slot
@@ -15583,7 +15583,7 @@ Check_despawn_ai_car:
 Check_despawn_ai_car_active:
 	SUBQ.w	#1, D1
 	BNE.b	Check_despawn_ai_car_rts
-	LEA	$FFFFAFC0.w, A1
+	LEA	Special_sign_obj_ptr.w, A1
 	MOVE.w	$18(A0), D1
 	CMP.w	$18(A1), D1
 	BLT.b	Check_despawn_ai_car_clear
@@ -15614,11 +15614,11 @@ Ai_car_lateral_dispatch_table:
 	JMP	Clear_object_slot
 ;loc_AA20
 Ai_car_lateral_update_b_in_range:
-	LEA	$FFFF9480.w, A1
+	LEA	Road_row_y_buf.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
 	LSR.w	#1, D0
 	ANDI.w	#$FFFE, D0
-	LEA	$FFFF9400.w, A1
+	LEA	Road_row_x_buf.w, A1
 	MOVE.w	(A1,D0.w), D1
 	ADDI.w	#$0180, D1
 	ADD.w	D3, D3
@@ -15655,7 +15655,7 @@ Ai_car_lateral_update_a:
 	NEG.w	D1
 	ADDI.w	#$0130, D1
 	MOVE.w	D1, $16(A0)
-	LEA	$FFFF9600.w, A1
+	LEA	Road_scanline_x_buf.w, A1
 	MOVE.w	(A1,D0.w), D1
 	ADDI.w	#$0180, D1
 	ADD.w	D3, D3
@@ -15726,7 +15726,7 @@ Update_ai_car_screen_x_Behind:
 	BRA.b	Update_ai_car_screen_x_Y_from_table
 ;loc_AB3E
 Crash_car_obj_init:
-	MOVE.l	#Crash_shadow_obj_init, $FFFFB040.w
+	MOVE.l	#Crash_shadow_obj_init, (Main_object_pool+$2C0).w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
 	MOVE.l	#Crash_lateral_follower_obj_init, D1
@@ -15742,15 +15742,15 @@ Crash_car_obj_init:
 	JSR	Find_free_aux_object_slot
 ;loc_AB86
 Crash_car_obj_setup:
-	MOVE.l	#Crash_car_obj2_init, $FFFFB000.w
-	MOVE.w	D0, $FFFFB01E.w
+	MOVE.l	#Crash_car_obj2_init, (Main_object_pool+$280).w
+	MOVE.w	D0, (Main_object_pool+$29E).w
 	MOVE.l	#Crash_car_obj, D0
 	MOVE.l	#$00010944, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
 	LEA	Crash_approach_palette_data, A1
-	LEA	$FFFFE9F6.w, A2
+	LEA	(Palette_buffer+$76).w, A2
 	MOVEQ	#4, D0
 ;loc_ABB4
 Crash_car_obj_copy_loop:
@@ -15783,14 +15783,14 @@ Crash_car_obj_update_body:
 ;loc_ABFC
 Crash_car_obj_screen_right:
 	SUB.w	D4, D3
-	MOVE.w	D3, $FFFFFC36.w
+	MOVE.w	D3, Crash_scene_hud_span.w
 	SUB.w	D2, D3
 	SUBI.w	#$00C2, D3
 	BCC.b	Crash_car_obj_clamp_depth
 	ADD.w	D3, D2
 ;loc_AC0C
 Crash_car_obj_clamp_depth:
-	MOVE.w	D2, $FFFFFC38.w
+	MOVE.w	D2, Crash_scene_depth.w
 	MOVE.w	$E(A0), D0
 	LEA	Ai_screen_y_table, A1
 	MOVE.b	(A1,D0.w), D0
@@ -15803,7 +15803,7 @@ Crash_car_obj_store_hud:
 	RTS
 ;loc_AC2E
 Crash_car_obj_behind:
-	MOVE.w	#2, $FFFF923A.w
+	MOVE.w	#2, Special_road_audio_mode.w
 	MOVE.l	#Crash_car_spin_behind_sprite_frames, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
@@ -15823,9 +15823,9 @@ Crash_car_obj_offscreen:
 	SUB.w	D4, D3
 	CMPI.w	#$009A, D3
 	BCS.b	Crash_car_obj_Rts
-	MOVE.w	D3, $FFFFFC42.w
+	MOVE.w	D3, Crash_scene_prev_shadow.w
 	SUBI.w	#$009A, D3
-	MOVE.w	D3, $FFFFFC44.w
+	MOVE.w	D3, Crash_scene_prev_delta.w
 ;loc_AC76
 Crash_car_obj_Rts:
 	RTS
@@ -15838,7 +15838,7 @@ Crash_car_obj2_init:
 	JSR	Setup_ai_object_state(PC)
 ;loc_AC8E
 Crash_car_obj2:
-	TST.l	$FFFFAFC0.w
+	TST.l	Special_sign_obj_ptr.w
 	BNE.b	Crash_car_obj2_update
 	JMP	Clear_object_slot
 ;loc_AC9A
@@ -15888,30 +15888,30 @@ Crash_car_obj2_hud_set:
 Crash_car_obj2_hud_nonzero:
 	MOVE.w	D0, HUD_scroll_base.w
 	SUBQ.w	#1, D1
-	MOVE.w	D1, $FFFFFC48.w
+	MOVE.w	D1, HUD_blank_row_count.w
 ;loc_AD12
 Crash_car_obj2_depth:
 	SUB.w	D4, D3
-	MOVE.w	$FFFFFC36.w, D7
+	MOVE.w	Crash_scene_hud_span.w, D7
 	BNE.b	Crash_car_obj2_depth_nonzero
-	MOVE.w	D3, $FFFFFC3E.w
+	MOVE.w	D3, Crash_scene_compare_depth.w
 	SUBI.w	#$00C2, D3
-	MOVE.w	D3, $FFFFFC40.w
+	MOVE.w	D3, Crash_scene_delta_depth.w
 	RTS
 ;loc_AD28
 Crash_car_obj2_depth_nonzero:
 	SUB.w	D3, D7
 	BCC.b	Crash_car_obj2_depth_Rts
-	MOVE.w	D3, $FFFFFC3E.w
+	MOVE.w	D3, Crash_scene_compare_depth.w
 	NEG.w	D7
 	SUBQ.w	#1, D7
-	MOVE.w	D7, $FFFFFC40.w
+	MOVE.w	D7, Crash_scene_delta_depth.w
 ;loc_AD38
 Crash_car_obj2_depth_Rts:
 	RTS
 ;loc_AD3A
 Crash_car_obj2_behind:
-	CLR.w	$FFFF923A.w
+	CLR.w	Special_road_audio_mode.w
 	MOVE.l	#Crash_car_spin_left_sprite_frames, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
@@ -15931,24 +15931,24 @@ Crash_car_obj2_offscreen:
 	SUB.w	D4, D3
 	CMPI.w	#$009A, D3
 	BCS.b	Crash_car_obj2_Rts
-	MOVE.w	D3, $FFFFFC3A.w
+	MOVE.w	D3, Crash_scene_shadow_base.w
 	SUB.w	D2, D3
 	SUBI.w	#$009A, D3
 	BCC.b	Crash_car_obj2_shadow_clamp
 	ADD.w	D3, D2
 ;loc_AD84
 Crash_car_obj2_shadow_clamp:
-	MOVE.w	D2, $FFFFFC3C.w
-	MOVE.w	$FFFFFC42.w, D0
-	MOVE.w	$FFFFFC3A.w, D1
+	MOVE.w	D2, Crash_scene_shadow_depth.w
+	MOVE.w	Crash_scene_prev_shadow.w, D0
+	MOVE.w	Crash_scene_shadow_base.w, D1
 	SUB.w	D1, D0
 	BLS.b	Crash_car_obj2_clear_fc42
 	SUBQ.w	#1, D0
-	MOVE.w	D0, $FFFFFC44.w
+	MOVE.w	D0, Crash_scene_prev_delta.w
 	RTS
 ;loc_AD9C
 Crash_car_obj2_clear_fc42:
-	CLR.w	$FFFFFC42.w
+	CLR.w	Crash_scene_prev_shadow.w
 ;loc_ADA0
 Crash_car_obj2_Rts:
 	RTS
@@ -15969,7 +15969,7 @@ Crash_lateral_follower_obj_init_b:
 	MOVE.l	#$FFFFB000, $2C(A0)
 ;loc_ADD4
 Crash_lateral_follower_obj:
-	TST.l	$FFFFAFC0.w
+	TST.l	Special_sign_obj_ptr.w
 	BNE.b	Crash_lateral_follower_obj_update
 	JMP	Clear_object_slot
 ;loc_ADE0
@@ -16000,7 +16000,7 @@ Crash_depth_obj_init_b:
 	JSR	Setup_ai_object_state(PC)
 ;loc_AE34
 Crash_depth_obj:
-	TST.l	$FFFFAFC0.w
+	TST.l	Special_sign_obj_ptr.w
 	BNE.b	Crash_depth_obj_update
 	JMP	Clear_object_slot
 ;loc_AE40
@@ -16048,7 +16048,7 @@ Crash_shadow_obj_init:
 	MOVE.w	#$0100, $18(A0)
 ;loc_AEB0
 Crash_shadow_obj:
-	LEA	$FFFFAFC0.w, A1
+	LEA	Special_sign_obj_ptr.w, A1
 	TST.l	(A1)
 	BNE.b	Crash_shadow_obj_check_side
 	JMP	Clear_object_slot
@@ -16096,20 +16096,20 @@ Crash_shadow_sprite_data:
 	dc.b	$00, $01, $F1, $01, $FF, $FE, $00, $00, $F1, $01, $FF, $FF, $00, $00
 ;loc_AF2A
 Crash_approach_obj_init:
-	MOVE.l	#Crash_shadow_obj_init, $FFFFB040.w
+	MOVE.l	#Crash_shadow_obj_init, (Main_object_pool+$2C0).w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
-	MOVE.l	#$0000B008, $FFFFB000.w
-	MOVE.w	D0, $FFFFB01E.w
+	MOVE.l	#$0000B008, (Main_object_pool+$280).w
+	MOVE.w	D0, (Main_object_pool+$29E).w
 	MOVE.l	#$0000AF7A, D0
 	MOVE.l	#$000109D4, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE00, D3
 	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
-	MOVE.w	#1, $FFFF9238.w
+	MOVE.w	#1, Special_road_scene.w
 	LEA	Crash_approach_scroll_data, A1
-	LEA	$FFFFE9F6.w, A2
+	LEA	(Palette_buffer+$76).w, A2
 	MOVEQ	#4, D0
 Crash_approach_obj_init_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
@@ -16118,11 +16118,11 @@ Crash_approach_obj_init_Copy_loop:
 	CMPI.w	#4, D7
 	BEQ.b	Crash_approach_obj_Onscreen
 	MOVEQ	#2, D0
-	MOVE.w	D0, $FFFF9238.w
-	MOVE.w	D0, $FFFF923A.w
-	MOVE.w	D0, $FFFF9280.w
+	MOVE.w	D0, Special_road_scene.w
+	MOVE.w	D0, Special_road_audio_mode.w
+	MOVE.w	D0, Road_scroll_update_mode.w
 	LEA	Crash_approach_scroll_data, A1
-	LEA	$FFFFE9B6.w, A2
+	LEA	(Palette_buffer+$36).w, A2
 	MOVEQ	#4, D0
 Crash_approach_obj_init_Offscreen_copy:
 	MOVE.w	(A1)+, (A2)+
@@ -16150,15 +16150,15 @@ Crash_approach_obj_Onscreen_Clamp:
 	LSR.w	#1, D2
 	MOVE.w	$16(A0), D3
 	SUB.w	D4, D3
-	MOVE.w	D3, $FFFFFC36.w
+	MOVE.w	D3, Crash_scene_hud_span.w
 	SUB.w	D2, D3
 	SUBI.w	#$00C2, D3
 	BCC.b	Crash_approach_obj_Onscreen_Depth
 	ADD.w	D3, D2
 ;loc_AFFC
 Crash_approach_obj_Onscreen_Depth:
-	MOVE.w	D2, $FFFFFC38.w
-	MOVE.w	#1, $FFFF9280.w
+	MOVE.w	D2, Crash_scene_depth.w
+	MOVE.w	#1, Road_scroll_update_mode.w
 	RTS
 	MOVE.l	#$0000B022, D0
 	MOVE.l	#$00010A1C, D1
@@ -16182,13 +16182,13 @@ Crash_approach_obj_Reenter:
 Crash_approach_obj_Park:
 	MOVE.l	#Crash_approach_obj_Park_Poll, (A0)
 	ADDI.w	#$00A2, $1E(A0)
-	MOVE.w	#$FFFF, $FFFF923C.w
+	MOVE.w	#$FFFF, Special_road_blank_bg_flag.w
 ;loc_B05E
 Crash_approach_obj_Park_Poll:
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	Crash_approach_obj_Park_Onscreen
-	CLR.w	$FFFF923C.w
+	CLR.w	Special_road_blank_bg_flag.w
 	JMP	Clear_object_slot
 ;loc_B072
 Crash_approach_obj_Park_Onscreen:
@@ -16210,8 +16210,8 @@ Crash_approach_obj_Park_Onscreen_Clamp:
 Rival_approach_obj_init:
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
-	MOVE.l	#$0000B182, $FFFFB000.w
-	MOVE.w	D0, $FFFFB01E.w
+	MOVE.l	#$0000B182, (Main_object_pool+$280).w
+	MOVE.w	D0, (Main_object_pool+$29E).w
 	MOVE.l	#$0000B0F0, D0
 	MOVE.l	#$000109B0, D1
 	MOVEQ	#-1, D2
@@ -16219,9 +16219,9 @@ Rival_approach_obj_init:
 	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
 	MOVE.w	#2, $22(A0)
-	MOVE.w	#3, $FFFF9238.w
-	LEA	$FFFFAD00.w, A1
-	LEA	$FFFFE9F6.w, A2
+	MOVE.w	#3, Special_road_scene.w
+	LEA	Crash_approach_scroll_buf.w, A1
+	LEA	(Palette_buffer+$76).w, A2
 	MOVEQ	#4, D0
 Rival_approach_obj_init_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
@@ -16230,12 +16230,12 @@ Rival_approach_obj_init_Copy_loop:
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	Rival_approach_obj_Onscreen
-	CLR.w	$FFFF9238.w
-	CLR.w	$FFFF923A.w
-	MOVE.w	#2, $FFFF927E.w
-	MOVE.w	#2, $FFFF9280.w
-	LEA	$FFFFAD00.w, A1
-	LEA	$FFFFE9B6.w, A2
+	CLR.w	Special_road_scene.w
+	CLR.w	Special_road_audio_mode.w
+	MOVE.w	#2, Road_column_update_pending.w
+	MOVE.w	#2, Road_scroll_update_mode.w
+	LEA	Crash_approach_scroll_buf.w, A1
+	LEA	(Palette_buffer+$36).w, A2
 	MOVEQ	#4, D0
 Rival_approach_obj_init_Offscreen_copy:
 	MOVE.w	(A1)+, (A2)+
@@ -16244,7 +16244,7 @@ Rival_approach_obj_init_Offscreen_copy:
 	BRA.w	Crash_approach_obj_Park
 ;loc_B128
 Rival_approach_obj_Onscreen:
-	MOVE.w	#1, $FFFF927E.w
+	MOVE.w	#1, Road_column_update_pending.w
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_ai_lateral_bounds(PC)
@@ -16263,10 +16263,10 @@ Rival_approach_obj_Onscreen_Clamp:
 	MOVE.w	D4, $28(A0)
 	MOVE.w	$16(A0), D3
 	SUB.w	D4, D3
-	MOVE.w	D3, $FFFFFC3E.w
+	MOVE.w	D3, Crash_scene_compare_depth.w
 	SUBI.w	#$00C2, D3
-	MOVE.w	D3, $FFFFFC40.w
-	MOVE.w	#1, $FFFF9280.w
+	MOVE.w	D3, Crash_scene_delta_depth.w
+	MOVE.w	#1, Road_scroll_update_mode.w
 	RTS
 	MOVE.l	#$0000B19C, D0
 	MOVE.l	#$000109F8, D1
@@ -16287,9 +16287,9 @@ Rival_approach_obj_Reenter:
 	MOVE.w	#0, D6
 ;loc_B1C2
 Write_approach_scroll_strip:
-	LEA	$FFFFE900.w, A1
+	LEA	Road_column_tile_buf.w, A1
 	MOVE.w	#$0020, D5
-	MOVE.w	$FFFFAFD8.w, D0
+	MOVE.w	Road_scroll_origin_x.w, D0
 	MOVE.w	$18(A0), D1
 	SUBI.w	#$008C, D0
 	BMI.b	Write_approach_scroll_strip_BySpeed
@@ -16366,7 +16366,7 @@ Write_approach_scroll_strip_Uniform_Loop:
 	DBF	D1, Write_approach_scroll_strip_Uniform_Loop
 ;loc_B246
 Write_approach_scroll_strip_Done:
-	MOVE.w	#$FFFF, $FFFF927C.w
+	MOVE.w	#$FFFF, Road_column_tiles_dirty.w
 	RTS
 ;Check_ai_lateral_bounds
 Check_ai_lateral_bounds:
@@ -16408,7 +16408,7 @@ Check_ai_lateral_bounds_Apply:
 	NEG.w	D7
 ;Check_ai_lateral_bounds_Positive_d7
 Check_ai_lateral_bounds_Positive_d7:
-	MOVE.w	D7, $FFFFFC52.w
+	MOVE.w	D7, Crash_lateral_gap.w
 	MOVE.w	#1, $36(A0)
 	MOVE.w	Horizontal_position.w, D0
 	CMP.w	$34(A0), D0
@@ -16464,7 +16464,7 @@ Race_result_overlay_frame_Scroll_loop:
 	BNE.b	Race_result_overlay_frame_Render
 	BCLR.b	#4, Player_state_flags.w
 	MOVE.l	#$01805C60, Screen_data_ptr.w
-	CLR.w	$FFFFFCC0.w
+	CLR.w	Ai_lap_transition_flag.w
 ;loc_B37E
 Race_result_overlay_frame_Render:
 	LEA	$00FF5980, A6
@@ -16544,7 +16544,7 @@ Race_result_phase_table_3:
 	dc.l	Championship_standings_display_setup_Rts
 ;loc_B480
 Build_result_scroll_table:
-	LEA	$FFFF9D40.w, A1
+	LEA	Screen_scroll_table_buf.w, A1
 	MOVE.w	Screen_scroll.w, D1
 	MOVE.w	Screen_subcounter.w, D2
 	MOVE.w	Screen_data_ptr.w, D3
@@ -16601,14 +16601,14 @@ Race_result_scroll_in_Rts:
 Race_result_mirror_activate:
 	MOVE.b	$FFFFFCC1.w, D0
 	BEQ.b	Race_result_event_sequence
-	LEA	$FFFF8FD2.w, A1
+	LEA	Team_palette_copy_buf.w, A1
 	BTST.l	#0, D0
 	BNE.b	Race_result_mirror_activate_Copy
 	LEA	$FFFF8FDA.w, A1
 ;loc_B514
 Race_result_mirror_activate_Copy:
 	BSET.b	#4, Player_state_flags.w
-	LEA	$FFFFE9AC.w, A2
+	LEA	(Palette_buffer+$2C).w, A2
 	MOVE.w	#3, D0
 ;loc_B522
 Race_result_mirror_activate_Copy_loop:
@@ -16618,9 +16618,9 @@ Race_result_mirror_activate_Copy_loop:
 Race_result_event_sequence:
 	MOVE.b	Race_event_flags.w, D0
 	BEQ.b	Race_result_event_sequence_Flags
-	SUBQ.w	#1, $FFFFFC1A.w
+	SUBQ.w	#1, Screen_state_byte_1.w
 	BNE.b	Race_result_event_sequence_Flags
-	MOVE.w	#6, $FFFFFC1A.w
+	MOVE.w	#6, Screen_state_byte_1.w
 	LEA	$FFFF901A.w, A1
 	LEA	$FFFF9010.w, A2
 	LEA	$FFFF9024.w, A3
@@ -16646,10 +16646,10 @@ Race_result_event_sequence_Flags:
 	ANDI.b	#$1A, D0
 	BNE.b	Race_result_event_sequence_Pit
 	BCLR.b	#6, Race_event_flags.w
-	MOVE.w	#$FFFF, $FFFFB8DE.w
-	MOVE.w	#$FFFF, $FFFFB91E.w
-	MOVE.w	#$0010, $FFFFBADE.w
-	MOVE.w	#$0010, $FFFFBB1E.w
+	MOVE.w	#$FFFF, (Aux_object_pool+$9E).w
+	MOVE.w	#$FFFF, (Aux_object_pool+$DE).w
+	MOVE.w	#$0010, (Aux_object_pool+$29E).w
+	MOVE.w	#$0010, (Aux_object_pool+$2DE).w
 ;loc_B592
 Race_result_event_sequence_Pit:
 	BTST.b	#7, Race_event_flags.w
@@ -16658,16 +16658,16 @@ Race_result_event_sequence_Pit:
 	ANDI.b	#5, D0
 	BNE.b	Race_result_scan_tires
 	BCLR.b	#7, Race_event_flags.w
-	MOVE.w	#$0010, $FFFFBA5E.w
-	MOVE.w	#$0010, $FFFFBA9E.w
-	MOVE.w	#$0010, $FFFFBADE.w
+	MOVE.w	#$0010, (Aux_object_pool+$21E).w
+	MOVE.w	#$0010, (Aux_object_pool+$25E).w
+	MOVE.w	#$0010, (Aux_object_pool+$29E).w
 	BTST.b	#5, Race_event_flags.w
 	BEQ.b	Race_result_scan_tires_Alt
-	MOVE.w	#$FFFF, $FFFFBADE.w
+	MOVE.w	#$FFFF, (Aux_object_pool+$29E).w
 	BRA.b	Race_result_scan_tires
 ;loc_B5CC
 Race_result_scan_tires_Alt:
-	MOVE.w	#$FFFF, $FFFFBA5E.w
+	MOVE.w	#$FFFF, (Aux_object_pool+$21E).w
 	MOVE.w	#$FFFF, $FFFFBA9E.w
 Race_result_scan_tires:
 	LEA	$FFFFB85E.w, A1
@@ -16684,9 +16684,9 @@ Race_result_scan_tires_Rts:
 	RTS
 ;loc_B5F4
 Race_result_show_text:
-	SUBQ.w	#1, $FFFFFC1A.w
+	SUBQ.w	#1, Screen_state_byte_1.w
 	BNE.b	Race_result_show_text_Rts
-	MOVE.w	#$431D, $FFFF905A.w
+	MOVE.w	#$431D, Font_tile_base.w
 	JSR	Load_font_tiles_to_work_buffer
 	JSR	Select_team_pre_race_message
 	JSR	Render_text_to_tilemap
@@ -16720,7 +16720,7 @@ Draw_intro_car_tilemap:
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
 	ADDQ.w	#4, Anim_delay.w
-	CLR.b	$FFFFFC1A.w
+	CLR.b	Screen_state_byte_1.w
 	RTS
 ;loc_B66E
 Draw_intro_car_tilemap_Queued:
@@ -16728,7 +16728,7 @@ Draw_intro_car_tilemap_Queued:
 	RTS
 ;loc_B674
 Team_select_update_controls:
-	ADDQ.b	#2, $FFFFFC1A.w
+	ADDQ.b	#2, Screen_state_byte_1.w
 	MOVE.w	#1, Track_index_arcade_mode.w
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
@@ -16737,11 +16737,11 @@ Team_select_update_controls:
 	ANDI.b	#$0C, D0
 	BEQ.b	Team_select_update_controls_NoShift
 	BSR.w	Set_gear_indicator_OO
-	ADDQ.b	#1, $FFFFFC1A.w
+	ADDQ.b	#1, Screen_state_byte_1.w
 	BRA.b	Team_select_update_controls_Check
 ;loc_B6A0
 Team_select_update_controls_NoShift:
-	BTST.b	#0, $FFFFFC1A.w
+	BTST.b	#0, Screen_state_byte_1.w
 	BNE.b	Team_select_update_controls_Back
 	MOVE.w	#$000E, Selection_count.w
 	MOVE.l	#$0000E94C, Frame_callback.w
@@ -16753,9 +16753,9 @@ Team_select_update_controls_Back:
 	RTS
 ;loc_B6C8
 Team_select_update_controls_Check:
-	BTST.b	#3, $FFFFFC1A.w
+	BTST.b	#3, Screen_state_byte_1.w
 	BEQ.b	Set_gear_indicator_OO
-	BTST.b	#0, $FFFFFC1A.w
+	BTST.b	#0, Screen_state_byte_1.w
 	BEQ.b	Set_gear_indicator_CO
 	ORI	#$0700, SR
 	MOVE.l	#$4E160000, VDP_control_port
@@ -16784,8 +16784,8 @@ Set_gear_indicator_OO:
 	RTS
 ;loc_B762
 Draw_rival_team_message:
-	MOVE.w	#$0EEE, $FFFFE9C4.w
-	MOVE.w	#$431D, $FFFF905A.w
+	MOVE.w	#$0EEE, (Palette_buffer+$44).w
+	MOVE.w	#$431D, Font_tile_base.w
 	JSR	Load_font_tiles_to_work_buffer
 	JSR	Select_post_race_message
 	JSR	Render_text_to_tilemap
@@ -16835,7 +16835,7 @@ Championship_next_race_advance_Rival:
 	RTS
 ;loc_B810
 Championship_next_race_advance_ShowMsg:
-	LEA	$FFFFF6F0.w, A6
+	LEA	Dialogue_tilemap_buf.w, A6
 	LEA	Championship_podium_text_jp, A1
 	LEA	Team_name_display_strings, A2
 	MOVE.w	#8, D5
@@ -16860,7 +16860,7 @@ Championship_next_race_advance_ShowMsg_Copy:
 	ANDI.b	#$0F, D2 ; isolate the rival's team number
 	MULS.w	D1, D2
 	ADDA.l	D2, A2
-	LEA	$FFFFF6F0.w, A3
+	LEA	Dialogue_tilemap_buf.w, A3
 ;loc_B874
 Championship_next_race_advance_ShowMsg_Name_loop:
 	CLR.w	D3
@@ -16902,7 +16902,7 @@ Championship_podium_load_or_fade_Fade:
 	MOVEQ	#6, D0
 ;loc_B8E4
 Championship_podium_load_or_fade_Fade_loop:
-	LEA	$FFFFE9A0.w, A0
+	LEA	(Palette_buffer+$20).w, A0
 	MOVEQ	#$00000030, D1
 ;loc_B8EA
 Championship_podium_load_or_fade_Palette_loop:
@@ -16914,7 +16914,7 @@ Championship_podium_load_or_fade_Palette_loop:
 	BSR.w	Pack_tile_palette_field
 	MOVE.w	D5, (A0)+
 	DBF	D1, Championship_podium_load_or_fade_Palette_loop
-	MOVE.l	#$0EEE0800, $FFFFE9C4.w
+	MOVE.l	#$0EEE0800, (Palette_buffer+$44).w
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
 	JSR	Wait_for_vblank
@@ -16929,7 +16929,7 @@ Championship_podium_load_or_fade_Wait:
 	SUBQ.l	#1, D0
 	BNE.b	Championship_podium_load_or_fade_Wait
 	BSR.w	Advance_rival_promotion_state
-	LEA	$FFFFF6F0.w, A6
+	LEA	Dialogue_tilemap_buf.w, A6
 	LEA	Championship_podium_text_jp, A1
 	LEA	Team_name_display_strings, A2
 	MOVE.w	#4, D5
@@ -16962,7 +16962,7 @@ Championship_podium_load_or_fade_Rival_loop:
 	BNE.b	Championship_podium_load_or_fade_Rival_loop
 	MULS.w	D1, D2
 	ADDA.l	D2, A2
-	LEA	$FFFFF6F0.w, A3
+	LEA	Dialogue_tilemap_buf.w, A3
 ;loc_B9B8
 Championship_podium_load_or_fade_Name_loop:
 	CLR.w	D3
@@ -17007,7 +17007,7 @@ Pack_tile_palette_field_Nonzero:
 	RTS
 ;loc_BA12
 Championship_team_select_update_controls:
-	ADDQ.b	#2, $FFFFFC1A.w
+	ADDQ.b	#2, Screen_state_byte_1.w
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.b	#$FC, D0
 	BEQ.w	Championship_team_select_update_controls_Check
@@ -17015,11 +17015,11 @@ Championship_team_select_update_controls:
 	ANDI.b	#$0C, D0
 	BEQ.b	Championship_team_select_update_controls_NoShift
 	BSR.w	Set_champ_gear_indicator_OO
-	ADDQ.b	#1, $FFFFFC1A.w
+	ADDQ.b	#1, Screen_state_byte_1.w
 	BRA.w	Championship_team_select_update_controls_Check
 ;loc_BA3C
 Championship_team_select_update_controls_NoShift:
-	BTST.b	#0, $FFFFFC1A.w
+	BTST.b	#0, Screen_state_byte_1.w
 	BNE.w	Championship_team_select_update_controls_Back
 	MOVE.w	#$000A, Selection_count.w
 	MOVE.l	#$0000D6E2, Saved_frame_callback.w
@@ -17032,9 +17032,9 @@ Championship_team_select_update_controls_Back:
 	RTS
 ;loc_BA6C
 Championship_team_select_update_controls_Check:
-	BTST.b	#3, $FFFFFC1A.w
+	BTST.b	#3, Screen_state_byte_1.w
 	BEQ.b	Set_champ_gear_indicator_OO
-	BTST.b	#0, $FFFFFC1A.w
+	BTST.b	#0, Screen_state_byte_1.w
 	BEQ.b	Set_champ_gear_indicator_CO
 	ORI	#$0700, SR
 	MOVE.l	#$52120000, VDP_control_port
@@ -17266,7 +17266,7 @@ Championship_next_race_init_Objects_loop:
 	MOVE.l	(A2)+, $1A(A1)
 	LEA	$40(A1), A1
 	DBF	D0, Championship_next_race_init_Objects_loop
-	MOVE.w	#$0EEE, $FFFFE9C4.w
+	MOVE.w	#$0EEE, (Palette_buffer+$44).w
 	MOVE.w	#$0800, $FFFFE9C6.w
 	MOVE.l	#Race_result_frame_2, Frame_callback.w
 	MOVE.w	#$000D, Selection_count.w
@@ -17326,8 +17326,8 @@ Championship_next_race_init_MidChamp_Objects_loop:
 	BTST.b	#5, Player_team.w
 	BEQ.b	Championship_next_race_init_MidChamp_NoRival
 	MOVE.w	#$000D, Selection_count.w
-	MOVE.b	$FFFFFF35.w, D0
-	CMP.b	$FFFFFF3B.w, D0
+	MOVE.b	Player_grid_position_b.w, D0
+	CMP.b	Rival_grid_position_b.w, D0
 	BCS.b	Commit_music_selection
 	MOVE.w	#$000B, Selection_count.w
 	BRA.b	Commit_music_selection
@@ -17339,10 +17339,10 @@ Championship_next_race_init_MidChamp_NoRival:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ADD.l	D0, D0
 	MOVE.b	(A2,D0.w), D1
-	CMP.b	$FFFFFF35.w, D1
+	CMP.b	Player_grid_position_b.w, D1
 	BCC.b	Championship_next_race_init_MidChamp_Song3
 	MOVE.b	$1(A2,D0.w), D1
-	CMP.b	$FFFFFF35.w, D1
+	CMP.b	Player_grid_position_b.w, D1
 	BCC.b	Championship_next_race_init_MidChamp_Song2
 	MOVE.w	#$000B, Selection_count.w
 	BRA.b	Commit_music_selection
@@ -17382,7 +17382,7 @@ Initialize_results_screen:
 	MOVE.l	#$941F93FF, D6
 	MOVE.l	#$40000080, D7
 	JSR	Start_vdp_dma_fill
-	LEA	$FFFF9D40.w, A1
+	LEA	Screen_scroll_table_buf.w, A1
 	MOVE.w	#$00E0, D0
 ;loc_BFA4
 Initialize_results_screen_Clear_loop:
@@ -17446,7 +17446,7 @@ Initialize_results_screen_Row_inner:
 	MOVE.w	#$6229, VDP_data_port
 	MOVEM.l	(A7)+, D0/D7
 	DBF	D0, Initialize_results_screen_Row_loop
-	MOVE.w	#$004B, $FFFFFC1A.w
+	MOVE.w	#$004B, Screen_state_byte_1.w
 	MOVE.l	#$00050000, Screen_timer.w
 	LEA	Result_sprite_anim_data, A6
 	JSR	Copy_word_run_from_stream
@@ -17457,23 +17457,23 @@ Initialize_results_screen_Row_inner:
 	ADDI.w	#$000A, D0
 	LEA	Team_palette_data, A1
 	ADDA.l	D0, A1
-	LEA	$FFFFE98C.w, A2
+	LEA	(Palette_buffer+$C).w, A2
 	MOVE.w	#3, D0
 ;loc_C0D6
 Initialize_results_screen_Palette_loop:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, Initialize_results_screen_Palette_loop
-	LEA	$FFFF8FD2.w, A1
-	LEA	$FFFFE9AC.w, A2
+	LEA	Team_palette_copy_buf.w, A1
+	LEA	(Palette_buffer+$2C).w, A2
 	MOVE.w	#3, D0
 ;loc_C0E8
 Initialize_results_screen_Palette2_loop:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, Initialize_results_screen_Palette2_loop
-	MOVE.w	$FFFFE98C.w, $FFFFE9F8.w
-	MOVE.w	$FFFFE98E.w, $FFFFE9FC.w
-	MOVE.w	$FFFFE9F8.w, $FFFFE998.w
-	MOVE.w	$FFFFE9FC.w, $FFFFE99C.w
+	MOVE.w	(Palette_buffer+$C).w, (Palette_buffer+$78).w
+	MOVE.w	(Palette_buffer+$E).w, (Palette_buffer+$7C).w
+	MOVE.w	(Palette_buffer+$78).w, (Palette_buffer+$18).w
+	MOVE.w	(Palette_buffer+$7C).w, (Palette_buffer+$1C).w
 	MOVE.l	#Race_preview_vblank_handler_2, Vblank_callback.w
 	CLR.l	Saved_frame_callback.w
 	BCLR.b	#4, Player_state_flags.w
@@ -17601,7 +17601,7 @@ Finish_race_shared_setup:
 	LEA	Player_obj.w, A0
 	MOVEQ	#-2, D0
 	JSR	Load_minimap_position
-	LEA	$FFFFB440.w, A0
+	LEA	(Main_object_pool+$6C0).w, A0
 	MOVEQ	#$0000000F, D0
 ;loc_C27A
 Finish_race_shared_setup_AI_loop:
@@ -17611,13 +17611,13 @@ Finish_race_shared_setup_AI_loop:
 	LEA	$40(A0), A0
 	DBF	D0, Finish_race_shared_setup_AI_loop
 	MOVE.w	#$8000, D1
-	LEA	$FFFF9400.w, A0
+	LEA	Road_row_x_buf.w, A0
 	MOVEQ	#$0000003F, D0
 ;loc_C29E
 Finish_race_shared_setup_Buf1_loop:
 	MOVE.w	D1, (A0)+
 	DBF	D0, Finish_race_shared_setup_Buf1_loop
-	LEA	$FFFF9600.w, A0
+	LEA	Road_scanline_x_buf.w, A0
 	MOVEQ	#$0000007F, D0
 ;loc_C2AA
 Finish_race_shared_setup_Buf2_loop:
@@ -17675,12 +17675,12 @@ Initialize_minimap_display_buffers_Clear_loop:
 	DBF	D0, Initialize_minimap_display_buffers_Clear_loop
 	JSR	Build_minimap_player_row_buffer(PC)
 	JSR	Build_minimap_standings_row_buffer(PC)
-	MOVE.l	#$FFFFC080, $FFFFC48A.w
-	MOVE.w	#$0406, $FFFFC482.w
+	MOVE.l	#$FFFFC080, Podium_minimap_src_ptr.w
+	MOVE.w	#$0406, Podium_minimap_vdp_base.w
 	RTS
 ;loc_C34C
 Podium_minimap_dispatch:
-	MOVE.w	$FFFFC480.w, D0
+	MOVE.w	Podium_minimap_state.w, D0
 	JMP	Podium_minimap_dispatch_Table(PC,D0.w)
 ;loc_C354
 Podium_minimap_dispatch_Table:
@@ -17699,19 +17699,19 @@ Podium_minimap_Wait_button:
 	BEQ.b	Podium_minimap_Wait_button_Rts
 ;loc_C37C
 Podium_minimap_Advance:
-	ADDQ.w	#4, $FFFFC480.w
+	ADDQ.w	#4, Podium_minimap_state.w
 ;loc_C380
 Podium_minimap_Wait_button_Rts:
 	RTS
 ;loc_C382
 Podium_minimap_Show:
-	MOVE.w	#$0406, $FFFFC482.w
+	MOVE.w	#$0406, Podium_minimap_vdp_base.w
 	MOVE.w	#$0206, D0
 	MOVE.w	#$0600, D1
 	LEA	Draw_tilemap_buffer_to_vdp_128_cell_rows, A1
-	MOVE.l	#$FFFFC280, $FFFFC48A.w
-	CLR.w	$FFFFC486.w
-	CLR.w	$FFFFC488.w
+	MOVE.l	#$FFFFC280, Podium_minimap_src_ptr.w
+	CLR.w	Podium_minimap_cell_x.w
+	CLR.w	Podium_minimap_row.w
 	MOVE.w	D0, D7
 	JSR	Tile_index_to_vdp_command
 	MOVEQ	#$00000019, D6
@@ -17735,17 +17735,17 @@ Podium_minimap_Show:
 Podium_minimap_Scroll:
 	MOVE.w	#$0100, D1
 	MOVE.w	#$0200, D2
-	MOVE.w	$FFFFC482.w, D7
-	ADD.w	$FFFFC486.w, D7
+	MOVE.w	Podium_minimap_vdp_base.w, D7
+	ADD.w	Podium_minimap_cell_x.w, D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
-	MOVE.w	$FFFFC488.w, D0
+	MOVE.w	Podium_minimap_row.w, D0
 	BEQ.b	Podium_minimap_Scroll_Row
 	CMPI.w	#7, D0
 	BNE.b	Podium_minimap_Scroll_Cell
 ;loc_C40C
 Podium_minimap_Scroll_Row:
-	MOVEA.l	$FFFFC48A.w, A0
+	MOVEA.l	Podium_minimap_src_ptr.w, A0
 	CMPI.w	#$FFFF, (A0)
 	BEQ.b	Podium_minimap_Advance2
 	MOVEQ	#$00000019, D0
@@ -17753,44 +17753,44 @@ Podium_minimap_Scroll_Row:
 Podium_minimap_Scroll_Row_loop:
 	MOVE.w	(A0)+, VDP_data_port
 	DBF	D0, Podium_minimap_Scroll_Row_loop
-	MOVE.l	A0, $FFFFC48A.w
-	ADD.w	D2, $FFFFC482.w
-	ADDQ.w	#1, $FFFFC488.w
-	CMPI.w	#8, $FFFFC488.w
+	MOVE.l	A0, Podium_minimap_src_ptr.w
+	ADD.w	D2, Podium_minimap_vdp_base.w
+	ADDQ.w	#1, Podium_minimap_row.w
+	CMPI.w	#8, Podium_minimap_row.w
 	BNE.b	Podium_minimap_Scroll_Row_Rts
-	SUB.w	D1, $FFFFC482.w
+	SUB.w	D1, Podium_minimap_vdp_base.w
 ;loc_C43A
 Podium_minimap_Scroll_Row_Rts:
 	RTS
 ;loc_C43C
 Podium_minimap_Scroll_Cell:
-	MOVEA.l	$FFFFC48A.w, A0
+	MOVEA.l	Podium_minimap_src_ptr.w, A0
 	MOVE.w	(A0)+, VDP_data_port
-	MOVE.l	A0, $FFFFC48A.w
-	MOVE.w	$FFFFC486.w, D0
+	MOVE.l	A0, Podium_minimap_src_ptr.w
+	MOVE.w	Podium_minimap_cell_x.w, D0
 	ADDQ.w	#2, D0
 	CMPI.w	#$0034, D0
 	BCS.b	Podium_minimap_Scroll_Cell_Store
-	ADD.w	D2, $FFFFC482.w
-	MOVE.w	$FFFFC488.w, D0
+	ADD.w	D2, Podium_minimap_vdp_base.w
+	MOVE.w	Podium_minimap_row.w, D0
 	ADDQ.w	#1, D0
 	CMPI.w	#7, D0
 	BNE.b	Podium_minimap_Scroll_Cell_Row
-	SUB.w	D1, $FFFFC482.w
+	SUB.w	D1, Podium_minimap_vdp_base.w
 ;loc_C46A
 Podium_minimap_Scroll_Cell_Row:
-	MOVE.w	D0, $FFFFC488.w
+	MOVE.w	D0, Podium_minimap_row.w
 	CMPI.w	#9, D0
 	BNE.b	Podium_minimap_Scroll_Cell_Rts
 ;loc_C474
 Podium_minimap_Advance2:
-	ADDQ.w	#4, $FFFFC480.w
+	ADDQ.w	#4, Podium_minimap_state.w
 ;loc_C478
 Podium_minimap_Scroll_Cell_Rts:
 	MOVEQ	#0, D0
 ;loc_C47A
 Podium_minimap_Scroll_Cell_Store:
-	MOVE.w	D0, $FFFFC486.w
+	MOVE.w	D0, Podium_minimap_cell_x.w
 	RTS
 ;loc_C480
 Init_result_score_data:
@@ -18340,13 +18340,13 @@ Championship_standings_display_setup_Scale_loop:
 	MOVE.w	D1, (A0)+
 	SUBQ.w	#1, D1
 	DBF	D0, Championship_standings_display_setup_Scale_loop
-	LEA	$FFFF9400.w, A0
+	LEA	Road_row_x_buf.w, A0
 	MOVE.w	#$003F, D0
 ;loc_CA66
 Championship_standings_display_setup_Buf1_loop:
 	MOVE.w	#$8000, (A0)+
 	DBF	D0, Championship_standings_display_setup_Buf1_loop
-	LEA	$FFFF9600.w, A0
+	LEA	Road_scanline_x_buf.w, A0
 	MOVE.w	#$007F, D0
 ;loc_CA76
 Championship_standings_display_setup_Buf2_loop:
@@ -18390,7 +18390,7 @@ Championship_standings_input:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	ANDI.b	#$F0, D0
 	BNE.b	Championship_standings_input_Accept
-	CLR.b	$FFFFFC19.w
+	CLR.b	Screen_state_byte_0.w
 	BSR.b	Draw_lap_counter_tiles
 	ADDQ.b	#1, Temp_distance.w
 	RTS
@@ -18417,7 +18417,7 @@ Draw_lap_counter_tiles:
 ;loc_CBC0
 Draw_lap_counter_tiles_A:
 	MOVE.w	#$434F, D0
-	BTST.b	#2, $FFFFFC19.w
+	BTST.b	#2, Screen_state_byte_0.w
 	BEQ.b	Draw_lap_counter_tiles_B
 	MOVE.w	#$434D, D0
 ;loc_CBD0
@@ -18426,7 +18426,7 @@ Draw_lap_counter_tiles_B:
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
-	ADDQ.b	#1, $FFFFFC19.w
+	ADDQ.b	#1, Screen_state_byte_0.w
 	BSR.w	Build_result_scroll_table
 	RTS
 ;$0000CBEE
@@ -18479,7 +18479,7 @@ Driver_standings_frame_Scroll:
 	LEA	Driver_standings_hscroll_offsets, A1
 	MOVE.w	Menu_cursor.w, D0
 	MOVE.w	(A1,D0.w), D2
-	LEA	$FFFFE9A0.w, A1
+	LEA	(Palette_buffer+$20).w, A1
 	MOVE.w	Screen_scroll.w, D0
 	MOVE.w	D2, (A1,D0.w)
 	RTS
@@ -18496,7 +18496,7 @@ Driver_standings_frame_Scroll_Done:
 	MOVEA.l	(A1,D0.w), A2
 	MOVE.l	D1, (A2)
 	ADDQ.w	#2, Menu_cursor.w
-	LEA	$FFFFE9A0.w, A1
+	LEA	(Palette_buffer+$20).w, A1
 	MOVE.w	#$000E, D0
 ;loc_CCBA
 Driver_standings_frame_Scroll_Done_loop:
@@ -18562,13 +18562,13 @@ Driver_standings_init_Objects_loop:
 	JSR	Draw_packed_tilemap_list
 	LEA	Driver_standings_palette_stream, A6
 	JSR	Copy_word_run_from_stream
-	LEA	$FFFFE9A0.w, A1
+	LEA	(Palette_buffer+$20).w, A1
 	MOVE.w	#$000E, D0
 ;loc_CD7C
 Driver_standings_init_Hscroll_loop:
 	MOVE.w	#$0400, (A1)+
 	DBF	D0, Driver_standings_init_Hscroll_loop
-	MOVE.l	#$00000EEE, $FFFFE982.w
+	MOVE.l	#$00000EEE, (Palette_buffer+$2).w
 	MOVE.w	#$000A, Screen_data_ptr.w
 	MOVE.w	#$0096, Temp_distance.w
 	MOVE.w	#$0034, Screen_timer.w
@@ -18601,7 +18601,7 @@ Team_select_frame:
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	LEA	Team_select_dispatch_table, A1
-	MOVE.w	$FFFFFC1E.w, D0
+	MOVE.w	Team_select_state.w, D0
 	MOVEA.l	(A1,D0.w), A1
 	JSR	(A1)
 	RTS
@@ -18612,28 +18612,28 @@ Team_select_dispatch_table:
 	dc.l	Team_select_phase3
 	dc.l	Team_select_phase4
 Team_select_phase0:
-	ANDI.b	#$F1, $FFFFFC16.w
+	ANDI.b	#$F1, Screen_state_word_1.w
 	CMPI.w	#5, Screen_item_count.w
 	BEQ.w	Team_select_phase0_marker_a
 	BSR.w	Advance_team_stat_display
-	BSET.b	#1, $FFFFFC16.w
+	BSET.b	#1, Screen_state_word_1.w
 Team_select_phase0_marker_a:
 	CMPI.w	#4, $FFFFB892.w
 	BEQ.b	Team_select_phase0_marker_b
 	BSR.w	Advance_road_marker_sequence_a
-	BSET.b	#2, $FFFFFC16.w
+	BSET.b	#2, Screen_state_word_1.w
 Team_select_phase0_marker_b:
 	CMPI.w	#3, $FFFFB912.w
 	BEQ.b	Team_select_phase0_check_done
 	BSR.w	Advance_road_marker_sequence_b
-	BSET.b	#3, $FFFFFC16.w
+	BSET.b	#3, Screen_state_word_1.w
 Team_select_phase0_check_done:
-	MOVE.b	$FFFFFC16.w, D0
+	MOVE.b	Screen_state_word_1.w, D0
 	ANDI.b	#$0E, D0
 	BNE.b	Team_select_phase0_rts
 	BTST.b	#7, Player_team.w
 	BEQ.b	Team_select_phase0_no_rival
-	ADDI.w	#$0010, $FFFFFC1E.w
+	ADDI.w	#$0010, Team_select_state.w
 	RTS
 Team_select_phase0_no_rival:
 	BTST.b	#5, Player_team.w
@@ -18645,14 +18645,14 @@ Team_select_phase0_rival_loop:
 	LEA	Team_message_tilemap_table, A1
 	ADDA.l	#$00000010, A1
 	BSR.w	Load_team_message_tiles
-	CMPI.w	#4, $FFFFFC1E.w
+	CMPI.w	#4, Team_select_state.w
 	BNE.b	Team_select_phase0_rival_loop
-	SUBQ.w	#4, $FFFFFC1E.w
+	SUBQ.w	#4, Team_select_state.w
 Team_select_phase0_rival_done:
-	ADDI.w	#$000C, $FFFFFC1E.w
+	ADDI.w	#$000C, Team_select_state.w
 	RTS
 Team_select_phase0_advance:
-	ADDQ.w	#4, $FFFFFC1E.w
+	ADDQ.w	#4, Team_select_state.w
 Team_select_phase0_rts:
 	RTS
 Team_select_phase1:
@@ -18672,9 +18672,9 @@ Load_team_message_tiles_team_a:
 Load_team_message_tiles_copy:
 	MOVEA.l	(A1), A2
 	MOVE.w	(A2)+, Anim_delay.w
-	MOVE.b	(A2)+, $FFFFFC1A.w
-	MOVE.b	(A2)+, $FFFFFC1B.w
-	LEA	$FFFFF6F0.w, A3
+	MOVE.b	(A2)+, Screen_state_byte_1.w
+	MOVE.b	(A2)+, Screen_state_byte_2.w
+	LEA	Dialogue_tilemap_buf.w, A3
 	MOVE.w	#$00E6, D0
 Load_team_message_tiles_loop:
 	CLR.w	D1
@@ -18690,7 +18690,7 @@ Load_team_message_tiles_loop:
 	ANDI.b	#$50, D1
 	BEQ.b	Load_team_message_tiles_scroll
 	LEA	Team_message_result_text_jp, A1
-	LEA	$FFFFF6F0.w, A2
+	LEA	Dialogue_tilemap_buf.w, A2
 	ADDA.l	#$0000008C, A2
 	MOVE.w	#3, D1
 	TST.w	English_flag.w
@@ -18714,21 +18714,21 @@ Load_team_message_tiles_scroll:
 	SUBQ.w	#1, Menu_cursor.w
 	BCC.w	Load_team_message_tiles_rts
 	CLR.w	Menu_cursor.w
-	LEA	$FFFFF6F0.w, A6
+	LEA	Dialogue_tilemap_buf.w, A6
 	MOVE.w	Anim_delay.w, D7
 	JSR	Tile_index_to_vdp_command
 	CLR.w	D6
-	MOVE.b	$FFFFFC1A.w, D6
+	MOVE.b	Screen_state_byte_1.w, D6
 	MOVE.w	Menu_substate.w, D5
 	ORI	#$0700, SR
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	ANDI	#$F8FF, SR
 	ADDQ.w	#1, Menu_substate.w
 	CLR.w	D0
-	MOVE.b	$FFFFFC1B.w, D0
+	MOVE.b	Screen_state_byte_2.w, D0
 	CMP.w	Menu_substate.w, D0
 	BNE.w	Load_team_message_tiles_rts
-	ADDQ.w	#4, $FFFFFC1E.w
+	ADDQ.w	#4, Team_select_state.w
 Load_team_message_tiles_rts:
 	RTS
 Team_select_phase2:
@@ -18741,29 +18741,29 @@ Team_select_phase2:
 	BNE.w	Team_select_phase2_dn
 	BTST.b	#KEY_B, Input_click_bitset.w
 	BNE.w	Team_select_phase2_back
-	BTST.b	#0, $FFFFFC0D.w
+	BTST.b	#0, Menu_cursor_blink_state.w
 	BNE.b	Team_select_phase2_back
-	BSET.b	#2, $FFFFFC0E.w
+	BSET.b	#2, Rival_dialogue_state.w
 	BSR.w	Load_rival_dialogue_pointer
-	ADDQ.w	#4, $FFFFFC1E.w
+	ADDQ.w	#4, Team_select_state.w
 	RTS
 Team_select_phase2_back:
 	MOVE.l	#$0000E94C, Frame_callback.w
 	RTS
 Team_select_phase2_dn:
-	BCLR.b	#2, $FFFFFC0E.w
+	BCLR.b	#2, Rival_dialogue_state.w
 	BSR.w	Load_rival_dialogue_pointer
-	ADDQ.b	#1, $FFFFFC0D.w
+	ADDQ.b	#1, Menu_cursor_blink_state.w
 Team_select_phase2_rts:
 	RTS
 Team_select_phase3:
-	MOVE.w	#$431D, $FFFF905A.w
+	MOVE.w	#$431D, Font_tile_base.w
 	JSR	Load_font_tiles_to_work_buffer
 	JSR	Select_team_message_before_race
 	JSR	Render_text_to_tilemap
 	MOVE.l	#$6A980003, D7
 	JSR	Draw_message_panel_narrow
-	ADDQ.w	#4, $FFFFFC1E.w
+	ADDQ.w	#4, Team_select_state.w
 	RTS
 Team_select_phase4:
 	MOVE.b	Input_click_bitset.w, D0
@@ -18827,35 +18827,35 @@ Advance_team_stat_display_done:
 Advance_team_stat_display_rts:
 	RTS
 Advance_road_marker_sequence_a:
-	SUBQ.b	#1, $FFFFB88E.w
+	SUBQ.b	#1, Car_spec_marker_delay.w
 	BNE.b	Advance_road_marker_sequence_a_rts
-	MOVE.b	#4, $FFFFB88E.w
-	MOVE.w	$FFFFB8D6.w, D0
-	CMP.w	$FFFFB896.w, D0
+	MOVE.b	#4, Car_spec_marker_delay.w
+	MOVE.w	Car_spec_marker_step.w, D0
+	CMP.w	Car_spec_marker_end.w, D0
 	BEQ.b	Advance_road_marker_sequence_a_next
-	MOVE.l	$FFFFB8CE.w, D7
-	MOVEA.l	$FFFFB8D2.w, A1
+	MOVE.l	Car_spec_marker_vdp_cmd.w, D7
+	MOVEA.l	Car_spec_marker_src_ptr.w, A1
 	BSR.w	Step_road_marker_tile
-	ADDQ.w	#1, $FFFFB8D6.w
+	ADDQ.w	#1, Car_spec_marker_step.w
 Advance_road_marker_sequence_a_rts:
 	RTS
 Advance_road_marker_sequence_a_next:
 	LEA	Car_road_marker_vdp_cmds, A1
-	MOVE.w	$FFFFB892.w, D0
+	MOVE.w	Car_spec_marker_index.w, D0
 	LSL.w	#2, D0
-	MOVE.l	(A1,D0.w), $FFFFB8CE.w
+	MOVE.l	(A1,D0.w), Car_spec_marker_vdp_cmd.w
 	CLR.l	D0
 	MOVE.b	Temp_distance.w, D0
 	MULS.w	#$0012, D0
 	LEA	Car_spec_text_table, A1
 	ADDA.l	D0, A1
-	MOVE.w	$FFFFB892.w, D0
+	MOVE.w	Car_spec_marker_index.w, D0
 	MULS.w	#6, D0
 	ADDA.l	D0, A1
-	MOVE.l	(A1)+, $FFFFB8D2.w
-	MOVE.w	(A1)+, $FFFFB896.w
-	CLR.w	$FFFFB8D6.w
-	ADDQ.w	#1, $FFFFB892.w
+	MOVE.l	(A1)+, Car_spec_marker_src_ptr.w
+	MOVE.w	(A1)+, Car_spec_marker_end.w
+	CLR.w	Car_spec_marker_step.w
+	ADDQ.w	#1, Car_spec_marker_index.w
 	RTS
 ;loc_D164
 Advance_road_marker_sequence_b:
@@ -18865,35 +18865,35 @@ Advance_road_marker_sequence_b:
 ; When the sequence index ($FFFFB956) equals the end index ($FFFFB916),
 ; reloads the marker pointer from Driver_road_marker_vdp_cmds and the step table from Driver_info_table
 ; using Race_frame_counter as the sequence selector.
-	SUBQ.b	#1, $FFFFB90E.w
+	SUBQ.b	#1, Driver_spec_marker_delay.w
 	BNE.b	Advance_road_marker_sequence_b_rts
-	MOVE.b	#6, $FFFFB90E.w
-	MOVE.w	$FFFFB956.w, D0
-	CMP.w	$FFFFB916.w, D0
+	MOVE.b	#6, Driver_spec_marker_delay.w
+	MOVE.w	Driver_spec_marker_step.w, D0
+	CMP.w	Driver_spec_marker_end.w, D0
 	BEQ.b	Advance_road_marker_sequence_b_next
-	MOVE.l	$FFFFB94E.w, D7
-	MOVEA.l	$FFFFB952.w, A1
+	MOVE.l	Driver_spec_marker_vdp_cmd.w, D7
+	MOVEA.l	Driver_spec_marker_src_ptr.w, A1
 	BSR.w	Step_road_marker_tile
-	ADDQ.w	#1, $FFFFB956.w
+	ADDQ.w	#1, Driver_spec_marker_step.w
 Advance_road_marker_sequence_b_rts:
 	RTS
 Advance_road_marker_sequence_b_next:
 	LEA	Driver_road_marker_vdp_cmds, A1
-	MOVE.w	$FFFFB912.w, D0
+	MOVE.w	Driver_spec_marker_index.w, D0
 	LSL.w	#2, D0
-	MOVE.l	(A1,D0.w), $FFFFB94E.w
+	MOVE.l	(A1,D0.w), Driver_spec_marker_vdp_cmd.w
 	CLR.l	D0
-	MOVE.b	$FFFFFC19.w, D0
+	MOVE.b	Screen_state_byte_0.w, D0
 	MULS.w	#$000C, D0
 	LEA	Driver_info_table, A1
 	ADDA.l	D0, A1
-	MOVE.w	$FFFFB912.w, D0
+	MOVE.w	Driver_spec_marker_index.w, D0
 	MULS.w	#6, D0
 	ADDA.l	D0, A1
-	MOVE.l	(A1)+, $FFFFB952.w
-	MOVE.w	(A1)+, $FFFFB916.w
-	CLR.w	$FFFFB956.w
-	ADDQ.w	#1, $FFFFB912.w
+	MOVE.l	(A1)+, Driver_spec_marker_src_ptr.w
+	MOVE.w	(A1)+, Driver_spec_marker_end.w
+	CLR.w	Driver_spec_marker_step.w
+	ADDQ.w	#1, Driver_spec_marker_index.w
 	RTS
 ;loc_D1CC
 Step_road_marker_tile:
@@ -18921,7 +18921,7 @@ Load_rival_dialogue_pointer:
 	ADDA.l	#8, A1
 ;loc_D216
 Load_rival_dialogue_pointer_Jp:
-	BTST.b	#0, $FFFFFC0D.w
+	BTST.b	#0, Menu_cursor_blink_state.w
 	BEQ.b	Load_rival_dialogue_pointer_Player2
 	ADDA.l	#2, A1
 ;loc_D224
@@ -18939,7 +18939,7 @@ Load_rival_dialogue_pointer_Render:
 	MOVE.w	(A1), D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.w	#$434D, D0
-	BTST.b	#2, $FFFFFC0E.w
+	BTST.b	#2, Rival_dialogue_state.w
 	BNE.b	Load_rival_dialogue_pointer_Open
 	MOVE.w	#$434F, D0
 ;loc_D25A
@@ -18948,20 +18948,20 @@ Load_rival_dialogue_pointer_Open:
 	MOVE.l	D7, VDP_control_port
 	MOVE.w	D0, VDP_data_port
 	ANDI	#$F8FF, SR
-	ADDQ.b	#1, $FFFFFC0E.w
+	ADDQ.b	#1, Rival_dialogue_state.w
 	RTS
 	SUBQ.b	#1, $FFFFFC01.w
 	BNE.b	Team_select_aux_object_Rts
 	MOVE.b	#2, $FFFFFC01.w
 	SUBQ.w	#1, Screen_subcounter.w
 	BEQ.b	Team_select_aux_object_Done
-	ADDQ.w	#1, $FFFFB858.w
+	ADDQ.w	#1, (Aux_object_pool+$18).w
 	MOVE.w	Screen_subcounter.w, D0
 	ANDI.w	#$FFF8, D0
 	LSR.w	#1, D0
 	LEA	Car_width_vdp_cmd_table, A1
 	MOVE.l	(A1,D0.w), D1
-	MOVE.l	D1, $FFFFB844.w
+	MOVE.l	D1, (Aux_object_pool+$4).w
 ;loc_D2A2
 Team_select_aux_object_Rts:
 	JMP	Queue_object_for_sprite_buffer
@@ -18991,7 +18991,7 @@ Team_select_screen_init:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MOVE.b	D0, Temp_distance.w
-	MOVE.b	#$10, $FFFFFC19.w
+	MOVE.b	#$10, Screen_state_byte_0.w
 	BRA.b	Team_select_screen_init_Setup
 ;loc_D2F6
 Team_select_screen_init_New_team:
@@ -19002,10 +19002,10 @@ Team_select_screen_init_New_team:
 	MOVE.b	D0, Temp_distance.w
 	MOVE.b	(A1,D0.w), D1
 	ANDI.b	#$0F, D1
-	MOVE.b	D1, $FFFFFC19.w
+	MOVE.b	D1, Screen_state_byte_0.w
 	BTST.b	#6, Player_team.w
 	BEQ.b	Team_select_screen_init_Setup
-	SUBQ.b	#1, $FFFFFC19.w
+	SUBQ.b	#1, Screen_state_byte_0.w
 ;loc_D320
 Team_select_screen_init_Setup:
 	MOVE.l	#$63A00001, VDP_control_port
@@ -19019,7 +19019,7 @@ Team_select_screen_init_Setup:
 	JSR	Decompress_to_vdp
 	CLR.l	D0
 	LEA	DriverPortraitTiles, A1
-	MOVE.b	$FFFFFC19.w, D0
+	MOVE.b	Screen_state_byte_0.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.l	#$40200000, VDP_control_port
@@ -19041,7 +19041,7 @@ Team_select_screen_init_Setup:
 	JSR	Decompress_to_vdp
 	CLR.l	D0
 	LEA	DriverPortraitTileMappings, A1
-	MOVE.b	$FFFFFC19.w, D0
+	MOVE.b	Screen_state_byte_0.w, D0
 	LSL.l	#2, D0
 	MOVEA.l	(A1,D0.w), A0
 	MOVE.w	#1, D0
@@ -19100,7 +19100,7 @@ Team_select_screen_init_Show_rival:
 	MOVEA.l	(A1,D0.w), A6
 	JSR	Draw_packed_tilemap_to_vdp
 	CLR.l	D0
-	MOVE.b	$FFFFFC19.w, D0
+	MOVE.b	Screen_state_byte_0.w, D0
 	LSL.l	#5, D0
 	LEA	Driver_portrait_palette_streams, A6
 	ADDA.l	D0, A6
@@ -19116,7 +19116,7 @@ Team_select_screen_init_Show_rival:
 	MOVE.w	(A1)+, $FFFFE990.w
 	MOVE.w	(A1)+, $FFFFE992.w
 	MOVE.w	(A1)+, $FFFFE994.w
-	MOVE.w	(A1)+, $FFFFE99C.w
+	MOVE.w	(A1)+, (Palette_buffer+$1C).w
 ;loc_D50A
 Team_select_screen_init_Scrollbar:
 	LEA	Car_select_bg_vdp_stream, A6
@@ -19127,23 +19127,23 @@ Team_select_screen_init_Scrollbar:
 	ADDI.w	#$000A, D0
 	LEA	Team_palette_data, A1
 	ADDA.l	D0, A1
-	LEA	$FFFFE9EC.w, A2
+	LEA	(Palette_buffer+$6C).w, A2
 	MOVE.w	#3, D0
 ;loc_D534
 Team_select_screen_init_Palette_loop:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, Team_select_screen_init_Palette_loop
 	MOVE.l	#$0000D274, Aux_object_pool.w
-	MOVE.w	#$0170, $FFFFB858.w
+	MOVE.w	#$0170, (Aux_object_pool+$18).w
 	MOVE.w	#$0128, $FFFFB856.w
-	MOVE.w	#1, $FFFFB84E.w
-	MOVE.l	#$0002025A, $FFFFB844.w
+	MOVE.w	#1, (Aux_object_pool+$E).w
+	MOVE.l	#$0002025A, (Aux_object_pool+$4).w
 	MOVE.b	#5, $FFFFFC01.w
 	MOVE.b	#5, Screen_tick.w
-	MOVE.b	#5, $FFFFB88E.w
-	MOVE.b	#5, $FFFFB90E.w
+	MOVE.b	#5, Car_spec_marker_delay.w
+	MOVE.b	#5, Driver_spec_marker_delay.w
 	MOVE.b	#5, Screen_timer.w
-	MOVE.b	#5, $FFFFFC03.w
+	MOVE.b	#5, Screen_flash_state.w
 	MOVE.w	#$0038, Screen_subcounter.w
 	MOVE.w	#$0096, Temp_x_pos.w
 	MOVE.l	#Team_select_frame, Frame_callback.w
@@ -19176,11 +19176,11 @@ Team_select_vblank_handler_Scroll_wrap:
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 ;loc_D604
 Team_select_vblank_handler_Flash:
-	CMPI.b	#$10, $FFFFFC19.w
+	CMPI.b	#$10, Screen_state_byte_0.w
 	BNE.b	Team_select_vblank_handler_Rts
 	MOVE.w	#$0016, D0
-	SUBQ.b	#1, $FFFFFC03.w
-	BTST.b	#4, $FFFFFC03.w
+	SUBQ.b	#1, Screen_flash_state.w
+	BTST.b	#4, Screen_flash_state.w
 	BEQ.b	Team_select_vblank_handler_Flash_dim
 	MOVE.w	#$0035, D0
 ;loc_D620
@@ -19416,7 +19416,7 @@ Championship_standings_init_Intro_loop:
 	LSL.b	#2, D0
 	MOVEA.l	(A1,D0.w), A6
 	JSR	Draw_packed_tilemap_to_vdp
-	MOVE.w	#$431D, $FFFF905A.w
+	MOVE.w	#$431D, Font_tile_base.w
 	JSR	Load_font_tiles_to_work_buffer
 	JSR	Select_team_intro_text
 	JSR	Render_text_to_tilemap
@@ -19563,7 +19563,7 @@ Race_finish_credits_init:
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
 	MOVE.w	Player_grid_position.w, $FFFFFF44.w
-	MOVE.l	$FFFF92DC.w, $FFFFFF46.w
+	MOVE.l	Rival_race_time_bcd.w, $FFFFFF46.w
 	JSR	Accumulate_bcd_race_time(PC)
 	TST.w	Player_overtaken_flag.w
 	BEQ.b	Race_finish_credits_init_Assets
@@ -19652,7 +19652,7 @@ Race_finish_credits_init_Quick_skip:
 	LEA	Aux_object_pool.w, A1
 	LEA	$FFFFB900.w, A2
 	ADDI.w	#$FFD8, $FFFFB856.w
-	ADDQ.w	#3, $FFFFB858.w
+	ADDQ.w	#3, (Aux_object_pool+$18).w
 	MOVE.w	#$003F, D0
 ;loc_DD64
 Race_finish_credits_init_Quick_skip_loop:
@@ -19750,28 +19750,28 @@ Credits_object_anim_frame:
 	RTS
 ;loc_DE60
 Credits_car_obj_update:
-	CMPI.w	#$0140, $FFFFB956.w
+	CMPI.w	#$0140, Driver_spec_marker_step.w
 	BEQ.w	Credits_car_setup
 	TST.w	$12(A0)
 	BNE.b	Credits_car_obj_ascend
 	MOVE.l	#$FFF80000, D0
-	MOVE.l	#$000281AE, $FFFFB8C4.w
+	MOVE.l	#$000281AE, (Aux_object_pool+$84).w
 	CMPI.w	#$0180, $18(A0)
 	BCC.b	Credits_car_apply_y_delta
 	MOVE.l	#$FFFA0000, D0
-	MOVE.l	#$000281BC, $FFFFB8C4.w
+	MOVE.l	#$000281BC, (Aux_object_pool+$84).w
 	CMPI.w	#$0148, $18(A0)
 	BCC.b	Credits_car_apply_y_delta
 	MOVE.l	#$FFFC0000, D0
-	MOVE.l	#$000281CA, $FFFFB8C4.w
+	MOVE.l	#$000281CA, (Aux_object_pool+$84).w
 	CMPI.w	#$0124, $18(A0)
 	BCC.b	Credits_car_apply_y_delta
 	MOVE.l	#$FFFE8000, D0
-	MOVE.l	#$000281D8, $FFFFB8C4.w
+	MOVE.l	#$000281D8, (Aux_object_pool+$84).w
 	CMPI.w	#$0112, $18(A0)
 	BCC.b	Credits_car_apply_y_delta
 	MOVE.w	#$FFFF, $12(A0)
-	MOVE.l	#$00016F76, $FFFFB8C4.w
+	MOVE.l	#$00016F76, (Aux_object_pool+$84).w
 ;loc_DED6
 Credits_car_obj_ascend:
 	MOVE.l	#$00004000, D0
@@ -19789,7 +19789,7 @@ Credits_car_apply_y_delta:
 ;loc_DF08
 Credits_car_obj_scroll_x_inc:
 	MOVE.l	#$00010000, D0
-	ADDI.l	#$FFFFF800, $FFFFB898.w
+	ADDI.l	#$FFFFF800, (Aux_object_pool+$58).w
 ;loc_DF16
 Credits_car_obj_apply_x:
 	ADD.l	D0, $58(A0)
@@ -19843,7 +19843,7 @@ Credits_car_setup:
 	LEA	Aux_object_pool.w, A1
 	LEA	Credits_car_frame_table, A2
 	LEA	Credits_car_sprite_table, A3
-	LEA	$FFFFE982.w, A4
+	LEA	(Palette_buffer+$2).w, A4
 	MOVE.w	#2, D0
 	MOVE.w	#$0010, D1
 ;loc_E006
@@ -19923,7 +19923,7 @@ Arcade_car_spec_result_init:
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
 	MOVE.w	Player_grid_position.w, $FFFFFF3E.w
-	MOVE.l	$FFFF92DC.w, $FFFFFF40.w
+	MOVE.l	Rival_race_time_bcd.w, $FFFFFF40.w
 	JSR	Accumulate_bcd_race_time
 	TST.w	Player_overtaken_flag.w
 	BEQ.b	Arcade_car_spec_continue
@@ -20046,14 +20046,14 @@ Draw_car_stat_rows:
 	JSR	Tile_index_to_vdp_command
 	MOVEQ	#7, D6
 	MOVEQ	#1, D5
-	LEA	$FFFFE800.w, A6
+	LEA	Digit_tilemap_buf.w, A6
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	SUBQ.w	#1, Screen_timer.w
 	BNE.b	Draw_car_stat_rows
 	RTS
 ;Draw_bcd_value_display
 Draw_bcd_value_display:
-	LEA	$FFFFE800.w, A1
+	LEA	Digit_tilemap_buf.w, A1
 	MOVE.w	Race_time_bcd.w, D1
 	MOVEQ	#3, D0
 	MOVEQ	#0, D7
@@ -20064,7 +20064,7 @@ Draw_bcd_value_display:
 	JSR	Tile_index_to_vdp_command
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
-	LEA	$FFFFE800.w, A6
+	LEA	Digit_tilemap_buf.w, A6
 	JMP	Draw_tilemap_buffer_to_vdp_64_cell_rows
 ;loc_E326
 Arcade_car_spec_asset_list:
@@ -20150,7 +20150,7 @@ Championship_team_select_scroll_logo:
 	SUBQ.w	#1, Screen_subcounter.w
 	BNE.b	Championship_team_select_logo_Rts
 	MOVE.w	#$0014, Screen_subcounter.w
-	LEA	$FFFFE9E0.w, A1
+	LEA	(Palette_buffer+$60).w, A1
 	LEA	Championship_team_select_logo_vdp_data, A2
 	MOVE.w	Screen_data_ptr.w, D0
 	ADDA.l	D0, A2
@@ -20204,7 +20204,7 @@ Championship_team_select_substate_Copy_row:
 	SUBQ.w	#1, Temp_x_pos.w
 	BNE.b	Championship_team_select_copy_row_Rts
 	MOVE.w	#8, Temp_x_pos.w
-	CMPI.w	#$005A, $FFFFFC16.w
+	CMPI.w	#$005A, Screen_state_word_1.w
 	BEQ.w	Championship_team_select_scroll_reset
 	MOVEA.l	Temp_distance.w, A1
 	LEA	$FFFF905E.w, A2
@@ -20214,13 +20214,13 @@ Championship_team_select_tilemap_loop:
 	MOVE.b	(A1)+, (A2)+
 	DBF	D0, Championship_team_select_tilemap_loop
 	LEA	$FFFF905E.w, A6
-	MOVE.w	$FFFFFC16.w, D0
+	MOVE.w	Screen_state_word_1.w, D0
 	ADDQ.w	#5, D0
 	MOVE.b	#$FF, (A6,D0.w)
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
-	ADDQ.w	#1, $FFFFFC16.w
+	ADDQ.w	#1, Screen_state_word_1.w
 ;loc_E532:
 Championship_team_select_copy_row_Rts:
 	RTS
@@ -20252,13 +20252,13 @@ Championship_team_select_input:
 	BNE.b	Championship_team_select_face_btn
 	CLR.b	Menu_cursor.w
 	BSR.b	Championship_team_select_animate_cursor
-	ADDQ.b	#1, $FFFFFC11.w
+	ADDQ.b	#1, Selection_repeat_state.w
 	RTS
 ;loc_E584
 Championship_team_select_face_btn:
 	BSET.b	#2, Player_state_flags.w
 	MOVE.l	#$00004FDC, Frame_callback.w
-	BTST.b	#0, $FFFFFC11.w
+	BTST.b	#0, Selection_repeat_state.w
 	BEQ.b	Championship_team_select_input_Rts
 	MOVE.l	#$00004FDC, Saved_frame_callback.w
 	MOVE.l	#$0000F288, Frame_callback.w
@@ -20268,7 +20268,7 @@ Championship_team_select_input_Rts:
 ;loc_E5AC:
 Championship_team_select_animate_cursor:
 	MOVE.l	#$6B320003, D7
-	BTST.b	#0, $FFFFFC11.w
+	BTST.b	#0, Selection_repeat_state.w
 	BEQ.b	Championship_team_select_blink_c1
 	MOVE.l	#$6C320003, D7
 ;loc_E5C0
@@ -20550,9 +20550,9 @@ Championship_standings_2_init:
 	JSR	Draw_packed_tilemap_list
 	LEA	Championship_standings_vdp_word_run, A6
 	JSR	Copy_word_run_from_stream
-	MOVE.w	#$00CE, $FFFFE984.w
-	MOVE.w	#$000C, $FFFFE9A4.w
-	MOVE.w	#$0EEE, $FFFFE9C4.w
+	MOVE.w	#$00CE, (Palette_buffer+$4).w
+	MOVE.w	#$000C, (Palette_buffer+$24).w
+	MOVE.w	#$0EEE, (Palette_buffer+$44).w
 	MOVE.b	#1, $FFFFFC01.w
 	MOVE.l	#Championship_podium_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
@@ -20889,9 +20889,9 @@ Options_screen_champ_init:
 	BSR.w	Options_redraw_transmission
 	LEA	Options_screen_cram_data, A6
 	JSR	Copy_word_run_from_stream
-	MOVE.w	#$00EE, $FFFFE984.w
-	MOVE.w	#$0EEE, $FFFFE9A4.w
-	MOVE.l	#$000E0000, $FFFFE9C4.w
+	MOVE.w	#$00EE, (Palette_buffer+$4).w
+	MOVE.w	#$0EEE, (Palette_buffer+$24).w
+	MOVE.l	#$000E0000, (Palette_buffer+$44).w
 	MOVE.l	#Options_screen_frame, Frame_callback.w
 	MOVE.l	#$000003D8, Vblank_callback.w
 	JSR	Halt_audio_sequence
@@ -20926,26 +20926,26 @@ Team_select_driver_input:
 	BNE.b	Team_select_driver_Check_cheat
 	CLR.b	Screen_data_ptr.w
 	BSR.b	Team_select_driver_draw_cursor
-	ADDQ.b	#1, $FFFFFC0D.w
+	ADDQ.b	#1, Menu_cursor_blink_state.w
 	RTS
 ;loc_EEAC
 Team_select_driver_Check_cheat:
 	JSR	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
-	CMP.b	$FFFFFFBF.w, D0
+	CMP.b	Save_checksum_nibble_3.w, D0
 	BNE.w	Demo_screen_transition
 	LSR.b	#4, D1
-	CMP.b	$FFFFFFBE.w, D1
+	CMP.b	Save_checksum_nibble_2.w, D1
 	BNE.w	Demo_screen_transition
 	MOVE.b	D2, D0
 	ANDI.b	#$0F, D0
-	CMP.b	$FFFFFFBD.w, D0
+	CMP.b	Save_checksum_nibble_1.w, D0
 	BNE.w	Demo_screen_transition
 	LSR.b	#4, D2
-	CMP.b	$FFFFFFBC.w, D2
+	CMP.b	Save_checksum_nibble_0.w, D2
 	BNE.w	Demo_screen_transition
-	BTST.b	#0, $FFFFFC0D.w
+	BTST.b	#0, Menu_cursor_blink_state.w
 	BEQ.b	Team_select_driver_Restore_cb
 	CLR.b	Title_menu_flags.w
 	CLR.w	Title_menu_state.w
@@ -20960,7 +20960,7 @@ Team_select_driver_Rts:
 ;loc_EF04
 Team_select_driver_draw_cursor:
 	MOVE.l	#$4FAA0003, D7
-	BTST.b	#0, $FFFFFC0D.w
+	BTST.b	#0, Menu_cursor_blink_state.w
 	BEQ.b	Team_select_driver_Cursor_tile
 	MOVE.l	#$50AA0003, D7
 ;loc_EF18
@@ -20990,7 +20990,7 @@ Name_entry_handle_input:
 	MOVE.b	Input_click_bitset.w, D0
 	BEQ.w	Name_entry_Return
 	MOVE.w	#9, D7
-	MOVE.l	#$04440444, $FFFFE982.w
+	MOVE.l	#$04440444, (Palette_buffer+$2).w
 	ANDI.b	#$E0, D0
 	BNE.w	Name_entry_button_press
 	BTST.b	#KEY_B, Input_state_bitset.w
@@ -21071,18 +21071,18 @@ Name_entry_button_press:
 	BEQ.b	Name_entry_cursor_left
 	CMPI.w	#$0045, D0
 	BEQ.w	Name_entry_load_save
-	LEA	$FFFFFF80.w, A1
+	LEA	Player_state_save_buf.w, A1
 	MOVE.w	Screen_tick.w, D0
 	MULS.w	#$000E, D0
 	ADD.w	Screen_timer.w, D0
-	MOVE.w	$FFFFFC06.w, D1
+	MOVE.w	Screen_state_word_0.w, D1
 	MULS.w	#$0010, D1
 	ADD.w	Screen_scroll.w, D1
 	MOVE.b	D0, (A1,D1.w)
 	BSR.w	Endgame_init_clear_portrait_cells
 	CMPI.w	#$000F, Screen_scroll.w
 	BNE.b	Name_entry_confirm_selection
-	CMPI.w	#3, $FFFFFC06.w
+	CMPI.w	#3, Screen_state_word_0.w
 	BNE.b	Name_entry_confirm_selection
 	MOVE.w	#$000D, Screen_timer.w
 	MOVE.w	#4, Screen_tick.w
@@ -21096,9 +21096,9 @@ Name_entry_confirm_selection:
 	RTS
 ;loc_F0BE
 Name_entry_next_row:
-	CMPI.w	#3, $FFFFFC06.w
+	CMPI.w	#3, Screen_state_word_0.w
 	BEQ.w	Name_entry_Return
-	ADDQ.w	#1, $FFFFFC06.w
+	ADDQ.w	#1, Screen_state_word_0.w
 	CLR.w	Screen_scroll.w
 	RTS
 ;loc_F0D2
@@ -21112,9 +21112,9 @@ Name_entry_cursor_left:
 	RTS
 ;loc_F0EE
 Name_entry_cursor_left_row:
-	MOVE.w	$FFFFFC06.w, D1
+	MOVE.w	Screen_state_word_0.w, D1
 	BEQ.w	Name_entry_Return
-	SUBQ.w	#1, $FFFFFC06.w
+	SUBQ.w	#1, Screen_state_word_0.w
 	MOVE.w	#$000F, Screen_scroll.w
 	RTS
 ;loc_F102
@@ -21122,9 +21122,9 @@ Name_entry_cursor_up:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
-	MOVE.w	$FFFFFC06.w, D0
+	MOVE.w	Screen_state_word_0.w, D0
 	BEQ.b	Name_entry_cursor_up_Rts
-	SUBQ.w	#1, $FFFFFC06.w
+	SUBQ.w	#1, Screen_state_word_0.w
 ;loc_F11C
 Name_entry_cursor_up_Rts:
 	RTS
@@ -21133,9 +21133,9 @@ Name_entry_cursor_down:
 	MOVE.w	#Sfx_menu_confirm, Audio_sfx_cmd
 	CLR.w	Screen_item_count.w
 	BSR.w	Draw_cursor_tile
-	CMPI.w	#3, $FFFFFC06.w
+	CMPI.w	#3, Screen_state_word_0.w
 	BEQ.b	Name_entry_cursor_down_Rts
-	ADDQ.w	#1, $FFFFFC06.w
+	ADDQ.w	#1, Screen_state_word_0.w
 ;loc_F13A
 Name_entry_cursor_down_Rts:
 	RTS
@@ -21147,17 +21147,17 @@ Name_entry_load_save:
 	JSR	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
-	CMP.b	$FFFFFFBF.w, D0
+	CMP.b	Save_checksum_nibble_3.w, D0
 	BNE.w	Demo_screen_transition
 	LSR.b	#4, D1
-	CMP.b	$FFFFFFBE.w, D1
+	CMP.b	Save_checksum_nibble_2.w, D1
 	BNE.w	Demo_screen_transition
 	MOVE.b	D2, D0
 	ANDI.b	#$0F, D0
-	CMP.b	$FFFFFFBD.w, D0
+	CMP.b	Save_checksum_nibble_1.w, D0
 	BNE.w	Demo_screen_transition
 	LSR.b	#4, D2
-	CMP.b	$FFFFFFBC.w, D2
+	CMP.b	Save_checksum_nibble_0.w, D2
 	BNE.b	Demo_screen_transition
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
 Name_entry_Return:
@@ -21174,7 +21174,7 @@ Demo_screen_transition:
 	MOVE.w	#4, D0
 ;loc_F196
 Demo_screen_transition_Loop:
-	MOVE.l	(A1)+, $FFFFE982.w
+	MOVE.l	(A1)+, (Palette_buffer+$2).w
 	MOVE.w	#$0014, D1
 ;loc_F19E
 Demo_screen_transition_Wait:
@@ -21196,7 +21196,7 @@ Draw_cursor_tile:
 ;loc_F1DA
 Draw_cursor_tile_Cmd:
 	MOVE.w	#$C988, D7
-	MOVE.w	$FFFFFC06.w, D0
+	MOVE.w	Screen_state_word_0.w, D0
 	LSL.w	#8, D0
 	ADD.w	D0, D7
 	MOVE.w	Screen_scroll.w, D0
@@ -21217,7 +21217,7 @@ Draw_cursor_tile_Cmd:
 ;loc_F21C
 Name_entry_update_bg_colors:
 	LEA	Name_entry_bg_colors_phase0, A1
-	LEA	$FFFFE9B0.w, A2
+	LEA	(Palette_buffer+$30).w, A2
 	MOVE.w	Screen_subcounter.w, D0
 	ANDI.w	#$000C, D0
 	JMP	(A1,D0.w)
@@ -21268,8 +21268,8 @@ Save_name_entry_init:
 Endgame_sequence_init:
 	BSR.w	Endgame_init_clear_vdp
 	MOVE.l	#$0000F264, Aux_object_pool.w
-	MOVE.w	#1, $FFFFB84E.w
-	MOVE.l	#$00039EEC, $FFFFB844.w
+	MOVE.w	#1, (Aux_object_pool+$E).w
+	MOVE.l	#$00039EEC, (Aux_object_pool+$4).w
 	BSR.w	Endgame_init_draw_race_nums
 	LEA	Endgame_tilemap_a, A6
 	JSR	Draw_packed_tilemap_to_vdp
@@ -21299,12 +21299,12 @@ Endgame_init_clear_vdp:
 	MOVE.l	#$4C800000, VDP_control_port
 	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
-	MOVE.l	#$04440444, $FFFFE982.w
-	MOVE.l	#$0EEE0800, $FFFFE9A4.w
-	MOVE.l	#$04440EEE, $FFFFE9E0.w
-	MOVE.l	#$00EE0000, $FFFFE9E4.w
-	MOVE.l	#$00E0000E, $FFFFE9E8.w
-	MOVE.w	#$0EE0, $FFFFE9EC.w
+	MOVE.l	#$04440444, (Palette_buffer+$2).w
+	MOVE.l	#$0EEE0800, (Palette_buffer+$24).w
+	MOVE.l	#$04440EEE, (Palette_buffer+$60).w
+	MOVE.l	#$00EE0000, (Palette_buffer+$64).w
+	MOVE.l	#$00E0000E, (Palette_buffer+$68).w
+	MOVE.w	#$0EE0, (Palette_buffer+$6C).w
 	BSR.w	Endgame_init_clear_portrait_cells
 	MOVE.l	#Default_vblank_handler_h32, Vblank_callback.w
 	RTS
@@ -21329,7 +21329,7 @@ Endgame_init_draw_nums_cell_loop:
 	RTS
 ;loc_F414
 Endgame_init_clear_portrait_cells:
-	LEA	$FFFFFF80.w, A1
+	LEA	Player_state_save_buf.w, A1
 	MOVE.w	#$600A, D0
 	MOVE.w	#$C908, D6
 	MOVE.w	#3, D1
@@ -21521,10 +21521,10 @@ Select_post_race_message_normal:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	ADD.l	D0, D0
 	MOVE.b	(A2,D0.w), D1
-	CMP.b	$FFFFFF35.w, D1
+	CMP.b	Player_grid_position_b.w, D1
 	BCC.b	Select_post_race_message_Promote
 	MOVE.b	$1(A2,D0.w), D1
-	CMP.b	$FFFFFF35.w, D1
+	CMP.b	Player_grid_position_b.w, D1
 	BCC.b	Select_post_race_message_Partner
 ;loc_F640
 Select_post_race_message_Lose:
@@ -21553,8 +21553,8 @@ Select_post_race_message_Rival:
 	ANDI.b	#$0F, D1 ; isolate the rival's team number
 	CMP.b	D0, D1
 	BCS.b	Select_post_race_message_Rival_lose
-	MOVE.b	$FFFFFF35.w, D0
-	MOVE.b	$FFFFFF3B.w, D1
+	MOVE.b	Player_grid_position_b.w, D0
+	MOVE.b	Rival_grid_position_b.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
@@ -21567,8 +21567,8 @@ Select_post_race_message_Rival_win:
 	RTS
 ;loc_F6A8
 Select_post_race_message_Rival_lose:
-	MOVE.b	$FFFFFF35.w, D0
-	MOVE.b	$FFFFFF3B.w, D1
+	MOVE.b	Player_grid_position_b.w, D0
+	MOVE.b	Rival_grid_position_b.w, D1
 	ANDI.b	#$0F, D0
 	ANDI.b	#$0F, D1
 	CMP.b	D0, D1
@@ -21637,7 +21637,7 @@ Post_race_driver_target_points:
 	dc.b	$08, $0D
 ;Load_font_tiles_to_work_buffer
 Load_font_tiles_to_work_buffer:
-	LEA	$FFFFF6F0.w, A1
+	LEA	Dialogue_tilemap_buf.w, A1
 	MOVE.w	#$0083, D0
 	LEA	Rival_dialogue_blank_tilemap, A2
 	TST.w	English_flag.w
@@ -21647,7 +21647,7 @@ Load_font_tiles_to_work_buffer:
 Load_font_tiles_Loop:
 	CLR.w	D1
 	MOVE.b	(A2)+, D1
-	ADD.w	$FFFF905A.w, D1
+	ADD.w	Font_tile_base.w, D1
 	MOVE.w	D1, (A1)+
 	DBF	D0, Load_font_tiles_Loop
 	RTS
@@ -21705,7 +21705,7 @@ Render_text_Next_char:
 	BCC.b	Render_text_Special_B2
 ;loc_F7CE
 Render_text_Write_tile:
-	ADD.w	$FFFF905A.w, D1
+	ADD.w	Font_tile_base.w, D1
 	MOVE.w	D1, (A1)+
 	BRA.b	Render_text_Next_char
 ;loc_F7D6
@@ -21752,7 +21752,7 @@ Render_text_special_char_with_tile_77:
 ;loc_F810
 Render_text_Special_write:
 	LEA	-$2C(A1), A3
-	ADD.w	$FFFF905A.w, D2
+	ADD.w	Font_tile_base.w, D2
 	MOVE.w	D2, (A3)
 	BRA.b	Render_text_Write_tile
 ;Draw_message_panel_narrow
@@ -21767,7 +21767,7 @@ Draw_message_panel_wide:
 	RTS
 ;loc_F830:
 Setup_message_panel_dimensions:
-	LEA	$FFFFF6F0.w, A6
+	LEA	Dialogue_tilemap_buf.w, A6
 	MOVE.w	#5, D5
 	TST.w	English_flag.w
 	BEQ.b	Setup_message_panel_Jp
@@ -24366,8 +24366,8 @@ Update_player_grid_position_Placed:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$30, D0
 	BEQ.b	Update_player_grid_position_Rts
-	MOVE.b	$FFFFFF35.w, D0 ; low byte of Player_grid_position
-	MOVE.b	$FFFFFF3B.w, D1 ; low byte of Rival_grid_position
+	MOVE.b	Player_grid_position_b.w, D0
+	MOVE.b	Rival_grid_position_b.w, D1
 	CMP.b	D0, D1
 	BCC.w	Update_player_grid_position_RivalWins
 	MOVE.b	Rival_team.w, D0
@@ -24541,8 +24541,8 @@ Initialize_standings_order_buffer_Sort_noswap:
 	BRA.w	Accumulate_race_points
 ;loc_12F3E
 Initialize_standings_order_buffer_HasRival:
-	MOVE.b	$FFFFFF35.w, D0
-	CMP.b	$FFFFFF3B.w, D0
+	MOVE.b	Player_grid_position_b.w, D0
+	CMP.b	Rival_grid_position_b.w, D0
 	BCS.b	Initialize_standings_order_buffer_RivalFirst
 	BSR.b	Rotate_standings_buffer_Rival
 	BSR.b	Rotate_standings_buffer
@@ -24556,9 +24556,9 @@ Initialize_standings_order_buffer_RivalFirst:
 Rotate_standings_buffer:
 	CLR.l	D0
 	LEA	Standings_team_order.w, A1
-	LEA	$FFFF907D.w, A2
+	LEA	(Standings_points_buf-1).w, A2
 	LEA	$1(A2), A3
-	MOVE.b	$FFFFFF35.w, D0
+	MOVE.b	Player_grid_position_b.w, D0
 	ANDI.b	#$0F, D0
 	ADDA.l	D0, A1
 	MOVE.w	#$000F, D1
@@ -24575,9 +24575,9 @@ Rotate_standings_buffer_Loop:
 Rotate_standings_buffer_Rival:
 	CLR.l	D0
 	LEA	Standings_team_order.w, A1
-	LEA	$FFFF907D.w, A2
+	LEA	(Standings_points_buf-1).w, A2
 	LEA	$1(A2), A3
-	MOVE.b	$FFFFFF3B.w, D0
+	MOVE.b	Rival_grid_position_b.w, D0
 	ANDI.b	#$0F, D0
 	ADDA.l	D0, A1
 	MOVE.w	#$000F, D1
@@ -24626,6 +24626,12 @@ Accumulate_race_points_Assign_loop:
 	RTS
 ;Initialize_drivers_and_teams
 Initialize_drivers_and_teams:
+; Resets championship driver/team state and loads the year-appropriate driver map.
+; Clears Driver_points_by_team (16 bytes at $FFFF9030) and Rival_team.
+; Then copies 17 bytes from InitialDriversAndTeamMap (year 1) or
+; SecondYearDriversAndTeamsMap (year 2, when bit 6 of Player_team is set) into
+; Player_team..Drivers_and_teams_map ($FFFF9043..$FFFF9054).
+; Called at championship start to initialise the 16-driver roster for the season.
 	LEA	Driver_points_by_team.w, A1
 	MOVE.w	#$000F, D0
 ;loc_1301E
@@ -24648,50 +24654,63 @@ Initialize_drivers_and_teams_Copy_loop:
 	RTS
 ;Load_team_machine_stats
 Load_team_machine_stats:
+; Loads team machine screen bar values, tire wear parameters, and car
+; characteristics for the currently selected Player_team.
+;
+; Reads TeamMachineScreenStats[player_team_num * 7]:
+;   bytes 0-4 → ENG/TM/SUS/TIRE/BRA bar heights, written in pairs to
+;               Tire_stat_max and Tire_stat_durability_acc pairs ($9010-$9023)
+;               so each stat bar value initialises both the cap and accumulator.
+;   byte 6    → tire wear delta, written to all 5 Tire_stat_delta slots ($9025-$902D low bytes)
+;
+; Reads Team_engine_multiplier[player_team_num] for tire wear rates.
+; Reads Team_car_characteristics[player_team_num * 5] for car attributes.
+; On Track_index==1 (first race) and Track_index==$0B (12th race),
+;   applies extra multiplier adjustments to the braking wear rate.
 	CLR.w	D0
 	LEA	TeamMachineScreenStats, A1
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MULS.w	#7, D0
 	ADDA.l	D0, A1
-	MOVE.b	(A1), $FFFF9015.w
-	MOVE.b	(A1)+, $FFFF901F.w
-	MOVE.b	(A1), $FFFF9019.w
-	MOVE.b	(A1)+, $FFFF9023.w
-	MOVE.b	(A1), $FFFF9011.w
-	MOVE.b	(A1)+, $FFFF901B.w
-	MOVE.b	(A1), $FFFF9013.w
-	MOVE.b	(A1)+, $FFFF901D.w
-	MOVE.b	(A1), $FFFF9017.w
-	MOVE.b	(A1)+, $FFFF9021.w
-	MOVE.b	$1(A1), $FFFF9029.w
-	MOVE.b	$1(A1), $FFFF902D.w
-	MOVE.b	$1(A1), $FFFF9025.w
-	MOVE.b	$1(A1), $FFFF9027.w
-	MOVE.b	$1(A1), $FFFF902B.w
+	MOVE.b	(A1), $FFFF9015.w   ; ENG bar → Tire_stat_max_2 low byte (copy A)
+	MOVE.b	(A1)+, $FFFF901F.w  ; ENG bar → Tire_accel_durability_acc low byte (copy B)
+	MOVE.b	(A1), $FFFF9019.w   ; TM bar → Tire_stat_max_4 low byte (copy A)
+	MOVE.b	(A1)+, $FFFF9023.w  ; TM bar → Tire_engine_durability_acc low byte (copy B)
+	MOVE.b	(A1), $FFFF9011.w   ; SUS. bar → Tire_stat_max_base low byte (copy A)
+	MOVE.b	(A1)+, $FFFF901B.w  ; SUS. bar → Tire_steering_durability_acc low byte (copy B)
+	MOVE.b	(A1), $FFFF9013.w   ; TIRE bar → Tire_stat_max_1 low byte (copy A)
+	MOVE.b	(A1)+, $FFFF901D.w  ; TIRE bar → Tire_braking_durability_acc low byte (copy B)
+	MOVE.b	(A1), $FFFF9017.w   ; BRA. bar → Tire_stat_max_3 low byte (copy A)
+	MOVE.b	(A1)+, $FFFF9021.w  ; BRA. bar → Tire_braking_zone_acc+1 (copy B)
+	MOVE.b	$1(A1), $FFFF9029.w ; tire wear delta → Tire_stat_delta slot 2 low byte
+	MOVE.b	$1(A1), $FFFF902D.w ; tire wear delta → Tire_stat_delta slot 4 low byte
+	MOVE.b	$1(A1), $FFFF9025.w ; tire wear delta → Tire_stat_delta slot 0 low byte
+	MOVE.b	$1(A1), $FFFF9027.w ; tire wear delta → Tire_stat_delta slot 1 low byte
+	MOVE.b	$1(A1), $FFFF902B.w ; tire wear delta → Tire_stat_delta slot 3 low byte
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LEA	Team_engine_multiplier(PC), A0
 	MOVE.b	(A0,D0.w), D0
-	MOVE.w	D0, $FFFF915A.w
-	MOVE.w	D0, $FFFF9156.w
+	MOVE.w	D0, Tire_braking_wear_rate_full.w ; full braking wear rate = multiplier
+	MOVE.w	D0, Tire_steering_wear_rate.w    ; steering wear rate = multiplier
 	MOVE.w	D0, D1
 	ADD.w	D1, D1
-	ADD.w	D1, D1
-	MOVE.w	D1, $FFFF9158.w
+	ADD.w	D1, D1                           ; D1 = multiplier * 4
+	MOVE.w	D1, Tire_braking_wear_rate.w     ; braking wear rate = multiplier * 4
 	CMPI.w	#1, Track_index.w
 	BNE.b	Load_team_machine_stats_NoFirst
-	ADD.w	D0, $FFFF9158.w
-	ADD.w	D0, $FFFF9158.w
+	ADD.w	D0, Tire_braking_wear_rate.w     ; track 1 bonus: braking wear += multiplier
+	ADD.w	D0, Tire_braking_wear_rate.w     ; total = multiplier * 6 on first race
 ;loc_130DA
 Load_team_machine_stats_NoFirst:
-	MOVE.w	D1, $FFFF9154.w
-	MOVE.w	D0, $FFFF9152.w
-	ADD.w	D0, $FFFF9152.w
-	ADD.w	D0, $FFFF9152.w
+	MOVE.w	D1, Tire_engine_wear_rate.w      ; engine wear rate = multiplier * 4
+	MOVE.w	D0, Tire_accel_wear_rate.w       ; accel wear rate = multiplier (base)
+	ADD.w	D0, Tire_accel_wear_rate.w       ; accel wear rate += multiplier
+	ADD.w	D0, Tire_accel_wear_rate.w       ; total = multiplier * 3
 	CMPI.w	#$000B, Track_index.w
 	BNE.b	Load_team_machine_stats_NoLast
-	ADD.w	D0, $FFFF9152.w
+	ADD.w	D0, Tire_accel_wear_rate.w       ; track 11 ($0B) bonus: accel wear += multiplier
 ;loc_130F6
 Load_team_machine_stats_NoLast:
 	MOVE.b	Player_team.w, D0
@@ -24707,14 +24726,14 @@ Load_team_machine_stats_Char_loop:
 	MOVE.b	(A0)+, D1
 	MOVE.w	D1, (A1)+ ; stores: Team_car_acceleration, Team_car_engine_data, Track_steering_index, Track_steering_index_b, Track_braking_index
 	DBF	D0, Load_team_machine_stats_Char_loop
-	MOVE.w	#$0014, $FFFF9166.w
-	MOVE.w	#$0014, $FFFF9168.w
-	MOVE.w	#$0014, $FFFF916A.w
-	MOVE.w	#$0014, $FFFF916C.w
-	MOVE.w	#$0014, $FFFF916E.w
-	MOVE.w	#$00F0, $FFFF9170.w
-	MOVE.w	#$0028, $FFFF9172.w
-	CLR.w	$FFFF9150.w
+	MOVE.w	#$0014, Tire_accel_durability.w
+	MOVE.w	#$0014, Tire_engine_durability.w
+	MOVE.w	#$0014, Tire_steering_durability.w
+	MOVE.w	#$0014, Tire_braking_durability_b.w
+	MOVE.w	#$0014, Tire_braking_durability_a.w
+	MOVE.w	#$00F0, Tire_collision_brake_timer.w
+	MOVE.w	#$0028, Tire_road_marker_brake_timer.w
+	CLR.w	Tire_wear_degrade_level.w
 	TST.w	Use_world_championship_tracks.w
 	BEQ.b	Load_team_car_data_Rts
 	TST.w	Practice_mode.w
@@ -24732,12 +24751,12 @@ Load_team_car_data_Rts:
 	RTS
 ;loc_13170:
 Save_player_state_to_buffer:
-	LEA	$FFFFFF80.w, A1
+	LEA	Player_state_save_buf.w, A1
 	MOVE.w	#$003F, D7
 Save_player_state_clear_loop:
 	CLR.b	(A1)+
 	DBF	D7, Save_player_state_clear_loop
-	LEA	$FFFFFF80.w, A1
+	LEA	Player_state_save_buf.w, A1
 	LEA	Player_state_flags.w, A2
 	MOVE.w	#$0024, D7
 Save_player_state_lo_loop:
@@ -24783,14 +24802,14 @@ Finalize_save_data_buffer:
 	BSR.w	Compute_save_data_checksum
 	MOVE.b	D1, D0
 	ANDI.b	#$0F, D0
-	MOVE.b	D0, $FFFFFFBF.w
+	MOVE.b	D0, Save_checksum_nibble_3.w
 	LSR.b	#4, D1
-	MOVE.b	D1, $FFFFFFBE.w
+	MOVE.b	D1, Save_checksum_nibble_2.w
 	MOVE.b	D2, D0
 	ANDI.b	#$0F, D0
-	MOVE.b	D0, $FFFFFFBD.w
+	MOVE.b	D0, Save_checksum_nibble_1.w
 	LSR.b	#4, D2
-	MOVE.b	D2, $FFFFFFBC.w
+	MOVE.b	D2, Save_checksum_nibble_0.w
 	ANDI.b	#$0F, Player_state_flags.w
 	RTS
 ;loc_13218:
@@ -24802,7 +24821,7 @@ Load_player_state_clear_loop:
 	DBF	D7, Load_player_state_clear_loop
 	CLR.w	Track_index.w
 	CLR.l	Saved_frame_callback.w
-	LEA	$FFFFFF80.w, A1
+	LEA	Player_state_save_buf.w, A1
 	LEA	Player_state_flags.w, A2
 	MOVE.w	#$0024, D7
 Load_player_state_copy_loop:
@@ -24847,7 +24866,7 @@ Restore_saved_frame_callback:
 	RTS
 ;Compute_save_data_checksum
 Compute_save_data_checksum:
-	LEA	$FFFFFF80.w, A0
+	LEA	Player_state_save_buf.w, A0
 	MOVE.w	#$001C, D0
 	MOVE.b	#0, D1
 	MOVE.b	#0, D2
@@ -24877,12 +24896,25 @@ Compute_save_data_checksum_next:
 	RTS
 ;loc_132EA:
 PointsAwardedPerPlacement:
+; Points earned by finishing 1st through 6th in a race
+; (positions 7th and beyond score 0)
 	dc.b 9, 6, 4, 3, 2, 1
 ;loc_132F0
 Ai_performance_factor_by_team:
+; Per-team AI performance multiplier used by Initialize_standings_order_buffer.
+; Indexed by team number (0=Madonna best, 15=Zero Force worst).
+; Final score = Ai_performance_table[team*8 + rng(0-7)] * factor
+; Higher factor → team appears higher in standings display more consistently.
 	dc.b	$0F, $0D, $0C, $0B, $0A, $0A, $0A, $0A, $08, $08, $08, $08, $02, $02, $01, $01
 ;loc_13300
 Ai_performance_table:
+; Base score table for standings display (not actual race AI speed).
+; Each team has 8 entries (indexed by random 3-bit value).
+; Multiplied by Ai_performance_factor_by_team to produce the final
+; sort score used by Initialize_standings_order_buffer.
+; Teams 0-3 (top): high base scores; teams 12-15 (bottom): near-zero scores.
+; Indexed as: Ai_performance_table[team * 8 + rng_low_3bits]
+; 16 teams × 8 entries = 128 bytes
 	dc.b	$06, $06, $06, $06, $09, $09, $09, $09, $01, $02, $03, $04, $06, $06, $09, $09, $01, $02, $02, $03, $04, $06, $06, $09, $01, $01, $02, $03, $03, $04, $06, $09
 	dc.b	$00, $01, $02, $02, $03, $04, $04, $06, $00, $00, $01, $01, $02, $03, $03, $09, $00, $00, $01, $01, $02, $02, $03
 	dc.b	$03
@@ -24896,25 +24928,39 @@ Ai_performance_table:
 	dc.b	$01, $02, $02, $03, $03, $00, $00, $00, $00, $01, $01, $01, $01
 ;loc_13380
 InitialDriversAndTeamMap:
-	dc.b	$1B ; Player starting team
-	dc.b	$01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F
-	dc.b	$00
+; Copied into Player_team..Drivers_and_teams_map at championship start (year 1).
+; Byte 0: Player_team ($1B = team 11 / Minarae, no rival flag set)
+; Bytes 1-16: team assignment for each of the 16 non-player driver slots
+;   (each byte = team index 0-15; driver slot 11/$0B = 0 = Madonna rival)
+; Byte 17: Rival_team initial value ($00 = none)
+	dc.b	$1B ; Player starting team (year 1: Minarae, team 11)
+	dc.b	$01, $02, $03, $04, $05, $06, $07, $08, $09, $0A, $0B, $00, $0C, $0D, $0E, $0F ; driver→team map
+	dc.b	$00 ; Rival_team = none initially
 ;loc_13392:
 SecondYearDriversAndTeamsMap:
-	dc.b	$50
-	dc.b	$50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E
-	dc.b	$00
+; Copied into Player_team..Drivers_and_teams_map at championship start (year 2,
+; when bit 6 of Player_team is set).  Shuffles teams relative to year 1.
+; Byte 0: Player_team ($50 = bit 6 set + team 0 / Madonna, year-2 livery flag)
+; Bytes 1-16: driver→team map for year 2 lineup
+; Byte 17: Rival_team initial value ($00 = none)
+	dc.b	$50 ; Player starting team (year 2: Madonna, team 0, year-2 flag)
+	dc.b	$50, $0D, $05, $03, $06, $02, $07, $0B, $01, $04, $0C, $0F, $0A, $08, $09, $0E ; driver→team map
+	dc.b	$00 ; Rival_team = none initially
 ;loc_133A4
 Team_engine_multiplier:
+; Tire wear base multiplier indexed by team number (0-15).
+; Value 1 or 2. Written to Tire_steering_wear_rate, Tire_braking_wear_rate_full,
+; and Tire_steering_wear_rate. Doubled for Tire_engine_wear_rate and base
+; Tire_accel_wear_rate. Teams with value 2 have 2× baseline tire wear.
 	dc.b	$01, $01, $01, $01, $02, $01, $02, $02, $02, $01, $02, $01, $02, $02, $02, $02
 ;loc_133B4:
 Team_car_characteristics:
-; Suspected
-; 1st byte: Affects acceleration
-; 2nd byte: Affects max speed
-; 3rd byte: Affects steering?
-; 4th byte: Affects breaks?
-; 5th byte: ?
+; 5 bytes per team (16 teams), loaded by Load_team_machine_stats into:
+;   byte 0 → Team_car_acceleration  (index into Acceleration_modifiers: 0-3 → -25%/0/+25%/+50%)
+;   byte 1 → Team_car_engine_data   (index into Engine_data_offset_table: 0-5 → row offset in Engine_data)
+;   byte 2 → Track_steering_index   (steering sensitivity selector for straight sections)
+;   byte 3 → Track_steering_index_b (steering sensitivity selector for curved sections)
+;   byte 4 → Track_braking_index    (braking track-quality modifier selector)
 	dc.b	$06, $0A, $06, $08, $0A ; Madonna
 	dc.b	$04, $0A, $08, $08, $0A ; Firenze
 	dc.b	$06, $08, $08, $06, $0A ; Millions
@@ -24933,33 +24979,39 @@ Team_car_characteristics:
 	dc.b	$04, $04, $04, $04, $02 ; Zero Force
 ;loc_13404:
 Acceleration_modifiers:
+; Signed word adjustment to acceleration RPM delta, indexed by Team_car_acceleration (0-3).
+; Applied in Update_rpm when computing the team-specific acceleration boost/penalty.
+; Values: index 0→-1 (slow/penalty), 1→0 (baseline), 2→+2 (fast), 3→+1 (medium boost)
 	dc.w	-1, 0, 2, 1
 ;locx_1340C:
 Engine_data_offset_table:
-	dc.w	$0000
-	dc.w	$001E
-	dc.w	$003C
-	dc.w	$005A
-	dc.w	$0078
-	dc.w	$0096
+; Byte offset into Engine_data for each team's engine variant, indexed by Team_car_engine_data (0-5).
+; Each Engine_data row is $1E ($30 = 30) bytes: auto (4 words) + 4-shift (4 words) + 7-shift (7 words).
+; Offset 0=$0000 (rows 0-2, strongest), $001E (rows 3-5), ... $0096 (rows 15-17, weakest practice variant).
+	dc.w	$0000 ; variant 0 (strongest: e.g. Madonna/Firenze/Tyrant)
+	dc.w	$001E ; variant 1
+	dc.w	$003C ; variant 2 (Engine_data_offset_practice: default for practice/warm-up/attract)
+	dc.w	$005A ; variant 3
+	dc.w	$0078 ; variant 4
+	dc.w	$0096 ; variant 5 (weakest)
 ;$00013418
 Endgame_sequence_frame:
 	JSR	Wait_for_vblank
-	SUBQ.w	#1, $FFFFFC16.w
+	SUBQ.w	#1, Screen_state_word_1.w
 	BCC.b	Endgame_frame_Rts
-	ADDQ.w	#1, $FFFFFC16.w
+	ADDQ.w	#1, Screen_state_word_1.w
 	SUBQ.w	#1, Temp_x_pos.w
 	BCC.b	Endgame_frame_portrait_tick
 	ADDQ.w	#1, Temp_x_pos.w
-	BTST.b	#1, $FFFFFC06.w
+	BTST.b	#1, Screen_state_word_0.w
 	BNE.w	Update_endgame_portrait_animation
-	BTST.b	#2, $FFFFFC06.w
+	BTST.b	#2, Screen_state_word_0.w
 	BNE.w	Update_endgame_portrait_animation
 	CMPI.w	#$0090, $FFFFBB56.w
 	BCC.b	Endgame_frame_music_trigger
-	BTST.b	#5, $FFFFFC06.w
+	BTST.b	#5, Screen_state_word_0.w
 	BNE.b	Endgame_frame_music_trigger
-	BSET.b	#5, $FFFFFC06.w
+	BSET.b	#5, Screen_state_word_0.w
 	MOVE.w	#Music_rival_encounter, Audio_music_cmd ; rival team encounter music
 ;loc_13464
 Endgame_frame_music_trigger:
@@ -24972,7 +25024,7 @@ Endgame_frame_scroll_update:
 	BSR.b	Endgame_frame_update_scroll_left
 ;loc_13476
 Endgame_frame_portrait_tick:
-	BTST.b	#0, $FFFFFC06.w
+	BTST.b	#0, Screen_state_word_0.w
 	BNE.w	Draw_endgame_portrait_tilemap_select
 	BSR.w	Endgame_frame_copy_screen_data
 ;loc_13484
@@ -24980,17 +25032,17 @@ Endgame_frame_Rts:
 	RTS
 ;loc_13486
 Endgame_frame_update_scroll_right:
-	BTST.b	#3, $FFFFFC06.w
+	BTST.b	#3, Screen_state_word_0.w
 	BEQ.w	Endgame_scroll_right_inc
 	BRA.w	Endgame_scroll_right_dec
 ;loc_13494
 Endgame_frame_update_scroll_left:
-	BTST.b	#4, $FFFFFC06.w
+	BTST.b	#4, Screen_state_word_0.w
 	BEQ.w	Endgame_scroll_left_dec
 	BRA.w	Endgame_scroll_left_inc
 ;loc_134A2
 Endgame_scroll_right_inc:
-	LEA	$FFFF9D80.w, A1
+	LEA	(Screen_scroll_table_buf+$40).w, A1
 	CLR.l	D7
 	MOVE.w	Menu_cursor.w, D7
 	LSL.l	#2, D7
@@ -25004,13 +25056,13 @@ Endgame_scroll_right_inc:
 	CMPI.w	#$0050, Menu_cursor.w
 	BNE.b	Endgame_scroll_right_Rts
 	CLR.w	Menu_cursor.w
-	BSET.b	#3, $FFFFFC06.w
+	BSET.b	#3, Screen_state_word_0.w
 ;loc_134DA
 Endgame_scroll_right_Rts:
 	RTS
 ;loc_134DC
 Endgame_scroll_left_dec:
-	LEA	$FFFF9D7E.w, A1
+	LEA	(Screen_scroll_table_buf+$3E).w, A1
 	CLR.l	D7
 	MOVE.w	Menu_substate.w, D7
 	LSL.l	#2, D7
@@ -25023,13 +25075,13 @@ Endgame_scroll_left_dec:
 	SUBQ.w	#2, Menu_substate.w
 	BNE.b	Endgame_scroll_left_Rts
 	MOVE.w	#$0050, Menu_substate.w
-	BSET.b	#4, $FFFFFC06.w
+	BSET.b	#4, Screen_state_word_0.w
 ;loc_13510
 Endgame_scroll_left_Rts:
 	RTS
 ;loc_13512
 Endgame_scroll_right_dec:
-	LEA	$FFFF9D80.w, A1
+	LEA	(Screen_scroll_table_buf+$40).w, A1
 	CLR.l	D7
 	MOVE.w	Menu_cursor.w, D7
 	LSL.l	#2, D7
@@ -25042,14 +25094,14 @@ Endgame_scroll_right_dec:
 	CMPI.w	#$0050, Menu_cursor.w
 	BNE.b	Endgame_scroll_right_dec_Rts
 	CLR.w	Menu_cursor.w
-	BCLR.b	#3, $FFFFFC06.w
-	BSET.b	#1, $FFFFFC06.w
+	BCLR.b	#3, Screen_state_word_0.w
+	BSET.b	#1, Screen_state_word_0.w
 ;loc_1354C
 Endgame_scroll_right_dec_Rts:
 	RTS
 ;loc_1354E
 Endgame_scroll_left_inc:
-	LEA	$FFFF9D7E.w, A1
+	LEA	(Screen_scroll_table_buf+$3E).w, A1
 	CLR.l	D7
 	MOVE.w	Menu_substate.w, D7
 	LSL.l	#2, D7
@@ -25061,8 +25113,8 @@ Endgame_scroll_left_inc:
 	SUBQ.w	#2, Menu_substate.w
 	BNE.b	Endgame_scroll_left_inc_Rts
 	MOVE.w	#$0050, Menu_substate.w
-	BCLR.b	#4, $FFFFFC06.w
-	BSET.b	#2, $FFFFFC06.w
+	BCLR.b	#4, Screen_state_word_0.w
+	BSET.b	#2, Screen_state_word_0.w
 ;loc_13584
 Endgame_scroll_left_inc_Rts:
 	RTS
@@ -25095,7 +25147,7 @@ Championship_final_init:
 	JSR	Halt_audio_sequence
 	JSR	Fade_palette_to_black
 	MOVE.w	#Music_championship_final, Audio_music_cmd ; championship final ending music
-	MOVE.w	#$0400, $FFFFE9E0.w
+	MOVE.w	#$0400, (Palette_buffer+$60).w
 	JSR	Wait_for_vblank
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -25106,7 +25158,7 @@ Championship_final_init:
 	MOVE.l	#$941F93FF, D6
 	MOVE.l	#$40000080, D7
 	JSR	Start_vdp_dma_fill
-	LEA	$FFFF9D40.w, A1
+	LEA	Screen_scroll_table_buf.w, A1
 	MOVE.w	#$00E0, D0
 ;loc_1362C
 Championship_final_init_clear_loop:
@@ -25162,14 +25214,14 @@ Championship_final_init_obj_loop:
 Championship_final_init_palette_loop:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, Championship_final_init_palette_loop
-	MOVE.l	#$00000EEE, $FFFFE982.w
-	MOVE.w	#$0400, $FFFFE9E0.w
-	BSET.b	#1, $FFFFFC06.w
+	MOVE.l	#$00000EEE, (Palette_buffer+$2).w
+	MOVE.w	#$0400, (Palette_buffer+$60).w
+	BSET.b	#1, Screen_state_word_0.w
 	BSR.w	Update_endgame_portrait_animation
 	MOVE.w	#0, Menu_cursor.w
 	MOVE.w	#$0050, Menu_substate.w
-	BSET.b	#4, $FFFFFC06.w
-	LEA	$FFFF9D7E.w, A1
+	BSET.b	#4, Screen_state_word_0.w
+	LEA	(Screen_scroll_table_buf+$3E).w, A1
 	MOVE.w	#$0051, D0
 ;loc_1372C
 Championship_final_init_scroll_loop:
@@ -25177,7 +25229,7 @@ Championship_final_init_scroll_loop:
 	ADDA.l	#2, A1
 	DBF	D0, Championship_final_init_scroll_loop
 	MOVE.w	#$049C, Temp_x_pos.w
-	MOVE.w	#$020D, $FFFFFC16.w
+	MOVE.w	#$020D, Screen_state_word_1.w
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVE.w	#1, Vblank_enable.w
@@ -25208,9 +25260,9 @@ Championship_final_bg_palette:
 	dc.w	$0200, $0400, $0420, $0620, $0642, $0842, $0864, $0A64, $0A86, $0C86, $0CA8, $0ECA, $0EEC, $0EA8, $0000
 ;loc_137B8
 Draw_endgame_portrait_tilemap_select:
-	BCLR.b	#0, $FFFFFC06.w
+	BCLR.b	#0, Screen_state_word_0.w
 	LEA	$FFFFEA84.w, A6
-	BTST.b	#0, $FFFFFC03.w
+	BTST.b	#0, Screen_flash_state.w
 	BEQ.b	Draw_endgame_portrait_tilemap_draw
 	LEA	$FFFFECF0.w, A6
 ;loc_137CE
@@ -25221,13 +25273,13 @@ Draw_endgame_portrait_tilemap_draw:
 	ORI	#$0700, SR
 	JSR	Draw_tilemap_buffer_to_vdp_128_cell_rows
 	ANDI	#$F8FF, SR
-	ADDQ.b	#1, $FFFFFC03.w
+	ADDQ.b	#1, Screen_flash_state.w
 	RTS
 ;loc_137EC:
 Update_endgame_portrait_animation:
-	BTST.b	#1, $FFFFFC06.w
+	BTST.b	#1, Screen_state_word_0.w
 	BNE.b	Update_endgame_portrait_fade
-	BCLR.b	#2, $FFFFFC06.w
+	BCLR.b	#2, Screen_state_word_0.w
 	BSR.w	Load_endgame_portrait_tilemap
 	MOVE.w	#$20E1, D0
 	MOVE.l	#$44520003, D7
@@ -25243,7 +25295,7 @@ Update_endgame_portrait_tick_a:
 	RTS
 ;loc_13826
 Update_endgame_portrait_fade:
-	BCLR.b	#1, $FFFFFC06.w
+	BCLR.b	#1, Screen_state_word_0.w
 	BSR.w	Load_endgame_portrait_tilemap
 	MOVE.w	#$40E1, D0
 	MOVE.l	#$44EE0000, D7
@@ -25310,7 +25362,7 @@ Endgame_vblank_handler:
 	JSR	Upload_palette_buffer_to_cram
 	SUBQ.b	#1, Screen_tick.w
 	BNE.b	Endgame_vblank_scroll
-	BSET.b	#0, $FFFFFC06.w
+	BSET.b	#0, Screen_state_word_0.w
 	MOVE.b	#3, Screen_tick.w
 ;loc_138F2
 Endgame_vblank_scroll:
@@ -26739,41 +26791,48 @@ Driver_country_text_your_country:
 	txt "COUNTRY"
 ;loc_195AC:
 TeamMachineScreenStats:
-; ENG., T.M, SUS., TIRE, BRA., ?, ?
-; The last two bytes affect the drawn curve
-	dc.b	$64, $64, $50, $64, $64 ; Madonna bars
-	dc.b	$00, $05
-	dc.b	$50, $64, $64, $5A, $64 ; Firenze bars
-	dc.b	$02, $04
-	dc.b	$64, $50, $5A, $50, $64 ; Millions bars
-	dc.b	$01, $05
-	dc.b	$64, $3C, $64, $64, $64 ; Bestowal bars
-	dc.b	$03, $05
-	dc.b	$50, $50, $50, $50, $50 ; Blanche bars
-	dc.b	$01, $05
-	dc.b	$3C, $64, $3C, $50, $64 ; Tyrant bars
-	dc.b	$02, $03
-	dc.b	$64, $3C, $50, $50, $50 ; Losel bars
-	dc.b	$03, $04
-	dc.b	$3C, $50, $3C, $3C, $50 ; May bars
-	dc.b	$02, $03
-	dc.b	$3C, $3C, $46, $3C, $3C ; Bullets bars
-	dc.b	$03, $03
-	dc.b	$50, $32, $32, $3C, $28 ; Dardan bars
-	dc.b	$01, $05
-	dc.b	$50, $28, $50, $50, $50 ; Linden bars
-	dc.b	$03, $01
-	dc.b	$50, $3C, $28, $32, $28 ; Minarae bars
-	dc.b	$03, $04
-	dc.b	$5A, $1E, $3C, $3C, $28 ; Rigel bars
-	dc.b	$03, $01
-	dc.b	$50, $1E, $3C, $28, $28 ; Comet bars
-	dc.b	$01, $02
-	dc.b	$3C, $28, $28, $3C, $28 ; Orchis bars
-	dc.b	$03, $02
-	dc.b	$50, $1E, $3C, $3C, $14 ; Zeroforce bars
-	dc.b	$01, $03
-	dc.b	$FF, $FF, $FF, $FF, $FF, $04, $FF, $00
+; 7 bytes per team (16 teams + 1 sentinel), loaded by Load_team_machine_stats.
+; Bytes 0-4: ENG, T.M, SUS., TIRE, BRA. bar heights (0x00-0x64) for the machine screen display
+;            Written to Tire_stat_max_0..4 ($FFFF9010-$FFFF9018) via two-copy method
+;            (each bar written twice to separate even/odd VDP tile columns)
+; Byte 5   : Unused by Load_team_machine_stats (padding / unknown purpose)
+;            Values 0-3; possibly a visual curve type index for the car stats screen
+; Byte 6   : Per-tick tire wear delta applied to all 5 Tire_stat_delta entries ($FFFF9025,9027,9029,902B,902D)
+;            Lower value = slower tire wear = better durability in race
+; Row 17 ($FF sentinel): terminates the table; $04 in byte 6 is the fallback tire wear delta
+	dc.b	$64, $64, $50, $64, $64 ; Madonna ENG/TM/SUS/TIRE/BRA bars
+	dc.b	$00, $05               ; pad=$00  tire_wear_delta=$05
+	dc.b	$50, $64, $64, $5A, $64 ; Firenze
+	dc.b	$02, $04               ; pad=$02  tire_wear_delta=$04
+	dc.b	$64, $50, $5A, $50, $64 ; Millions
+	dc.b	$01, $05               ; pad=$01  tire_wear_delta=$05
+	dc.b	$64, $3C, $64, $64, $64 ; Bestowal
+	dc.b	$03, $05               ; pad=$03  tire_wear_delta=$05
+	dc.b	$50, $50, $50, $50, $50 ; Blanche
+	dc.b	$01, $05               ; pad=$01  tire_wear_delta=$05
+	dc.b	$3C, $64, $3C, $50, $64 ; Tyrant
+	dc.b	$02, $03               ; pad=$02  tire_wear_delta=$03
+	dc.b	$64, $3C, $50, $50, $50 ; Losel
+	dc.b	$03, $04               ; pad=$03  tire_wear_delta=$04
+	dc.b	$3C, $50, $3C, $3C, $50 ; May
+	dc.b	$02, $03               ; pad=$02  tire_wear_delta=$03
+	dc.b	$3C, $3C, $46, $3C, $3C ; Bullets
+	dc.b	$03, $03               ; pad=$03  tire_wear_delta=$03
+	dc.b	$50, $32, $32, $3C, $28 ; Dardan
+	dc.b	$01, $05               ; pad=$01  tire_wear_delta=$05
+	dc.b	$50, $28, $50, $50, $50 ; Linden
+	dc.b	$03, $01               ; pad=$03  tire_wear_delta=$01
+	dc.b	$50, $3C, $28, $32, $28 ; Minarae
+	dc.b	$03, $04               ; pad=$03  tire_wear_delta=$04
+	dc.b	$5A, $1E, $3C, $3C, $28 ; Rigel
+	dc.b	$03, $01               ; pad=$03  tire_wear_delta=$01
+	dc.b	$50, $1E, $3C, $28, $28 ; Comet
+	dc.b	$01, $02               ; pad=$01  tire_wear_delta=$02
+	dc.b	$3C, $28, $28, $3C, $28 ; Orchis
+	dc.b	$03, $02               ; pad=$03  tire_wear_delta=$02
+	dc.b	$50, $1E, $3C, $3C, $14 ; Zeroforce
+	dc.b	$01, $03               ; pad=$01  tire_wear_delta=$03
+	dc.b	$FF, $FF, $FF, $FF, $FF, $04, $FF, $00 ; sentinel: $FF bars, fallback tire_wear_delta=$04
 ;loc_19624
 Car_select_bg_vdp_stream:
 	dc.b	$42, $1E, $00, $00, $0E, $EE, $08, $00, $00, $22, $0C, $66, $00, $00, $00, $00, $00, $00, $00, $00, $00, $CC, $0C, $C0, $0A, $CC, $02, $43, $02, $44, $00, $00
@@ -32320,150 +32379,150 @@ Endgame_tiles_b:
 ;loc_3A27A
 ; 288-entry pointer table: Japanese pre-race team messages, indexed by [team × 18 + lap?]
 Team_msg_jp_table:
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_d2
-	dc.l	Team_msg_jp_d3
-	dc.l	Team_msg_jp_d4
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_d5
-	dc.l	Team_msg_jp_d6
-	dc.l	Team_msg_jp_d7
-	dc.l	Team_msg_jp_d8
-	dc.l	Team_msg_jp_d9
-	dc.l	Team_msg_jp_d10
-	dc.l	Team_msg_jp_d11
-	dc.l	Team_msg_jp_d12
-	dc.l	Team_msg_jp_d6
-	dc.l	Team_msg_jp_d13
-	dc.l	Team_msg_jp_e
-	dc.l	Team_msg_jp_o
-	dc.l	Team_msg_jp_after_jp34
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_e
-	dc.l	Team_msg_jp_o
-	dc.l	Team_msg_jp_o2
-	dc.l	Team_msg_jp_e
-	dc.l	Team_msg_jp_p
-	dc.l	Team_msg_jp_h
-	dc.l	Team_msg_jp_l
-	dc.l	Team_msg_jp_q
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_e
-	dc.l	Team_msg_jp_m
-	dc.l	Team_msg_jp_q
-	dc.l	Team_msg_jp_e
-	dc.l	Team_msg_jp_m2
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_m3
-	dc.l	Team_msg_jp_m4
-	dc.l	Team_msg_jp_l
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_h
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_d13
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_o
-	dc.l	Team_msg_jp_o2
-	dc.l	Team_msg_jp_m5
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_m
-	dc.l	Team_msg_jp_a2
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_a3
-	dc.l	Team_msg_jp_i
-	dc.l	Team_msg_jp_i2
-	dc.l	Team_msg_jp_i3
-	dc.l	Team_msg_jp_i4
-	dc.l	Team_msg_jp_i5
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_q
-	dc.l	Team_msg_jp_i
-	dc.l	Team_msg_jp_m2
-	dc.l	Team_msg_jp_j
-	dc.l	Team_msg_jp_o
-	dc.l	Team_msg_jp_o2
-	dc.l	Team_msg_jp_r
-	dc.l	Team_msg_jp_j
-	dc.l	Team_msg_jp_r
-	dc.l	Team_msg_jp_r2
-	dc.l	Team_msg_jp_j
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_g
-	dc.l	Team_msg_jp_j
-	dc.l	Team_msg_jp_m4
-	dc.l	Team_msg_jp_m5
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_m
-	dc.l	Team_msg_jp_a2
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_p
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_m3
-	dc.l	Team_msg_jp_after_jp34
-	dc.l	Team_msg_jp_m
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_l
-	dc.l	Team_msg_jp_r2
-	dc.l	Team_msg_jp_b
-	dc.l	Team_msg_jp_r3
-	dc.l	Team_msg_jp_r4
-	dc.l	Team_msg_jp_r5
-	dc.l	Team_msg_jp_r6
-	dc.l	Team_msg_jp_r7
-	dc.l	Team_msg_jp_r8
-	dc.l	Team_msg_jp_r9
-	dc.l	Team_msg_jp_r10
-	dc.l	Team_msg_jp_r9
-	dc.l	Team_msg_jp_g
-	dc.l	Team_msg_jp_h
-	dc.l	Team_msg_jp_j
-	dc.l	Team_msg_jp_b2
-	dc.l	Team_msg_jp_r
-	dc.l	Team_msg_jp_g
-	dc.l	Team_msg_jp_r
-	dc.l	Team_msg_jp_b3
-	dc.l	Team_msg_jp_h
-	dc.l	Team_msg_jp_b4
-	dc.l	Team_msg_jp_b5
-	dc.l	Team_msg_jp_b6
-	dc.l	Team_msg_jp_b7
-	dc.l	Team_msg_jp_b8
-	dc.l	Team_msg_jp_b9
-	dc.l	Team_msg_jp_b10
-	dc.l	Team_msg_jp_b11
-	dc.l	Team_msg_jp_b5
-	dc.l	Team_msg_jp_h
-	dc.l	Team_msg_jp_g
-	dc.l	Team_msg_jp_j
-	dc.l	Team_msg_jp_b2
-	dc.l	Team_msg_jp_d
-	dc.l	Team_msg_jp_g
-	dc.l	Team_msg_jp_l
-	dc.l	Team_msg_jp_q
-	dc.l	Team_msg_jp_g
-	dc.l	Team_msg_jp_h
-	dc.l	Team_msg_jp_i
-	dc.l	Team_msg_jp_p
-	dc.l	Team_msg_jp_i
-	dc.l	Team_msg_jp_r2
-	dc.l	Team_msg_jp_i
-	dc.l	Team_msg_jp_m
-	dc.l	Team_msg_jp_a2
-	dc.l	Team_msg_jp_i
-	dc.l	Team_msg_jp_p
-	dc.l	Team_msg_jp_e
-	dc.l	Team_msg_jp_l
-	dc.l	Team_msg_jp_b2
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_a
-	dc.l	Team_msg_jp_e
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_ill_show_you
+	dc.l	Team_msg_jp_results_obvious
+	dc.l	Team_msg_jp_never_lose
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_race_not_easy
+	dc.l	Team_msg_jp_dont_take_advantage
+	dc.l	Team_msg_jp_take_it_easy
+	dc.l	Team_msg_jp_never_make_way
+	dc.l	Team_msg_jp_effort_in_vain
+	dc.l	Team_msg_jp_underdog_again
+	dc.l	Team_msg_jp_time_to_quit
+	dc.l	Team_msg_jp_mean_as_ever
+	dc.l	Team_msg_jp_dont_take_advantage
+	dc.l	Team_msg_jp_drive_quite_fast
+	dc.l	Team_msg_jp_faster_than_you
+	dc.l	Team_msg_jp_you_still_want
+	dc.l	Team_msg_jp_after_dont_make_me_angry
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_faster_than_you
+	dc.l	Team_msg_jp_you_still_want
+	dc.l	Team_msg_jp_dont_be_stuck
+	dc.l	Team_msg_jp_faster_than_you
+	dc.l	Team_msg_jp_its_interesting
+	dc.l	Team_msg_jp_lets_drive_fair
+	dc.l	Team_msg_jp_better_stop_racing
+	dc.l	Team_msg_jp_i_underestimated
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_faster_than_you
+	dc.l	Team_msg_jp_cearas_era
+	dc.l	Team_msg_jp_i_underestimated
+	dc.l	Team_msg_jp_faster_than_you
+	dc.l	Team_msg_jp_need_experience
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_effort_in_vain2
+	dc.l	Team_msg_jp_seldom_win
+	dc.l	Team_msg_jp_better_stop_racing
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_lets_drive_fair
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_drive_quite_fast
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_you_still_want
+	dc.l	Team_msg_jp_dont_be_stuck
+	dc.l	Team_msg_jp_still_a_racer
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_cearas_era
+	dc.l	Team_msg_jp_you_can_never_win
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_try_our_best
+	dc.l	Team_msg_jp_go_easy
+	dc.l	Team_msg_jp_cant_allow_takeover
+	dc.l	Team_msg_jp_do_or_die
+	dc.l	Team_msg_jp_still_competing
+	dc.l	Team_msg_jp_working_hard
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_i_underestimated
+	dc.l	Team_msg_jp_go_easy
+	dc.l	Team_msg_jp_need_experience
+	dc.l	Team_msg_jp_no_easy_with_me
+	dc.l	Team_msg_jp_you_still_want
+	dc.l	Team_msg_jp_dont_be_stuck
+	dc.l	Team_msg_jp_never_speak_underdogs
+	dc.l	Team_msg_jp_no_easy_with_me
+	dc.l	Team_msg_jp_never_speak_underdogs
+	dc.l	Team_msg_jp_do_you_intend
+	dc.l	Team_msg_jp_no_easy_with_me
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_hi
+	dc.l	Team_msg_jp_no_easy_with_me
+	dc.l	Team_msg_jp_seldom_win
+	dc.l	Team_msg_jp_still_a_racer
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_cearas_era
+	dc.l	Team_msg_jp_you_can_never_win
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_its_interesting
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_effort_in_vain2
+	dc.l	Team_msg_jp_after_dont_make_me_angry
+	dc.l	Team_msg_jp_cearas_era
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_better_stop_racing
+	dc.l	Team_msg_jp_do_you_intend
+	dc.l	Team_msg_jp_lets_compete
+	dc.l	Team_msg_jp_junior_driver_disgrace
+	dc.l	Team_msg_jp_throw_the_race
+	dc.l	Team_msg_jp_let_me_win
+	dc.l	Team_msg_jp_dont_come_close
+	dc.l	Team_msg_jp_win_and_comeback
+	dc.l	Team_msg_jp_look_depressed
+	dc.l	Team_msg_jp_come_on
+	dc.l	Team_msg_jp_good_racer
+	dc.l	Team_msg_jp_come_on
+	dc.l	Team_msg_jp_hi
+	dc.l	Team_msg_jp_lets_drive_fair
+	dc.l	Team_msg_jp_no_easy_with_me
+	dc.l	Team_msg_jp_im_serious
+	dc.l	Team_msg_jp_never_speak_underdogs
+	dc.l	Team_msg_jp_hi
+	dc.l	Team_msg_jp_never_speak_underdogs
+	dc.l	Team_msg_jp_still_top_racer
+	dc.l	Team_msg_jp_lets_drive_fair
+	dc.l	Team_msg_jp_win_against_me
+	dc.l	Team_msg_jp_not_suitable
+	dc.l	Team_msg_jp_had_enough
+	dc.l	Team_msg_jp_youll_pay
+	dc.l	Team_msg_jp_really_finished
+	dc.l	Team_msg_jp_get_away
+	dc.l	Team_msg_jp_dont_bother
+	dc.l	Team_msg_jp_dont_give_trouble
+	dc.l	Team_msg_jp_not_suitable
+	dc.l	Team_msg_jp_lets_drive_fair
+	dc.l	Team_msg_jp_hi
+	dc.l	Team_msg_jp_no_easy_with_me
+	dc.l	Team_msg_jp_im_serious
+	dc.l	Team_msg_jp_your_days_gone
+	dc.l	Team_msg_jp_hi
+	dc.l	Team_msg_jp_better_stop_racing
+	dc.l	Team_msg_jp_i_underestimated
+	dc.l	Team_msg_jp_hi
+	dc.l	Team_msg_jp_lets_drive_fair
+	dc.l	Team_msg_jp_go_easy
+	dc.l	Team_msg_jp_its_interesting
+	dc.l	Team_msg_jp_go_easy
+	dc.l	Team_msg_jp_do_you_intend
+	dc.l	Team_msg_jp_go_easy
+	dc.l	Team_msg_jp_cearas_era
+	dc.l	Team_msg_jp_you_can_never_win
+	dc.l	Team_msg_jp_go_easy
+	dc.l	Team_msg_jp_its_interesting
+	dc.l	Team_msg_jp_faster_than_you
+	dc.l	Team_msg_jp_better_stop_racing
+	dc.l	Team_msg_jp_im_serious
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_error
+	dc.l	Team_msg_jp_faster_than_you
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
@@ -32607,182 +32666,193 @@ Team_msg_jp_table:
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
-	dc.l	Team_msg_faster_than_you
-;Team_msg_jp_a
-Team_msg_jp_a:
+	 dc.l	Team_msg_faster_than_you
+;loc_3A6FA
+;Team_msg_jp_error
+Team_msg_jp_error:
 	dc.b	$42, $65, $2C, $FF
-;Team_msg_jp_d
-Team_msg_jp_d:
+;loc_3A6FE
+;Team_msg_jp_your_days_gone
+Team_msg_jp_your_days_gone:
 	dc.b	$3F, $6C, $4E, $57, $32, $B8, $BC, $40, $58, $32, $43, $6A, $75, $4E, $64, $79, $FF
 	dc.b	$00
-;Team_msg_jp_d2
-Team_msg_jp_d2:
+;Team_msg_jp_ill_show_you
+Team_msg_jp_ill_show_you:
 	dc.b	$5C, $6C, $52, $41, $57, $32, $58, $4A, $66, $6B, $32, $5E, $4C, $51, $62, $67, $64, $79, $FF, $00
-;Team_msg_jp_d3
-Team_msg_jp_d3:
+;Team_msg_jp_results_obvious
+Team_msg_jp_results_obvious:
 	dc.b	$47, $75, $44, $58, $32, $5E, $42, $51, $40, $67, $64, $79, $FF, $00
-;Team_msg_jp_d4
-Team_msg_jp_d4:
+;Team_msg_jp_never_lose
+Team_msg_jp_never_lose:
 	dc.b	$BA, $75, $4E, $40, $54, $32, $5D, $47, $67, $61, $6C, $44, $79, $FF
-;Team_msg_jp_d5
-Team_msg_jp_d5:
+;Team_msg_jp_race_not_easy
+Team_msg_jp_race_not_easy:
 	dc.b	$45, $5E, $B2, $32, $44, $6C, $B2, $42, $51, $40, $67, $5C, $C0, $FC, $A5, $2C, $88, $58, $32, $3F, $5D, $46, $53, $40, $64, $79, $FF
 	dc.b	$00
-;Team_msg_jp_d6
-Team_msg_jp_d6:
+;Team_msg_jp_dont_take_advantage
+Team_msg_jp_dont_take_advantage:
 	dc.b	$6A, $4E, $4A, $6B, $32, $53, $60, $67, $53, $64, $79, $FF
-;Team_msg_jp_d7
-Team_msg_jp_d7:
+;Team_msg_jp_take_it_easy
+Team_msg_jp_take_it_easy:
 	dc.b	$58, $B8, $60, $44, $65, $32, $9C, $A3, $6B, $32, $4A, $53, $40, $48, $52, $BC, $64, $79, $FF, $00
-;Team_msg_jp_d8
-Team_msg_jp_d8:
+;Team_msg_jp_never_make_way
+Team_msg_jp_never_make_way:
 	dc.b	$61, $41, $32, $02, $C0, $52, $32, $5E, $4F, $58, $32, $63, $B9, $65, $53, $40, $79, $FF
-;Team_msg_jp_d9
-Team_msg_jp_d9:
+;Team_msg_jp_effort_in_vain
+Team_msg_jp_effort_in_vain:
 	dc.b	$6A, $67, $3F, $B2, $45, $58, $32, $62, $60, $53, $64, $79, $FF
 	dc.b	$00
-;Team_msg_jp_d10
-Team_msg_jp_d10:
+;Team_msg_jp_underdog_again
+Team_msg_jp_underdog_again:
 	dc.b	$C0, $41, $4C, $32, $5D, $4E, $32, $43, $4F, $60, $54, $32, $53, $67, $64, $79, $FF, $00
-;Team_msg_jp_d11
-Team_msg_jp_d11:
+;Team_msg_jp_time_to_quit
+Team_msg_jp_time_to_quit:
 	dc.b	$4D, $69, $4D, $69, $32, $40, $6C, $4E, $40, $6B, $32, $44, $6C, $B2, $42, $4E, $65, $79, $FF, $00
-;Team_msg_jp_d12
-Team_msg_jp_d12:
+;Team_msg_jp_mean_as_ever
+Team_msg_jp_mean_as_ever:
 	dc.b	$3F, $40, $44, $6A, $65, $B9, $32, $45, $4E, $53, $40, $53, $79, $FF
-;Team_msg_jp_d13
-Team_msg_jp_d13:
+;Team_msg_jp_drive_quite_fast
+Team_msg_jp_drive_quite_fast:
 	dc.b	$43, $68, $58, $32, $58, $62, $40, $BA, $79, $FF
-;Team_msg_jp_e
-Team_msg_jp_e:
+;Team_msg_jp_faster_than_you
+Team_msg_jp_faster_than_you:
 	dc.b	$43, $68, $57, $5C, $41, $B2, $32, $58, $62, $40, $79, $FF
 ;loc_3A7E6
-Team_msg_jp_o:
+Team_msg_jp_you_still_want:
 	dc.b	$5D, $BC, $32, $62, $67, $45, $44, $2E, $FF, $00
 ;loc_3A7F0
-Team_msg_jp_o2:
+Team_msg_jp_dont_be_stuck:
 	dc.b	$40, $40, $45, $54, $32, $53, $67, $53, $64, $79, $FF
 	dc.b	$00
 ;loc_3A7FC
-Team_msg_jp_p:
+Team_msg_jp_its_interesting:
 	dc.b	$43, $61, $4A, $69, $40, $79, $FF, $00
-;Team_msg_jp_h
-Team_msg_jp_h:
+;loc_3A804
+;Team_msg_jp_lets_drive_fair
+Team_msg_jp_lets_drive_fair:
 	dc.b	$97, $AC, $7C, $54, $32, $40, $48, $41, $79, $FF
-;Team_msg_jp_l
-Team_msg_jp_l:
+;Team_msg_jp_better_stop_racing
+Team_msg_jp_better_stop_racing:
 	dc.b	$62, $60, $51, $32, $43, $45, $53, $64, $79, $FF
 ;loc_3A818
-Team_msg_jp_q:
+Team_msg_jp_i_underestimated:
 	dc.b	$48, $57, $3F, $40, $BC, $58, $32, $63, $BC, $6C, $4A, $4E, $64, $79, $FF
 	dc.b	$00
-;Team_msg_jp_m
-Team_msg_jp_m:
+;loc_3A828
+;Team_msg_jp_cearas_era
+Team_msg_jp_cearas_era:
 	dc.b	$40, $5D, $58, $32, $89, $7C, $A2, $57, $32, $B8, $BC, $40, $BC, $64, $79, $FF
-;Team_msg_jp_m2
-Team_msg_jp_m2:
+;Team_msg_jp_need_experience
+Team_msg_jp_need_experience:
 	dc.b	$01, $00, $56, $6C, $32, $58, $62, $40, $64, $79, $FF, $00
 ;loc_3A844
-Team_msg_jp_b:
+Team_msg_jp_lets_compete:
 	dc.b	$4A, $74, $41, $C3, $32, $4A, $64, $41, $79, $FF
-;Team_msg_jp_m3
-Team_msg_jp_m3:
+;loc_3A84E
+;Team_msg_jp_effort_in_vain2
+Team_msg_jp_effort_in_vain2:
 	dc.b	$5F, $BC, $53, $32, $48, $52, $6B, $79, $FF, $00
-;Team_msg_jp_m4
-Team_msg_jp_m4:
+;Team_msg_jp_seldom_win
+Team_msg_jp_seldom_win:
 	dc.b	$4D, $41, $4D, $41, $32, $5D, $B4, $68, $58, $32, $43, $48, $65, $53, $40, $64, $79, $FF
-;Team_msg_jp_m5
-Team_msg_jp_m5:
+;Team_msg_jp_still_a_racer
+Team_msg_jp_still_a_racer:
 	dc.b	$5D, $BC, $32, $A5, $2C, $88, $32, $62, $75, $51, $6C, $57, $79, $FF
 ;loc_3A878
-Team_msg_jp_a2:
+Team_msg_jp_you_can_never_win:
 	dc.b	$89, $7C, $A2, $54, $58, $32, $44, $51, $53, $40, $46, $4C, $54, $79, $FF
 	dc.b	$00
-;Team_msg_jp_a3
-Team_msg_jp_a3:
+;loc_3A888
+;Team_msg_jp_try_our_best
+Team_msg_jp_try_our_best:
 	dc.b	$43, $4E, $B2, $40, $54, $32, $B2, $6C, $C1, $69, $41, $79, $FF, $00
-;Team_msg_jp_i
-Team_msg_jp_i:
+;Team_msg_jp_go_easy
+Team_msg_jp_go_easy:
 	dc.b	$43, $51, $62, $6A, $65, $44, $54, $79, $FF
 	dc.b	$00
-;Team_msg_jp_i2
-Team_msg_jp_i2:
+;Team_msg_jp_cant_allow_takeover
+Team_msg_jp_cant_allow_takeover:
 	dc.b	$48, $57, $8C, $2C, $9C, $6B, $32, $3F, $47, $6A, $4E, $4B, $6A, $47, $54, $58, $FC, $40, $44, $53, $40, $44, $65, $56, $79, $FF
-;Team_msg_jp_i3
-Team_msg_jp_i3:
+;loc_3A8BA
+;Team_msg_jp_do_or_die
+Team_msg_jp_do_or_die:
 	dc.b	$4A, $55, $45, $BF, $32, $62, $67, $4A, $44, $53, $40, $56, $79, $FF
-;Team_msg_jp_i4
-Team_msg_jp_i4:
+;Team_msg_jp_still_competing
+Team_msg_jp_still_competing:
 	dc.b	$3F, $68, $2E, $32, $40, $4E, $6C, $BC, $79, $FF
-;Team_msg_jp_i5
-Team_msg_jp_i5:
+;Team_msg_jp_working_hard
+Team_msg_jp_working_hard:
 	dc.b	$4E, $40, $5B, $6C, $BF, $4B, $56, $79, $FF, $00
-;Team_msg_jp_j
-Team_msg_jp_j:
+;Team_msg_jp_no_easy_with_me
+Team_msg_jp_no_easy_with_me:
 	dc.b	$51, $44, $B5, $6C, $4B, $67, $32, $59, $50, $64, $41, $58, $32, $53, $40, $64, $79, $FF
 ;loc_3A8EE
-Team_msg_jp_r:
+Team_msg_jp_never_speak_underdogs:
 	dc.b	$43, $4F, $60, $57, $32, $62, $50, $52, $58, $32, $46, $4F, $61, $FC, $45, $45, $4E, $46, $56, $42, $53, $79, $FF, $00
 ;loc_3A906
-Team_msg_jp_r2:
+Team_msg_jp_do_you_intend:
 	dc.b	$8F, $B1, $E1, $D4, $A2, $7D, $D5, $2C, $54, $32, $81, $9C, $D5, $B1, $83, $4B, $67, $FC, $50, $61, $66, $53, $57, $44, $79, $FF
-;Team_msg_jp_r3
-Team_msg_jp_r3:
+;loc_3A920
+;Team_msg_jp_junior_driver_disgrace
+Team_msg_jp_junior_driver_disgrace:
 	dc.b	$4C, $6C, $DA, $40, $54, $32, $58, $53, $6B, $32, $61, $4E, $4C, $69, $64, $79, $FF, $00
-;Team_msg_jp_r4
-Team_msg_jp_r4:
+;Team_msg_jp_throw_the_race
+Team_msg_jp_throw_the_race:
 	dc.b	$6A, $67, $40, $B2, $32, $6A, $B7, $52, $32, $5D, $47, $51, $46, $68, $53, $40, $44, $79, $FF, $00
-;Team_msg_jp_r5
-Team_msg_jp_r5:
+;Team_msg_jp_let_me_win
+Team_msg_jp_let_me_win:
 	dc.b	$48, $6C, $C0, $61, $32, $4E, $57, $5F, $BA, $79, $FF, $00
-;Team_msg_jp_r6
-Team_msg_jp_r6:
+;Team_msg_jp_dont_come_close
+Team_msg_jp_dont_come_close:
 	dc.b	$43, $68, $57, $32, $46, $67, $5D, $54, $58, $32, $4F, $44, $BE, $44, $53, $40, $5C, $41, $B2, $FC, $40, $40, $BA, $79, $FF, $00
-;Team_msg_jp_r7
-Team_msg_jp_r7:
+;Team_msg_jp_win_and_comeback
+Team_msg_jp_win_and_comeback:
 	dc.b	$43, $68, $6B, $32, $57, $66, $48, $42, $51, $32, $81, $9C, $D5, $B1, $83, $4A, $69, $79, $FF
 	dc.b	$00
-;Team_msg_jp_r8
-Team_msg_jp_r8:
+;loc_3A980
+;Team_msg_jp_look_depressed
+Team_msg_jp_look_depressed:
 	dc.b	$C0, $41, $4A, $4E, $79, $32, $B5, $6C, $45, $B2, $53, $40, $53, $79, $FF, $00
-;Team_msg_jp_r9
-Team_msg_jp_r9:
+;Team_msg_jp_come_on
+Team_msg_jp_come_on:
 	dc.b	$64, $4A, $79, $32, $44, $44, $75, $51, $48, $40, $79, $FF
-;Team_msg_jp_r10
-Team_msg_jp_r10:
+;Team_msg_jp_good_racer
+Team_msg_jp_good_racer:
 	dc.b	$43, $5D, $42, $61, $32, $5D, $BC, $5D, $BC, $32, $62, $67, $53, $79, $FF
 	dc.b	$00
 ;loc_3A9AC
-Team_msg_jp_b2:
+Team_msg_jp_im_serious:
 	dc.b	$4D, $69, $4D, $69, $32, $5C, $6C, $45, $6B, $32, $BC, $4B, $44, $53, $79, $FF
-;Team_msg_jp_b3
-Team_msg_jp_b3:
+;loc_3A9BC
+;Team_msg_jp_still_top_racer
+Team_msg_jp_still_top_racer:
 	dc.b	$8F, $B1, $E1, $D4, $A2, $7D, $D5, $2C, $BF, $61, $32, $53, $40, $46, $4C, $54, $FC, $40, $C1, $67, $53, $79, $FF
 	dc.b	$00
-;Team_msg_jp_b4
-Team_msg_jp_b4:
+;Team_msg_jp_win_against_me
+Team_msg_jp_win_against_me:
 	dc.b	$43, $68, $54, $32, $44, $51, $67, $52, $32, $43, $61, $75, $51, $40, $67, $57, $44, $79, $FF, $00
-;Team_msg_jp_b5
-Team_msg_jp_b5:
+;Team_msg_jp_not_suitable
+Team_msg_jp_not_suitable:
 	dc.b	$58, $56, $51, $67, $53, $64, $32, $48, $BB, $41, $79, $FF
-;Team_msg_jp_b6
-Team_msg_jp_b6:
+;Team_msg_jp_had_enough
+Team_msg_jp_had_enough:
 	dc.b	$5D, $BC, $32, $6A, $44, $65, $56, $42, $57, $44, $79, $FF
-;Team_msg_jp_b7
-Team_msg_jp_b7:
+;Team_msg_jp_youll_pay
+Team_msg_jp_youll_pay:
 	dc.b	$48, $57, $5D, $5D, $B8, $72, $32, $43, $6A, $65, $56, $42, $BB, $79, $FF, $00
-;Team_msg_jp_b8
-Team_msg_jp_b8:
+;loc_3AA10
+;Team_msg_jp_really_finished
+Team_msg_jp_really_finished:
 	dc.b	$B9, $40, $C3, $6C, $52, $32, $43, $4F, $4E, $61, $6C, $BC, $53, $79, $FF
 	dc.b	$00
-;Team_msg_jp_b9
-Team_msg_jp_b9:
+;Team_msg_jp_get_away
+Team_msg_jp_get_away:
 	dc.b	$43, $5D, $42, $32, $60, $B7, $6A, $66, $BC, $79, $FF, $00
-;Team_msg_jp_b10
-Team_msg_jp_b10:
+;Team_msg_jp_dont_bother
+Team_msg_jp_dont_bother:
 	dc.b	$41, $67, $4C, $42, $53, $79, $32, $B8, $75, $52, $32, $4A, $51, $69, $79, $FF
-;Team_msg_jp_b11
-Team_msg_jp_b11:
+;Team_msg_jp_dont_give_trouble
+Team_msg_jp_dont_give_trouble:
 	dc.b	$51, $48, $B9, $65, $4C, $67, $53, $64, $79, $FF
 ;loc_3AA46
 Team_msg_error:
@@ -32976,25 +33046,25 @@ Team_intro_table: ; Pointers to team introductions
 	dc.l	Team_intro_jp_10
 	dc.l	Team_intro_jp_11
 	dc.l	Team_intro_jp_12
-	dc.l	Team_msg_jp_f
+	dc.l	Team_msg_jp_envy_high_spirits
 	dc.l	Team_intro_jp_13
-	dc.l	Team_msg_jp_g
+	dc.l	Team_msg_jp_hi
 	dc.l	Team_intro_jp_14
 	dc.l	Team_intro_jp_1
 	dc.l	Team_intro_jp_2
-	dc.l	Team_msg_jp_n
-	dc.l	Team_msg_jp_n
+	dc.l	Team_msg_jp_help_comeback
+	dc.l	Team_msg_jp_help_comeback
 	dc.l	Team_intro_jp_5
-	dc.l	Team_msg_jp_k
-	dc.l	Team_msg_jp_n
-	dc.l	Team_msg_jp_k
-	dc.l	Team_msg_jp_n
-	dc.l	Team_msg_jp_k
+	dc.l	Team_msg_jp_can_still_drive
+	dc.l	Team_msg_jp_help_comeback
+	dc.l	Team_msg_jp_can_still_drive
+	dc.l	Team_msg_jp_help_comeback
+	dc.l	Team_msg_jp_can_still_drive
 	dc.l	Team_intro_jp_11
-	dc.l	Team_msg_jp_n
-	dc.l	Team_msg_jp_k
-	dc.l	Team_msg_jp_k
-	dc.l	Team_msg_jp_k
+	dc.l	Team_msg_jp_help_comeback
+	dc.l	Team_msg_jp_can_still_drive
+	dc.l	Team_msg_jp_can_still_drive
+	dc.l	Team_msg_jp_can_still_drive
 	dc.l	Team_intro_jp_14
 	dc.l	Team_intro_en_be_top_driver
 	dc.l	Team_intro_en_beat_madonna
@@ -33027,115 +33097,151 @@ Team_intro_table: ; Pointers to team introductions
 	dc.l	Team_msg_can_still_drive
 	dc.l	Team_msg_can_still_drive
 	dc.l	Team_msg_can_still_drive
-	dc.l	Team_intro_en_appreciate_joining
+	 dc.l	Team_intro_en_appreciate_joining
+;loc_3B17E
 ;Team_intro_jp_1
 Team_intro_jp_1:
 	dc.b	$49, $40, $48, $41, $57, $9A, $87, $A8, $BF, $32, $8F, $B1, $E1, $6B, $60, $B7, $4C, $79, $FF
 	dc.b	$00
-;Team_msg_jp_k
-Team_msg_jp_k:
+;loc_3B192
+;Team_msg_jp_can_still_drive
+Team_msg_jp_can_still_drive:
 	dc.b	$5C, $6C, $52, $41, $54, $32, $5D, $BC, $32, $58, $4A, $68, $67, $6C, $BC, $69, $41, $53, $79, $FF
+;loc_3B1A6
 ;Team_intro_jp_2
 Team_intro_jp_2:
 	dc.b	$BC, $52, $41, $9A, $D4, $A8, $90, $2D, $FC, $C0, $41, $BC, $32, $62, $75, $51, $5E, $53, $40, $44, $79, $FF
+;loc_3B1BC
 ;Team_intro_jp_3
 Team_intro_jp_3:
 	dc.b	$4D, $69, $4D, $69, $32, $0F, $01, $B2, $32, $5E, $42, $51, $32, $45, $4E, $44, $53, $79, $FF, $00
-;Team_msg_jp_n
-Team_msg_jp_n:
+;loc_3B1D0
+;Team_msg_jp_help_comeback
+Team_msg_jp_help_comeback:
 	dc.b	$45, $5E, $57, $81, $9C, $D5, $B1, $83, $54, $32, $51, $6B, $44, $4D, $41, $79, $FF, $00
+;loc_3B1E2
 ;Team_intro_jp_4
 Team_intro_jp_4:
 	dc.b	$41, $4F, $57, $9A, $87, $A8, $58, $32, $4A, $6C, $65, $40, $4C, $40, $B2, $32, $4E, $44, $40, $79, $FF, $00
+;loc_3B1F8
 ;Team_intro_jp_5
 Team_intro_jp_5:
 	dc.b	$3F, $52, $BF, $32, $45, $5E, $57, $32, $44, $6C, $B5, $40, $44, $40, $6B, $32, $62, $69, $41, $79, $FF, $00
+;loc_3B20E
 ;Team_intro_jp_6
 Team_intro_jp_6:
 	dc.b	$8C, $2C, $9C, $57, $32, $BF, $6C, $52, $41, $6B, $32, $5D, $61, $75, $51, $46, $68, $79, $FF, $00
+;loc_3B222
 ;Team_intro_jp_7
 Team_intro_jp_7:
 	dc.b	$8F, $A2, $D7, $A4, $54, $32, $45, $6B, $50, $47, $51, $32, $43, $52, $53, $4A, $46, $FC, $58, $4A, $75, $51, $46, $68, $79, $FF
+;loc_3B23C
 ;Team_intro_jp_8
 Team_intro_jp_8:
 	dc.b	$45, $5E, $57, $32, $49, $40, $57, $41, $54, $32, $44, $47, $51, $5E, $64, $41, $79, $FF
+;loc_3B24E
 ;Team_intro_jp_9
 Team_intro_jp_9:
 	dc.b	$5D, $3F, $32, $B8, $75, $46, $66, $32, $48, $4A, $6B, $4B, $42, $51, $32, $40, $48, $41, $79, $FF
+;loc_3B262
 ;Team_intro_jp_10
 Team_intro_jp_10:
 	dc.b	$41, $4F, $58, $32, $45, $C2, $4A, $40, $64, $79, $FF, $00
+;loc_3B26E
 ;Team_intro_jp_11
 Team_intro_jp_11:
 	dc.b	$52, $66, $3F, $42, $B9, $32, $5C, $4A, $74, $41, $45, $6C, $6B, $32, $61, $65, $43, $41, $44, $79, $FF, $00
+;loc_3B284
 ;Team_intro_jp_12
 Team_intro_jp_12:
 	dc.b	$B2, $6C, $C1, $75, $51, $32, $44, $51, $67, $64, $41, $54, $32, $53, $69, $41, $79, $FF
-;Team_msg_jp_f
-Team_msg_jp_f:
+;loc_3B296
+;Team_msg_jp_envy_high_spirits
+Team_msg_jp_envy_high_spirits:
 	dc.b	$40, $40, $56, $79, $32, $45, $5E, $58, $32, $B5, $6C, $45, $BF, $79, $FF
 	dc.b	$00
+;loc_3B2A6
 ;Team_intro_jp_13
 Team_intro_jp_13:
 	dc.b	$5D, $3F, $32, $4E, $57, $4A, $46, $32, $62, $69, $41, $79, $FF, $00
-;Team_msg_jp_g
-Team_msg_jp_g:
+;loc_3B2B4
+;Team_msg_jp_hi
+Team_msg_jp_hi:
 	dc.b	$64, $69, $4A, $46, $2D, $FF
+;loc_3B2BA
 ;Team_intro_jp_14
 Team_intro_jp_14:
 	dc.b	$45, $5E, $54, $32, $45, $51, $61, $65, $42, $68, $C1, $32, $4E, $4B, $44, $67, $64, $79, $FF, $00
+;loc_3B2CE
 ;Team_intro_en_be_top_driver
 Team_intro_en_be_top_driver:
 	txt "BE THE TOP DRIVER\nWITH THE BEST CAR.", $FF, $00
+;loc_3B2F4
 ;Team_msg_can_still_drive
 Team_msg_can_still_drive:
 	txt "ARE YOU SURE IF YOU\nCAN STILL DRIVE?", $FF, $00
+;loc_3B31A
 ;Team_intro_en_beat_madonna
 Team_intro_en_beat_madonna:
 	txt "LET'S TRY TO BEAT\nTHE MADONNA TEAM.", $FF
+;loc_3B33E
 ;Team_intro_en_familiar_with_f1
 Team_intro_en_familiar_with_f1:
 	txt "ARE YOU GETTING FA-\nMILIAR WITH THE F1?", $FF
+;loc_3B366
 ;Team_msg_help_comeback
 Team_msg_help_comeback:
 	txt "I'LL HELP YOU MAKE\nA COMEBACK.", $FF, $00
+;loc_3B386
 ;Team_intro_en_reliable_machine
 Team_intro_en_reliable_machine:
 	txt "WE HAVE THE MOST\nRELIABLE MACHINE.", $FF, $00
+;loc_3B3AA
 ;Team_intro_en_party_for_you
 Team_intro_en_party_for_you:
 	txt "WE'LL HAVE A PARTY\nFOR YOU LATER.", $FF
+;loc_3B3CC
 ;Team_intro_en_keep_performances
 Team_intro_en_keep_performances:
 	txt "LET'S KEEP UP OUR\nPAST PERFORMANCES.", $FF, $00
+;loc_3B3F2
 ;Team_intro_en_watch_for_trouble
 Team_intro_en_watch_for_trouble:
 	txt "WATCH FOR TROUBLE\nAND DRIVE CAREFULLY.", $FF, $00
+;loc_3B41A
 ;Team_intro_en_rely_on_talent
 Team_intro_en_rely_on_talent:
 	txt "I'LL RELY ON YOUR\nTALENT.", $FF
+;loc_3B434
 ;Team_intro_en_steady_team
 Team_intro_en_steady_team:
 	txt "WE'RE A STEADY TEAM.\nDON'T LET US DOWN.", $FF
+;loc_3B45C
 ;Team_intro_en_very_strict
 Team_intro_en_very_strict:
 	txt "WE'LL BE VERY STRICT\nWITH YOU, OK?", $FF, $00
+;loc_3B480
 ;Team_intro_en_security_money
 Team_intro_en_security_money:
 	txt "ANYWAY, GIVE ME\nTHE SECURITY MONEY.", $FF
+;loc_3B4A4
 ;Team_intro_en_try_hard_to_win
 Team_intro_en_try_hard_to_win:
 	txt "LET'S TRY HARD\nTO WIN.", $FF, $00
+;loc_3B4BC
 ;Team_msg_envy_high_spirits
 Team_msg_envy_high_spirits:
 	txt "I ENVY YOUR HIGH\nSPIRITS.", $FF
+;loc_3B4D6
 ;Team_intro_en_enjoy_race
 Team_intro_en_enjoy_race:
 	txt "WELL, LET'S ENJOY\nTHE RACE TOGETHER.", $FF, $00
+;loc_3B4FC
 ;Team_msg_hi
 Team_msg_hi:
 	dc.b	$FD
 	txt "HI!", $FF, $00
+;loc_3B502
 ;Team_intro_en_appreciate_joining
 Team_intro_en_appreciate_joining:
 	txt "WE'D APPRECIATE\nYOUR JOINING US.", $FF, $00
@@ -33424,166 +33530,166 @@ Team_name_en_Zeroforce:
 ; Indexed by [team * 10 + race_index], with +$280 byte offset for EN version.
 ; EN block ends at loc_3C898 region. Parallels Team_msg_jp_table (pre-race).
 Team_msg_after_race_table:
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_jp6
-	dc.l	Team_msg_jp_after_a3
-	dc.l	Team_msg_jp_after_a
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_a
-	dc.l	Team_msg_jp_after_jp7
-	dc.l	Team_msg_jp_after_jp8
-	dc.l	Team_msg_jp_after_a
-	dc.l	Team_msg_jp_after_jp1
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_b2
-	dc.l	Team_msg_jp_after_jp2
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_c2
-	dc.l	Team_msg_jp_after_jp2
-	dc.l	Team_msg_jp_after_jp9
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_jp3
-	dc.l	Team_msg_jp_after_jp10
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_e
-	dc.l	Team_msg_jp_after_a3
-	dc.l	Team_msg_jp_after_f
-	dc.l	Team_msg_jp_after_jp11
-	dc.l	Team_msg_jp_after_jp12
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_h
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_a3
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_e
-	dc.l	Team_msg_jp_after_jp4
-	dc.l	Team_msg_jp_after_jp13
-	dc.l	Team_msg_jp_after_jp14
-	dc.l	Team_msg_jp_after_jp1
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_jp15
-	dc.l	Team_msg_jp_after_jp16
-	dc.l	Team_msg_jp_after_i
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_jp3
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_jp3
-	dc.l	Team_msg_jp_after_jp7
-	dc.l	Team_msg_jp_after_jp17
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_e
-	dc.l	Team_msg_jp_after_jp5
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_e
-	dc.l	Team_msg_jp_after_a3
-	dc.l	Team_msg_jp_after_f
-	dc.l	Team_msg_jp_after_jp18
-	dc.l	Team_msg_jp_after_jp19
-	dc.l	Team_msg_jp_after_jp1
-	dc.l	Team_msg_jp_after_jp20
-	dc.l	Team_msg_jp_after_f
-	dc.l	Team_msg_jp_after_jp4
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_jp21
-	dc.l	Team_msg_jp_after_jp10
-	dc.l	Team_msg_jp_after_jp22
-	dc.l	Team_msg_jp_after_jp23
-	dc.l	Team_msg_jp_after_jp12
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_h
-	dc.l	Team_msg_jp_after_a3
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_jp24
-	dc.l	Team_msg_jp_after_jp3
-	dc.l	Team_msg_jp_after_jp25
-	dc.l	Team_msg_jp_after_jp14
-	dc.l	Team_msg_jp_after_jp1
-	dc.l	Team_msg_jp_after_h
-	dc.l	Team_msg_jp_after_b2
-	dc.l	Team_msg_jp_after_jp5
-	dc.l	Team_msg_jp_after_h
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_b2
-	dc.l	Team_msg_jp_after_c2
-	dc.l	Team_msg_jp_after_jp26
-	dc.l	Team_msg_jp_after_jp27
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_jp28
-	dc.l	Team_msg_jp_after_jp28
-	dc.l	Team_msg_jp_after_jp2
-	dc.l	Team_msg_jp_after_jp28
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_f
-	dc.l	Team_msg_jp_after_jp2
-	dc.l	Team_msg_jp_after_jp29
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_jp20
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_jp5
-	dc.l	Team_msg_jp_after_jp12
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_jp21
-	dc.l	Team_msg_jp_after_jp4
-	dc.l	Team_msg_jp_after_jp30
-	dc.l	Team_msg_jp_after_jp19
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_f
-	dc.l	Team_msg_jp_f
-	dc.l	Team_msg_jp_after_jp31
-	dc.l	Team_msg_jp_f
-	dc.l	Team_msg_jp_f
-	dc.l	Team_msg_jp_after_jp24
-	dc.l	Team_msg_jp_after_jp31
-	dc.l	Team_msg_jp_after_jp32
-	dc.l	Team_msg_jp_f
-	dc.l	Team_msg_jp_f
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_jp10
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_b
-	dc.l	Team_msg_jp_after_jp5
-	dc.l	Team_msg_jp_after_jp4
-	dc.l	Team_msg_jp_after_jp33
-	dc.l	Team_msg_jp_after_jp27
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_h
-	dc.l	Team_msg_jp_after_e
-	dc.l	Team_msg_jp_after_h
-	dc.l	Team_msg_jp_after_c
-	dc.l	Team_msg_jp_after_jp21
-	dc.l	Team_msg_jp_after_c2
-	dc.l	Team_msg_jp_after_jp34
-	dc.l	Team_msg_jp_after_jp23
-	dc.l	Team_msg_jp_after_g
-	dc.l	Team_msg_jp_after_jp20
-	dc.l	Team_msg_jp_after_a2
-	dc.l	Team_msg_jp_after_f
-	dc.l	Team_msg_jp_after_d
-	dc.l	Team_msg_jp_after_a
-	dc.l	Team_msg_jp_after_jp24
-	dc.l	Team_msg_jp_after_a
-	dc.l	Team_msg_jp_after_jp35
-	dc.l	Team_msg_jp_after_jp19
-	dc.l	Team_msg_jp_after_a
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_we_should_be_top
+	dc.l	Team_msg_jp_after_really_a_pity
+	dc.l	Team_msg_jp_after_error
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_error
+	dc.l	Team_msg_jp_after_never_lose_again
+	dc.l	Team_msg_jp_after_not_living_up
+	dc.l	Team_msg_jp_after_error
+	dc.l	Team_msg_jp_after_youll_be_staying
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_more_aggressive
+	dc.l	Team_msg_jp_after_you_darn_fool
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_why_cant_you_win
+	dc.l	Team_msg_jp_after_you_darn_fool
+	dc.l	Team_msg_jp_after_better_off_buggy
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_only_bad_luck
+	dc.l	Team_msg_jp_after_youve_discouraged_us
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_thats_about_it
+	dc.l	Team_msg_jp_after_really_a_pity
+	dc.l	Team_msg_jp_after_little_better
+	dc.l	Team_msg_jp_after_still_just_amateur
+	dc.l	Team_msg_jp_after_dont_want_you_rival
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_done_better
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_really_a_pity
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_thats_about_it
+	dc.l	Team_msg_jp_after_get_hold
+	dc.l	Team_msg_jp_after_thanks_for_nothing
+	dc.l	Team_msg_jp_after_do_your_best
+	dc.l	Team_msg_jp_after_youll_be_staying
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_dont_show_your_face
+	dc.l	Team_msg_jp_after_try_training
+	dc.l	Team_msg_jp_after_lets_go_party
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_only_bad_luck
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_only_bad_luck
+	dc.l	Team_msg_jp_after_never_lose_again
+	dc.l	Team_msg_jp_after_dont_disgrace_us
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_thats_about_it
+	dc.l	Team_msg_jp_after_could_have_done
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_thats_about_it
+	dc.l	Team_msg_jp_after_really_a_pity
+	dc.l	Team_msg_jp_after_little_better
+	dc.l	Team_msg_jp_after_cant_put_up_with_you
+	dc.l	Team_msg_jp_after_too_good_for_team
+	dc.l	Team_msg_jp_after_youll_be_staying
+	dc.l	Team_msg_jp_after_unbelievable
+	dc.l	Team_msg_jp_after_little_better
+	dc.l	Team_msg_jp_after_get_hold
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_far_better_than_us
+	dc.l	Team_msg_jp_after_youve_discouraged_us
+	dc.l	Team_msg_jp_after_lost_your_ability
+	dc.l	Team_msg_jp_after_now_you_know_more
+	dc.l	Team_msg_jp_after_dont_want_you_rival
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_done_better
+	dc.l	Team_msg_jp_after_really_a_pity
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_rivals_better_than_you
+	dc.l	Team_msg_jp_after_only_bad_luck
+	dc.l	Team_msg_jp_after_not_that_didnt_try
+	dc.l	Team_msg_jp_after_do_your_best
+	dc.l	Team_msg_jp_after_youll_be_staying
+	dc.l	Team_msg_jp_after_done_better
+	dc.l	Team_msg_jp_after_more_aggressive
+	dc.l	Team_msg_jp_after_could_have_done
+	dc.l	Team_msg_jp_after_done_better
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_more_aggressive
+	dc.l	Team_msg_jp_after_why_cant_you_win
+	dc.l	Team_msg_jp_after_clean_up_machine
+	dc.l	Team_msg_jp_after_going_to_miss_you
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_sorry_not_watching
+	dc.l	Team_msg_jp_after_sorry_not_watching
+	dc.l	Team_msg_jp_after_you_darn_fool
+	dc.l	Team_msg_jp_after_sorry_not_watching
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_little_better
+	dc.l	Team_msg_jp_after_you_darn_fool
+	dc.l	Team_msg_jp_after_never_return_money
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_unbelievable
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_could_have_done
+	dc.l	Team_msg_jp_after_dont_want_you_rival
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_far_better_than_us
+	dc.l	Team_msg_jp_after_get_hold
+	dc.l	Team_msg_jp_after_no_use_to_team
+	dc.l	Team_msg_jp_after_too_good_for_team
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_envy_high_spirits
+	dc.l	Team_msg_jp_envy_high_spirits
+	dc.l	Team_msg_jp_after_oh_no
+	dc.l	Team_msg_jp_envy_high_spirits
+	dc.l	Team_msg_jp_envy_high_spirits
+	dc.l	Team_msg_jp_after_rivals_better_than_you
+	dc.l	Team_msg_jp_after_oh_no
+	dc.l	Team_msg_jp_after_making_me_sick
+	dc.l	Team_msg_jp_envy_high_spirits
+	dc.l	Team_msg_jp_envy_high_spirits
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_youve_discouraged_us
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_really_a_race
+	dc.l	Team_msg_jp_after_could_have_done
+	dc.l	Team_msg_jp_after_get_hold
+	dc.l	Team_msg_jp_after_really_poor_driver
+	dc.l	Team_msg_jp_after_going_to_miss_you
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_done_better
+	dc.l	Team_msg_jp_after_thats_about_it
+	dc.l	Team_msg_jp_after_done_better
+	dc.l	Team_msg_jp_after_only_natural
+	dc.l	Team_msg_jp_after_far_better_than_us
+	dc.l	Team_msg_jp_after_why_cant_you_win
+	dc.l	Team_msg_jp_after_dont_make_me_angry
+	dc.l	Team_msg_jp_after_now_you_know_more
+	dc.l	Team_msg_jp_after_not_leaving
+	dc.l	Team_msg_jp_after_unbelievable
+	dc.l	Team_msg_jp_after_good_driving
+	dc.l	Team_msg_jp_after_little_better
+	dc.l	Team_msg_jp_after_wonderful
+	dc.l	Team_msg_jp_after_error
+	dc.l	Team_msg_jp_after_rivals_better_than_you
+	dc.l	Team_msg_jp_after_error
+	dc.l	Team_msg_jp_after_forfeit_license
+	dc.l	Team_msg_jp_after_too_good_for_team
+	dc.l	Team_msg_jp_after_error
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_we_should_be_top
 	dc.l	Team_msg_en_really_a_pity
@@ -33743,153 +33849,158 @@ Team_msg_after_race_table:
 	dc.l	Team_msg_en_error
 	dc.l	Team_msg_en_forfeit_license
 	dc.l	Team_msg_en_too_good_for_team
-	dc.l	Team_msg_en_error
-;Team_msg_jp_after_a
-Team_msg_jp_after_a:
+	 dc.l	Team_msg_en_error
+;loc_3C014
+;Team_msg_jp_after_error
+Team_msg_jp_after_error:
 	dc.b	$7F, $A2, $2C, $FF
-;Team_msg_jp_after_a2
-Team_msg_jp_after_a2:
+;Team_msg_jp_after_good_driving
+Team_msg_jp_after_good_driving:
 	dc.b	$90, $7D, $88, $32, $D4, $A2, $7D, $D6, $A8, $C8, $2D, $FF
 ;loc_3C024
-Team_msg_jp_after_jp6:
+Team_msg_jp_after_we_should_be_top:
 	dc.b	$41, $4F, $58, $32, $8F, $B1, $E1, $6B, $52, $65, $53, $45, $72, $FC, $40, $47, $53, $40, $6C, $BC, $64, $79, $FF, $00
-;Team_msg_jp_after_a3
-Team_msg_jp_after_a3:
+;loc_3C03C
+;Team_msg_jp_after_really_a_pity
+Team_msg_jp_after_really_a_pity:
 	dc.b	$B7, $6C, $56, $6C, $BC, $75, $4E, $53, $79, $FF
 ;loc_3C046
-Team_msg_jp_after_jp7:
+Team_msg_jp_after_never_lose_again:
 	dc.b	$61, $41, $32, $5D, $47, $67, $6C, $B8, $72, $32, $53, $40, $BB, $79, $FF
 	dc.b	$00
 ;loc_3C056
-Team_msg_jp_after_jp8:
+Team_msg_jp_after_not_living_up:
 	dc.b	$45, $5E, $57, $32, $48, $41, $40, $58, $32, $47, $40, $62, $46, $32, $40, $58, $6C, $BC, $79, $FF
 ;loc_3C06A
-Team_msg_jp_after_jp1:
+Team_msg_jp_after_youll_be_staying:
 	dc.b	$4D, $57, $4F, $74, $41, $4A, $BF, $32, $40, $48, $41, $79, $FF, $00
-;Team_msg_jp_after_b
-Team_msg_jp_after_b:
+;loc_3C078
+;Team_msg_jp_after_really_a_race
+Team_msg_jp_after_really_a_race:
 	dc.b	$D7, $A2, $D9, $2C, $2D, $32, $48, $68, $B2, $32, $A5, $2C, $88, $BC, $2D, $FF
 ;loc_3C088
-Team_msg_jp_after_b2:
+Team_msg_jp_after_more_aggressive:
 	dc.b	$61, $75, $52, $32, $B2, $6C, $B2, $6C, $32, $4C, $60, $69, $64, $79, $FF, $00
 ;loc_3C098
-Team_msg_jp_after_jp2:
+Team_msg_jp_after_you_darn_fool:
 	dc.b	$C1, $44, $62, $69, $41, $2D, $FF, $00
-;Team_msg_jp_after_c
-Team_msg_jp_after_c:
+;loc_3C0A0
+;Team_msg_jp_after_only_natural
+Team_msg_jp_after_only_natural:
 	dc.b	$4D, $6C, $53, $62, $50, $54, $32, $44, $50, $57, $58, $32, $3F, $4E, $66, $5D, $42, $BC, $79, $FF
 ;loc_3C0B4
-Team_msg_jp_after_c2:
+Team_msg_jp_after_why_cant_you_win:
 	dc.b	$53, $6C, $BF, $32, $3F, $57, $9A, $87, $A8, $54, $32, $44, $51, $53, $40, $6C, $BC, $79, $FF, $00
 ;loc_3C0C8
-Team_msg_jp_after_jp9:
+Team_msg_jp_after_better_off_buggy:
 	dc.b	$41, $C1, $B4, $67, $5D, $BF, $61, $32, $48, $69, $B2, $4A, $51, $69, $2D, $FF
-;Team_msg_jp_after_d
-Team_msg_jp_after_d:
+;loc_3C0D8
+;Team_msg_jp_after_wonderful
+Team_msg_jp_after_wonderful:
 	dc.b	$4B, $B6, $40, $2D, $32, $62, $67, $B8, $72, $53, $40, $44, $2D, $FF
 ;loc_3C0E6
-Team_msg_jp_after_jp3:
+Team_msg_jp_after_only_bad_luck:
 	dc.b	$4A, $74, $41, $C3, $32, $64, $6A, $40, $53, $79, $FF, $00
 ;loc_3C0F2
-Team_msg_jp_after_jp10:
+Team_msg_jp_after_youve_discouraged_us:
 	dc.b	$45, $5E, $61, $32, $61, $66, $49, $B5, $51, $32, $46, $68, $67, $56, $79, $FF
-;Team_msg_jp_after_e
-Team_msg_jp_after_e:
+;Team_msg_jp_after_thats_about_it
+Team_msg_jp_after_thats_about_it:
 	dc.b	$4D, $6C, $53, $32, $52, $48, $69, $BC, $53, $79, $FF, $00
-;Team_msg_jp_after_f
-Team_msg_jp_after_f:
+;Team_msg_jp_after_little_better
+Team_msg_jp_after_little_better:
 	dc.b	$61, $41, $4B, $48, $4A, $32, $53, $6C, $52, $44, $32, $53, $65, $53, $40, $44, $79, $FF
 ;loc_3C120
-Team_msg_jp_after_jp11:
+Team_msg_jp_after_still_just_amateur:
 	dc.b	$5D, $BC, $5D, $BC, $32, $3F, $5D, $40, $64, $32, $45, $5E, $58, $79, $FF, $00
 ;loc_3C130
-Team_msg_jp_after_jp12:
+Team_msg_jp_after_dont_want_you_rival:
 	dc.b	$45, $5E, $58, $32, $51, $45, $54, $32, $5D, $6A, $4A, $4E, $46, $32, $53, $40, $53, $79, $FF, $00
-;Team_msg_jp_after_g
-Team_msg_jp_after_g:
+;Team_msg_jp_after_not_leaving
+Team_msg_jp_after_not_leaving:
 	dc.b	$5D, $49, $44, $32, $BF, $51, $40, $46, $32, $50, $61, $66, $B8, $72, $FC, $53, $40, $BC, $69, $41, $53, $79, $FF, $00
-;Team_msg_jp_after_h
-Team_msg_jp_after_h:
+;Team_msg_jp_after_done_better
+Team_msg_jp_after_done_better:
 	dc.b	$45, $4E, $40, $32, $40, $B8, $74, $41, $BC, $79, $FF
 	dc.b	$00
 ;loc_3C168
-Team_msg_jp_after_jp4:
+Team_msg_jp_after_get_hold:
 	dc.b	$4A, $75, $44, $66, $32, $4A, $51, $46, $68, $64, $79, $FF
 ;loc_3C174
-Team_msg_jp_after_jp13:
+Team_msg_jp_after_thanks_for_nothing:
 	dc.b	$40, $5D, $5D, $BF, $32, $C0, $41, $61, $32, $B6, $46, $69, $41, $49, $6C, $79, $FF, $00
 ;loc_3C186
-Team_msg_jp_after_jp14:
+Team_msg_jp_after_do_your_best:
 	dc.b	$B2, $6C, $C1, $75, $51, $32, $8F, $B1, $E1, $6B, $60, $B7, $4C, $79, $FF, $00
-;Team_msg_jp_after_i
-Team_msg_jp_after_i:
+;Team_msg_jp_after_lets_go_party
+Team_msg_jp_after_lets_go_party:
 	dc.b	$64, $4A, $79, $32, $DF, $2C, $8E, $AA, $2C, $54, $32, $40, $46, $BB, $79, $FF
 ;loc_3C1A6
-Team_msg_jp_after_jp15:
+Team_msg_jp_after_dont_show_your_face:
 	dc.b	$45, $74, $41, $57, $32, $DF, $2C, $8E, $AA, $2C, $54, $58, $32, $46, $67, $53, $64, $79, $FF, $00
 ;loc_3C1BA
-Team_msg_jp_after_jp16:
+Team_msg_jp_after_try_training:
 	dc.b	$60, $40, $61, $6C, $8C, $2C, $9C, $BF, $32, $4A, $73, $B3, $74, $41, $6B, $FC, $50, $6C, $BF, $5E, $69, $79, $FF, $00
 ;loc_3C1D2
-Team_msg_jp_after_jp17:
+Team_msg_jp_after_dont_disgrace_us:
 	dc.b	$8C, $2C, $9C, $54, $32, $C0, $69, $6B, $55, $67, $45, $44, $2D, $FF
 ;loc_3C1E0
-Team_msg_jp_after_jp5:
+Team_msg_jp_after_could_have_done:
 	dc.b	$DF, $B1, $52, $32, $4A, $53, $40, $53, $79, $FF
 ;loc_3C1EA
-Team_msg_jp_after_jp18:
+Team_msg_jp_after_cant_put_up_with_you:
 	dc.b	$45, $5E, $52, $58, $32, $61, $41, $32, $62, $75, $51, $40, $47, $53, $40, $79, $FF, $00
 ;loc_3C1FC
-Team_msg_jp_after_jp19:
+Team_msg_jp_after_too_good_for_team:
 	dc.b	$45, $5E, $58, $32, $41, $4F, $54, $58, $32, $61, $75, $4E, $40, $53, $40, $64, $79, $FF
 ;loc_3C20E
-Team_msg_jp_after_jp20:
+Team_msg_jp_after_unbelievable:
 	dc.b	$4A, $6C, $B8, $65, $68, $53, $40, $2D, $FF, $00
 ;loc_3C218
-Team_msg_jp_after_jp21:
+Team_msg_jp_after_far_better_than_us:
 	dc.b	$62, $58, $66, $32, $44, $C4, $58, $32, $3F, $50, $40, $53, $79, $FF
 ;loc_3C226
-Team_msg_jp_after_jp22:
+Team_msg_jp_after_lost_your_ability:
 	dc.b	$49, $40, $57, $41, $B2, $32, $44, $68, $4E, $32, $64, $41, $BC, $56, $79, $FF
 ;loc_3C236
-Team_msg_jp_after_jp23:
+Team_msg_jp_after_now_you_know_more:
 	dc.b	$61, $41, $32, $45, $5E, $54, $32, $4A, $51, $62, $68, $67, $48, $52, $58, $32, $53, $40, $79, $FF
 ;loc_3C24A
-Team_msg_jp_after_jp24:
+Team_msg_jp_after_rivals_better_than_you:
 	dc.b	$41, $42, $6B, $5E, $4E, $65, $32, $45, $66, $B2, $53, $40, $64, $79, $FF, $00
 ;loc_3C25A
-Team_msg_jp_after_jp25:
+Team_msg_jp_after_not_that_didnt_try:
 	dc.b	$40, $75, $4A, $74, $41, $32, $47, $6C, $60, $40, $32, $53, $57, $58, $FC, $6A, $44, $67, $6C, $BC, $B2, $56, $79, $FF
 ;loc_3C272
-Team_msg_jp_after_jp26:
+Team_msg_jp_after_clean_up_machine:
 	dc.b	$9A, $87, $A8, $58, $32, $3F, $65, $75, $51, $32, $44, $42, $4A, $51, $46, $68, $64, $79, $FF, $00
 ;loc_3C286
-Team_msg_jp_after_jp27:
+Team_msg_jp_after_going_to_miss_you:
 	dc.b	$4D, $69, $4D, $69, $32, $43, $6A, $44, $68, $BC, $53, $79, $FF, $00
 ;loc_3C294
-Team_msg_jp_after_jp28:
+Team_msg_jp_after_sorry_not_watching:
 	dc.b	$6A, $67, $40, $53, $79, $32, $5E, $51, $53, $44, $75, $4E, $64, $79, $FF, $00
 ;loc_3C2A4
-Team_msg_jp_after_jp29:
+Team_msg_jp_after_never_return_money:
 	dc.b	$44, $56, $58, $32, $44, $42, $49, $56, $42, $64, $79, $FF
 ;loc_3C2B0
-Team_msg_jp_after_jp30:
+Team_msg_jp_after_no_use_to_team:
 	dc.b	$50, $44, $40, $61, $57, $54, $32, $53, $65, $53, $40, $53, $79, $FF
 ;loc_3C2BE
-Team_msg_jp_after_jp31:
+Team_msg_jp_after_oh_no:
 	dc.b	$3F, $2C, $3F, $79, $FF
 	dc.b	$00
 ;loc_3C2C4
-Team_msg_jp_after_jp32:
+Team_msg_jp_after_making_me_sick:
 	dc.b	$53, $6C, $BC, $44, $32, $3F, $4E, $5D, $B2, $32, $40, $4E, $46, $53, $75, $51, $45, $4E, $79, $FF
 ;loc_3C2D8
-Team_msg_jp_after_jp33:
+Team_msg_jp_after_really_poor_driver:
 	dc.b	$5B, $4E, $46, $4D, $2D, $FF
 ;loc_3C2DE
-Team_msg_jp_after_jp34:
+Team_msg_jp_after_dont_make_me_angry:
 	dc.b	$43, $48, $65, $4C, $67, $53, $64, $79, $FF, $00
 ;loc_3C2E8
-Team_msg_jp_after_jp35:
+Team_msg_jp_after_forfeit_license:
 	dc.b	$45, $5E, $58, $32, $A2, $7D, $89, $A8, $88, $6B, $FC, $52, $66, $3F, $B5, $65, $68, $67, $32, $4D, $41, $BC, $79, $FF
 ;Team_msg_en_error
 Team_msg_en_error:

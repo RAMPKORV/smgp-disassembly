@@ -114,7 +114,7 @@
           "priority": "medium",
           "effort": "medium",
           "status": "in_progress",
-          "progress_notes": "Naming style is now being standardized for new internal labels using helper-oriented names such as *_Rts, *_Loop, *_Scroll_text, *_Copy_row, and *_special_char_*. This is partially done in championship team-select, save/load, endgame portrait, and text rendering paths but not yet consistent across the whole ROM."
+          "progress_notes": "Naming style is now being standardized for new internal labels using helper-oriented names such as *_Rts, *_Loop, *_Scroll_text, *_Copy_row, and *_special_char_*. This is partially done in championship team-select, save/load, endgame portrait, and text rendering paths but not yet consistent across the whole ROM. Latest audit passes restored explicit ;loc_ ROM-offset preservation comments for renamed team-text data across the $3A6FA-$3C0D8 region and the full team-intro text block at $3B17E-$3B502, including JP/EN intro strings and short helper messages such as Team_intro_jp_1, Team_msg_jp_help_comeback, Team_intro_en_be_top_driver, Team_msg_can_still_drive, Team_msg_envy_high_spirits, Team_msg_hi, Team_msg_jp_after_error, and Team_msg_jp_after_wonderful. More regions still need the same audit."
         },
         {
           "id": "LABEL-005",
@@ -163,7 +163,7 @@
           "priority": "critical",
           "effort": "very_large",
           "status": "done",
-          "progress_notes": "constants.asm rewritten from 59 lines to ~260 lines with 100+ named constants covering hardware registers, frame dispatch, input, system flags, VDP cache, title/menu state, race event flags, player vehicle state, track/road state, screen scratch variables, tilemap draw queue, pause/music state, lap/overtake flags, race/standings state. 1217+38 raw $FFFFxxxx/$FFFFFFxx literals replaced in smgp.asm. Missing Horizontal_position ($FFFFAE12) and Player_distance ($FFFFAE1A) restored after rewrite. Build verified bit-perfect."
+          "progress_notes": "constants.asm rewritten from 59 lines to ~260 lines with 100+ named constants covering hardware registers, frame dispatch, input, system flags, VDP cache, title/menu state, race event flags, player vehicle state, track/road state, screen scratch variables, tilemap draw queue, pause/music state, lap/overtake flags, race/standings state. 1217+38 raw $FFFFxxxx/$FFFFFFxx literals replaced in smgp.asm. Missing Horizontal_position ($FFFFAE12) and Player_distance ($FFFFAE1A) restored after rewrite. Follow-up RAM audit work added tools/report_raw_ram_refs.py to enumerate remaining raw RAM operands and then continued in multiple naming batches: Screen_state_word_0/1 ($FFFFFC06/$FFFFFC16), Screen_state_byte_0/1/2 ($FFFFFC19/$FFFFFC1A/$FFFFFC1B), Team_select_state ($FFFFFC1E), Player_grid_position_b/Rival_grid_position_b ($FFFFFF35/$FFFFFF3B), font/dialogue/digit buffers, special-road-scene state, road row/scanline buffers, UI tilemap banks, podium minimap state, road-column DMA state, save-buffer aliases, cursor/dialogue scratch bytes, depth-sort/rival-time helpers, and palette-buffer offset expressions replacing many remaining raw $FFFFE98x-$FFFFE9Fx literals while preserving bit-perfect output. The report count has been reduced from 349 unique raw RAM operands at the start of this pass to 290, and each completed batch has been build-verified bit-perfect."
         },
         {
           "id": "CONST-002",
@@ -228,8 +228,8 @@
           ],
           "priority": "medium",
           "effort": "medium",
-          "status": "in_progress",
-          "progress_notes": "A number of unsafe-looking but non-bit-perfect blanket replacements were identified and skipped during macro work, including several remaining VDP command literals and some seemingly obvious copy/team helper blocks. These constraints should be written down explicitly in AGENTS.md or source comments before more macro cleanup is attempted."
+          "status": "done",
+          "progress_notes": "Added Engine_data_offset_practice = $003C to constants.asm with explanatory comment (practice/warm-up/attract mode uses variant 2 mid-strength engine, not team-specific). Replaced all 3 raw #$003C Engine_data_offset initialization literals in smgp.asm (attract/arcade init at line 3707, free-practice init at line 4786, championship warm-up init at line 7814). Expanded Team_car_acceleration and related constant comments to show byte-offset semantics. Fixed incorrect variant-5 comment (was 'practice default', now just 'weakest'). Updated variant-2 comment to note Engine_data_offset_practice. Build verified bit-perfect."
         },
         {
           "id": "CONST-007",
@@ -238,7 +238,8 @@
           "file": "constants.asm",
           "priority": "medium",
           "effort": "medium",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Completed the constants.asm reorganization pass. The file now uses explicit section blocks for hardware, input, RAM state, object structs, audio, mode values, and work buffers, and this batch filled in remaining access-size/purpose notes for core unannotated symbols such as Input_state_bitset, Input_click_bitset, Player_team, Rival_team, Track_index_arcade_mode, Race_started, Practice_mode, Warm_up, Player_shift, Player_rpm, Player_speed, Visual_rpm, Steering_output, and Road_x_offset. constants.asm now reads as the primary symbolic RAM map reference."
         }
       ]
     },
@@ -685,8 +686,8 @@
           "file": "notes.txt",
           "priority": "medium",
           "effort": "medium",
-          "status": "in_progress",
-          "progress_notes": "Partially improved by solving and documenting Track_data, slope data, signs, and large portions of gameplay/rendering in source. notes.txt still needs a cleanup pass to remove stale solved items, point to current canonical labels, and reflect the post-normalization macro and label work."
+          "status": "done",
+          "progress_notes": "Complete rewrite of notes.txt. Removed stale TODO entries for solved topics (slope data, signs data). Split into OPEN PROBLEMS (artwork ID, Z80 disasm, music IDs, AI behavior, $A980 struct) and SOLVED PROBLEMS (slope, signs, track data, curve data, player struct, AI array, label coverage) sections. LOCATIONS section fully replaced with symbolic constant names from constants.asm. Team intro sprite labels now use Intro_sprite_data_* names matching smgp.asm. Curve data and slope data decompressed format documentation preserved with updated symbolic references. Build verified bit-perfect."
         },
         {
           "id": "NOTES-002",
@@ -698,7 +699,8 @@
           ],
           "priority": "low",
           "effort": "small",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Addressed as part of NOTES-001 rewrite. notes.txt now has a clear OPEN PROBLEMS section listing: artwork/tileset identification, Z80 driver disassembly, music ID enumeration, AI behavior, and $A980 struct. Each points to the relevant area of smgp.asm or constants.asm."
         }
       ]
     }

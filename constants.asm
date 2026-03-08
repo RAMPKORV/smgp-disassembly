@@ -59,8 +59,8 @@ Saved_frame_callback = $FFFFFF2A ; saved Frame_callback, restored when returning
 ; ============================================================
 ; Input
 ; ============================================================
-Input_state_bitset = $FFFFFF04
-Input_click_bitset = $FFFFFF05
+Input_state_bitset = $FFFFFF04 ; .b  held-key bitset after controller decode (bit 0-7 = up/down/left/right/B/C/A/start)
+Input_click_bitset = $FFFFFF05 ; .b  newly-pressed edge bitset for the current frame
 KEY_START = 7
 KEY_A     = 6
 KEY_C     = 5
@@ -120,23 +120,24 @@ Standings_team_order  = $FFFF906E   ; 16 bytes: driver indices sorted ascending 
 ;                                   ; read by Build_minimap_player_row_buffer to display team colour strips in order
 Standings_points_buf  = $FFFF907E   ; 16 bytes: points earned per Standings_team_order slot this race;
 ;                                   ; cleared then filled from PointsAwardedPerPlacement by Accumulate_race_points
+Font_tile_base        = $FFFF905A   ; .w  base tile index added to decoded text glyphs by Load_font_tiles_to_work_buffer / Render_text_to_tilemap
 
 ; ============================================================
 ; Team / driver selection  ($FFFF904x area)
 ; ============================================================
-Rival_team          = $FFFF9042
-Player_team         = $FFFF9043
-Drivers_and_teams_map = $FFFF9044 ; mapping table: driver index -> team index
+Rival_team          = $FFFF9042 ; .b  current rival team/flags byte (low nibble = team index, upper bits = championship state flags)
+Player_team         = $FFFF9043 ; .b  selected player team/flags byte (low nibble = team index, bit 6 = year-2/livery flag)
+Drivers_and_teams_map = $FFFF9044 ; 17-byte table: driver slot -> team index mapping, immediately following Player_team
 
 ; ============================================================
 ; Race mode selection flags  ($FFFF914x area)
 ; ============================================================
 Use_world_championship_tracks = $FFFF9140 ; 1 for world championship or practice, 0 for arcade
-Track_index_arcade_mode       = $FFFF9142
-Track_index                   = $FFFF9144
-Race_started                  = $FFFF9146
-Practice_mode                 = $FFFF9148
-Warm_up                       = $FFFF914A
+Track_index_arcade_mode       = $FFFF9142 ; .w  arcade race variant / track-select state (0=championship path, 1/2=arcade/demo variants)
+Track_index                   = $FFFF9144 ; .w  current Track_data entry index
+Race_started                  = $FFFF9146 ; .w  0 before countdown completes, 1 once live race logic is active
+Practice_mode                 = $FFFF9148 ; .w  non-zero in free practice flow
+Warm_up                       = $FFFF914A ; .w  non-zero in championship warm-up flow
 
 ; ============================================================
 ; Car object struct layout (shared by player and AI cars)
@@ -183,13 +184,13 @@ Rival_car_place_score = $FFFFB09E ; = Rival_car_obj + Car_obj_place_score
 ; ============================================================
 ; Player vehicle state  ($FFFF910x area)
 ; ============================================================
-Player_shift       = $FFFF9100
-Player_rpm         = $FFFF9102
-Visual_rpm         = $FFFF9104 ; Rendered to gauge
-Player_speed       = $FFFF9108
-Player_speed_raw   = $FFFF9106 ; pre-integration speed (before copy to Player_speed)
-Steering_output    = $FFFF910A ; horizontal steering output fed to road renderer
-Road_x_offset      = $FFFF910B ; road X pixel offset ($80 = centre)
+Player_shift       = $FFFF9100 ; .w  current gear number (0-6 depending on transmission type)
+Player_rpm         = $FFFF9102 ; .w  live engine RPM used by driving model
+Visual_rpm         = $FFFF9104 ; .w  smoothed RPM rendered to the HUD gauge
+Player_speed_raw   = $FFFF9106 ; .w  pre-integration speed before copy/clamp into Player_speed
+Player_speed       = $FFFF9108 ; .w  current speed value used by gameplay and HUD
+Steering_output    = $FFFF910A ; .w  signed horizontal steering output fed to road/object renderers
+Road_x_offset      = $FFFF910B ; .b  road X pixel centre offset ($80 = centred)
 Track_boundary_type   = $FFFF910C ; boundary/edge type index (0 = none, 4 = soft, 8 = hard)
 Track_boundary_wobble = $FFFF910D ; wobble value when bouncing off boundary
 Collision_flag     = $FFFF910E ; non-zero when player is colliding with an obstacle
@@ -202,11 +203,15 @@ Rpm_derivative     = $FFFF9110 ; derivative (rate-of-change) of RPM, used for ga
 ; ============================================================
 ; Team / car performance data  ($FFFF915x-918x area)
 ; ============================================================
-Team_car_acceleration  = $FFFF915C
-Team_car_engine_data   = $FFFF915E
-Engine_data_offset     = $FFFF9180
-Acceleration_modifier  = $FFFF9182
-Engine_rpm_max         = 1500
+Team_car_acceleration  = $FFFF915C ; .w  byte offset into Acceleration_modifiers (0/$02/$04/$06 → index 0-3)
+Team_car_engine_data   = $FFFF915E ; .w  byte offset into Engine_data_offset_table (0/$02/$04/$06/$08/$0A → variant 0-5)
+Engine_data_offset     = $FFFF9180 ; .w  resolved byte offset into Engine_data for current team's engine variant
+Acceleration_modifier  = $FFFF9182 ; .w  signed word acceleration adjustment (-1/0/+1/+2) from Acceleration_modifiers
+Engine_rpm_max         = 1500      ; RPM ceiling (rpm gauge clips here)
+
+; Engine_data_offset value used in practice / warm-up / attract mode (no team-specific engine):
+; corresponds to Engine_data variant 2 ($003C = 2 × $001E), the mid-strength engine row.
+Engine_data_offset_practice = $003C
 
 ; ============================================================
 ; Track / road state  ($FFFF92xx area)
@@ -219,8 +224,9 @@ Road_marker_state        = $FFFF9208 ; state of roadside marker sequence (0=inac
 Track_horizon_override_flag = $FFFF920C ; Track_data +$20: 1 = use special horizon/sky colour override (West Germany, Italy, Belgium); 0 = default sky
                                        ; was Track_unknown_field_1
 Track_phys_slope_value   = $FFFF920A ; current physical-slope byte for the player's track position
-                                     ; (looked up from Physical_slope_data[Player_distance/4] each frame;
-                                     ;  used by Update_rpm to modulate RPM on hills: negative = uphill drag)
+                                      ; (looked up from Physical_slope_data[Player_distance/4] each frame;
+                                      ;  used by Update_rpm to modulate RPM on hills: negative = uphill drag)
+Road_curve_prev_buf     = $FFFF91BA ; previous per-segment road-curve X values used for interpolation smoothing
 ; ============================================================
 ; Sign / trackside object state  ($FFFF924x-$FFFF925F area)
 ;
@@ -261,8 +267,22 @@ Sign_tileset_buf      = $FFFF925C ; 10-byte DMA descriptor for current sign tile
 Track_placement_distance_table = $FFFF922C ; 3 packed placement checkpoint distances (dc.w × 3):
                                             ; [0] = Track_length (initialised from track header),
                                             ; [1],[2] = sub-lap quarter-point distances loaded from loc_FDCA
+Track_sky_palette_ptr_buf = $FFFF922E ; .l  cached Track_data +$1C sky/background palette pointer for current track
 Track_placement_seq_ptr  = $FFFF9284 ; pointer into current position in the placement-update sequence table
                                      ; (points into loc_73CA or loc_73DC depending on arcade sub-variant)
+Road_column_update_state = $FFFF9276 ; .w  road-column DMA state (0=idle, 1=single-column update, 2=full refresh)
+Road_scroll_distance_prev = $FFFF9266 ; cached Player_distance_steps used to detect when road-column scroll data must be rebuilt
+Road_column_src_ptr     = $FFFF9268 ; .l  current source pointer for road-column DMA writes
+Road_column_step        = $FFFF9274 ; .w  step/offset descriptor paired with Road_column_src_ptr
+Road_column_tile_base   = $FFFF926C ; .w  tile base for normal road-column DMA upload
+Road_column_priority_ptr = $FFFF926E ; .l  source pointer for priority-layer road-column DMA upload
+Road_column_priority_step = $FFFF9272 ; .w  step/offset descriptor for priority road-column upload
+Road_column_tiles_dirty = $FFFF927C ; .w  non-zero when the temporary road-column tile buffer must be uploaded first
+Road_column_update_pending = $FFFF927E ; .w  0=no column update, 1=single update, 2=full update with edge columns
+Road_sign_rotation_index = $FFFF922A ; .w  rotating 0/2/4 index selecting the active sign-row pattern entry
+Sign_tileset_dma_pending = $FFFF9264 ; .w  non-zero when a sign tileset DMA upload is pending this frame
+Depth_sort_leader_ptr   = $FFFF928C ; .w  object pointer of the front-most AI car selected during depth sort
+Depth_sort_prev_ptr     = $FFFF928E ; .w  object pointer of the second front-most AI car during depth sort
 Track_lap_time_base_ptr  = $FFFF92FC ; Track_data +$3C: pointer into Track_lap_time_records for current track
                                      ; (base = $FFFFFD00 + 8 × track_index; used by Draw_bcd_time_to_vdp)
 Background_zone_index    = $FFFF920E ; current background-zone index for parallax scroll region
@@ -272,9 +292,15 @@ Background_zone_1_distance = $FFFF9214 ; track distance at which background zone
 Player_distance_steps    = $FFFF9220 ; integer part of accumulated distance (steps since lap start)
 Player_distance_fixed    = $FFFF9222 ; fixed-point accumulated distance (fractional + integer)
 Minimap_track_map_ptr    = $FFFF9226 ; pointer to minimap position map for current track
+Special_road_scene      = $FFFF9238 ; .w  special road-scene mode for crash/rival approach sequences (0=normal, 1/2/3=special render modes)
+Special_road_audio_mode = $FFFF923A ; .w  companion special-scene mode word fed into Audio_engine_flags updates
+Special_road_blank_bg_flag = $FFFF923C ; .w  non-zero forces blank background row data during special road scenes
+Background_vertical_offset = $FFFF9236 ; .w  sampled background vertical displacement for current player distance
 Laps_completed           = $FFFF9232 ; number of laps completed by the player this race
 Lap_time_ptr             = $FFFF92E0 ; pointer into lap time comparison table
 Lap_time_table_ptr       = $FFFF92E4 ; pointer to base of per-lap time table
+Rival_race_time_bcd_prev = $FFFF92D8 ; previous/copy buffer for rival BCD race time during lap accumulation
+Rival_race_time_bcd      = $FFFF92DC ; rival BCD race time accumulator / display source
 
 ; ============================================================
 ; Track lap time records  ($FFFFFD00 area)
@@ -288,6 +314,9 @@ Lap_time_table_ptr       = $FFFF92E4 ; pointer to base of per-lap time table
 ; The per-track pointer (Track_lap_time_base_ptr) selects 8 bytes per track.
 ; Used by Draw_bcd_time_to_vdp to render best-lap / target-time on the HUD.
 Track_lap_time_records   = $FFFFFD00 ; base of per-track BCD lap-time record block (8 bytes/track × 19 tracks = 152 bytes)
+
+Road_scroll_update_mode  = $FFFF9280 ; .w  road-scroll rebuild mode (0=idle, 1=rebuild with rails, 2=rebuild without rail update)
+Road_scroll_updated_flag = $FFFF9282 ; .w  set to 1 after Update_road_tile_scroll finishes rebuilding buffers
 
 ; ============================================================
 ; Per-lap target time buffer  ($FFFFAD40)
@@ -311,6 +340,7 @@ Physical_slope_data                = $00FF8300 ; Track_data +$38: RLE-decompress
 ; Retire / pause / pit flags  ($FFFFCxxx area, scattered)
 ; ============================================================
 Retire_flash_flag = $FFFFFC32
+Ai_lap_transition_flag = $FFFFFCC0 ; .w  lap-transition notifier (1=player lap crossed, 2=rival lap crossed)
 Retire_flag       = $FFFFFC54
 Pause_flag        = $FFFFFC66
 Pit_in_flag       = $FFFFFCA0
@@ -322,18 +352,50 @@ Pit_in_flag       = $FFFFFCA0
 Screen_timer      = $FFFFFC00 ; countdown or up-counter used by current screen (frames)
 Screen_digit      = $FFFFFC01 ; BCD digit value for options laps counter
 Screen_tick       = $FFFFFC02 ; per-digit frame countdown in options screen (60 frames/digit)
+Screen_flash_state = $FFFFFC03 ; .b  generic flashing/toggle state byte for team-select and endgame screens
+Screen_state_word_0 = $FFFFFC06 ; .w  general per-screen scratch word; reused as Name_entry row index and Endgame bitfield
 Screen_scroll     = $FFFFFC04 ; VDP tile address step (scroll/animation position in current screen)
 Screen_subcounter = $FFFFFC08 ; small state counter / sub-frame index in current screen
 Screen_item_count = $FFFFFC0A ; item count for current rendering pass
 Screen_data_ptr   = $FFFFFC0C ; pointer used by current screen (e.g. tilemap list cursor)
+Menu_cursor_blink_state = $FFFFFC0D ; .b  cursor blink/toggle state for team-select and driver-select screens
+Rival_dialogue_state = $FFFFFC0E ; .b  state bits for the rival dialogue panel open/selection flow
 Menu_cursor       = $FFFFFC10 ; highlighted item index within current screen menu
+Selection_repeat_state = $FFFFFC11 ; .b  per-screen repeat/blink counter used by initials/championship selection cursors
 Menu_substate     = $FFFFFC12 ; sub-state counter within menu interaction
 Temp_x_pos        = $FFFFFC14 ; temporary horizontal position (used during race/AI init)
+Screen_state_word_1 = $FFFFFC16 ; .w  general per-screen scratch word; team-select marker bitfield / text scroll index
 Temp_distance     = $FFFFFC18 ; temporary distance or race-start countdown value
+Screen_state_byte_0 = $FFFFFC19 ; .b  general per-screen scratch byte; reused as driver/team text index and blink counter
+Screen_state_byte_1 = $FFFFFC1A ; .b/.w  general per-screen scratch state; reused for timers, flags, and text row counts
+Screen_state_byte_2 = $FFFFFC1B ; .b  companion scratch byte for screen-local text/tilemap dimensions
 Anim_delay        = $FFFFFC1C ; animation delay countdown (frames to hold current anim frame)
+Team_select_state = $FFFFFC1E ; .w  Team_select_frame dispatch index (0,4,8,12,16)
 Frame_counter     = $FFFFFC20 ; free-running byte frame counter, incremented every main loop tick
 Vblank_counter    = $FFFFFC22 ; incremented by VBI; polled by Wait_for_vblank for sync
 Practice_vblank_step = $FFFFFC24 ; practice mode VBI sub-step (0/4/8/16 cycle for HUD/move/idle)
+Sprite_slots_remaining = $FFFFFC30 ; .w  remaining sprite-link slots while Build_sprites_* assembles SAT
+Countdown_lights_x_pos = $FFFFFC2E ; .w  current X position for the countdown lights object
+Countdown_lights_active_flag = $FFFFFC34 ; .w  non-zero while the countdown lights object is active
+Crash_scene_hud_span = $FFFFFC36 ; .w  width/span used when blanking HUD/road rows during crash scenes
+Crash_scene_depth = $FFFFFC38 ; .w  crash-scene depth value derived from AI screen Y
+Crash_scene_shadow_base = $FFFFFC3A ; .w  base shadow span for secondary crash-car overlay logic
+Crash_scene_shadow_depth = $FFFFFC3C ; .w  shadow depth value derived from crash-car overlay logic
+Crash_scene_compare_depth = $FFFFFC3E ; .w  stored comparison depth for special-road overlay updates
+Crash_scene_delta_depth = $FFFFFC40 ; .w  delta derived from Crash_scene_compare_depth
+Crash_scene_prev_shadow = $FFFFFC42 ; .w  previous crash-scene shadow span
+Crash_scene_prev_delta = $FFFFFC44 ; .w  previous crash-scene shadow delta
+HUD_blank_row_count = $FFFFFC48 ; .w  number of HUD/road rows to blank during special crash scenes
+Collision_sfx_cooldown = $FFFFFC4E ; .w  cooldown timer between collision SFX triggers
+Road_sfx_cooldown = $FFFFFC50 ; .w  cooldown timer between road-surface SFX triggers
+Crash_lateral_gap = $FFFFFC52 ; .w  lateral gap captured during crash/bounds checks
+Collision_prev_flag = $FFFFFC56 ; .w  previous Collision_flag sample for edge detection
+Collision_speed_penalty = $FFFFFC5A ; .w  temporary RPM/speed penalty derived from crash lateral gap
+Road_surface_prev_state = $FFFFFC5E ; .w  previous Road_marker_state sample for edge detection
+Road_sign_fill_flag = $FFFFFC86 ; .w  latch indicating a sign row was drawn this frame
+Lap_checkpoint_target = $FFFFFC8E ; .w  next Player_place_score checkpoint that awards placement points
+Car_palette_dma_id = $FFFFFCA2 ; .w  pending car-livery palette DMA selection
+Race_position_award_cooldown = $FFFFFCAE ; .w  cooldown timer for repeated checkpoint/place award SFX
 Vblank_enable     = $FFFFFC2A ; 1 = VBI will invoke Vblank_callback, 0 = VBI skips callback
 Race_frame_counter = $FFFFFC2C ; large frame counter / screen-duration countdown for race screens
 
@@ -403,9 +465,11 @@ Practice_flag           = $FFFFFF18 ; 1 = warm-up or practice mode active, 0 = r
 Current_lap          = $FFFFFF30 ; player's current lap number (0-based; race ends when this reaches 14)
 Best_lap_vdp_step    = $FFFFFF32 ; VDP tile address step used when drawing best lap time digits
 Player_grid_position = $FFFFFF34 ; player's starting grid position for current race
+Player_grid_position_b = $FFFFFF35 ; .b  low byte alias of Player_grid_position, used in standings/message comparisons
 Saved_shift_type     = $FFFFFF36 ; copy of Shift_type saved when entering options screen
 Race_time_bcd        = $FFFFFF38 ; BCD-encoded total accumulated race time (e.g. $1800 = 18:00)
 Rival_grid_position  = $FFFFFF3A ; rival car's starting grid position
+Rival_grid_position_b = $FFFFFF3B ; .b  low byte alias of Rival_grid_position, used in standings/message comparisons
 Saved_shift_type_2   = $FFFFFF4A ; second copy of Shift_type (preserved across sub-screens)
 Selection_count      = $FFFFFF4C ; number of selectable items in the current car/team picker
 Has_rival_flag       = $FFFFFF4E ; 1 = a rival car is present in this race, 0 = no rival
@@ -604,6 +668,19 @@ Main_object_pool = $FFFFAD80 ; base of main object pool (76 slots × $40 bytes);
                                ;   iterated by Update_objects_and_build_sprite_buffer
 Aux_object_pool  = $FFFFB840 ; base of auxiliary object pool (signs, flagkeeper, tunnel objects;
                                ;   $21 slots × $40 bytes); cleared by Clear_aux_object_pool
+Car_spec_marker_delay   = $FFFFB88E ; .b  frame delay for the car-spec road-marker sequence
+Car_spec_marker_index   = $FFFFB892 ; .w  sequence index for car-spec road-marker updates
+Car_spec_marker_end     = $FFFFB896 ; .w  end step count for current car-spec road-marker entry
+Car_spec_marker_vdp_cmd = $FFFFB8CE ; .l  current VDP command for car-spec road-marker tile updates
+Car_spec_marker_src_ptr = $FFFFB8D2 ; .l  source pointer for car-spec road-marker text/tile data
+Car_spec_marker_step    = $FFFFB8D6 ; .w  current step within the active car-spec marker entry
+Driver_spec_marker_delay   = $FFFFB90E ; .b  frame delay for the driver-spec road-marker sequence
+Driver_spec_marker_index   = $FFFFB912 ; .w  sequence index for driver-spec road-marker updates
+Driver_spec_marker_end     = $FFFFB916 ; .w  end step count for current driver-spec road-marker entry
+Driver_spec_marker_vdp_cmd = $FFFFB94E ; .l  current VDP command for driver-spec road-marker tile updates
+Driver_spec_marker_src_ptr = $FFFFB952 ; .l  source pointer for driver-spec road-marker text/tile data
+Driver_spec_marker_step    = $FFFFB956 ; .w  current step within the active driver-spec marker entry
+Road_blank_row_count = $FFFFAFEC ; .w  row span used when blanking retire/sign background rows
 
 ; Sprite attribute table shadow buffer
 Sprite_attr_buf  = $FFFF9AC0 ; sprite attribute table RAM buffer ($280 bytes);
@@ -614,16 +691,55 @@ Sprite_attr_buf  = $FFFF9AC0 ; sprite attribute table RAM buffer ($280 bytes);
 Road_scale_table = $FFFF9700 ; per-scanline road scale + displacement table (60 pairs of words);
                                ;   initialised once per race by init routine near $8060;
                                ;   read by road renderer to compute per-row scaling and object depth sort
+Road_row_x_buf   = $FFFF9400 ; coarse road-row X buffer used by road-edge and AI lateral position code
+Road_row_y_buf   = $FFFF9480 ; coarse road-row Y-position buffer built by Initialize_road_graphics_state
+Road_curve_interp_buf = $FFFF9658 ; current per-segment road-curve X values before smoothing into scanlines
+Road_scanline_x_buf = $FFFF9600 ; fine per-scanline road X displacement buffer for renderer and AI lateral lookup
+Road_tile_id_buf = $FFFF9900 ; road tile ID buffer consumed by Update_road_graphics tile assembly
 
 ; Championship intro tilemap buffer
 Championship_logo_buf = $FFFFEE80 ; tilemap buffer used during Championship_start_init for
-                                    ;   scrolling team-logo strip decompression ($80 tiles)
+                                     ;   scrolling team-logo strip decompression ($80 tiles)
+
+; Prebuilt UI tilemap buffer banks created by Initialize_ui_tilemap_buffers.
+Ui_tilemap_panel_a      = $FFFFD400
+Ui_tilemap_panel_a_alt  = $FFFFD410
+Ui_tilemap_panel_b_alt  = $FFFFD440
+Ui_tilemap_panel_b      = $FFFFD470
+Ui_tilemap_panel_a_copy = $FFFFD680
+Ui_tilemap_panel_c      = $FFFFD6C0
+Ui_tilemap_panel_d      = $FFFFD6F0
+Ui_tilemap_scratch_a    = $FFFFD900
+Ui_tilemap_panel_e      = $FFFFD92C
+Ui_tilemap_panel_f      = $FFFFD9B0
+Ui_tilemap_panel_g      = $FFFFD950
+Ui_tilemap_panel_h      = $FFFFD980
+Ui_tilemap_scratch_b    = $FFFFE000
+Ui_tilemap_panel_i      = $FFFFE080
+Ui_tilemap_panel_j      = $FFFFE0B0
+Screen_scroll_table_buf = $FFFF9D40 ; generic per-line scroll table buffer used by results/finale screens
+
+Special_sign_obj_ptr    = $FFFFAFC0 ; .l  pointer/state block for the current special sign / crash-car helper object
+
+Podium_minimap_state    = $FFFFC480 ; .w  podium/results minimap dispatch state index
+Podium_minimap_vdp_base = $FFFFC482 ; .w  current VDP tile base for podium minimap row streaming
+Podium_minimap_cell_x   = $FFFFC486 ; .w  current cell X offset while streaming minimap rows
+Podium_minimap_row      = $FFFFC488 ; .w  current minimap row index while streaming
+Podium_minimap_src_ptr  = $FFFFC48A ; .l  current source pointer for podium minimap tile data
 
 ; ============================================================
 ; General-purpose work RAM range
 ; ============================================================
 Work_ram_start = $FFFF8000 ; start of game work RAM; EntryPoint bulk-clears $7000 bytes
                             ;   ($FFFF8000–$FFFFEFFE) to zero on cold boot
+Road_car_scroll_buf = $FFFF8B00 ; 9-row circular road-car tilemap scroll buffer used by opponent-column updates
+Road_car_priority_buf = $FFFFCE00 ; base of priority-flip road-car tile buffer generated by Build_car_tilemap_buffers
+Team_palette_copy_buf = $FFFF8FD2 ; 8-byte RAM mirror of the selected team palette chunk copied into CRAM shadow
+Standings_team_order_tmp = $FFFF8FC0 ; temporary 16-byte standings/team-order scratch buffer before copy back to Drivers_and_teams_map
+Crash_approach_scroll_buf = $FFFFAD00 ; copied crash/rival-approach scroll-strip data used by special road scenes
+Road_scroll_origin_x = $FFFFAFD8 ; .w  road scroll/origin X position used when building background and approach strips
+Opponent_scroll_column_span = $FFFFAFE8 ; .w  number of opponent scroll columns to update this frame
+Player_state_save_buf = $FFFFFF80 ; 64-byte save/load scratch buffer for password/name-entry state
 
 ; ============================================================
 ; Decompressor scratch buffers  ($FFFFFA00, $FFFFEA00)
@@ -634,6 +750,16 @@ Decomp_code_table = $FFFFFA00 ; 256-entry Huffman decode table built by
 Tilemap_work_buf  = $FFFFEA00 ; 256-word general decompress/tilemap work buffer;
                                 ;   used by Draw_packed_tilemap_to_vdp, Build_car_tilemap_buffers,
                                 ;   and various tilemap decompression calls
+Attract_anim_tile_buf = $FFFFF200 ; animation tile upload buffer for attract/startup car-cell effects
+Attract_anim_cell_count = $FFFFFB08 ; .w  queued attract-animation cell count / active-cell tracker
+Attract_anim_slot_buf = $FFFFFB0E ; two-word attract-animation slot timer/state buffer
+Attract_anim_restore_flag = $FFFFFB12 ; .b  set when Attract_anim_cell_update queued a restore write
+Qualifying_time_table_buf = $FFFFFD90 ; 9-entry pre-race qualifying/ranking table (16 bytes per entry)
+
+Save_checksum_nibble_0 = $FFFFFFBC ; lowest stored checksum nibble in save buffer
+Save_checksum_nibble_1 = $FFFFFFBD
+Save_checksum_nibble_2 = $FFFFFFBE
+Save_checksum_nibble_3 = $FFFFFFBF ; highest stored checksum nibble in save buffer
 
 ; ============================================================
 ; Palette CRAM shadow buffer  ($FFFFE980)
@@ -641,6 +767,9 @@ Tilemap_work_buf  = $FFFFEA00 ; 256-word general decompress/tilemap work buffer;
 Palette_buffer = $FFFFE980 ; 64-entry (128-byte) CRAM shadow palette;
                              ;   written by HUD init and portrait init;
                              ;   DMA'd to VDP CRAM each VBlank
+Digit_tilemap_buf = $FFFFE800 ; small tilemap scratch buffer used for speed/score/time digit rendering
+Road_column_tile_buf = $FFFFE900 ; temporary 16-longword tile buffer uploaded by Flush_road_column_dma
+Road_hscroll_buf = $FFFFF600 ; 224-line HScroll shadow buffer streamed to VDP each frame
 
 ; ============================================================
 ; Streaming decompression descriptor buffer  ($FFFFC080)
@@ -671,6 +800,8 @@ Decomp_stream_d5       = $FFFFC0D0 ; +$50 .l  saved D5 (bit window)
 Decomp_stream_d6       = $FFFFC0D4 ; +$54 .l  saved D6 (remaining bits)
 Decomp_stream_rows     = $FFFFC0D8 ; +$58 .w  remaining decompression rows
 Decomp_stream_step     = $FFFFC0DA ; +$5A .w  per-stripe tile step (reset to 4)
+
+Dialogue_tilemap_buf   = $FFFFF6F0 ; text/message tilemap work buffer used by team/rival dialogue and message panels
 
 ; ============================================================
 ; Object depth-sort buffers  ($FFFF8F80, $FFFF8FA0)
