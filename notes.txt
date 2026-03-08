@@ -1,134 +1,221 @@
-TODO
+OPEN PROBLEMS (unsolved / partially solved)
 ===============================================================================
-- Crack slope data
-- Crack signs data
-- Identify artwork
-- Disassemble Z80
-- Identify music tracks
+- Identify artwork / tileset layout (which compressed blob maps to which track/car)
+- Disassemble Z80 sound driver (currently an opaque dc.b blob at Audio_engine_state)
+- Identify music track IDs exhaustively (partial coverage in constants.asm Music_* constants)
+- AI car behavior: full placement logic, lane movement, collision, points accumulation
+- $A980 struct: unknown struct type; ;loc_A980 in smgp.asm; fields not yet named
 
-LOCATIONS
+
+SOLVED PROBLEMS (kept for reference — canonical docs are in smgp.asm source comments)
 ===============================================================================
-; 0xfc01: cursor position in menu
-; 0xfc10: cursor position on title screen
-; 0x5ac9: the volume of 'enemy' car engine sounds
-; 0x5adc: some sort of frame counter that is reset when you start a race etc
-; 0x5b00.b: Curve data decompressed, one byte per "step", ends with $FF
-; 0x6300.w: Background horizontal displacement
-; 0x7300.b: Slope data decompressed
-; 0x7b00.b: Background vertical displacement (positive=up). Glitches if not $00-$27 or $B9-$FF
-; 0x8300.b: unknown_track_data_1 decompressed
-; 0x900a: Amount of (warmup?) laps to drive. 16-bit.
-; 0x9030: List of driver points awarded, by team order
-; 0x9043: Player team
-; 0x9044: Drivers and teams mapping
-; 0x905E: ???
-; 0x906E: The placement (this round) of each team during the results
-; 0x907E: Points awarded (this round) per team during results
-; 0x9100: Current shift
-; 0x9102: Engine RPM. When meter is 10, value is 1000
-; 0x9104: Engine RPM to be rendered (used for smooth gauge movement)
-; 0x9106: Speed (why two?)
-; 0x9108: Speed
-; 0x910A: ? affects horizontal displacement when driving in curves
-; 0x9144.w: Current track idx to be loaded from Track_data
-; 0x9146.w: 0 right before lap start, then 1 when lap starts. When 0, several code paths are skipped and RPM only updates visually
-; 0x9148.w: practice mode
-; 0x914A.w: warm up
-; Data written from Team_car_characteristics:
-; - 0x915C: Acceleration selector
-; - 0x915E: Engine_data_offset selector
-; - 0x9160: steering?
-; - 0x9162: breaks?
-; - 0x9164: rpm?
-; 0x9161: steering
-; 0x9180: "Engine_data_variant" - RPM for current shift offset (based on Player_team, practice mode is $003C)
-; 0x9182: Acceleration modifier based on Player_team (0 in practice mode)
-; 0x9206: track length (2x value from track selection)
-; 0x9208: Controls acceleration. 0 in practice mode, can be 1 or 2.
-; 0x920A: unknown_track_data_1
-; 0x9222: ?
-; 0x9226; ?
-; 0x9240: Pointer to start of signs data for current track
-; 0x9244: Pointer to current signs data location
-; 0x924C.l: Pointer to signs data (in ROM)
-; 0x9250: ?
-; 0x925C: Current sign tileset (10 bytes including $FFFF)
-; 0xA980: ? Some struct
-; 0xAE00: Player state struct ??
-; 0xae12: Player horizontal position (0 middle, positive right, negative left)
-; 0xae1a: Player distance on current track
-; 0xae26: Player's current speed (read only)
-; 0xB080: List of AI car structs
-; 0xE9EC: 10 bytes determines team color
-; 0xFC14: ?
-; 0xfc50: crash recoil from signs (word)
-; 0xfc54: Set last bit to crash/retire (word)
-; 0xfc80: Disables speed update (boolean)
-; 0xFCA6: Typically false, setting to true makes car almost always accelerate
-; 0xFF04: Input key state bitset: start, A, C, B, right, left, down, up
-; 0xFF05: Input key click bitset: Set for one frame if key clicked?
-; 0xFF08: Sent to VDP_control_port
-; 0xFF0A: Sent to VDP_control_port
-; 0xFF10: Contains a pointer to a function
-; 0xFF20: Input key mapping ("Control type" in settings)
-; - 0xFF20: Key for Shift down
-; - 0xFF21: Key for Shift up
-; - 0xFF22: Key for Accelerate
-; - 0xFF23: Key for Break
-; 0xff26: Language. 0 = Japanese, 1 = English
-; 0xffae: Copy of speed (useless, only written to?)
-; 0xff2e: Current shift type (0 = automatic, 1 = 4-shift, 2 = 7-shift)
+- Slope data encoding: fully documented in Update_slope_data / Integrate_curveslope headers.
+  Visual slope at Visual_slope_data ($00FF7300), physical slope at Physical_slope_data ($00FF8300).
+  3/4-byte RLE records, delta encoding, BMI sentinel ($80+). See TRACK-002.
+
+- Sign data encoding: fully documented in Parse_sign_data / Parse_tileset_for_signs headers.
+  4-byte records (distance.w, count.b, sign_id.b), $FFFF sentinel resets each lap.
+  Sign constants in constants.asm ($FFFF9240–$FFFF925C range). See TRACK-003.
+
+- Track_data record layout: fully documented in Load_track_data header ($48 bytes/entry,
+  all 8 pointer fields + 12 scalar fields named; all 19 tracks labeled). See TRACK-001.
+
+- Curve data encoding: documented in smgp.asm near Curve_data ($00FF5B00).
+  Bytes: $00=straight, $01-$2F=left (extreme→soft), $41-$6F=right, $80+=lap wrap.
+
+- Player state struct at Player_obj ($FFFFAE00): fully documented and named.
+  Key fields: Horizontal_position, Player_distance, Player_place_score.
+  See Car_obj_* field constants in constants.asm.
+
+- AI car array at Ai_car_array ($FFFFB080): 16×$40-byte entries.
+  Entry 0 = Rival_car_obj. Same Car_obj_* field offsets apply.
+
+- All loc_ label definitions eliminated (0 loc_ definitions remain in smgp.asm).
+  ~3099 loc_XXXX preservation comments remain as cross-reference anchors.
 
 
-TEAM INTRODUCTION OBJECTS
+MEMORY MAP (symbolic names — see constants.asm for full definitions)
+===============================================================================
+; Hardware
+VDP_control_port        = $00C00004
+VDP_data_port           = $00C00000
+Z80_bus_request         = $00A11100
+Z80_reset               = $00A11200
+Z80_ram                 = $00A00000  ; base of Z80 address space
+Version_register        = $00A10001  ; .b  bit 7 = overseas, bit 6 = PAL
+Io_ctrl_port_1_data     = $00A10003  ; .b  controller port 1
+
+; Fast-page RAM dispatch / input
+Frame_callback          = $FFFFFF10  ; main per-frame callback pointer
+Vblank_callback         = $FFFFFF0C  ; VBI per-frame callback pointer
+Input_state_bitset      = $FFFFFF04  ; held keys (bit 0-7 = up/down/left/right/B/C/A/start)
+Input_click_bitset      = $FFFFFF05  ; single-frame click bits
+English_flag            = $FFFFFF26  ; 0=JP, 1=EN
+Shift_type              = $FFFFFF2E  ; 0=auto, 1=4-speed, 2=7-speed
+Control_type            = $FFFFFF1E  ; 0-5 control configuration index
+Easy_flag               = $FFFFFF1C  ; 0=normal, 1=easy
+Overseas_flag           = $FFFFFF1A  ; $FF if overseas/NTSC
+Pal_flag                = $FFFFFF1B  ; $FF if PAL 50Hz
+Hblank_handler_stub     = $FFFFFFD2  ; RAM copy of hblank ISR stub
+Boot_init_sentinel      = $FFFFFFFC  ; 'init' written on cold boot
+
+; Title / menu state
+Title_menu_state        = $FFFF9000  ; current menu page (0=main, 1=new/pw, 2=champ, 3=laps)
+Title_menu_cursor       = $FFFF900A  ; highlighted row index
+Menu_cursor             = $FFFFFC10  ; highlighted item in current screen
+
+; Race mode flags
+Track_index             = $FFFF9144  ; current track index loaded from Track_data
+Race_started            = $FFFF9146  ; 0=pre-race, 1=race live
+Practice_mode           = $FFFF9148  ; non-zero in free practice
+Warm_up                 = $FFFF914A  ; non-zero in warm-up mode
+Use_world_championship_tracks = $FFFF9140
+
+; Team / driver selection
+Player_team             = $FFFF9043
+Rival_team              = $FFFF9042
+Drivers_and_teams_map   = $FFFF9044  ; driver→team mapping table
+
+; Championship / standings
+Driver_points_by_team   = $FFFF9030  ; 16-byte accumulated points table
+Standings_team_order    = $FFFF906E  ; sorted driver order (0=last, 15=1st)
+Standings_points_buf    = $FFFF907E  ; points earned this race per standings slot
+
+; Player driving state
+Player_shift            = $FFFF9100  ; current gear (1-based)
+Player_rpm              = $FFFF9102  ; engine RPM (1000 = gauge at 10)
+Visual_rpm              = $FFFF9104  ; smoothed RPM for gauge rendering
+Player_speed_raw        = $FFFF9106  ; pre-integration speed copy
+Player_speed            = $FFFF9108  ; current speed (km/h encoded)
+Steering_output         = $FFFF910A  ; horizontal steering output to road renderer
+Road_x_offset           = $FFFF910B  ; road X pixel offset ($80 = centre)
+Engine_data_offset      = $FFFF9180  ; resolved offset into Engine_data for current engine variant
+Acceleration_modifier   = $FFFF9182  ; signed acceleration adjustment (-1/0/+1/+2)
+Team_car_acceleration   = $FFFF915C  ; byte offset into Acceleration_modifiers
+Team_car_engine_data    = $FFFF915E  ; byte offset into Engine_data_offset_table
+Track_steering_index    = $FFFF9160  ; steering parameter delta index (per track)
+Track_braking_index     = $FFFF9164  ; braking strength modifier index (per track)
+
+; Track / road state
+Track_length            = $FFFF9206  ; 2× value from track header
+Track_phys_slope_value  = $FFFF920A  ; current physical slope byte (drives RPM drag)
+Track_horizon_override_flag = $FFFF920C
+Road_marker_state       = $FFFF9208  ; 0=inactive, 1=?, 2=active roadside markers
+
+; Sign / trackside object state
+Signs_data_start_ptr    = $FFFF9240
+Signs_data_ptr          = $FFFF9244
+Signs_location          = $FFFF9250  ; track distance of current sign
+Signs_in_row_count      = $FFFF9252  ; how many signs remain in current group
+Sign_tileset_buf        = $FFFF925C  ; 10-byte DMA descriptor for current sign tileset
+
+; Player object
+Player_obj              = $FFFFAE00  ; player car object ($40 bytes)
+Horizontal_position     = $FFFFAE12  ; horizontal X (signed; $80 = centre lane)
+Player_distance         = $FFFFAE1A  ; integer track steps from lap start
+Player_place_score      = $FFFFAE1E  ; placement comparison score
+Replay_steer_override   = $FFFFAE38  ; 0=player, 1=right, other=left (warm-up / AI inject)
+
+; AI car array
+Ai_car_array            = $FFFFB080  ; 16×$40-byte AI car objects
+Rival_car_obj           = $FFFFB080  ; entry 0 = main rival
+Rival_car_place_score   = $FFFFB09E
+
+; Screen scratch / counters
+Screen_timer            = $FFFFFC00
+Frame_counter           = $FFFFFC20  ; free-running byte, +1 per main loop tick
+Vblank_counter          = $FFFFFC22  ; incremented by VBI
+Race_frame_counter      = $FFFFFC2C  ; race screen duration countdown
+
+; Race event / placement flags
+New_lap_flag            = $FFFFFC70  ; set to 1 on lap completion
+Current_placement       = $FFFFFC78  ; player race position (1-based)
+Race_finish_flag        = $FFFFFC80  ; set to 1 on finish line crossing
+Player_eliminated       = $FFFFFCAC  ; 0=racing, 1=eliminated, $FFFF=not entered
+Laps_done_flag          = $FFFFFC6E  ; set to 1 when race lap count reached
+Retire_flag             = $FFFFFC54  ; set last bit to crash/retire (see Retire_animation_flag)
+Pause_flag              = $FFFFFC66
+Crash_animation_flag    = $FFFFFCA4  ; non-zero during crash/spin animation
+Crash_spin_flag         = $FFFFFCA6  ; non-zero during spin/off-track slide
+
+; In-memory track data buffers
+Curve_data              = $00FF5B00  ; decompressed curve bytes; one byte per step, ends $FF
+Background_horizontal_displacement = $00FF6300
+Visual_slope_data       = $00FF7300  ; decompressed visual slope stream
+Background_vertical_displacement   = $00FF7B00
+Physical_slope_data     = $00FF8300  ; decompressed physical slope stream
+
+; Audio engine (68K-side driver)
+Audio_engine_state      = $00FF5AC0  ; base of 68K audio engine state struct
+Audio_music_cmd         = $00FF5AC0  ; +$00 .w  music track command latch (write song ID here)
+Audio_engine_flags      = $00FF5AC6  ; +$06 .w  channel enable flags
+Engine_sound_pitch      = $FFFFE996  ; word controlling engine sound pitch
+
+; Object pools
+Main_object_pool        = $FFFFAD80  ; 76×$40 bytes (player + AI + road objects)
+Aux_object_pool         = $FFFFB840  ; 33×$40 bytes (signs, flagkeeper, tunnel)
+Sprite_attr_buf         = $FFFF9AC0  ; sprite attribute table shadow ($280 bytes)
+Palette_buffer          = $FFFFE980  ; 64-entry CRAM shadow palette (128 bytes)
+
+; Scratch buffers
+Decomp_code_table       = $FFFFFA00  ; 256-entry Huffman decode table (512 bytes)
+Tilemap_work_buf        = $FFFFEA00  ; 256-word decompress/tilemap work buffer
+Decomp_stream_buf       = $FFFFC080  ; streaming decompression state
+Championship_logo_buf   = $FFFFEE80  ; championship intro tilemap buffer
+
+
+TEAM INTRODUCTION SPRITES (pit crew objects at Championship_start_init)
 ================================================================================
-loc_21F14 Mechanic 1 (Bearded, hands on chest, short sleeved, shirt, trousers)
-loc_21F54 Mechanic 2 (Gloves, uniform, short sleeved, one hand on chest, one on leg)
-loc_21F1E Mechanic 3 (Arms crossed, uniform, bearded, short-sleeved)
-loc_21EF6 Mechanic 4 (Arms down, gloves, ear protection)
-loc_21F4A Mechanic 5 (Glasses, ear protection short-sleeved)
-loc_21F6C
-loc_21EC0
-loc_21ECC
-loc_21EEE
-loc_21F02
-loc_21F2E
-loc_21F42
-loc_21F3A
-loc_21ED4
-loc_21F62
-loc_21E9C
+Intro_sprite_data_21E9C    ; small sprite slot
+Intro_sprite_data_21EC0    ; Mechanic A (type 1)
+Intro_sprite_data_21ECC    ; Mechanic B (type 1, larger)
+Intro_sprite_data_21ED4    ; Mechanic C (multi-part)
+Team_intro_anim_data       ; (was loc_21EEE) base anim data record
+Intro_sprite_data_21EF6    ; Mechanic 4 (Arms down, gloves, ear protection)
+Intro_sprite_data_21F02    ; Mechanic (multi-segment)
+Intro_sprite_data_21F14    ; Mechanic 1 (Bearded, hands on chest, short sleeved)
+Intro_sprite_data_21F1E    ; Mechanic 3 (Arms crossed, uniform, bearded)
+Intro_sprite_data_21F2E    ; Mechanic variant
+Intro_sprite_data_21F3A    ; Mechanic (large, arms at side)
+Intro_sprite_data_21F42    ; Mechanic (large, variant B)
+Intro_sprite_data_21F4A    ; Mechanic 5 (Glasses, ear protection, short-sleeved)
+Intro_sprite_data_21F54    ; Mechanic 2 (Gloves, uniform, one hand on chest)
+Intro_sprite_data_21F62    ; Mechanic (short)
+Intro_sprite_data_21F6C    ; Woman with umbrella
+
 
 CURVE DATA DECOMPRESSED FORMAT
 ================================================================================
-Stored in $00FF5B00 (Curve_data) onwards, read from loc_6C1C (and also loc_6CF0 for some reason)
-One byte per step forward. Ends with $FF.
-Seems to render ca 26 steps forward? Code reads 40 bytes ahead.
+Stored in Curve_data ($00FF5B00), read by Update_slope_data / Integrate_curveslope.
+One byte per step forward. Ends with $FF ($80+).
+Code reads 40 bytes ahead; ca 26 steps are rendered.
+
 Byte values:
-* 00    = Straight
-* 01-2F = Left turn, from extreme (01) to soft (2F)
-* 30-3F = Game freezes
-* 40    = Graphical glitch, probably not used
-* 41-6F = Right turn, from extreme (41) to soft (6F)
-* 70-7F = Game freezes
-* 80-FF = Continue reading from start of track
-So:
-* Lower 6 bits determine sharpness (higher value = softer turn). Except all zero = straight
-* Bit 7 determines if right turn
-* Bit 8 special case to read from start of track (used at end to render from start for next lap)
+* $00       = Straight
+* $01-$2F   = Left turn, from extreme (01) to soft (2F)
+* $30-$3F   = Game freezes (invalid)
+* $41-$6F   = Right turn, from extreme (41) to soft (6F)
+* $70-$7F   = Game freezes (invalid)
+* $80-$FF   = Sentinel / wrap: continue reading from track start (new lap)
 
-$00FF6300 stores background rotation, encoded together with curve data in ROM.
-In memory it seems to be stored as absolute rotation, but the RLE encoding used in ROM looks relative.
-Code does continuous SUB and ADD to get the resulting absolute value to write to memory.
+Lower 6 bits = sharpness (higher = softer). Bit 6 = right turn. Bit 7 = wrap sentinel.
 
-SLOPE DATA DECOMPRESSED FORMAT
+Background horizontal displacement ($00FF6300 = Background_horizontal_displacement):
+Encoded together with curve data in ROM as relative delta values.
+In memory stored as absolute rotation. Update_slope_data integrates via ADD/SUB each frame.
+
+
+SLOPE DATA DECOMPRESSED FORMAT (SOLVED — see Update_slope_data header in smgp.asm)
 ================================================================================
-Stored in $00FF7300 onwards. Parsed using Double_integral similar to curve data.
-Byte values:
-* 00    = Flat
-* 01-2F = Down slope, from extreme (01) to soft (2F)
-* 30-3F = Game freezes
-* 40    = Graphical glitch, probably not used
-* 41-6F = Up slope, from extreme (41) to soft (6F)
-* 70-7F = Game freezes
-* 80-FF = Continue reading from start of track
+Visual slope:  Visual_slope_data  ($00FF7300) — drives background vertical shift
+Physical slope: Physical_slope_data ($00FF8300) — drives RPM drag via Track_phys_slope_value
+
+Byte encoding identical to curve data:
+* $00       = Flat
+* $01-$2F   = Down slope (extreme → soft)
+* $41-$6F   = Up slope (extreme → soft)
+* $80+      = Sentinel (BMI branch terminates RLE loop)
+
+ROM encoding: 3/4-byte RLE records (initial displacement byte + per-record count + delta).
+Physical slope uses simpler 3-byte RLE. Both terminated by high-byte bit 7 set.
+Track_phys_slope_value is used by Update_rpm: negative = uphill drag on engine.

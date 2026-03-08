@@ -189,7 +189,7 @@ Crash_retire_obj:
 	MOVE.l	#Race_finish_results_init, D1
 	MOVE.w	Track_index_arcade_mode.w, D0
 	BEQ.b	Set_retire_frame_callback
-	MOVE.l	#$0000BD56, D1
+	MOVE.l	#Championship_next_race_init, D1
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Set_retire_frame_callback
 	MOVE.l	#Arcade_car_spec_result_init, D1
@@ -206,7 +206,7 @@ Rival_crowd_car_obj_init:
 	MOVE.w	#$FC00, D1
 	CMPA.w	#$B440, A0
 	BNE.b	Rival_crowd_car_obj_init_champ_check
-	MOVE.l	#$000127B8, D0
+	MOVE.l	#Rival_car_anim_data_c, D0
 	MOVE.w	#$F9C0, D1
 	MOVE.w	#$009F, Countdown_lights_x_pos.w
 	MOVE.l	#Rival_crowd_car_obj_Draw, (A0)
@@ -248,13 +248,13 @@ Rival_crowd_car_obj_Draw:
 	MOVE.w	D1, $18(A0)
 	JMP	Queue_object_for_sprite_buffer
 Gear_diagram_obj_init:
-	MOVE.l	#$000128F8, D0
+	MOVE.l	#Gear_diagram_sprite_frames_warmup, D0
 	TST.w	Warm_up.w
 	BNE.b	Gear_diagram_obj_init_done
-	MOVE.l	#$000128C6, D0
+	MOVE.l	#Gear_diagram_sprite_frames_practice, D0
 	TST.w	Practice_mode.w
 	BNE.b	Gear_diagram_obj_init_done
-	MOVE.l	#$0001287C, D0
+	MOVE.l	#Gear_diagram_sprite_frames_normal, D0
 	TST.w	Track_index_arcade_mode.w
 	BEQ.b	Gear_diagram_obj_init_done
 	JMP	Clear_object_slot
@@ -397,7 +397,7 @@ Spawn_background_ai_car_0:
 	MOVE.w	$1E(A0), D0
 	JSR	Alloc_aux_object_slot
 Init_background_ai_car_0:
-	MOVE.l	#$00010650, D1
+	MOVE.l	#Bg_ai_car_0_sprite_frames, D1
 	MOVE.w	#$FE90, D0
 	BRA.w	Init_background_ai_car_b_screen_right
 Spawn_background_ai_car_1:
@@ -405,64 +405,64 @@ Spawn_background_ai_car_1:
 	MOVE.w	$1E(A0), D0
 	JSR	Alloc_aux_object_slot
 Init_background_ai_car_1:
-	MOVE.l	#$00010674, D1
+	MOVE.l	#Bg_ai_car_1_sprite_frames, D1
 	MOVE.w	#$0170, D0
 	BRA.w	Init_background_ai_car_b
 Init_background_ai_car_2:
-	MOVE.l	#$00010698, D1
+	MOVE.l	#Bg_ai_car_2_sprite_frames, D1
 	MOVE.w	#$FE90, D0
 	BRA.w	Init_background_ai_car_b_screen_right
 Init_background_ai_car_3:
-	MOVE.l	#$000106BC, D1
+	MOVE.l	#Bg_ai_car_3_sprite_frames, D1
 	MOVE.w	#$0170, D0
 	BRA.w	Init_background_ai_car_b
 Init_background_ai_car_4:
-	MOVE.l	#$000106E0, D1
+	MOVE.l	#Bg_ai_car_4_sprite_frames, D1
 	MOVE.w	#$FE80, D0
 	BRA.w	Init_background_ai_car_b_screen_right
 Init_background_ai_car_5:
-	MOVE.l	#$00010704, D1
+	MOVE.l	#Bg_ai_car_5_sprite_frames, D1
 	MOVE.w	#$0180, D0
 	BRA.w	Init_background_ai_car_b
 Init_background_ai_car_6:
-	MOVE.l	#$00010728, D1
+	MOVE.l	#Bg_ai_car_6_sprite_frames, D1
 	MOVE.w	#$FE90, D0
 	BRA.b	Init_background_ai_car_b_screen_right
 Init_background_ai_car_7:
-	MOVE.l	#$0001074C, D1
+	MOVE.l	#Bg_ai_car_7_sprite_frames, D1
 	MOVE.w	#$0170, D0
 	BRA.b	Init_background_ai_car_b
 Init_background_ai_car_8:
-	MOVE.l	#$00010770, D1
+	MOVE.l	#Bg_ai_car_8_sprite_frames, D1
 	MOVE.w	#$FE90, D0
 	BRA.b	Init_background_ai_car_b_screen_right
 Init_background_ai_car_9:
-	MOVE.l	#$00010794, D1
+	MOVE.l	#Bg_ai_car_9_sprite_frames, D1
 	MOVE.w	#$0170, D0
 	BRA.b	Init_background_ai_car_b
 Init_background_ai_car_10:
-	MOVE.l	#$00010800, D1
+	MOVE.l	#Bg_ai_car_10_sprite_frames, D1
 	MOVE.w	#$FE9C, D0
 	BRA.b	Init_background_ai_car_b_screen_right
 Init_background_ai_car_11:
-	MOVE.l	#$00010824, D1
+	MOVE.l	#Bg_ai_car_11_sprite_frames, D1
 	MOVE.w	#$0164, D0
 	BRA.b	Init_background_ai_car_b
 Init_background_ai_car_12:
-	MOVE.l	#$00010848, D1
+	MOVE.l	#Bg_ai_car_12_sprite_frames, D1
 	MOVE.w	#$FE7C, D0
 	BRA.b	Init_background_ai_car_b_screen_right
 Init_background_ai_car_13:
-	MOVE.l	#$0001086C, D1
+	MOVE.l	#Bg_ai_car_13_sprite_frames, D1
 	MOVE.w	#$0184, D0
 	BRA.b	Init_background_ai_car_b
 Init_background_ai_car_14:
-	MOVE.l	#$000107DC, D1
+	MOVE.l	#Bg_ai_car_14_sprite_frames, D1
 	MOVE.w	#$0168, D0
 	MOVE.w	#$6000, $C(A0)
 	BRA.b	Init_background_ai_car_b
 Init_background_ai_car_15:
-	MOVE.l	#$000107B8, D1
+	MOVE.l	#Bg_ai_car_15_sprite_frames, D1
 	MOVE.w	#$FE98, D0
 	MOVE.w	#$6000, $C(A0)
 ;Init_background_ai_car_b_screen_right
@@ -477,7 +477,7 @@ Init_background_ai_car_b:
 	MOVE.l	#Background_ai_car_b_obj, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	#2, $24(A0)
-	MOVE.l	#$0006E894, $30(A0)
+	MOVE.l	#Ai_angle_table, $30(A0)
 	MOVE.w	D0, $34(A0)
 Background_ai_car_b_obj:
 	JSR	Update_ai_car_screen_x(PC)
@@ -486,14 +486,14 @@ Background_ai_car_b_obj:
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
 Background_ai_car_c_obj_init_fast:
-	MOVE.l	#$000108B4, D1
+	MOVE.l	#Bg_ai_car_c_fast_sprite_frames, D1
 	MOVE.w	#$0128, D0
 	BRA.b	Background_ai_car_c_obj_init_done
 Background_ai_car_c_obj_spawn:
 	MOVE.l	#Background_ai_car_c_obj_init_fast, D1
 	MOVE.w	$1E(A0), D0
 	JSR	Alloc_aux_object_slot
-	MOVE.l	#$00010890, D1
+	MOVE.l	#Bg_ai_car_c_sprite_frames, D1
 	MOVE.w	#$FED8, D0
 	MOVE.w	#$FFFF, $12(A0)
 Background_ai_car_c_obj_init_done:
@@ -682,7 +682,7 @@ Crash_car_obj_setup:
 	MOVE.l	#Crash_car_obj2_init, (Main_object_pool+$280).w
 	MOVE.w	D0, (Main_object_pool+$29E).w
 	MOVE.l	#Crash_car_obj, D0
-	MOVE.l	#$00010944, D1
+	MOVE.l	#Crash_car_spin_left_sprite_frames, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
@@ -758,7 +758,7 @@ Crash_car_obj_Rts:
 	RTS
 Crash_car_obj2_init:
 	MOVE.l	#Crash_car_obj2, D0
-	MOVE.l	#$00010920, D1
+	MOVE.l	#Crash_car_spin_behind_sprite_frames, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
@@ -891,14 +891,14 @@ Crash_lateral_follower_obj_update:
 	BRA.w	Check_ai_lateral_bounds_wide
 Crash_depth_obj_init:
 	MOVE.l	#Crash_depth_obj, D0
-	MOVE.l	#$00010920, D1
+	MOVE.l	#Crash_car_spin_behind_sprite_frames, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
 	BRA.b	Crash_depth_obj
 Crash_depth_obj_init_b:
 	MOVE.l	#Crash_depth_obj, D0
-	MOVE.l	#$00010968, D1
+	MOVE.l	#Crash_depth_sprite_frames, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
 	JSR	Setup_ai_object_state(PC)
@@ -923,7 +923,7 @@ Setup_ai_object_state:
 ; lateral offset D2, spawn param D3, and the standard angle table loc_6E894.
 ; Inputs:  A0=object slot, D0=handler addr, D1=sprite table ptr,
 ;          D2=initial lateral offset, D3=spawn parameter
-	MOVE.l	#$0006E894, $30(A0)
+	MOVE.l	#Ai_angle_table, $30(A0)
 ;Setup_ai_object_state_common
 Setup_ai_object_state_common:
 	MOVE.l	D0, (A0)
@@ -992,10 +992,10 @@ Crash_approach_obj_init:
 	MOVE.l	#Crash_shadow_obj_init, (Main_object_pool+$2C0).w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
-	MOVE.l	#$0000B008, (Main_object_pool+$280).w
+	MOVE.l	#Crash_approach_obj_init_b, (Main_object_pool+$280).w
 	MOVE.w	D0, (Main_object_pool+$29E).w
-	MOVE.l	#$0000AF7A, D0
-	MOVE.l	#$000109D4, D1
+	MOVE.l	#Crash_approach_obj, D0
+	MOVE.l	#Crash_approach_sprite_frames, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE00, D3
 	JSR	Setup_ai_object_state_alt(PC)
@@ -1007,6 +1007,7 @@ Crash_approach_obj_init:
 Crash_approach_obj_init_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, Crash_approach_obj_init_Copy_loop
+Crash_approach_obj:
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	Crash_approach_obj_Onscreen
@@ -1050,12 +1051,14 @@ Crash_approach_obj_Onscreen_Depth:
 	MOVE.w	D2, Crash_scene_depth.w
 	MOVE.w	#1, Road_scroll_update_mode.w
 	RTS
-	MOVE.l	#$0000B022, D0
-	MOVE.l	#$00010A1C, D1
+Crash_approach_obj_init_b:
+	MOVE.l	#Crash_approach_obj_b, D0
+	MOVE.l	#Crash_approach_b_sprite_frames, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0200, D3
 	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
+Crash_approach_obj_b:
 	JSR	Update_ai_car_screen_x(PC)
 	TST.w	$E(A0)
 	BPL.b	Crash_approach_obj_Reenter
@@ -1094,10 +1097,10 @@ Crash_approach_obj_Park_Onscreen_Clamp:
 Rival_approach_obj_init:
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
-	MOVE.l	#$0000B182, (Main_object_pool+$280).w
+	MOVE.l	#Rival_approach_obj_init_b, (Main_object_pool+$280).w
 	MOVE.w	D0, (Main_object_pool+$29E).w
-	MOVE.l	#$0000B0F0, D0
-	MOVE.l	#$000109B0, D1
+	MOVE.l	#Rival_approach_obj, D0
+	MOVE.l	#Rival_approach_sprite_frames, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE00, D3
 	JSR	Setup_ai_object_state_alt(PC)
@@ -1111,6 +1114,7 @@ Rival_approach_obj_init_Copy_loop:
 	MOVE.w	(A1)+, (A2)+
 	DBF	D0, Rival_approach_obj_init_Copy_loop
 	MOVE.w	-$A(A1), -$8(A2)
+Rival_approach_obj:
 	JSR	Update_ai_car_screen_x(PC)
 	CMPI.w	#4, D7
 	BEQ.b	Rival_approach_obj_Onscreen
@@ -1150,12 +1154,14 @@ Rival_approach_obj_Onscreen_Clamp:
 	MOVE.w	D3, Crash_scene_delta_depth.w
 	MOVE.w	#1, Road_scroll_update_mode.w
 	RTS
-	MOVE.l	#$0000B19C, D0
-	MOVE.l	#$000109F8, D1
+Rival_approach_obj_init_b:
+	MOVE.l	#Rival_approach_obj_b, D0
+	MOVE.l	#Rival_approach_b_sprite_frames, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0200, D3
 	JSR	Setup_ai_object_state_alt(PC)
 	CLR.w	$24(A0)
+Rival_approach_obj_b:
 	JSR	Update_ai_car_screen_x(PC)
 	TST.w	$E(A0)
 	BPL.b	Rival_approach_obj_Reenter
@@ -1571,11 +1577,11 @@ Team_select_update_controls_NoShift:
 	BTST.b	#0, Screen_state_byte_1.w
 	BNE.b	Team_select_update_controls_Back
 	MOVE.w	#$000E, Selection_count.w
-	MOVE.l	#$0000E94C, Frame_callback.w
+	MOVE.l	#Championship_standings_2_init, Frame_callback.w
 	RTS
 Team_select_update_controls_Back:
 	ANDI.b	#$CF, Player_team.w
-	MOVE.l	#$00003800, Frame_callback.w
+	MOVE.l	#Arcade_race_init, Frame_callback.w
 	RTS
 Team_select_update_controls_Check:
 	BTST.b	#3, Screen_state_byte_1.w
@@ -1631,10 +1637,10 @@ Championship_next_race_advance_Loop:
 	DBF	D0, Championship_next_race_advance_Loop
 	BTST.b	#6, Player_team.w
 	BEQ.b	Championship_next_race_advance_RivalEncounter
-	MOVE.l	#$000135C6, Frame_callback.w
+	MOVE.l	#Championship_final_init, Frame_callback.w
 	RTS
 Championship_next_race_advance_RivalEncounter:
-	MOVE.l	#$0000E600, Frame_callback.w
+	MOVE.l	#Championship_driver_select_init, Frame_callback.w
 	MOVE.w	#Music_rival_encounter, Audio_music_cmd ; rival team encounter music
 	RTS
 Championship_next_race_advance_Rival:
@@ -1822,7 +1828,7 @@ Championship_team_select_update_controls_NoShift:
 	BTST.b	#0, Screen_state_byte_1.w
 	BNE.w	Championship_team_select_update_controls_Back
 	MOVE.w	#$000A, Selection_count.w
-	MOVE.l	#$0000D6E2, Saved_frame_callback.w
+	MOVE.l	#Championship_standings_init, Saved_frame_callback.w
 	RTS
 Championship_team_select_update_controls_Back:
 	BCLR.b	#5, Rival_team.w
@@ -1928,17 +1934,17 @@ Championship_team_select_confirm_CheckRival:
 	CMP.b	D0, D1
 	BCS.b	Championship_team_select_confirm_ToTitle
 	MOVE.w	#$000A, Selection_count.w
-	MOVE.l	#$0000D6E2, Saved_frame_callback.w
+	MOVE.l	#Championship_standings_init, Saved_frame_callback.w
 	RTS
 Championship_team_select_confirm_Arcade:
 	MOVE.w	#1, Track_index_arcade_mode.w
 	BTST.b	#5, Player_team.w
 	BEQ.b	Championship_team_select_confirm_ArcadeTeam
-	MOVE.l	#$0000D2B0, Frame_callback.w
+	MOVE.l	#Team_select_screen_init, Frame_callback.w
 	RTS
 Championship_team_select_confirm_ArcadeTeam:
 	MOVE.w	#$000E, Selection_count.w
-	MOVE.l	#$0000E94C, Frame_callback.w
+	MOVE.l	#Championship_standings_2_init, Frame_callback.w
 	RTS
 Podium_car_obj_Update:
 	CMPI.w	#$FFFF, $1E(A0)
