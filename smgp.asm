@@ -12789,7 +12789,7 @@ Parse_sign_data_Finish_line_check:
 	CMPI.w	#$0078, D0
 	BCC.b	Parse_sign_data_Next                          ; > 120 units to end → no finish-line sign yet
 	MOVE.w	#1, Finish_line_sign_active.w      ; arm flagkeeper; block further sign spawns
-	MOVE.l	#$0000A174, $FFFFAF80.w            ; flagkeeper full-track handler pointer
+	MOVE.l	#Flagkeeper_car_obj_guard, $FFFFAF80.w            ; flagkeeper full-track handler pointer
 	LEA	Flagkeeper_tileset, A0
 	BRA.b	Parse_tileset_for_signs_Write_buf                           ; write Flagkeeper_tileset tileset to Sign_tileset_buf
 ;Parse_sign_data_Next
@@ -14175,7 +14175,7 @@ Compute_ai_screen_x_Clamp_max:
 	MOVE.w	#$0010, D1
 Assign_ai_sprite_depth_frame:
 	SUBQ.w	#8, D1
-	LEA	loc_9C1C(PC), A1
+	LEA	Ai_sprite_depth_frame_ptrs(PC), A1
 	MOVE.l	(A1,D1.w), $8(A0)
 	MOVE.b	D1, $2A(A0)
 loc_97EA:
@@ -14279,7 +14279,7 @@ Compute_rival_screen_x_Clamp_max:
 	MOVE.w	#$0010, D1
 Assign_rival_sprite_depth_frame:
 	SUBQ.w	#8, D1
-	LEA	loc_9C08(PC), A1
+	LEA	Rival_sprite_depth_frame_ptrs(PC), A1
 	MOVE.l	(A1,D1.w), $8(A0)
 	MOVE.b	D1, $2A(A0)
 	MOVE.w	Player_place_score.w, D1
@@ -14660,18 +14660,24 @@ Update_engine_and_tire_sounds_Pan_write:
 	OR.w	D7, D0
 	MOVE.w	D0, $2(A4)
 	RTS
-	dc.l	loc_104F0
-	dc.l	loc_104A8
-loc_9C08:
-	dc.l	loc_10484
-	dc.l	loc_104CC
-	dc.l	loc_10514
-	dc.l	loc_10598
-	dc.l	loc_10568
-loc_9C1C:
-	dc.l	loc_10538
-	dc.l	loc_10550
-	dc.l	loc_10580
+; Sprite frame pointer tables for depth-sorted car rendering.
+; Rival variant: indexed from Rival_sprite_depth_frame_ptrs with offset D1 ∈ {-8,-4,0,+4,+8}.
+; AI variant:    indexed from Ai_sprite_depth_frame_ptrs  with offset D1 ∈ {-8,-4,0,+4,+8}.
+; The two tables share entries at Ai_sprite_depth_frame_ptrs-8 and -4 (= Rival +12 and +16).
+	dc.l	loc_104F0                          ; rival depth -8
+	dc.l	loc_104A8                          ; rival depth -4
+;loc_9C08
+Rival_sprite_depth_frame_ptrs:
+	dc.l	loc_10484                          ; rival depth  0
+	dc.l	loc_104CC                          ; rival depth +4
+	dc.l	loc_10514                          ; rival depth +8 / AI depth -8 (shared)
+	dc.l	loc_10598                          ; rival depth +12 / AI depth -4 (shared)
+	dc.l	loc_10568                          ; rival depth +16 / AI depth  0 (shared, = Ai_sprite_depth_frame_ptrs)
+;loc_9C1C
+Ai_sprite_depth_frame_ptrs:
+	dc.l	loc_10538                          ; AI depth +4
+	dc.l	loc_10550                          ; AI depth +8
+	dc.l	loc_10580                          ; AI depth +12 (unused upper end)
 ;loc_9C28
 Ai_screen_x_to_angle_table:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
@@ -14681,43 +14687,54 @@ Ai_screen_x_to_angle_table:
 	dc.b	$10, $10, $10, $10, $10, $10, $10, $10, $10, $10, $14, $14, $14, $14, $14, $14, $14, $14, $14, $18, $18, $18, $18, $18, $18, $18, $1C, $1C, $1C, $1C, $1C, $20
 	dc.b	$20, $20
 loc_9CCA:
+;Nearby_rival_car_obj_done: ; JMP Clear_object_slot — terminates this ghost car object
+Nearby_rival_car_obj_done:
 	JMP	Clear_object_slot
+;Nearby_rival_car_obj_init_fast: ; init variant 1 — faster ghost, $2C=1, $2E=6
+Nearby_rival_car_obj_init_fast:
 	MOVE.l	#$0001061C, D0
 	MOVEQ	#1, D1
 	MOVEQ	#6, D2
-	BRA.b	loc_9D1A
+	BRA.b	Nearby_rival_car_obj_setup
+;Nearby_rival_car_obj_init_mid: ; init variant 2 — mid-speed ghost, $2C=2, $2E=4
+Nearby_rival_car_obj_init_mid:
 	MOVE.l	#$000105F8, D0
 	MOVEQ	#2, D1
 	MOVEQ	#4, D2
-	BRA.b	loc_9D1A
-	MOVE.l	#$00009CDC, D1
+	BRA.b	Nearby_rival_car_obj_setup
+;Nearby_rival_car_obj_init_slow: ; init variant 3 (alloc sub-objects), fallback if alloc fails
+Nearby_rival_car_obj_init_slow:
+	MOVE.l	#Nearby_rival_car_obj_init_mid, D1
 	JSR	Alloc_and_init_aux_object_slot
-	BCS.b	loc_9D10
+	BCS.b	Nearby_rival_car_obj_init_fallback
 	MOVE.l	$30(A0), $30(A1)
-	MOVE.l	#$00009CD0, D1
+	MOVE.l	#Nearby_rival_car_obj_init_fast, D1
 	JSR	Find_free_aux_slot_loop
-	BCS.b	loc_9D10
+	BCS.b	Nearby_rival_car_obj_init_fallback
 	MOVE.l	$30(A0), $30(A1)
-loc_9D10:
+;loc_9D10
+Nearby_rival_car_obj_init_fallback:
 	MOVE.l	#$000105D4, D0
 	MOVEQ	#3, D1
 	MOVEQ	#2, D2
-loc_9D1A:
-	MOVE.l	#loc_9D32, (A0)
+;loc_9D1A
+Nearby_rival_car_obj_setup:
+	MOVE.l	#Nearby_rival_car_obj, (A0)
 	MOVE.b	#1, $24(A0)
 	MOVE.l	D0, $8(A0)
 	MOVE.w	D1, $2C(A0)
 	MOVE.w	D2, $2E(A0)
-loc_9D32:
+;loc_9D32
+Nearby_rival_car_obj:
 	MOVE.w	Race_finish_flag.w, D0
 	OR.w	Retire_flag.w, D0
-	BNE.b	loc_9CCA
+	BNE.b	Nearby_rival_car_obj_done
 	MOVEA.l	$30(A0), A1
 	MOVE.b	$10(A1), D0
 	OR.b	$25(A1), D0
-	BEQ.b	loc_9CCA
+	BEQ.b	Nearby_rival_car_obj_done
 	BTST.b	#0, Frame_counter.w
-	BEQ.b	loc_9DB6
+	BEQ.b	Nearby_rival_car_obj_Rts
 	MOVE.w	$12(A1), $12(A0)
 	MOVE.b	$2A(A1), D0
 	EXT.w	D0
@@ -14725,19 +14742,21 @@ loc_9D32:
 	ADD.w	D0, D0
 	ADD.w	D1, D0
 	TST.w	$E(A1)
-	BMI.b	loc_9D6C
+	BMI.b	Nearby_rival_car_obj_Flip
 	NEG.w	D0
-loc_9D6C:
+;loc_9D6C
+Nearby_rival_car_obj_Flip:
 	ADD.w	D0, $12(A0)
 	MOVE.w	$1A(A1), D0
 	SUB.w	$2E(A0), D0
-	BCC.b	loc_9D7E
+	BCC.b	Nearby_rival_car_obj_Wrap
 	ADD.w	Track_length.w, D0
-loc_9D7E:
+;loc_9D7E
+Nearby_rival_car_obj_Wrap:
 	MOVE.w	D0, $1A(A0)
 	JSR	Compute_ai_screen_x_offset(PC)
 	TST.w	D7
-	BEQ.b	loc_9DB6
+	BEQ.b	Nearby_rival_car_obj_Rts
 	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	MOVE.w	$E(A0), D0
@@ -14751,14 +14770,20 @@ loc_9D7E:
 	LSR.w	D1, D0
 	ADD.w	D2, D0
 	SUB.w	D0, $16(A0)
-loc_9DB6:
+;loc_9DB6
+Nearby_rival_car_obj_Rts:
 	RTS
+;Race_grid_obj_init_champ: ($9DB8)
+; Championship race init: spawns 5 AI cars from Ai_car_init_table_champ,
+; sets Frame_callback to loc_BD56 (championship award sequence), then
+; falls through to Race_grid_obj common setup.
+Race_grid_obj_init_champ:
 	MOVE.w	#$FFFF, Player_grid_position.w
-	LEA	loc_A2CA(PC), A2
+	LEA	Ai_car_init_table_champ(PC), A2
 	MOVEQ	#4, D3
 	BSR.b	Spawn_trackside_objects
 	MOVE.l	#$0000BD56, $1E(A0)
-	BRA.b	loc_9E26
+	BRA.b	Race_grid_obj
 
 ;Spawn_trackside_objects
 Spawn_trackside_objects:
@@ -14771,116 +14796,145 @@ Spawn_trackside_objects:
 	MOVE.w	#$FFFF, (A1,D0.w)
 	MOVE.l	(A2)+, D1
 	JSR	Alloc_and_init_aux_object_slot
-	BCS.b	loc_9E06
+	BCS.b	Spawn_trackside_objects_Done
 	MOVE.l	A0, $26(A1)
-loc_9DF4:
+;loc_9DF4
+Spawn_trackside_objects_Loop:
 	MOVE.l	(A2)+, D1
 	JSR	Find_free_aux_slot_loop
-	BCS.b	loc_9E06
+	BCS.b	Spawn_trackside_objects_Done
 	MOVE.l	A0, $26(A1)
-	DBF	D3, loc_9DF4
-loc_9E06:
+	DBF	D3, Spawn_trackside_objects_Loop
+;loc_9E06
+Spawn_trackside_objects_Done:
 	RTS
-	LEA	loc_A2AA(PC), A2
+;Race_grid_obj_init_normal: ($9E08)
+; Normal/arcade race init: spawns 7 AI cars from Ai_car_init_table_normal,
+; sets Frame_callback to Pre_race_screen_init (or $2592 if AI active).
+Race_grid_obj_init_normal:
+	LEA	Ai_car_init_table_normal(PC), A2
 	MOVEQ	#6, D3
 	BSR.b	Spawn_trackside_objects
 	MOVE.l	#Pre_race_screen_init, $1E(A0)
 	TST.w	Ai_active_flag.w
-	BEQ.b	loc_9E26
+	BEQ.b	Race_grid_obj
 	MOVE.l	#$00002592, $1E(A0)
-loc_9E26:
-	MOVE.l	#loc_9E52, (A0)
+;loc_9E26
+Race_grid_obj:
+	MOVE.l	#Race_grid_obj_Countdown, (A0)
 	MOVE.w	#$FFE2, $2C(A0)
 	MOVE.w	#$0180, $2E(A0)
 	MOVE.w	#$0082, $22(A0)
 	MOVE.w	#Music_race, Audio_music_cmd        ; in-race background music
 	TST.w	Ai_active_flag.w
-	BEQ.b	loc_9E52
+	BEQ.b	Race_grid_obj_Countdown
 	MOVE.w	#$00A0, $22(A0)
-loc_9E52:
+;loc_9E52
+Race_grid_obj_Countdown:
 	JSR	Skip_if_hidden_flag(PC)
 	SUBQ.w	#1, $22(A0)
 	TST.w	$36(A0)
-	BNE.b	loc_9E80
+	BNE.b	Race_grid_obj_Moving
 	ADDQ.w	#1, $2C(A0)
-	BMI.b	loc_9E72
+	BMI.b	Race_grid_obj_Advance
 	SUBQ.w	#8, $2E(A0)
-	BNE.b	loc_9E72
+	BNE.b	Race_grid_obj_Advance
 	MOVE.w	#$FFFF, $36(A0)
-loc_9E72:
+;loc_9E72
+Race_grid_obj_Advance:
 	MOVE.w	Player_distance.w, D1
 	MOVE.w	$2C(A0), D0
 	JSR	Wrap_ai_track_position(PC)
-	BRA.b	loc_9E86
-loc_9E80:
+	BRA.b	Race_grid_obj_Draw
+;loc_9E80
+Race_grid_obj_Moving:
 	MOVE.w	#1, $36(A0)
-loc_9E86:
+;loc_9E86
+Race_grid_obj_Draw:
 	LEA	loc_9EA4-1(PC), A1
 	LEA	$FFFFFCF6.w, A2
 	JSR	Write_3_palette_vdp_bytes
 	TST.w	$22(A0)
-	BNE.b	loc_9EA0
+	BNE.b	Race_grid_obj_Return
 	MOVE.l	$1E(A0), Frame_callback.w
-loc_9EA0:
+;loc_9EA0
+Race_grid_obj_Return:
 	RTS
 	dc.w	$007F
+;loc_9EA4 — palette color word written by Write_3_palette_vdp_bytes above
 loc_9EA4:
 	dc.w	$AD80
 
 ;Wrap_ai_track_position
 Wrap_ai_track_position:
 	ADD.w	D1, D0
-	BPL.b	loc_9EB0
+	BPL.b	Wrap_ai_track_position_Positive
 	ADD.w	Track_length.w, D0
-	BRA.b	loc_9EBA
-loc_9EB0:
+	BRA.b	Wrap_ai_track_position_Done
+;loc_9EB0
+Wrap_ai_track_position_Positive:
 	CMP.w	Track_length.w, D0
-	BCS.b	loc_9EBA
+	BCS.b	Wrap_ai_track_position_Done
 	SUB.w	Track_length.w, D0
-loc_9EBA:
+;loc_9EBA
+Wrap_ai_track_position_Done:
 	MOVE.w	D0, $1A(A0)
 	RTS
-loc_9EC0
-	LEA	loc_A382(PC), A1
+;loc_9EC0
+Ai_car_obj_init_C0:
+	LEA	Ai_car_data_C0(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EC6
-	LEA	loc_A396(PC), A1
+;loc_9EC6
+Ai_car_obj_init_C1:
+	LEA	Ai_car_data_C1(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9ECC
-	LEA	loc_A3AA(PC), A1
+;loc_9ECC
+Ai_car_obj_init_C2:
+	LEA	Ai_car_data_C2(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9ED2
-	LEA	loc_A3BE(PC), A1
+;loc_9ED2
+Ai_car_obj_init_C3:
+	LEA	Ai_car_data_C3(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9ED8
-	LEA	loc_A3D2(PC), A1
+;loc_9ED8
+Ai_car_obj_init_C4:
+	LEA	Ai_car_data_C4(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EDE
-	LEA	loc_A3E6(PC), A1
+;loc_9EDE
+Ai_car_obj_init_C5:
+	LEA	Ai_car_data_C5(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EE4:
-	LEA	loc_A2E2(PC), A1
+;loc_9EE4
+Ai_car_obj_init_N0:
+	LEA	Ai_car_data_N0(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EEA:
-	LEA	loc_A2F6(PC), A1
+;loc_9EEA
+Ai_car_obj_init_N1:
+	LEA	Ai_car_data_N1(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EF0:
-	LEA	loc_A30A(PC), A1
+;loc_9EF0
+Ai_car_obj_init_N2:
+	LEA	Ai_car_data_N2(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EF6:
-	LEA	loc_A31E(PC), A1
+;loc_9EF6
+Ai_car_obj_init_N3:
+	LEA	Ai_car_data_N3(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9EFC:
-	LEA	loc_A332(PC), A1
+;loc_9EFC
+Ai_car_obj_init_N4:
+	LEA	Ai_car_data_N4(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9F02:
-	LEA	loc_A346(PC), A1
+;loc_9F02
+Ai_car_obj_init_N5:
+	LEA	Ai_car_data_N5(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9F08:
-	LEA	loc_A35A(PC), A1
+;loc_9F08
+Ai_car_obj_init_N6:
+	LEA	Ai_car_data_N6(PC), A1
 	BRA.b	Init_ai_car_fields
-loc_9F0E:
-	LEA	loc_A36E(PC), A1
+;loc_9F0E
+Ai_car_obj_init_N7:
+	LEA	Ai_car_data_N7(PC), A1
 ;loc_9F12
 Init_ai_car_fields:
 ; Common AI car object initialization tail.
@@ -14895,7 +14949,7 @@ Init_ai_car_fields:
 ;   A1[18].w -> $2A(A0) (screen X base)
 ; Also sets $22(A0)=$0015, $24(A0)=1.
 ; All 14 entry stubs above this label load a different A1 data pointer and BRA here.
-	MOVE.l	#loc_9F40, (A0)
+	MOVE.l	#Ai_car_obj, (A0)
 	MOVE.l	(A1)+, $8(A0)
 	MOVE.l	(A1)+, $1E(A0)
 	MOVE.w	#$0015, $22(A0)
@@ -14905,25 +14959,29 @@ Init_ai_car_fields:
 	MOVE.w	(A1)+, $10(A0)
 	MOVE.w	(A1)+, $2E(A0)
 	MOVE.w	(A1)+, $2A(A0)
-loc_9F40:
+;loc_9F40
+Ai_car_obj:
 	TST.w	Race_timer_freeze.w
-	BEQ.b	loc_9F4C
+	BEQ.b	Ai_car_obj_Active
 	JMP	Queue_object_for_sprite_buffer
-loc_9F4C:
+;loc_9F4C
+Ai_car_obj_Active:
 	MOVEA.l	$26(A0), A1
 	TST.w	$36(A1)
-	BEQ.w	loc_9FF8
-	BPL.b	loc_9F60
+	BEQ.w	Ai_car_obj_Oscillate
+	BPL.b	Ai_car_obj_Sync_pos
 	MOVE.w	$1A(A1), $1A(A0)
-loc_9F60:
+;loc_9F60
+Ai_car_obj_Sync_pos:
 	TST.w	$36(A0)
-	BEQ.b	loc_9F7E
+	BEQ.b	Ai_car_obj_Move
 	ORI.b	#$80, $C(A0)
 	MOVE.w	$2A(A0), D0
 	ADDI.w	#$00A3, D0
 	MOVE.w	D0, $E(A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_9F7E:
+;loc_9F7E
+Ai_car_obj_Move:
 	MOVE.w	$2C(A0), D0
 	ADD.w	$2E(A0), D0
 	MOVE.w	D0, $2C(A0)
@@ -14941,9 +14999,10 @@ loc_9F7E:
 	BEQ.w	loc_A066
 	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
-	BCS.b	loc_9FC2
+	BCS.b	Ai_car_obj_Move_no_decr
 	SUBQ.w	#2, (A1)
-loc_9FC2:
+;loc_9FC2
+Ai_car_obj_Move_no_decr:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_y_table_b, A1
@@ -14958,14 +15017,15 @@ loc_9FC2:
 	MOVE.w	$2A(A0), D0
 	ADD.w	D0, $E(A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_9FF8:
+;loc_9FF8
+Ai_car_obj_Oscillate:
 	SUBQ.w	#5, $10(A0)
-	JSR	loc_A0B8(PC)
+	JSR	Ai_oscillation_phase(PC)
 	MULS.w	$2E(A1), D0
 	SWAP	D0
 	ADD.w	Horizontal_position.w, D0
 	MOVE.w	D0, $12(A0)
-	JSR	loc_A0AE(PC)
+	JSR	Ai_oscillation_phase_offset(PC)
 	MULS.w	$2E(A1), D0
 	SWAP	D0
 	ASR.w	#5, D0
@@ -15015,27 +15075,35 @@ Copy_sprite_frame_data:
 	MOVEM.l	D0-D7/A3-A6, (A2)
 	RTS
 
-loc_A0AE:
+;loc_A0AE
+Ai_oscillation_phase_offset:
 	MOVE.w	$10(A0), D0
 	ADDI.w	#$0020, D0
-	BRA.b	loc_A0BC
+	BRA.b	Ai_oscillation_phase_Lookup
 
-loc_A0B8:
+;loc_A0B8
+Ai_oscillation_phase:
 	MOVE.w	$10(A0), D0
-loc_A0BC:
+;loc_A0BC
+Ai_oscillation_phase_Lookup:
 	ANDI.w	#$007F, D0
 	ADD.w	D0, D0
-	LEA	loc_A3FA(PC), A6
+	LEA	Ai_lateral_sine_table(PC), A6
 	MOVE.w	(A6,D0.w), D0
 	RTS
-	MOVE.l	#loc_A0E6, (A0)
+;Rival_dust_obj_init: ($A0CC)
+; Allocated by Advance_ai_track_position when a rival car passes at high speed.
+; Displays a brief dust/wake effect sprite near the fast-moving rival.
+Rival_dust_obj_init:
+	MOVE.l	#Rival_dust_obj, (A0)
 	MOVE.l	#loc_105B0, $8(A0)
 	MOVE.b	#1, $24(A0)
 	MOVE.w	#9, $36(A0)
-loc_A0E6:
+;loc_A0E6
+Rival_dust_obj:
 	MOVE.w	Race_finish_flag.w, D0
 	OR.w	Retire_flag.w, D0
-	BNE.b	loc_A12C
+	BNE.b	Rival_dust_obj_Done
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
@@ -15044,19 +15112,22 @@ loc_A0E6:
 	ADD.l	$1A(A0), D0
 	SWAP	D0
 	CMP.w	Track_length.w, D0
-	BCS.b	loc_A112
+	BCS.b	Rival_dust_obj_No_wrap
 	SUB.w	Track_length.w, D0
-loc_A112:
+;loc_A112
+Rival_dust_obj_No_wrap:
 	SWAP	D0
 	MOVE.l	D0, $1A(A0)
 	JSR	Compute_ai_screen_x_offset(PC)
 	LEA	Ai_screen_x_dispatch_table, A1
 	JSR	(A1,D7.w)
 	SUBQ.w	#1, $36(A0)
-	BNE.b	loc_A132
-loc_A12C:
+	BNE.b	Rival_dust_obj_Rts
+;loc_A12C
+Rival_dust_obj_Done:
 	JMP	Clear_object_slot
-loc_A132:
+;loc_A132
+Rival_dust_obj_Rts:
 	RTS
 
 ;Alloc_and_init_aux_object_slot
@@ -15067,36 +15138,45 @@ Alloc_and_init_aux_object_slot:
 ;Find_free_aux_slot_loop
 Find_free_aux_slot_loop:
 	TST.l	(A1)
-	BEQ.b	loc_A14A
+	BEQ.b	Find_free_aux_slot_loop_Found
 	LEA	$40(A1), A1
 	DBF	D2, Find_free_aux_slot_loop
 	ADDQ.w	#2, D2
-	BRA.b	loc_A150
-loc_A14A:
+	BRA.b	Find_free_aux_slot_loop_Return
+;loc_A14A
+Find_free_aux_slot_loop_Found:
 	MOVE.l	D1, (A1)
 	MOVE.w	D0, $1A(A1)
-loc_A150:
+;loc_A150
+Find_free_aux_slot_loop_Return:
 	RTS
 
 ;loc_A152
 Update_rival_sprite_tiles:
 	TST.w	Race_started.w
-	BEQ.b	loc_A172
+	BEQ.b	Update_rival_sprite_tiles_Return
 	MOVE.w	#$0444, D0
 	BTST.b	#0, Frame_counter.w
-	BEQ.b	loc_A168
+	BEQ.b	Update_rival_sprite_tiles_Write
 	MOVE.w	#$0888, D0
-loc_A168:
+;loc_A168
+Update_rival_sprite_tiles_Write:
 	LEA	$FFFFE9B4.w, A1
 	MOVE.w	D0, (A1)
 	MOVE.w	D0, $20(A1)
-loc_A172:
+;loc_A172
+Update_rival_sprite_tiles_Return:
 	RTS
+;Flagkeeper_car_obj_guard: ($A174)
+; Gate for the flagkeeper car: returns early if a sign DMA is pending this frame.
+; Otherwise falls through to Flagkeeper_car_obj_init.
+Flagkeeper_car_obj_guard:
 	TST.w	$FFFF9264.w
-	BEQ.b	loc_A17C
+	BEQ.b	Flagkeeper_car_obj_init
 	RTS
-loc_A17C:
-	MOVE.l	#loc_A1AA, (A0)
+;loc_A17C
+Flagkeeper_car_obj_init:
+	MOVE.l	#Flagkeeper_car_obj, (A0)
 	MOVE.l	#loc_108FC, $8(A0)
 	MOVE.w	#4, $1A(A0)
 	MOVE.b	#1, $24(A0)
@@ -15104,21 +15184,25 @@ loc_A17C:
 	MOVE.w	#$044E, $14(A1)
 	MOVE.w	#$06AE, $18(A1)
 	CLR.w	Player_overtaken_flag.w
-loc_A1AA:
+;loc_A1AA
+Flagkeeper_car_obj:
 	MOVE.w	Horizontal_position.w, D0
 	SUBI.w	#$0060, D0
 	SMI	D7
-	BPL.b	loc_A1B8
+	BPL.b	Flagkeeper_car_obj_Clamp
 	NEG.w	D0
-loc_A1B8:
+;loc_A1B8
+Flagkeeper_car_obj_Clamp:
 	CMPI.w	#$00F0, D0
-	BCS.b	loc_A1C2
+	BCS.b	Flagkeeper_car_obj_Sign
 	MOVE.w	#$00F0, D0
-loc_A1C2:
+;loc_A1C2
+Flagkeeper_car_obj_Sign:
 	TST.b	D7
-	BEQ.b	loc_A1C8
+	BEQ.b	Flagkeeper_car_obj_Position
 	NEG.w	D0
-loc_A1C8:
+;loc_A1C8
+Flagkeeper_car_obj_Position:
 	MOVE.w	D0, $12(A0)
 	JSR	Compute_ai_screen_x_offset(PC)
 	LEA	Ai_screen_x_dispatch_table, A1
@@ -15136,7 +15220,7 @@ loc_A1C8:
 	CMP.w	$12(A0), D0
 	BLE.b	Rival_collision_check_Return
 	MOVE.w	#1, Player_overtaken_flag.w
-	MOVE.l	#loc_A228, (A0)
+	MOVE.l	#Flagkeeper_car_obj_Bounce, (A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#5, $2E(A0)
 	SUBI.w	#$0018, D1
@@ -15146,11 +15230,13 @@ loc_A1C8:
 ;Rival_collision_check_Return
 Rival_collision_check_Return:
 	RTS
-loc_A228:
+;loc_A228
+Flagkeeper_car_obj_Bounce:
 	SUBQ.w	#2, $E(A0)
-	BPL.b	loc_A234
+	BPL.b	Flagkeeper_car_obj_Bounce_move
 	JMP	Clear_object_slot
-loc_A234:
+;loc_A234
+Flagkeeper_car_obj_Bounce_move:
 	MOVE.w	$2E(A0), D0
 	ADD.w	D0, $12(A0)
 	MOVE.w	$E(A0), D4
@@ -15181,67 +15267,84 @@ Apply_sorted_positions_to_cars:
 	MOVEQ	#$0000000D, D7
 loc_A27E:
 	MOVE.w	(A0)+, D0
-	BEQ.b	loc_A294
+	BEQ.b	Apply_sorted_positions_skip
 	CMPI.w	#$FFFF, D0
-	BEQ.b	loc_A294
+	BEQ.b	Apply_sorted_positions_skip
 	MOVEA.w	D0, A1
 	MOVE.w	(A0), $38(A1)
 	MOVE.w	$2(A0), $3A(A1)
-loc_A294:
+Apply_sorted_positions_skip:
 	DBF	D7, loc_A27E
 	MOVE.w	(A0)+, D0
-	BEQ.b	loc_A2A8
+	BEQ.b	Apply_sorted_positions_done
 	CMPI.w	#$FFFF, D0
-	BEQ.b	loc_A2A8
+	BEQ.b	Apply_sorted_positions_done
 	MOVEA.w	D0, A1
 	MOVE.w	(A0), $38(A1)
-loc_A2A8:
+Apply_sorted_positions_done:
 	RTS
-loc_A2AA:
-	dc.l	loc_9EE4
-	dc.l	loc_9EEA
-	dc.l	loc_9EF0
-	dc.l	loc_9EF6
-	dc.l	loc_9EFC
-	dc.l	loc_9F02
-	dc.l	loc_9F08
-	dc.l	loc_9F0E
-loc_A2CA:
-	dc.l	loc_9EC0
-	dc.l	loc_9EC6
-	dc.l	loc_9ECC
-	dc.l	loc_9ED2
-	dc.l	loc_9ED8
-	dc.l	loc_9EDE
-loc_A2E2:
+;loc_A2AA
+Ai_car_init_table_normal:
+	dc.l	Ai_car_obj_init_N0
+	dc.l	Ai_car_obj_init_N1
+	dc.l	Ai_car_obj_init_N2
+	dc.l	Ai_car_obj_init_N3
+	dc.l	Ai_car_obj_init_N4
+	dc.l	Ai_car_obj_init_N5
+	dc.l	Ai_car_obj_init_N6
+	dc.l	Ai_car_obj_init_N7
+;loc_A2CA
+Ai_car_init_table_champ:
+	dc.l	Ai_car_obj_init_C0
+	dc.l	Ai_car_obj_init_C1
+	dc.l	Ai_car_obj_init_C2
+	dc.l	Ai_car_obj_init_C3
+	dc.l	Ai_car_obj_init_C4
+	dc.l	Ai_car_obj_init_C5
+;loc_A2E2
+Ai_car_data_N0:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5B, $00, $00, $01, $2A, $64, $03, $D0, $00, $00, $FF, $C6, $00, $01
-loc_A2F6:
+;loc_A2F6
+Ai_car_data_N1:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5C, $20, $00, $01, $2A, $88, $03, $D9, $00, $09, $FF, $D6, $FF, $FF
-loc_A30A:
+;loc_A30A
+Ai_car_data_N2:
 	dc.b	$00, $01, $0A, $64, $00, $FF, $5D, $40, $00, $01, $2A, $AC, $03, $E2, $00, $12, $FF, $E6, $00, $01
-loc_A31E:
+;loc_A31E
+Ai_car_data_N3:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5E, $60, $00, $01, $2A, $D0, $03, $EB, $00, $1B, $FF, $F6, $FF, $FF
-loc_A332:
+;loc_A332
+Ai_car_data_N4:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5F, $80, $00, $01, $2A, $F4, $03, $F4, $00, $24, $00, $0A, $00, $01
-loc_A346:
+;loc_A346
+Ai_car_data_N5:
 	dc.b	$00, $01, $0A, $64, $00, $FF, $60, $A0, $00, $01, $2B, $18, $03, $FD, $00, $2D, $00, $1A, $FF, $FF
-loc_A35A:
+;loc_A35A
+Ai_car_data_N6:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $61, $C0, $00, $01, $2B, $3C, $04, $06, $00, $36, $00, $2A, $00, $01
-loc_A36E:
+;loc_A36E
+Ai_car_data_N7:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $62, $E0, $00, $01, $2B, $60, $04, $0F, $00, $3F, $00, $3A, $FF, $FF
-loc_A382:
+;loc_A382
+Ai_car_data_C0:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5B, $00, $00, $01, $2B, $84, $03, $D0, $00, $00, $FF, $D8, $00, $01
-loc_A396:
+;loc_A396
+Ai_car_data_C1:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5C, $20, $00, $01, $2A, $D0, $03, $D9, $00, $0A, $FF, $E8, $FF, $FF
-loc_A3AA:
+;loc_A3AA
+Ai_car_data_C2:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5D, $40, $00, $01, $2B, $A8, $03, $E2, $00, $14, $FF, $F8, $00, $01
-loc_A3BE:
+;loc_A3BE
+Ai_car_data_C3:
 	dc.b	$00, $01, $0A, $88, $00, $FF, $5E, $60, $00, $01, $2B, $CC, $03, $EB, $00, $1E, $00, $08, $FF, $FF
-loc_A3D2:
+;loc_A3D2
+Ai_car_data_C4:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $5F, $80, $00, $01, $2B, $60, $03, $F4, $00, $28, $00, $18, $00, $01
-loc_A3E6:
+;loc_A3E6
+Ai_car_data_C5:
 	dc.b	$00, $01, $0A, $40, $00, $FF, $60, $A0, $00, $01, $2B, $3C, $03, $FD, $00, $32, $00, $28, $FF, $FF
-loc_A3FA:
+;loc_A3FA
+Ai_lateral_sine_table:
 	dc.w	$7FFF, $7FD8, $7F61, $7E9C, $7D89, $7C29, $7A7C, $7884, $7641, $73B5, $70E2, $6DC9, $6A6D, $66CF, $62F1, $5ED7, $5A82, $55F5, $5133, $4C3F, $471C, $41CE, $3C56, $36BA, $30FB, $2B1F, $2528, $1F1A, $18F9, $12C8, $0C8C, $0648
 	dc.w	$0000, $F9B8, $F374, $ED38, $E707, $E0E6, $DAD8, $D4E1, $CF05, $C946, $C3AA, $BE32, $B8E4, $B3C1, $AECD, $AA0B, $A57E, $A129, $9D0F, $9931, $9593, $9237, $8F1E, $8C4B, $89BF, $877C, $8584, $83D7, $8277, $8164, $809F, $8028
 	dc.w	$8001, $8028, $809F, $8164, $8277, $83D7, $8584, $877C, $89BF, $8C4B, $8F1E, $9237, $9593, $9931, $9D0F, $A129, $A57E, $AA0B, $AECD, $B3C1, $B8E4, $BE32, $C3AA, $C946, $CF05, $D4E1, $DAD8, $E0E6, $E707, $ED38, $F374, $F9B8
