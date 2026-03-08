@@ -10847,7 +10847,7 @@ Update_race_timer_Draw_lap:
 	TST.w	D1
 	BEQ.w	Update_race_timer_Next_lap
 	MOVE.w	#1, New_lap_flag.w
-	MOVE.l	#$000076C2, Main_object_pool.w
+	MOVE.l	#Lap_end_obj, Main_object_pool.w
 	CLR.l	(A0)
 	MOVE.b	#$14, (A0)
 	TST.w	Track_index_arcade_mode.w
@@ -11022,34 +11022,36 @@ Bcd_add_lap_time:
 	ADDI.w	#0, D0
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
-	BCS.b	loc_76B0
+	BCS.b	Bcd_add_lap_time_Carry
 	MOVE.b	(A2), D0
 	ABCD	-(A1), -(A2)
 	MOVEQ	#$00000060, D1
 	ADDI.w	#0, D0
 	SBCD	D1, D0
-	BCS.b	loc_76C0
+	BCS.b	Bcd_add_lap_time_Rts
 	MOVE.b	D0, $1(A2)
 	MOVE.b	(A2), D0
 	MOVEQ	#1, D1
 	ABCD	D1, D0
 	MOVE.b	D0, (A2)
-	BRA.b	loc_76C0
-loc_76B0:
+	BRA.b	Bcd_add_lap_time_Rts
+Bcd_add_lap_time_Carry:
 	MOVE.b	(A2), D0
 	ABCD	-(A1), -(A2)
 	MOVEQ	#$00000040, D1
 	ADDI.w	#0, D0
 	ABCD	D1, D0
 	MOVE.b	D0, $1(A2)
-loc_76C0:
+Bcd_add_lap_time_Rts:
 	RTS
+;loc_76C2
+Lap_end_obj:
 	TST.w	Ai_active_flag.w
-	BNE.b	loc_7704
+	BNE.b	Lap_end_obj_Clear
 	TST.w	Warm_up.w
-	BEQ.b	loc_76F8
+	BEQ.b	Lap_end_obj_Check_mode
 	TST.w	Laps_done_flag.w
-	BNE.w	loc_7778
+	BNE.w	Lap_end_obj_Overtake
 	MOVE.l	#$62780003, D7
 	MOVE.w	Laps_completed.w, D1
 	ADD.w	D1, D1
@@ -11059,28 +11061,28 @@ loc_76C0:
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
 	JSR	Queue_tilemap_draw
-	BRA.b	loc_776C
-loc_76F8:
+	BRA.b	Lap_end_obj_Next_lap
+Lap_end_obj_Check_mode:
 	TST.w	Practice_mode.w
-	BNE.b	loc_776C
+	BNE.b	Lap_end_obj_Next_lap
 	TST.w	Track_index_arcade_mode.w
-	BNE.b	loc_770A
-loc_7704:
+	BNE.b	Lap_end_obj_Arcade
+Lap_end_obj_Clear:
 	JMP	Clear_object_slot
-loc_770A:
-	JSR	loc_7822(PC)
+Lap_end_obj_Arcade:
+	JSR	Advance_rival_position_bcd(PC)
 	JSR	Award_race_position_points
 	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#2, D0
 	MOVE.w	Laps_completed.w, D1
 	CMP.w	D1, D0
-	BNE.b	loc_772A
+	BNE.b	Lap_end_obj_Not_final
 	MOVE.w	#1, $36(A0)
-loc_772A:
+Lap_end_obj_Not_final:
 	ADDQ.w	#1, D0
 	CMP.w	D1, D0
-	BLS.b	loc_7778
+	BLS.b	Lap_end_obj_Overtake
 	MOVE.l	#$62780003, D7
 	ADD.w	D1, D1
 	ADD.w	D1, D1
@@ -11091,88 +11093,89 @@ loc_772A:
 	JSR	Queue_tilemap_draw
 	MOVEQ	#3, D7
 	TST.w	$36(A0)
-	BNE.b	loc_7768
+	BNE.b	Lap_end_obj_Set_sound
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_776C
+	BNE.b	Lap_end_obj_Next_lap
 	MOVEQ	#2, D7
 	MOVE.w	Current_placement.w, D0
 	CMP.w	Player_grid_position.w, D0
-	BLS.b	loc_7768
+	BLS.b	Lap_end_obj_Set_sound
 	MOVEQ	#1, D7
-loc_7768:
+Lap_end_obj_Set_sound:
 	MOVE.w	D7, $2A(A0)
-loc_776C:
+Lap_end_obj_Next_lap:
 	TST.w	Overtake_flag.w
-	BNE.b	loc_7778
+	BNE.b	Lap_end_obj_Overtake
 	MOVE.w	#1, Overtake_flag.w
-loc_7778:
+Lap_end_obj_Overtake:
 	LEA	loc_797C(PC), A1
 	LEA	$FFFFE88C.w, A3
 	MOVEQ	#3, D0
-loc_7782:
+Lap_end_obj_Copy_tilemap:
 	MOVE.l	(A1)+, (A3)+
-	DBF	D0, loc_7782
+	DBF	D0, Lap_end_obj_Copy_tilemap
 	MOVE.l	Lap_time_ptr.w, D0
 	MOVE.w	#$8000, D3
 	LEA	$10(A3), A3
 	JSR	Format_bcd_time_to_tile_buffer
-	MOVE.l	#loc_77A6, (A0)
+	MOVE.l	#Lap_end_obj_Flash, (A0)
 	MOVE.w	#$000E, $1C(A0)
-loc_77A6:
+Lap_end_obj_Flash:
 	TST.w	Player_eliminated.w
-	BEQ.b	loc_77B4
+	BEQ.b	Lap_end_obj_Flash_tick
 	CLR.w	$1A(A0)
-	BSR.b	loc_77E4
-	BRA.b	loc_77CA
-loc_77B4:
+	BSR.b	Lap_end_obj_Draw
+	BRA.b	Lap_end_obj_Flash_done
+Lap_end_obj_Flash_tick:
 	SUBQ.w	#1, $22(A0)
-	BPL.b	loc_7820
+	BPL.b	Lap_end_obj_Flash_rts
 	MOVE.w	#8, $22(A0)
 	NOT.w	$1A(A0)
 	SUBQ.w	#1, $1C(A0)
-	BPL.b	loc_77D0
-loc_77CA:
+	BPL.b	Lap_end_obj_Flash_visible
+Lap_end_obj_Flash_done:
 	JMP	Clear_object_slot
-loc_77D0:
+Lap_end_obj_Flash_visible:
 	CMPI.w	#$000A, $1C(A0)
-	BNE.b	loc_77E4
+	BNE.b	Lap_end_obj_Draw
 	MOVE.w	$2A(A0), D0
-	BEQ.b	loc_77E4
+	BEQ.b	Lap_end_obj_Draw
 	MOVE.w	D0, $00FF5AC2
 
-loc_77E4:
+Lap_end_obj_Draw:
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
 	TST.w	$1A(A0)
-	BEQ.b	loc_77FA
+	BEQ.b	Lap_end_obj_Draw_queue
 	LEA	$FFFFE88C.w, A6
 	LEA	loc_798C(PC), A4
-loc_77FA:
+Lap_end_obj_Draw_queue:
 	MOVE.l	#$64D00003, D7
 	MOVEQ	#$0000000F, D6
 	MOVEQ	#0, D5
 	JSR	Queue_tilemap_draw
 	TST.w	$36(A0)
-	BEQ.b	loc_7820
+	BEQ.b	Lap_end_obj_Flash_rts
 	LEA	(A4), A6
 	MOVE.l	#$64580003, D7
 	MOVEQ	#8, D6
 	JSR	Queue_tilemap_draw
-loc_7820:
+Lap_end_obj_Flash_rts:
 	RTS
 
-loc_7822:
+;loc_7822
+Advance_rival_position_bcd:
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_785A
+	BNE.b	Advance_rival_position_bcd_Rts
 	LEA	loc_7968(PC), A1
 	MOVE.w	Laps_completed.w, D0
 	CMPI.w	#3, D0
-	BNE.b	loc_7844
+	BNE.b	Advance_rival_position_bcd_Offset
 	MOVE.w	Player_grid_position.w, D0
 	CMPI.w	#8, D0
-	BCC.b	loc_785A
+	BCC.b	Advance_rival_position_bcd_Rts
 	LEA	loc_796E(PC), A1
-loc_7844:
+Advance_rival_position_bcd_Offset:
 	ADD.w	D0, D0
 	ADDA.w	D0, A1
 	LEA	Rival_grid_position.w, A2
@@ -11180,7 +11183,7 @@ loc_7844:
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
 	MOVE.w	#1, Placement_display_dirty.w
-loc_785A:
+Advance_rival_position_bcd_Rts:
 	RTS
 
 ;loc_785C:
