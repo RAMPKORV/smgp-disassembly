@@ -5490,7 +5490,7 @@ Init_race_object_pool:
 	MOVEQ	#$0000000F, D1
 ;loc_38E0
 Init_race_object_pool_Obj_loop:
-	MOVE.l	#loc_A566, (A0)
+	MOVE.l	#Rival_crowd_car_obj_init, (A0)
 	LEA	$40(A0), A0
 	DBF	D1, Init_race_object_pool_Obj_loop
 	MOVE.l	#$00007AAE, Player_obj.w
@@ -5517,7 +5517,7 @@ Init_race_object_pool_Obj_loop:
 	MOVE.b	#$FC, $2B(A0)
 ;loc_3948
 Init_race_object_pool_Warmup:
-	MOVE.l	#$0000A60A, $FFFFAF40.w
+	MOVE.l	#Gear_diagram_obj_init, $FFFFAF40.w
 	MOVE.w	Track_length.w, D0
 	SUBQ.w	#6, D0
 	MOVE.w	D0, Player_distance.w
@@ -10887,7 +10887,7 @@ Update_race_timer_Arcade:
 	JSR	Update_rival_best_lap_time(PC)
 ;loc_74FC
 Update_race_timer_Alloc_obj:
-	MOVE.l	#$0000A50E, D1
+	MOVE.l	#Crash_retire_obj_init, D1
 	JSR	Alloc_aux_object_slot
 	MOVE.w	#1, Laps_done_flag.w
 ;Update_race_timer_Next_lap
@@ -12896,8 +12896,8 @@ Sign_handler_dispatch_rts:
 	RTS
 	dc.l	Init_background_ai_car_0
 	dc.l	Init_background_ai_car_1 ; first san marino sign
-	dc.l	loc_A944
-	dc.l	loc_A99A
+	dc.l	Background_ai_car_c_obj_spawn
+	dc.l	Background_ai_car_d_obj_init
 	dc.l	Init_background_ai_car_4
 	dc.l	Init_background_ai_car_5
 	dc.l	Init_background_ai_car_6
@@ -13264,7 +13264,7 @@ Update_background_ai_car_Lat_neg:
 Update_background_ai_car_Advance:
 	MOVE.b	$2B(A0), D2
 	EXT.w	D2
-	LEA	loc_A502(PC), A1
+	LEA	Bg_ai_car_speed_scale_table(PC), A1
 	MOVE.l	(A1,D2.w), D2
 	MOVE.l	$32(A0), D0
 	CLR.w	D0
@@ -13797,7 +13797,7 @@ Update_rival_ai_car_Lat_neg:
 Update_rival_ai_car_Advance:
 	MOVE.b	$2B(A0), D2
 	EXT.w	D2
-	LEA	loc_A502(PC), A1
+	LEA	Bg_ai_car_speed_scale_table(PC), A1
 	MOVE.l	(A1,D2.w), D2
 	MOVE.l	$32(A0), D0
 	CLR.w	D0
@@ -15351,17 +15351,21 @@ Ai_lateral_sine_table:
 	dc.w	$0000, $0648, $0C8C, $12C8, $18F9, $1F1A, $2528, $2B1F, $30FB, $36BA, $3C56, $41CE, $471C, $4C3F, $5133, $55F5, $5A82, $5ED7, $62F1, $66CF, $6A6D, $6DC9, $70E2, $73B5, $7641, $7884, $7A7C, $7C29, $7D89, $7E9C, $7F61, $7FD8
 	dc.l	$00002B00
 	dc.l	$00005580
-loc_A502:
+;loc_A502
+Bg_ai_car_speed_scale_table:
 	dc.l	$00008000
 	dc.l	$0000AA80
 	dc.l	$0000D500
-	MOVE.l	#loc_A526, (A0)
+;loc_A50E
+Crash_retire_obj_init:
+	MOVE.l	#Crash_retire_obj, (A0)
 	MOVE.w	#$0028, $36(A0)
 	MOVE.w	#1, Retire_animation_flag.w
 	MOVE.w	#1, Spin_off_track_flag.w
-loc_A526:
+;loc_A526
+Crash_retire_obj:
 	SUBQ.w	#1, $36(A0)
-	BNE.b	loc_A564
+	BNE.b	Crash_retire_obj_Rts
 	MOVE.l	#Title_menu, D1
 	TST.w	Warm_up.w
 	BNE.b	Set_retire_frame_callback
@@ -15377,43 +15381,50 @@ loc_A526:
 	MOVE.l	#loc_DBBE, D1
 Set_retire_frame_callback:
 	MOVE.l	D1, Frame_callback.w
-loc_A564:
+;loc_A564
+Crash_retire_obj_Rts:
 	RTS
-loc_A566:
-	MOVE.l	#loc_A5D4, (A0)
+;loc_A566
+Rival_crowd_car_obj_init:
+	MOVE.l	#Rival_crowd_car_obj, (A0)
 	MOVE.l	#Rival_car_anim_data_a, D0
 	MOVE.w	#$FC00, D1
 	CMPA.w	#$B440, A0
-	BNE.b	loc_A592
+	BNE.b	Rival_crowd_car_obj_init_champ_check
 	MOVE.l	#$000127B8, D0
 	MOVE.w	#$F9C0, D1
 	MOVE.w	#$009F, $FFFFFC2E.w
-	MOVE.l	#loc_A5DC, (A0)
-loc_A592:
+	MOVE.l	#Rival_crowd_car_obj_Draw, (A0)
+;loc_A592
+Rival_crowd_car_obj_init_champ_check:
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_A5AA
+	BEQ.b	Rival_crowd_car_obj_init_validate
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_A5AA
+	BEQ.b	Rival_crowd_car_obj_init_validate
 	CMPA.w	#$B480, A0
-	BNE.b	loc_A5AA
+	BNE.b	Rival_crowd_car_obj_init_validate
 	MOVE.l	#Rival_car_anim_data_b, D0
-loc_A5AA:
+;loc_A5AA
+Rival_crowd_car_obj_init_validate:
 	TST.l	(A0,D1.w)
-	BNE.b	loc_A5B6
+	BNE.b	Rival_crowd_car_obj_init_store
 	JMP	Clear_object_slot
-loc_A5B6:
+;loc_A5B6
+Rival_crowd_car_obj_init_store:
 	MOVE.l	D0, $4(A0)
 	MOVE.w	D1, $2A(A0)
 	MOVE.w	$FFFFFC2E.w, $E(A0)
 	SUBQ.w	#4, $FFFFFC2E.w
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_A5D4
+	BNE.b	Rival_crowd_car_obj
 	MOVE.w	#8, $2C(A0)
-loc_A5D4:
+;loc_A5D4
+Rival_crowd_car_obj:
 	TST.w	$FFFFFC34.w
-	BEQ.b	loc_A5DC
+	BEQ.b	Rival_crowd_car_obj_Draw
 	RTS
-loc_A5DC:
+;loc_A5DC
+Rival_crowd_car_obj_Draw:
 	MOVE.w	$2A(A0), D0
 	MOVEQ	#0, D1
 	MOVE.b	$2C(A0,D0.w), D1
@@ -15426,55 +15437,64 @@ loc_A5DC:
 	ADD.w	$2E(A0), D1
 	MOVE.w	D1, $18(A0)
 	JMP	Queue_object_for_sprite_buffer
+;loc_A60A
+Gear_diagram_obj_init:
 	MOVE.l	#$000128F8, D0
 	TST.w	Warm_up.w
-	BNE.b	loc_A634
+	BNE.b	Gear_diagram_obj_init_done
 	MOVE.l	#$000128C6, D0
 	TST.w	Practice_mode.w
-	BNE.b	loc_A634
+	BNE.b	Gear_diagram_obj_init_done
 	MOVE.l	#$0001287C, D0
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_A634
+	BEQ.b	Gear_diagram_obj_init_done
 	JMP	Clear_object_slot
-loc_A634:
+;loc_A634
+Gear_diagram_obj_init_done:
 	MOVE.l	D0, $4(A0)
-	MOVE.l	#loc_A65C, (A0)
+	MOVE.l	#Gear_diagram_obj, (A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$0120, $16(A0)
 	MOVE.w	#$0100, $18(A0)
 	MOVE.w	#$000A, $24(A0)
 	MOVE.w	Player_place_score.w, $2A(A0)
-loc_A65C:
+;loc_A65C
+Gear_diagram_obj:
 	MOVEQ	#0, D1
 	CMPI.w	#3, $24(A0)
-	BCS.b	loc_A668
+	BCS.b	Gear_diagram_obj_Draw
 	MOVEQ	#1, D1
-loc_A668:
+;loc_A668
+Gear_diagram_obj_Draw:
 	BSR.b	Queue_gear_diagram_draw
 	TST.w	Race_started.w
-	BEQ.b	loc_A68A
+	BEQ.b	Gear_diagram_obj_Tick
 	SUBQ.w	#2, $16(A0)
 	ADDQ.w	#3, $18(A0)
 	CMPI.w	#$00E8, $16(A0)
-	BNE.b	loc_A68A
-	MOVE.l	#loc_A68A, (A0)
+	BNE.b	Gear_diagram_obj_Tick
+	MOVE.l	#Gear_diagram_obj_Tick, (A0)
 	MOVEQ	#0, D1
 	BSR.b	Queue_gear_diagram_draw
-loc_A68A:
+;loc_A68A
+Gear_diagram_obj_Tick:
 	SUBQ.w	#1, $24(A0)
-	BPL.b	loc_A696
+	BPL.b	Gear_diagram_obj_Timer_ok
 	MOVE.w	#$000A, $24(A0)
-loc_A696:
+;loc_A696
+Gear_diagram_obj_Timer_ok:
 	MOVE.w	Player_place_score.w, D0
 	SUB.w	$2A(A0), D0
 	CMPI.w	#700, D0
-	BCC.b	loc_A6AE
+	BCC.b	Gear_diagram_obj_Activate
 	CMPI.w	#3, $24(A0)
-	BCC.b	loc_A6B4
+	BCC.b	Gear_diagram_obj_Queue
 	RTS
-loc_A6AE:
+;loc_A6AE
+Gear_diagram_obj_Activate:
 	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
-loc_A6B4:
+;loc_A6B4
+Gear_diagram_obj_Queue:
 	JMP	Queue_object_for_sprite_buffer
 
 ;Queue_gear_diagram_draw
@@ -15484,12 +15504,13 @@ Queue_gear_diagram_draw:
 	MOVEQ	#0, D5
 	LEA	$00FF5980, A6
 	TST.w	D1
-	BEQ.b	loc_A6DC
+	BEQ.b	Queue_gear_diagram_draw_Dispatch
 	LEA	loc_B2DA(PC), A6
 	TST.w	Shift_type.w
-	BEQ.b	loc_A6DC
+	BEQ.b	Queue_gear_diagram_draw_Dispatch
 	LEA	loc_B2F8(PC), A6
-loc_A6DC:
+;loc_A6DC
+Queue_gear_diagram_draw_Dispatch:
 	JMP	Queue_tilemap_draw
 	MOVE.l	#Countdown_lights_Wait, (A0)
 	MOVE.l	#loc_126EC, $4(A0)
@@ -15538,7 +15559,7 @@ Countdown_lights_Tick_frame:
 ;loc_A77E
 Countdown_lights_Tick_clamp:
 	ADD.w	D0, D0
-	MOVE.w	loc_A7FA-2(PC,D0.w), $FFFFE998.w
+	MOVE.w	Countdown_lights_tick_x_table-2(PC,D0.w), $FFFFE998.w
 	BRA.b	Queue_countdown_lights
 ;loc_A788
 Countdown_lights_Slide_out:
@@ -15557,7 +15578,7 @@ Countdown_lights_Slide_frame:
 ;loc_A7B0
 Countdown_lights_Slide_clamp:
 	ADD.w	D0, D0
-	MOVE.w	loc_A800(PC,D0.w), $FFFFE998.w
+	MOVE.w	Countdown_lights_slide_x_table(PC,D0.w), $FFFFE998.w
 	BRA.b	Queue_countdown_lights
 ;loc_A7BA
 Countdown_lights_Finish_check:
@@ -15577,15 +15598,17 @@ Countdown_lights_Flash:
 	MOVE.l	#Countdown_lights_Slide_out, (A0)
 	CLR.w	$FFFFFC34.w
 	BRA.w	Queue_countdown_lights
-loc_A7FA:
+;loc_A7FA
+Countdown_lights_tick_x_table:
 	dc.w	$0008
 	dc.w	$000A
 	dc.w	$000C
-loc_A800:
+;loc_A800
+Countdown_lights_slide_x_table:
 	dc.w	$000E, $0080, $00A0, $00C0, $00E0
 ;loc_A80A
 Spawn_background_ai_car_0:
-	MOVE.l	#$0000A870, D1
+	MOVE.l	#Init_background_ai_car_5, D1
 	MOVE.w	$1E(A0), D0
 	JSR	Alloc_aux_object_slot
 ;loc_A81A
@@ -15595,7 +15618,7 @@ Init_background_ai_car_0:
 	BRA.w	Init_background_ai_car_b_screen_right
 ;loc_A828
 Spawn_background_ai_car_1:
-	MOVE.l	#$0000A862, D1
+	MOVE.l	#Init_background_ai_car_4, D1
 	MOVE.w	$1E(A0), D0
 	JSR	Alloc_aux_object_slot
 ;loc_A838
@@ -15680,49 +15703,57 @@ Init_background_ai_car_b_screen_right:
 ;loc_A906
 Init_background_ai_car_b:
 ; Init tail for background AI car type-B objects.
-; Installs loc_A922 as the update handler, copies D1 to $8(A0) (sprite data),
+; Installs Background_ai_car_b_obj as the update handler, copies D1 to $8(A0) (sprite data),
 ; sets $24(A0)=2, loads loc_6E894 speed table into $30(A0), D0 to $34(A0).
 ; Multiple entry stubs above set D1/D0 per car and BRA here or to Init_background_ai_car_b_screen_right
 ; (which also sets $12(A0)=$FFFF for screen-right spawn before falling here).
-	MOVE.l	#loc_A922, (A0)
+	MOVE.l	#Background_ai_car_b_obj, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	#2, $24(A0)
 	MOVE.l	#$0006E894, $30(A0)
 	MOVE.w	D0, $34(A0)
-loc_A922:
+;loc_A922
+Background_ai_car_b_obj:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
+;loc_A938
+Background_ai_car_c_obj_init_fast:
 	MOVE.l	#$000108B4, D1
 	MOVE.w	#$0128, D0
-	BRA.b	loc_A964
-loc_A944:
-	MOVE.l	#$0000A938, D1
+	BRA.b	Background_ai_car_c_obj_init_done
+;loc_A944
+Background_ai_car_c_obj_spawn:
+	MOVE.l	#Background_ai_car_c_obj_init_fast, D1
 	MOVE.w	$1E(A0), D0
 	JSR	Alloc_aux_object_slot
 	MOVE.l	#$00010890, D1
 	MOVE.w	#$FED8, D0
 	MOVE.w	#$FFFF, $12(A0)
-loc_A964:
-	MOVE.l	#loc_A980, (A0)
+;loc_A964
+Background_ai_car_c_obj_init_done:
+	MOVE.l	#Background_ai_car_c_obj, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	#2, $24(A0)
 	MOVE.l	#loc_6E9D8, $30(A0)
 	MOVE.w	D0, $34(A0)
-loc_A980:
+;loc_A980
+Background_ai_car_c_obj:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	JSR	Check_despawn_ai_car(PC)
 	BRA.w	Check_ai_lateral_bounds
-loc_A99A:
-	MOVE.l	#loc_A9B0, (A0)
+;loc_A99A
+Background_ai_car_d_obj_init:
+	MOVE.l	#Background_ai_car_d_obj, (A0)
 	MOVE.l	#loc_108D8, $8(A0)
 	MOVE.l	#$00FF5980, $30(A0)
-loc_A9B0:
+;loc_A9B0
+Background_ai_car_d_obj:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$804B, D1
 	LEA	Ai_car_lateral_dispatch_table, A1
@@ -15739,21 +15770,24 @@ loc_A9B0:
 ;Check_despawn_ai_car
 Check_despawn_ai_car:
 	MOVE.w	$FFFF9238.w, D1
-	BNE.b	loc_A9EC
+	BNE.b	Check_despawn_ai_car_active
 	MOVE.l	(A7)+, D1
 	JMP	Clear_object_slot
-loc_A9EC:
+;loc_A9EC
+Check_despawn_ai_car_active:
 	SUBQ.w	#1, D1
-	BNE.b	loc_AA08
+	BNE.b	Check_despawn_ai_car_rts
 	LEA	$FFFFAFC0.w, A1
 	MOVE.w	$18(A0), D1
 	CMP.w	$18(A1), D1
-	BLT.b	loc_AA04
+	BLT.b	Check_despawn_ai_car_clear
 	CMP.w	$58(A1), D1
-	BLE.b	loc_AA08
-loc_AA04:
+	BLE.b	Check_despawn_ai_car_rts
+;loc_AA04
+Check_despawn_ai_car_clear:
 	CLR.l	$4(A0)
-loc_AA08:
+;loc_AA08
+Check_despawn_ai_car_rts:
 	RTS
 ;loc_AA0A
 Ai_car_lateral_dispatch_table:
@@ -15762,17 +15796,18 @@ Ai_car_lateral_dispatch_table:
 ; D1 = speed/position parameter passed to the selected handler.
 ; Index 0 (D7=0):   RTS (no lateral adjustment)
 ; Index +2:         NOP word ($4E71) padding
-; Index +4:         BRA loc_AA82 (type-A lateral update)
+; Index +4:         BRA Ai_car_lateral_update_a (type-A lateral update)
 ; Higher indices:   Additional lateral update variants
 ; After the JSR returns, the caller continues with lateral bounds checking.
 	RTS
 	dc.b	$4E, $71
-	BRA.w	loc_AA82
+	BRA.w	Ai_car_lateral_update_a
 	CMP.w	$E(A0), D1
-	BCS.b	loc_AA20
+	BCS.b	Ai_car_lateral_update_b_in_range
 	MOVE.l	(A7)+, D0
 	JMP	Clear_object_slot
-loc_AA20:
+;loc_AA20
+Ai_car_lateral_update_b_in_range:
 	LEA	$FFFF9480.w, A1
 	MOVE.w	(A1,D0.w), $16(A0)
 	LSR.w	#1, D0
@@ -15784,27 +15819,31 @@ loc_AA20:
 	MOVEA.l	$30(A0), A1
 	MOVE.w	(A1,D3.w), D3
 	TST.w	$12(A0)
-	BPL.b	loc_AA4E
+	BPL.b	Ai_car_lateral_update_b_pos
 	NEG.w	D3
-loc_AA4E:
+;loc_AA4E
+Ai_car_lateral_update_b_pos:
 	ADD.w	D3, D1
 	MOVE.w	D1, $18(A0)
 	TST.w	$24(A0)
-	BEQ.b	loc_AA68
+	BEQ.b	Ai_car_lateral_update_b_draw
 	CMPI.w	#$0090, D1
-	BCS.b	loc_AA66
+	BCS.b	Ai_car_lateral_update_b_rts
 	CMPI.w	#$0170, D1
-	BCS.b	loc_AA68
-loc_AA66:
+	BCS.b	Ai_car_lateral_update_b_draw
+;loc_AA66
+Ai_car_lateral_update_b_rts:
 	RTS
-loc_AA68:
+;loc_AA68
+Ai_car_lateral_update_b_draw:
 	LEA	Ai_screen_x_to_angle_table, A1
 
 	MOVE.b	(A1,D4.w), D4
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D4.w), $4(A0)
 	JMP	Queue_object_for_alt_sprite_buffer
-loc_AA82:
+;loc_AA82
+Ai_car_lateral_update_a:
 	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D0.w), D1
 	SUBI.w	#$002F, D1
@@ -15818,20 +15857,23 @@ loc_AA82:
 	MOVEA.l	$30(A0), A1
 	MOVE.w	(A1,D3.w), D3
 	TST.w	$12(A0)
-	BPL.b	loc_AAB6
+	BPL.b	Ai_car_lateral_update_a_pos
 	NEG.w	D3
-loc_AAB6:
+;loc_AAB6
+Ai_car_lateral_update_a_pos:
 	ADD.w	D3, D1
 	MOVE.w	D1, $18(A0)
 	TST.w	$24(A0)
-	BEQ.b	loc_AAD0
+	BEQ.b	Ai_car_lateral_update_a_draw
 	CMPI.w	#$0080, D1
-	BCS.b	loc_AACE
+	BCS.b	Ai_car_lateral_update_a_rts
 	CMPI.w	#$0180, D1
-	BCS.b	loc_AAD0
-loc_AACE:
+	BCS.b	Ai_car_lateral_update_a_draw
+;loc_AACE
+Ai_car_lateral_update_a_rts:
 	RTS
-loc_AAD0:
+;loc_AAD0
+Ai_car_lateral_update_a_draw:
 	LEA	Ai_screen_x_to_angle_table, A1
 
 	MOVE.b	(A1,D4.w), D4
@@ -15847,7 +15889,7 @@ Update_ai_car_screen_x:
 ; Outputs: $E(A0) = screen X offset; D7 = direction flag (0=ahead, 4=behind)
 	MOVE.w	$1E(A0), D0
 	SUB.w	Player_place_score.w, D0
-	BMI.b	loc_AB24
+	BMI.b	Update_ai_car_screen_x_Behind
 	CMPI.w	#$00A1, D0
 	BHI.b	Update_ai_car_screen_x_Offscreen
 	MOVE.w	#$00A1, D4
@@ -15868,6 +15910,7 @@ Update_ai_car_screen_x_Offscreen:
 	MOVE.w	#$FFFF, $E(A0)
 	RTS
 loc_AB24:
+Update_ai_car_screen_x_Behind:
 	NEG.w	D0
 	CMPI.w	#$0091, D0
 	BHI.b	Update_ai_car_screen_x_Offscreen
