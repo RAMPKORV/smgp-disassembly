@@ -4,7 +4,7 @@
     "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
     "created": "2026-03-07",
     "phase": 1,
-    "label_progress": "4326+ named labels, 1861 loc_ labels remain. All JSR/BSR-called loc_ routines are named. Recent work renamed high-impact internal helpers in championship team-select, save/load state, endgame portrait, message-panel, and text-rendering paths; old ROM-address comments are preserved for renamed loc_ labels.",
+    "label_progress": "4326+ named labels, 1467 loc_ labels remain. All JSR/BSR-called loc_ routines are named. Recent work renamed high-impact internal helpers in championship team-select, save/load state, endgame portrait, message-panel, and text-rendering paths; old ROM-address comments are preserved for renamed loc_ labels.",
     "total_commits": 199,
     "current_state": [
       "Single monolithic smgp.asm source file (~46.7K normalized lines after blank-line cleanup)",
@@ -94,7 +94,7 @@
           "effort": "very_large",
           "depends_on": "LABEL-001",
           "status": "in_progress",
-          "progress_notes": "Batches 1-26 complete. 1526 loc_ labels remain (down from 1861). Batch 26 (121 labels): named all 19 per-track background palette tables (San_Marino_bg_palette..Monaco_arcade_wet_bg_palette), 57 road-style/sideline/finish-line data tables (per-track triples), 17 per-track lap-time target tables (*_lap_targets), 11 sprite-frame pointer tables (Rival/Ai_sprite_frames_depth_*, Player_car_sprite_frames), 9 crash car frame data tables (Crash_car_frame_0..3, Crash_car_tile_offsets/sizes/frame_a/b/table), player car sprite frame index tables (Player_car_sprite_frames_crash/normal), and 10 code branch/loop labels in AI car routines (Apply_sorted_positions_loop, Update_ai_car_screen_x_Y_from_table, Assign_ai_sprite_depth_frame_apply, Check_ai_lateral_bounds_entry/Positive/At_zero/Neg_side/Apply/Positive_d7). Build verified bit-perfect (SHA256 9046c9d6...)."
+          "progress_notes": "Batches 1-27 complete. 1467 loc_ labels remain (down from 1526). Batch 27 (59 labels): named all 32 post-race EN team message strings (Team_msg_en_we_should_be_top..Team_msg_en_forfeit_license) and 30 JP message strings (Team_msg_jp_after_jp6..Team_msg_jp_after_jp35) in the $3C000-$3C8C0 ROM region. Also replaced all 9 raw $0003Cxxx literals in Team_msg_after_race_table with symbolic names (Team_msg_jp_after_jp1..jp5, Team_msg_en_youll_be_staying, Team_msg_en_you_darn_fool, Team_msg_en_get_hold, Team_msg_en_could_have_done) and updated all dc.l table entries for the newly renamed labels. Build verified bit-perfect (SHA256 9046c9d6...)."
         },
         {
           "id": "LABEL-003",

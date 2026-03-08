@@ -31779,7 +31779,7 @@ Team_msg_jp_table:
 	dc.l	loc_3A7D0
 	dc.l	Team_msg_jp_e
 	dc.l	$0003A7E6
-	dc.l	loc_3C2DE
+	dc.l	Team_msg_jp_after_jp34
 	dc.l	Team_msg_jp_d
 	dc.l	Team_msg_jp_e
 	dc.l	$0003A7E6
@@ -31842,7 +31842,7 @@ Team_msg_jp_table:
 	dc.l	$0003A7FC
 	dc.l	Team_msg_jp_b
 	dc.l	loc_3A84E
-	dc.l	loc_3C2DE
+	dc.l	Team_msg_jp_after_jp34
 	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_b
 	dc.l	Team_msg_jp_l
@@ -31923,7 +31923,7 @@ Team_msg_jp_table:
 	dc.l	loc_3ABC0
 	dc.l	Team_msg_faster_than_you
 	dc.l	$0003ABF4
-	dc.l	loc_3C882
+	dc.l	Team_msg_en_dont_make_me_angry
 	dc.l	Team_msg_your_days_gone
 	dc.l	Team_msg_faster_than_you
 	dc.l	$0003ABF4
@@ -31986,7 +31986,7 @@ Team_msg_jp_table:
 	dc.l	$0003AC24
 	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ACEA
-	dc.l	loc_3C882
+	dc.l	Team_msg_en_dont_make_me_angry
 	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_lets_compete
 	dc.l	Team_msg_better_stop_racing
@@ -32688,34 +32688,34 @@ loc_3BB0A:
 ; EN block ends at loc_3C898 region. Parallels Team_msg_jp_table (pre-race).
 Team_msg_after_race_table:
 	dc.l	Team_msg_jp_after_a2
-	dc.l	loc_3C024
+	dc.l	Team_msg_jp_after_jp6
 	dc.l	Team_msg_jp_after_a3
 	dc.l	Team_msg_jp_after_a
 	dc.l	Team_msg_jp_after_a2
 	dc.l	Team_msg_jp_after_a
-	dc.l	loc_3C046
-	dc.l	loc_3C056
+	dc.l	Team_msg_jp_after_jp7
+	dc.l	Team_msg_jp_after_jp8
 	dc.l	Team_msg_jp_after_a
-	dc.l	$0003C06A
+	dc.l	Team_msg_jp_after_jp1
 	dc.l	Team_msg_jp_after_b
 	dc.l	Team_msg_jp_after_b2
-	dc.l	$0003C098
+	dc.l	Team_msg_jp_after_jp2
 	dc.l	Team_msg_jp_after_b
 	dc.l	Team_msg_jp_after_c
 	dc.l	Team_msg_jp_after_c2
-	dc.l	$0003C098
-	dc.l	loc_3C0C8
+	dc.l	Team_msg_jp_after_jp2
+	dc.l	Team_msg_jp_after_jp9
 	dc.l	Team_msg_jp_after_b
 	dc.l	Team_msg_jp_after_c
 	dc.l	Team_msg_jp_after_d
-	dc.l	$0003C0E6
-	dc.l	loc_3C0F2
+	dc.l	Team_msg_jp_after_jp3
+	dc.l	Team_msg_jp_after_jp10
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_e
 	dc.l	Team_msg_jp_after_a3
 	dc.l	Team_msg_jp_after_f
-	dc.l	loc_3C120
-	dc.l	loc_3C130
+	dc.l	Team_msg_jp_after_jp11
+	dc.l	Team_msg_jp_after_jp12
 	dc.l	Team_msg_jp_after_g
 	dc.l	Team_msg_jp_after_h
 	dc.l	Team_msg_jp_after_a2
@@ -32723,10 +32723,10 @@ Team_msg_after_race_table:
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_a2
 	dc.l	Team_msg_jp_after_e
-	dc.l	$0003C168
-	dc.l	loc_3C174
-	dc.l	loc_3C186
-	dc.l	$0003C06A
+	dc.l	Team_msg_jp_after_jp4
+	dc.l	Team_msg_jp_after_jp13
+	dc.l	Team_msg_jp_after_jp14
+	dc.l	Team_msg_jp_after_jp1
 	dc.l	Team_msg_jp_after_i
 	dc.l	Team_msg_jp_after_i
 	dc.l	Team_msg_jp_after_i
@@ -32734,148 +32734,148 @@ Team_msg_after_race_table:
 	dc.l	Team_msg_jp_after_i
 	dc.l	Team_msg_jp_after_i
 	dc.l	Team_msg_jp_after_i
-	dc.l	loc_3C1A6
-	dc.l	loc_3C1BA
+	dc.l	Team_msg_jp_after_jp15
+	dc.l	Team_msg_jp_after_jp16
 	dc.l	Team_msg_jp_after_i
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_a2
-	dc.l	$0003C0E6
+	dc.l	Team_msg_jp_after_jp3
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_c
-	dc.l	$0003C0E6
-	dc.l	loc_3C046
-	dc.l	loc_3C1D2
+	dc.l	Team_msg_jp_after_jp3
+	dc.l	Team_msg_jp_after_jp7
+	dc.l	Team_msg_jp_after_jp17
 	dc.l	Team_msg_jp_after_g
 	dc.l	Team_msg_jp_after_g
 	dc.l	Team_msg_jp_after_a2
 	dc.l	Team_msg_jp_after_e
-	dc.l	$0003C1E0
+	dc.l	Team_msg_jp_after_jp5
 	dc.l	Team_msg_jp_after_a2
 	dc.l	Team_msg_jp_after_e
 	dc.l	Team_msg_jp_after_a3
 	dc.l	Team_msg_jp_after_f
-	dc.l	loc_3C1EA
-	dc.l	loc_3C1FC
-	dc.l	$0003C06A
-	dc.l	loc_3C20E
+	dc.l	Team_msg_jp_after_jp18
+	dc.l	Team_msg_jp_after_jp19
+	dc.l	Team_msg_jp_after_jp1
+	dc.l	Team_msg_jp_after_jp20
 	dc.l	Team_msg_jp_after_f
-	dc.l	$0003C168
+	dc.l	Team_msg_jp_after_jp4
 	dc.l	Team_msg_jp_after_a2
 	dc.l	Team_msg_jp_after_a2
-	dc.l	loc_3C218
-	dc.l	loc_3C0F2
-	dc.l	loc_3C226
-	dc.l	loc_3C236
-	dc.l	loc_3C130
+	dc.l	Team_msg_jp_after_jp21
+	dc.l	Team_msg_jp_after_jp10
+	dc.l	Team_msg_jp_after_jp22
+	dc.l	Team_msg_jp_after_jp23
+	dc.l	Team_msg_jp_after_jp12
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_h
 	dc.l	Team_msg_jp_after_a3
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_a2
-	dc.l	loc_3C24A
-	dc.l	$0003C0E6
-	dc.l	loc_3C25A
-	dc.l	loc_3C186
-	dc.l	$0003C06A
+	dc.l	Team_msg_jp_after_jp24
+	dc.l	Team_msg_jp_after_jp3
+	dc.l	Team_msg_jp_after_jp25
+	dc.l	Team_msg_jp_after_jp14
+	dc.l	Team_msg_jp_after_jp1
 	dc.l	Team_msg_jp_after_h
 	dc.l	Team_msg_jp_after_b2
-	dc.l	$0003C1E0
+	dc.l	Team_msg_jp_after_jp5
 	dc.l	Team_msg_jp_after_h
 	dc.l	Team_msg_jp_after_c
 	dc.l	Team_msg_jp_after_b2
 	dc.l	Team_msg_jp_after_c2
-	dc.l	loc_3C272
-	dc.l	loc_3C286
+	dc.l	Team_msg_jp_after_jp26
+	dc.l	Team_msg_jp_after_jp27
 	dc.l	Team_msg_jp_after_g
-	dc.l	loc_3C294
-	dc.l	loc_3C294
-	dc.l	$0003C098
-	dc.l	loc_3C294
+	dc.l	Team_msg_jp_after_jp28
+	dc.l	Team_msg_jp_after_jp28
+	dc.l	Team_msg_jp_after_jp2
+	dc.l	Team_msg_jp_after_jp28
 	dc.l	Team_msg_jp_after_c
 	dc.l	Team_msg_jp_after_f
-	dc.l	$0003C098
-	dc.l	loc_3C2A4
+	dc.l	Team_msg_jp_after_jp2
+	dc.l	Team_msg_jp_after_jp29
 	dc.l	Team_msg_jp_after_g
 	dc.l	Team_msg_jp_after_g
-	dc.l	loc_3C20E
+	dc.l	Team_msg_jp_after_jp20
 	dc.l	Team_msg_jp_after_a2
-	dc.l	$0003C1E0
-	dc.l	loc_3C130
+	dc.l	Team_msg_jp_after_jp5
+	dc.l	Team_msg_jp_after_jp12
 	dc.l	Team_msg_jp_after_c
-	dc.l	loc_3C218
-	dc.l	$0003C168
-	dc.l	loc_3C2B0
-	dc.l	loc_3C1FC
+	dc.l	Team_msg_jp_after_jp21
+	dc.l	Team_msg_jp_after_jp4
+	dc.l	Team_msg_jp_after_jp30
+	dc.l	Team_msg_jp_after_jp19
 	dc.l	Team_msg_jp_after_c
 	dc.l	Team_msg_jp_f
 	dc.l	Team_msg_jp_f
-	dc.l	loc_3C2BE
+	dc.l	Team_msg_jp_after_jp31
 	dc.l	Team_msg_jp_f
 	dc.l	Team_msg_jp_f
-	dc.l	loc_3C24A
-	dc.l	loc_3C2BE
-	dc.l	loc_3C2C4
+	dc.l	Team_msg_jp_after_jp24
+	dc.l	Team_msg_jp_after_jp31
+	dc.l	Team_msg_jp_after_jp32
 	dc.l	Team_msg_jp_f
 	dc.l	Team_msg_jp_f
 	dc.l	Team_msg_jp_after_b
 	dc.l	Team_msg_jp_after_b
-	dc.l	loc_3C0F2
+	dc.l	Team_msg_jp_after_jp10
 	dc.l	Team_msg_jp_after_b
 	dc.l	Team_msg_jp_after_b
-	dc.l	$0003C1E0
-	dc.l	$0003C168
-	dc.l	loc_3C2D8
-	dc.l	loc_3C286
+	dc.l	Team_msg_jp_after_jp5
+	dc.l	Team_msg_jp_after_jp4
+	dc.l	Team_msg_jp_after_jp33
+	dc.l	Team_msg_jp_after_jp27
 	dc.l	Team_msg_jp_after_g
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_h
 	dc.l	Team_msg_jp_after_e
 	dc.l	Team_msg_jp_after_h
 	dc.l	Team_msg_jp_after_c
-	dc.l	loc_3C218
+	dc.l	Team_msg_jp_after_jp21
 	dc.l	Team_msg_jp_after_c2
-	dc.l	loc_3C2DE
-	dc.l	loc_3C236
+	dc.l	Team_msg_jp_after_jp34
+	dc.l	Team_msg_jp_after_jp23
 	dc.l	Team_msg_jp_after_g
-	dc.l	loc_3C20E
+	dc.l	Team_msg_jp_after_jp20
 	dc.l	Team_msg_jp_after_a2
 	dc.l	Team_msg_jp_after_f
 	dc.l	Team_msg_jp_after_d
 	dc.l	Team_msg_jp_after_a
-	dc.l	loc_3C24A
+	dc.l	Team_msg_jp_after_jp24
 	dc.l	Team_msg_jp_after_a
-	dc.l	loc_3C2E8
-	dc.l	loc_3C1FC
+	dc.l	Team_msg_jp_after_jp35
+	dc.l	Team_msg_jp_after_jp19
 	dc.l	Team_msg_jp_after_a
 	dc.l	Team_msg_en_good_driving
-	dc.l	loc_3C324
+	dc.l	Team_msg_en_we_should_be_top
 	dc.l	Team_msg_en_really_a_pity
 	dc.l	Team_msg_en_error
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_error
-	dc.l	loc_3C35C
-	dc.l	loc_3C370
+	dc.l	Team_msg_en_never_lose_again
+	dc.l	Team_msg_en_not_living_up
 	dc.l	Team_msg_en_error
-	dc.l	$0003C398
+	dc.l	Team_msg_en_youll_be_staying
 	dc.l	Team_msg_en_really_a_race
 	dc.l	Team_msg_en_more_aggressive
-	dc.l	$0003C3EE
+	dc.l	Team_msg_en_you_darn_fool
 	dc.l	Team_msg_en_really_a_race
 	dc.l	Team_msg_en_only_natural
-	dc.l	loc_3C422
-	dc.l	$0003C3EE
-	dc.l	loc_3C448
+	dc.l	Team_msg_en_why_cant_you_win
+	dc.l	Team_msg_en_you_darn_fool
+	dc.l	Team_msg_en_better_off_buggy
 	dc.l	Team_msg_en_really_a_race
 	dc.l	Team_msg_en_only_natural
 	dc.l	Team_msg_en_wonderful
-	dc.l	loc_3C486
-	dc.l	loc_3C4AC
+	dc.l	Team_msg_en_only_bad_luck
+	dc.l	Team_msg_en_youve_discouraged_us
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_thats_about_it
 	dc.l	Team_msg_en_really_a_pity
 	dc.l	Team_msg_en_little_better
-	dc.l	loc_3C4FE
-	dc.l	loc_3C51E
+	dc.l	Team_msg_en_still_just_amateur
+	dc.l	Team_msg_en_dont_want_you_rival
 	dc.l	Team_msg_en_not_leaving
 	dc.l	Team_msg_en_done_better
 	dc.l	Team_msg_en_good_driving
@@ -32883,10 +32883,10 @@ Team_msg_after_race_table:
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_thats_about_it
-	dc.l	$0003C590
-	dc.l	loc_3C5A6
-	dc.l	loc_3C5BC
-	dc.l	$0003C398
+	dc.l	Team_msg_en_get_hold
+	dc.l	Team_msg_en_thanks_for_nothing
+	dc.l	Team_msg_en_do_your_best
+	dc.l	Team_msg_en_youll_be_staying
 	dc.l	Team_msg_en_lets_go_party
 	dc.l	Team_msg_en_lets_go_party
 	dc.l	Team_msg_en_lets_go_party
@@ -32894,118 +32894,118 @@ Team_msg_after_race_table:
 	dc.l	Team_msg_en_lets_go_party
 	dc.l	Team_msg_en_lets_go_party
 	dc.l	Team_msg_en_lets_go_party
-	dc.l	loc_3C602
-	dc.l	loc_3C62C
+	dc.l	Team_msg_en_dont_show_your_face
+	dc.l	Team_msg_en_try_training
 	dc.l	Team_msg_en_lets_go_party
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_good_driving
-	dc.l	loc_3C486
+	dc.l	Team_msg_en_only_bad_luck
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_only_natural
 	dc.l	Team_msg_en_wonderful
-	dc.l	loc_3C35C
-	dc.l	loc_3C650
+	dc.l	Team_msg_en_never_lose_again
+	dc.l	Team_msg_en_dont_disgrace_us
 	dc.l	Team_msg_en_not_leaving
 	dc.l	Team_msg_en_not_leaving
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_thats_about_it
-	dc.l	$0003C66A
+	dc.l	Team_msg_en_could_have_done
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_thats_about_it
 	dc.l	Team_msg_en_really_a_pity
 	dc.l	Team_msg_en_little_better
-	dc.l	loc_3C68E
-	dc.l	loc_3C6B2
-	dc.l	$0003C398
-	dc.l	loc_3C6D2
+	dc.l	Team_msg_en_cant_put_up_with_you
+	dc.l	Team_msg_en_too_good_for_team
+	dc.l	Team_msg_en_youll_be_staying
+	dc.l	Team_msg_en_unbelievable
 	dc.l	Team_msg_en_little_better
-	dc.l	$0003C590
+	dc.l	Team_msg_en_get_hold
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_good_driving
-	dc.l	loc_3C6E2
-	dc.l	loc_3C4AC
-	dc.l	loc_3C708
-	dc.l	loc_3C72C
-	dc.l	loc_3C51E
+	dc.l	Team_msg_en_far_better_than_us
+	dc.l	Team_msg_en_youve_discouraged_us
+	dc.l	Team_msg_en_lost_your_ability
+	dc.l	Team_msg_en_now_you_know_more
+	dc.l	Team_msg_en_dont_want_you_rival
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_done_better
 	dc.l	Team_msg_en_really_a_pity
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_good_driving
-	dc.l	loc_3C74C
-	dc.l	loc_3C486
-	dc.l	loc_3C776
-	dc.l	loc_3C5BC
-	dc.l	$0003C398
+	dc.l	Team_msg_en_rivals_better_than_you
+	dc.l	Team_msg_en_only_bad_luck
+	dc.l	Team_msg_en_not_that_didnt_try
+	dc.l	Team_msg_en_do_your_best
+	dc.l	Team_msg_en_youll_be_staying
 	dc.l	Team_msg_en_done_better
 	dc.l	Team_msg_en_more_aggressive
-	dc.l	$0003C66A
+	dc.l	Team_msg_en_could_have_done
 	dc.l	Team_msg_en_done_better
 	dc.l	Team_msg_en_only_natural
 	dc.l	Team_msg_en_more_aggressive
-	dc.l	loc_3C422
-	dc.l	loc_3C79A
-	dc.l	loc_3C7C4
+	dc.l	Team_msg_en_why_cant_you_win
+	dc.l	Team_msg_en_clean_up_machine
+	dc.l	Team_msg_en_going_to_miss_you
 	dc.l	Team_msg_en_not_leaving
-	dc.l	loc_3C7DE
-	dc.l	loc_3C7DE
-	dc.l	$0003C3EE
-	dc.l	loc_3C7DE
+	dc.l	Team_msg_en_sorry_not_watching
+	dc.l	Team_msg_en_sorry_not_watching
+	dc.l	Team_msg_en_you_darn_fool
+	dc.l	Team_msg_en_sorry_not_watching
 	dc.l	Team_msg_en_only_natural
 	dc.l	Team_msg_en_little_better
-	dc.l	$0003C3EE
-	dc.l	loc_3C7FC
+	dc.l	Team_msg_en_you_darn_fool
+	dc.l	Team_msg_en_never_return_money
 	dc.l	Team_msg_en_not_leaving
 	dc.l	Team_msg_en_not_leaving
-	dc.l	loc_3C6D2
+	dc.l	Team_msg_en_unbelievable
 	dc.l	Team_msg_en_good_driving
-	dc.l	$0003C66A
-	dc.l	loc_3C51E
+	dc.l	Team_msg_en_could_have_done
+	dc.l	Team_msg_en_dont_want_you_rival
 	dc.l	Team_msg_en_only_natural
-	dc.l	loc_3C6E2
-	dc.l	$0003C590
-	dc.l	loc_3C822
-	dc.l	loc_3C6B2
+	dc.l	Team_msg_en_far_better_than_us
+	dc.l	Team_msg_en_get_hold
+	dc.l	Team_msg_en_no_use_to_team
+	dc.l	Team_msg_en_too_good_for_team
 	dc.l	Team_msg_en_only_natural
 	dc.l	Team_msg_envy_high_spirits
 	dc.l	Team_msg_envy_high_spirits
-	dc.l	loc_3C842
+	dc.l	Team_msg_en_oh_no
 	dc.l	Team_msg_envy_high_spirits
 	dc.l	Team_msg_envy_high_spirits
-	dc.l	loc_3C74C
-	dc.l	loc_3C842
-	dc.l	loc_3C84C
+	dc.l	Team_msg_en_rivals_better_than_you
+	dc.l	Team_msg_en_oh_no
+	dc.l	Team_msg_en_making_me_sick
 	dc.l	Team_msg_envy_high_spirits
 	dc.l	Team_msg_envy_high_spirits
 	dc.l	Team_msg_en_really_a_race
 	dc.l	Team_msg_en_really_a_race
-	dc.l	loc_3C4AC
+	dc.l	Team_msg_en_youve_discouraged_us
 	dc.l	Team_msg_en_really_a_race
 	dc.l	Team_msg_en_really_a_race
-	dc.l	$0003C66A
-	dc.l	$0003C590
-	dc.l	loc_3C864
-	dc.l	loc_3C7C4
+	dc.l	Team_msg_en_could_have_done
+	dc.l	Team_msg_en_get_hold
+	dc.l	Team_msg_en_really_poor_driver
+	dc.l	Team_msg_en_going_to_miss_you
 	dc.l	Team_msg_en_not_leaving
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_done_better
 	dc.l	Team_msg_en_thats_about_it
 	dc.l	Team_msg_en_done_better
 	dc.l	Team_msg_en_only_natural
-	dc.l	loc_3C6E2
-	dc.l	loc_3C422
-	dc.l	loc_3C882
-	dc.l	loc_3C72C
+	dc.l	Team_msg_en_far_better_than_us
+	dc.l	Team_msg_en_why_cant_you_win
+	dc.l	Team_msg_en_dont_make_me_angry
+	dc.l	Team_msg_en_now_you_know_more
 	dc.l	Team_msg_en_not_leaving
-	dc.l	loc_3C6D2
+	dc.l	Team_msg_en_unbelievable
 	dc.l	Team_msg_en_good_driving
 	dc.l	Team_msg_en_little_better
 	dc.l	Team_msg_en_wonderful
 	dc.l	Team_msg_en_error
-	dc.l	loc_3C74C
+	dc.l	Team_msg_en_rivals_better_than_you
 	dc.l	Team_msg_en_error
-	dc.l	loc_3C898
-	dc.l	loc_3C6B2
+	dc.l	Team_msg_en_forfeit_license
+	dc.l	Team_msg_en_too_good_for_team
 	dc.l	Team_msg_en_error
 ;Team_msg_jp_after_a
 Team_msg_jp_after_a:
@@ -33013,15 +33013,18 @@ Team_msg_jp_after_a:
 ;Team_msg_jp_after_a2
 Team_msg_jp_after_a2:
 	dc.b	$90, $7D, $88, $32, $D4, $A2, $7D, $D6, $A8, $C8, $2D, $FF
-loc_3C024:
+;loc_3C024
+Team_msg_jp_after_jp6:
 	dc.b	$41, $4F, $58, $32, $8F, $B1, $E1, $6B, $52, $65, $53, $45, $72, $FC, $40, $47, $53, $40, $6C, $BC, $64, $79, $FF, $00
 ;Team_msg_jp_after_a3
 Team_msg_jp_after_a3:
 	dc.b	$B7, $6C, $56, $6C, $BC, $75, $4E, $53, $79, $FF
-loc_3C046:
+;loc_3C046
+Team_msg_jp_after_jp7:
 	dc.b	$61, $41, $32, $5D, $47, $67, $6C, $B8, $72, $32, $53, $40, $BB, $79, $FF
 	dc.b	$00
-loc_3C056:
+;loc_3C056
+Team_msg_jp_after_jp8:
 	dc.b	$45, $5E, $57, $32, $48, $41, $40, $58, $32, $47, $40, $62, $46, $32, $40, $58, $6C, $BC, $79, $FF
 ;loc_3C06A
 Team_msg_jp_after_jp1:
@@ -33041,7 +33044,8 @@ Team_msg_jp_after_c:
 ;loc_3C0B4
 Team_msg_jp_after_c2:
 	dc.b	$53, $6C, $BF, $32, $3F, $57, $9A, $87, $A8, $54, $32, $44, $51, $53, $40, $6C, $BC, $79, $FF, $00
-loc_3C0C8:
+;loc_3C0C8
+Team_msg_jp_after_jp9:
 	dc.b	$41, $C1, $B4, $67, $5D, $BF, $61, $32, $48, $69, $B2, $4A, $51, $69, $2D, $FF
 ;Team_msg_jp_after_d
 Team_msg_jp_after_d:
@@ -33049,7 +33053,8 @@ Team_msg_jp_after_d:
 ;loc_3C0E6
 Team_msg_jp_after_jp3:
 	dc.b	$4A, $74, $41, $C3, $32, $64, $6A, $40, $53, $79, $FF, $00
-loc_3C0F2:
+;loc_3C0F2
+Team_msg_jp_after_jp10:
 	dc.b	$45, $5E, $61, $32, $61, $66, $49, $B5, $51, $32, $46, $68, $67, $56, $79, $FF
 ;Team_msg_jp_after_e
 Team_msg_jp_after_e:
@@ -33057,9 +33062,11 @@ Team_msg_jp_after_e:
 ;Team_msg_jp_after_f
 Team_msg_jp_after_f:
 	dc.b	$61, $41, $4B, $48, $4A, $32, $53, $6C, $52, $44, $32, $53, $65, $53, $40, $44, $79, $FF
-loc_3C120:
+;loc_3C120
+Team_msg_jp_after_jp11:
 	dc.b	$5D, $BC, $5D, $BC, $32, $3F, $5D, $40, $64, $32, $45, $5E, $58, $79, $FF, $00
-loc_3C130:
+;loc_3C130
+Team_msg_jp_after_jp12:
 	dc.b	$45, $5E, $58, $32, $51, $45, $54, $32, $5D, $6A, $4A, $4E, $46, $32, $53, $40, $53, $79, $FF, $00
 ;Team_msg_jp_after_g
 Team_msg_jp_after_g:
@@ -33071,58 +33078,81 @@ Team_msg_jp_after_h:
 ;loc_3C168
 Team_msg_jp_after_jp4:
 	dc.b	$4A, $75, $44, $66, $32, $4A, $51, $46, $68, $64, $79, $FF
-loc_3C174:
+;loc_3C174
+Team_msg_jp_after_jp13:
 	dc.b	$40, $5D, $5D, $BF, $32, $C0, $41, $61, $32, $B6, $46, $69, $41, $49, $6C, $79, $FF, $00
-loc_3C186:
+;loc_3C186
+Team_msg_jp_after_jp14:
 	dc.b	$B2, $6C, $C1, $75, $51, $32, $8F, $B1, $E1, $6B, $60, $B7, $4C, $79, $FF, $00
 ;Team_msg_jp_after_i
 Team_msg_jp_after_i:
 	dc.b	$64, $4A, $79, $32, $DF, $2C, $8E, $AA, $2C, $54, $32, $40, $46, $BB, $79, $FF
-loc_3C1A6:
+;loc_3C1A6
+Team_msg_jp_after_jp15:
 	dc.b	$45, $74, $41, $57, $32, $DF, $2C, $8E, $AA, $2C, $54, $58, $32, $46, $67, $53, $64, $79, $FF, $00
-loc_3C1BA:
+;loc_3C1BA
+Team_msg_jp_after_jp16:
 	dc.b	$60, $40, $61, $6C, $8C, $2C, $9C, $BF, $32, $4A, $73, $B3, $74, $41, $6B, $FC, $50, $6C, $BF, $5E, $69, $79, $FF, $00
-loc_3C1D2:
+;loc_3C1D2
+Team_msg_jp_after_jp17:
 	dc.b	$8C, $2C, $9C, $54, $32, $C0, $69, $6B, $55, $67, $45, $44, $2D, $FF
 ;loc_3C1E0
 Team_msg_jp_after_jp5:
 	dc.b	$DF, $B1, $52, $32, $4A, $53, $40, $53, $79, $FF
-loc_3C1EA:
+;loc_3C1EA
+Team_msg_jp_after_jp18:
 	dc.b	$45, $5E, $52, $58, $32, $61, $41, $32, $62, $75, $51, $40, $47, $53, $40, $79, $FF, $00
-loc_3C1FC:
+;loc_3C1FC
+Team_msg_jp_after_jp19:
 	dc.b	$45, $5E, $58, $32, $41, $4F, $54, $58, $32, $61, $75, $4E, $40, $53, $40, $64, $79, $FF
-loc_3C20E:
+;loc_3C20E
+Team_msg_jp_after_jp20:
 	dc.b	$4A, $6C, $B8, $65, $68, $53, $40, $2D, $FF, $00
-loc_3C218:
+;loc_3C218
+Team_msg_jp_after_jp21:
 	dc.b	$62, $58, $66, $32, $44, $C4, $58, $32, $3F, $50, $40, $53, $79, $FF
-loc_3C226:
+;loc_3C226
+Team_msg_jp_after_jp22:
 	dc.b	$49, $40, $57, $41, $B2, $32, $44, $68, $4E, $32, $64, $41, $BC, $56, $79, $FF
-loc_3C236:
+;loc_3C236
+Team_msg_jp_after_jp23:
 	dc.b	$61, $41, $32, $45, $5E, $54, $32, $4A, $51, $62, $68, $67, $48, $52, $58, $32, $53, $40, $79, $FF
-loc_3C24A:
+;loc_3C24A
+Team_msg_jp_after_jp24:
 	dc.b	$41, $42, $6B, $5E, $4E, $65, $32, $45, $66, $B2, $53, $40, $64, $79, $FF, $00
-loc_3C25A:
+;loc_3C25A
+Team_msg_jp_after_jp25:
 	dc.b	$40, $75, $4A, $74, $41, $32, $47, $6C, $60, $40, $32, $53, $57, $58, $FC, $6A, $44, $67, $6C, $BC, $B2, $56, $79, $FF
-loc_3C272:
+;loc_3C272
+Team_msg_jp_after_jp26:
 	dc.b	$9A, $87, $A8, $58, $32, $3F, $65, $75, $51, $32, $44, $42, $4A, $51, $46, $68, $64, $79, $FF, $00
-loc_3C286:
+;loc_3C286
+Team_msg_jp_after_jp27:
 	dc.b	$4D, $69, $4D, $69, $32, $43, $6A, $44, $68, $BC, $53, $79, $FF, $00
-loc_3C294:
+;loc_3C294
+Team_msg_jp_after_jp28:
 	dc.b	$6A, $67, $40, $53, $79, $32, $5E, $51, $53, $44, $75, $4E, $64, $79, $FF, $00
-loc_3C2A4:
+;loc_3C2A4
+Team_msg_jp_after_jp29:
 	dc.b	$44, $56, $58, $32, $44, $42, $49, $56, $42, $64, $79, $FF
-loc_3C2B0:
+;loc_3C2B0
+Team_msg_jp_after_jp30:
 	dc.b	$50, $44, $40, $61, $57, $54, $32, $53, $65, $53, $40, $53, $79, $FF
-loc_3C2BE:
+;loc_3C2BE
+Team_msg_jp_after_jp31:
 	dc.b	$3F, $2C, $3F, $79, $FF
 	dc.b	$00
-loc_3C2C4:
+;loc_3C2C4
+Team_msg_jp_after_jp32:
 	dc.b	$53, $6C, $BC, $44, $32, $3F, $4E, $5D, $B2, $32, $40, $4E, $46, $53, $75, $51, $45, $4E, $79, $FF
-loc_3C2D8:
+;loc_3C2D8
+Team_msg_jp_after_jp33:
 	dc.b	$5B, $4E, $46, $4D, $2D, $FF
-loc_3C2DE:
+;loc_3C2DE
+Team_msg_jp_after_jp34:
 	dc.b	$43, $48, $65, $4C, $67, $53, $64, $79, $FF, $00
-loc_3C2E8:
+;loc_3C2E8
+Team_msg_jp_after_jp35:
 	dc.b	$45, $5E, $58, $32, $A2, $7D, $89, $A8, $88, $6B, $FC, $52, $66, $3F, $B5, $65, $68, $67, $32, $4D, $41, $BC, $79, $FF
 ;Team_msg_en_error
 Team_msg_en_error:
@@ -33130,16 +33160,19 @@ Team_msg_en_error:
 ;Team_msg_en_good_driving
 Team_msg_en_good_driving:
 	txt "GOOD DRIVING!\nYOU'VE DONE IT.", $FF
-loc_3C324:
+;loc_3C324
+Team_msg_en_we_should_be_top:
 	txt "WE SHOULD ALWAYS BE\nTHE TOP TEAM.", $FF
 ;Team_msg_en_really_a_pity
 Team_msg_en_really_a_pity:
 	dc.b	$FD
 	txt "IT'S REALLY A PITY!", $FF, $00
-loc_3C35C:
+;loc_3C35C
+Team_msg_en_never_lose_again:
 	dc.b	$FD
 	txt "NEVER LOSE AGAIN!", $FF, $00
-loc_3C370:
+;loc_3C370
+Team_msg_en_not_living_up:
 	txt "YOU ARE NOT LIVING\nUP TO YOUR CONTRACT.", $FF
 ;loc_3C398
 Team_msg_en_youll_be_staying:
@@ -33157,16 +33190,20 @@ Team_msg_en_you_darn_fool:
 ;Team_msg_en_only_natural
 Team_msg_en_only_natural:
 	txt	"IT'S ONLY NATURAL\nYOU WON OVER HIM.", $FF
-loc_3C422:
+;loc_3C422
+Team_msg_en_why_cant_you_win:
 	txt "WHY CAN'T YOU WIN\nAGAINST THAT TEAM?", $FF, $00
-loc_3C448:
+;loc_3C448
+Team_msg_en_better_off_buggy:
 	txt "YOU ARE BETTER OFF\nDRIVING A BABY BUGGY", $FF
 ;Team_msg_en_wonderful
 Team_msg_en_wonderful:
 	txt "WONDERFUL!\nGOOD JOB!", $FF, $00
-loc_3C486:
+;loc_3C486
+Team_msg_en_only_bad_luck:
 	txt "ONLY BAD LUCK KEPT\nYOU FROM WINNING.", $FF, $00
-loc_3C4AC:
+;loc_3C4AC
+Team_msg_en_youve_discouraged_us:
 	txt "YOU'VE DISCOURAGED\nALL OF US.", $FF
 ;Team_msg_en_thats_about_it
 Team_msg_en_thats_about_it:
@@ -33175,9 +33212,11 @@ Team_msg_en_thats_about_it:
 ;Team_msg_en_little_better
 Team_msg_en_little_better:
 	txt "CAN'T YOU DO IT\nA LITTLE BETTER?", $FF, $00
-loc_3C4FE:
+;loc_3C4FE
+Team_msg_en_still_just_amateur:
 	txt "YOU ARE STILL JUST\nAN AMATEUR.", $FF, $00
-loc_3C51E:
+;loc_3C51E
+Team_msg_en_dont_want_you_rival:
 	txt "WE DON'T WANT YOU TO\nBECOME A RIVAL.", $FF, $00
 ;Team_msg_en_not_leaving
 Team_msg_en_not_leaving:
@@ -33188,62 +33227,85 @@ Team_msg_en_done_better:
 ;loc_3C590
 Team_msg_en_get_hold:
 	txt "GET HOLD OF\\nYOURSELF!", $FF
-loc_3C5A6:
+;loc_3C5A6
+Team_msg_en_thanks_for_nothing:
 	dc.b	$FD
 	txt "THANKS FOR NOTHING.", $FF, $00
-loc_3C5BC:
+;loc_3C5BC
+Team_msg_en_do_your_best:
 	txt "DO YOUR BEST TO BE-\nCOME THE TOP DRIVER.", $FF, $00
 ;Team_msg_en_lets_go_party
 Team_msg_en_lets_go_party:
 	txt "OK. LET'S GO TO\nTHE PARTY.", $FF, $00
-loc_3C602:
+;loc_3C602
+Team_msg_en_dont_show_your_face:
 	txt "DON'T SHOW YOUR FACE\nAT THE PARTY TODAY!", $FF, $00
-loc_3C62C:
+;loc_3C62C
+Team_msg_en_try_training:
 	txt "TRY TRAINING WITH\\nA PRESTIGE TEAM.", $FF, $00
-loc_3C650:
+;loc_3C650
+Team_msg_en_dont_disgrace_us:
 	txt "DON'T DISGRACE\\nOUR TEAM!", $FF, $00
 ;loc_3C66A
 Team_msg_en_could_have_done:
 	txt "YOU COULD HAVE DONE\nIT MUCH BETTER.", $FF
-loc_3C68E:
+;loc_3C68E
+Team_msg_en_cant_put_up_with_you:
 	txt "WE CAN'T PUT UP WITH\nYOU ANY MORE.", $FF, $00
-loc_3C6B2:
+;loc_3C6B2
+Team_msg_en_too_good_for_team:
 	txt "YOU ARE TOO GOOD\nFOR OUR TEAM.", $FF, $00
-loc_3C6D2:
+;loc_3C6D2
+Team_msg_en_unbelievable:
 	dc.b	$FD
 	txt "UNBELIEVABLE!", $FF, $00
-loc_3C6E2:
+;loc_3C6E2
+Team_msg_en_far_better_than_us:
 	txt "AFTER ALL, HE IS FAR\nBETTER THAN US.", $FF, $00
-loc_3C708:
+;loc_3C708
+Team_msg_en_lost_your_ability:
 	txt "YOU SEEM TO HAVE\nLOST YOUR ABILITY.", $FF
-loc_3C72C:
+;loc_3C72C
+Team_msg_en_now_you_know_more:
 	txt "NOW, YOU KNOW MORE", $FC
 	txt "THAN WE DO.", $FF, $00
-loc_3C74C:
+;loc_3C74C
+Team_msg_en_rivals_better_than_you:
 	txt "YOUR RIVALS COULD BE\nMUCH BETTER THAN YOU", $FF
-loc_3C776:
+;loc_3C776
+Team_msg_en_not_that_didnt_try:
 	txt "IT'S NOT THAT YOU\nDIDN'T TRY HARD.", $FF, $00
-loc_3C79A:
+;loc_3C79A
+Team_msg_en_clean_up_machine:
 	txt "CLEAN UP THE MACHINE\nAND RETURN IT TO US.", $FF
-loc_3C7C4:
+;loc_3C7C4
+Team_msg_en_going_to_miss_you:
 	txt "WE ARE GOING TO MISS\nYOU.", $FF
-loc_3C7DE:
+;loc_3C7DE
+Team_msg_en_sorry_not_watching:
 	txt "SORRY, I WAS NOT\nWATCHING IT.", $FF
-loc_3C7FC:
+;loc_3C7FC
+Team_msg_en_never_return_money:
 	txt "I'LL NEVER RETURN\nTHE SECURITY MONEY.", $FF
-loc_3C822:
+;loc_3C822
+Team_msg_en_no_use_to_team:
 	txt "YOU ARE OF NO USE\nTO OUR TEAM.", $FF, $00
-loc_3C842:
+;loc_3C842
+Team_msg_en_oh_no:
 	dc.b	$FD
 	txt "OH, NO.", $FF, $00
-loc_3C84C:
+;loc_3C84C
+Team_msg_en_making_me_sick:
 	txt "YOU ARE MAKING ME\\nSICK.", $FF
-loc_3C864:
+;loc_3C864
+Team_msg_en_really_poor_driver:
 	txt "YOU REALLY ARE\nA POOR DRIVER.", $FF
-loc_3C882:
+;loc_3C882
+Team_msg_en_dont_make_me_angry:
 	dc.b	$FD
 	txt "DON'T MAKE ME ANGRY!", $FF
-loc_3C898:
+;loc_3C898
+Team_msg_en_forfeit_license:
 	txt "I HEAR THEY'LL FOR-\nFEIT YOUR LICENSE.", $FF, $00
 loc_3C8C0:
 	dc.b	$00, $0D, $80, $06, $34, $17, $77, $26, $36, $36, $37, $48, $FA, $56, $33, $66, $3A, $75, $12, $81, $04, $06, $15, $0F, $25, $13, $37, $7C, $48, $FB, $66, $3C
