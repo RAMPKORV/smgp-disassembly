@@ -2138,7 +2138,7 @@ Initialize_race_hud:
 ;  8. Copy four 96/54-byte car portrait palette strips into $FFFFE980 via
 ;     Copy_word_run_to_buffer.
 ;  9. Initialize remaining objects: Copy_ai_scroll_data_to_objects (team palette VDP commands),
-;     loc_658C (road graphics state), Initialize_car_tile_scroll (car tile DMA).
+;     Initialize_road_scroll_state (road graphics state), Initialize_car_tile_scroll (car tile DMA).
 ; 10. Call Render_speed to show initial speed (0 km/h).
 ; 11. Draw shift indicator tilemap (manual/auto/semi, 8 or 6 tiles wide).
 ; 12. If championship, normal race, or practice: draw lap time table / timer.
@@ -2203,7 +2203,7 @@ Init_hud_minimap_champ:
 	MOVEQ	#4, D1
 	JSR	Copy_word_run_to_buffer
 	JSR	Copy_ai_scroll_data_to_objects(PC)
-	JSR	loc_658C
+	JSR	Initialize_road_scroll_state
 	JSR	Initialize_car_tile_scroll(PC)
 	JSR	Render_speed(PC)
 	MOVE.l	#$63800003, D7
@@ -3915,7 +3915,7 @@ Attract_screen_frame_Timer:
 	SUBI.w	#$0111, $20(A5)
 ;loc_2530
 Attract_screen_frame_No_adj:
-	LEA	loc_27E8(PC), A2
+	LEA	Attract_car_segment_data(PC), A2
 	LEA	$FFFFFB0E.w, A3
 	LEA	$FFFFE988.w, A4
 	MOVEQ	#1, D6
@@ -4012,7 +4012,7 @@ Startup_screen_init_Zero_loop:
 	DBF	D2, Startup_screen_init_Zero_loop
 	DBF	D3, Startup_screen_init_Pal_loop
 	MOVE.w	#1, $FFFFFB08.w
-	LEA	loc_27E0(PC), A0
+	LEA	Decomp_code_table_init(PC), A0
 	LEA	Decomp_code_table.w, A1
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0)+, (A1)+
@@ -4219,9 +4219,11 @@ Menu_cursor_col_prev:
 ;loc_27DE
 Menu_cursor_col_prev_Rts:
 	RTS
-loc_27E0:
+;loc_27E0
+Decomp_code_table_init:
 	dc.b	$00, $01, $00, $01, $00, $20, $00, $02
-loc_27E8: ; Suspected main menu loop
+;loc_27E8
+Attract_car_segment_data: ; Suspected main menu loop
 	dc.b	$0E, $60, $0C, $40, $06, $20, $0E, $80, $0A, $40, $08, $00, $0E, $A0, $0C, $60, $08, $40, $0E, $C8, $0C, $80, $0A, $40, $0E, $EE, $0E, $A4, $0C, $62, $0E, $C8
 	dc.b	$0C, $80, $0A, $40, $0E, $A0, $0C, $60, $08, $00, $0E, $80, $0A, $40, $08, $20
 ;$00002818
@@ -5981,12 +5983,12 @@ Practice_vblank_Step0_Tileset_done:
 	JSR	Upload_h32_tilemap_buffer_to_vram(PC)
 	JSR	Upload_palette_buffer_to_cram_delayed(PC)
 	JSR	Flush_pending_dma_transfers(PC)
-	JSR	loc_7298(PC)
+	JSR	Flush_vdp_mode_and_signs(PC)
 	BRA.b	Race_loop_commit_tileset
 ;loc_3EB0
 Practice_vblank_Step1:
 	JSR	Flush_road_column_dma(PC)
-	JSR	loc_72D6(PC)
+	JSR	Upload_tilemap_rows_to_vdp(PC)
 	JSR	Send_sign_tileset_to_VDP(PC)
 	BRA.b	Race_loop_commit_tileset
 ;loc_3EBE
@@ -6455,21 +6457,24 @@ Pre_race_display_frame:
 	JSR	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	MOVE.b	Input_click_bitset.w, D0
 	ANDI.w	#$00F0, D0
-	BNE.b	loc_451A
+	BNE.b	Pre_race_display_frame_Done
 	SUBQ.w	#1, Race_frame_counter.w
-	BEQ.b	loc_451A
+	BEQ.b	Pre_race_display_frame_Done
 	CMPI.w	#$00A4, Race_frame_counter.w
-	BNE.b	loc_4508
-	MOVE.w	#6, $00FF5AC2
-loc_4508:
+	BNE.b	Pre_race_display_frame_Countdown_chk2
+	MOVE.w	#6, Audio_music_state
+;loc_4508
+Pre_race_display_frame_Countdown_chk2:
 	CMPI.w	#$002E, Race_frame_counter.w
-	BNE.b	loc_4528
-	MOVE.w	#5, $00FF5AC2
-	BRA.b	loc_4528
-loc_451A:
+	BNE.b	Pre_race_display_frame_Rts
+	MOVE.w	#5, Audio_music_state
+	BRA.b	Pre_race_display_frame_Rts
+;loc_451A
+Pre_race_display_frame_Done:
 	MOVE.w	#2, Track_index_arcade_mode.w
-	MOVE.l	#$00003800, Frame_callback.w
-loc_4528:
+	MOVE.l	#Arcade_race_init, Frame_callback.w
+;loc_4528
+Pre_race_display_frame_Rts:
 	RTS
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -6499,10 +6504,12 @@ loc_4528:
 	MOVE.w	#$010C, D0
 	MOVEQ	#1, D1
 	MOVEQ	#1, D2
-loc_45AA:
+;loc_45AA
+Pre_race_car_sprite_row_loop:
 	MOVE.w	#$00A0, D3
 	MOVEQ	#7, D4
-loc_45B0:
+;loc_45B0
+Pre_race_car_sprite_col_loop:
 	MOVE.w	D0, (A0)+
 	MOVE.b	#$0F, (A0)+
 	MOVE.b	D1, (A0)+
@@ -6510,9 +6517,9 @@ loc_45B0:
 	MOVE.w	D3, (A0)+
 	ADDQ.w	#1, D1
 	ADDI.w	#$0020, D3
-	DBF	D4, loc_45B0
+	DBF	D4, Pre_race_car_sprite_col_loop
 	ADDI.w	#$0020, D0
-	DBF	D2, loc_45AA
+	DBF	D2, Pre_race_car_sprite_row_loop
 	CLR.b	-$5(A0)
 	LEA	Pre_race_intro_palette_strip_a, A6
 	JSR	Copy_word_run_from_stream
@@ -7483,7 +7490,8 @@ Car_selection_frame:
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.w	Anim_delay.w, D0
 	TST.w	Temp_distance.w
-	BEQ.b	loc_50F8
+	BEQ.b	Car_selection_frame_Down_step
+
 	MOVE.b	Input_click_bitset.w, D1
 	ANDI.w	#$00F0, D1 ; Keys A+B+C+Start
 	BEQ.b	Car_selection_frame_Up_check
@@ -7502,7 +7510,8 @@ Car_selection_frame_Up_check:
 Car_selection_frame_Down_check:
 	BTST.b	#KEY_DOWN, Input_state_bitset.w
 	BEQ.b	Car_selection_frame_Rts
-loc_50F8:
+;loc_50F8
+Car_selection_frame_Down_step:
 	SUBQ.w	#1, D0
 	BPL.b	Car_selection_store_scroll
 	MOVE.w	#$FFFF, Temp_distance.w
@@ -8066,10 +8075,11 @@ Update_shift:
 	JMP	Update_shift_Dispatch(PC,D0.w) ; Jump based on shift type
 ;loc_59CE
 Update_shift_Dispatch:
-	BRA.w	loc_59DA
+	BRA.w	Update_shift_Auto
 	BRA.w	Update_shift_4speed
 	BRA.w	Update_shift_7speed
-loc_59DA: ; Jump to when shift type is Automatic
+;loc_59DA
+Update_shift_Auto: ; Jump to when shift type is Automatic
 	BTST.b	D5, Input_state_bitset.w ; if shift down key pressed
 	BNE.w	Update_shift_Down                 ; then shift down (even in automatic!)
 	MOVE.w	#3, D0
@@ -8133,7 +8143,7 @@ Update_shift_Down:
 	CMPI.w	#0, Player_shift.w ; if shift 0
 	BEQ.b	Update_shift_Return        ; then RTS
 
-loc_5A6A:
+;loc_5A6A
 Update_shift_Do_down:
 	SUBQ.w	#1, Player_shift.w ; else shift down
 	MOVE.w	Player_rpm.w, D0
@@ -8602,11 +8612,13 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different
 ;
 ; If brake key is held:
 ;   1. If rpm > Engine_rpm_max (1500): shed 40 RPM first.
-;   2. Look up braking strength from loc_60C0 table [shift_type * 4 + shift]:
+;   2. Look up braking strength from Braking_strength_table [shift_type * 4 + shift]:
+
 ;        automatic (type 0): 50 / 40 / 30 / 20 RPM/frame for shifts 0-3
 ;        4-shift   (type 1): 50 / 40 / 30 / 20 RPM/frame for shifts 0-3
 ;        7-shift   (type 2): 48 / 42 / 36 / 30 / 24 / 18 / 12 / 6 for shifts 0-6
-;   3. In world-championship mode (not practice): apply track-quality modifier from loc_60D0
+;   3. In world-championship mode (not practice): apply track-quality modifier from Braking_track_modifier_table
+
 ;      (signed byte adjustment ±6, indexed by Track_braking_index).
 ;   4. Player_rpm -= braking_strength; clamped to 0.
 ; Skipped entirely if Crash_spin_flag is set.
@@ -8622,7 +8634,7 @@ Update_breaking:
 ;loc_6080
 Update_breaking_Apply:
 	CLR.l	D1
-	LEA	loc_60C0, A1
+	LEA	Braking_strength_table, A1
 	MOVE.w	Shift_type.w, D0
 	LSL.w	#2, D0
 	ADD.w	Player_shift.w, D0
@@ -8632,7 +8644,7 @@ Update_breaking_Apply:
 	TST.w	Practice_mode.w
 	BNE.b	Subtract_rpm_floor_zero
 	MOVE.w	Track_braking_index.w, D0
-	LEA	loc_60D0(PC), A0
+	LEA	Braking_track_modifier_table(PC), A0
 	ADD.w	(A0,D0.w), D1
 	BPL.b	Subtract_rpm_floor_zero
 	MOVEQ	#0, D1
@@ -8645,13 +8657,21 @@ Subtract_rpm_floor_zero:
 Update_breaking_Return:
 	RTS
 
-loc_60C0:
+;loc_60C0
+Braking_strength_table:
+; RPM reduction per frame while braking, indexed by [Shift_type*4 + Player_shift].
+; automatic (0): 50/40/30/20 for shifts 0-3
+; 4-shift   (1): 50/40/30/20 for shifts 0-3
+; 7-shift   (2): 48/42/36/30/24/18/12/6 for shifts 0-6 (plus one extra entry)
 	dc.b	$32
 	dc.b	$28
 	dc.b	$1E
 	dc.b	$14, $32, $28, $1E, $14, $30, $2A, $24, $1E, $18, $12, $0C
 	dc.b	$06
-loc_60D0:
+;loc_60D0
+Braking_track_modifier_table:
+; Signed byte adjustments to braking strength, indexed by Track_braking_index.
+; Negative values = weaker braking (slippery), positive = stronger.
 	dc.b	$FF, $FA, $FF, $FE
 	dc.w	$0000
 	dc.b	$00, $02, $00, $04, $00, $06
@@ -8685,7 +8705,7 @@ Update_steering:
 	MOVE.w	Track_steering_index.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_61FC(PC), A0
+	LEA	Track_steering_params(PC), A0
 	ADDA.w	D0, A0
 	ADD.w	(A0)+, D3
 	ADD.w	(A0)+, D4
@@ -8806,7 +8826,11 @@ Update_steering_Deadzone_neg:
 Apply_steering_output:
 	MOVE.b	D7, Steering_output.w
 	RTS
-loc_61FC: ; Suspected backwindow tile mappings
+;loc_61FC
+Track_steering_params:
+; Per-track signed word adjustments to (D3=auto-centre, D4=normal zone, D5=approach zone, D6=hard boundary).
+; Indexed by Track_steering_index (0-4), 4 words per entry.
+; Entries 0-4 = tracks 1-5 (based on Track_steering_index from Track_data +$44).
 	dc.w	$FFFC, $FFF8, $FFF8, $FFF0, $FFFF, $FFFE, $FFFE, $FFFC, $0000, $0000, $0000, $0000, $0001, $0002, $0002, $0004, $0002, $0004, $0004, $0008
 
 ;loc_6224:
@@ -8823,7 +8847,7 @@ Load_track_data:
 ;   8. Expand per-lap target times (+$40) → Track_lap_target_buf (15 × 4-byte BCD records)
 ;   9. Initialise BCD lap time accumulator at $FFFFAD74 from Shift_type
 ;  10. Load steering divisors (+$44) → Steering_divisor_straight / Steering_divisor_curve
-;  11. Initialise placement sequence from loc_73CA/loc_73DC
+;  11. Initialise placement sequence from Arcade_placement_seq_v1/Arcade_placement_seq_v2
 
 	JSR	Load_track_data_pointer
 	LEA	$20(A1), A1
@@ -8844,44 +8868,50 @@ Load_track_data:
 	LEA	Background_horizontal_displacement, A2
 	MOVEQ	#0, D2
 	MOVE.b	#$FF, (A3)+
-loc_6270:
+;loc_6270
+Load_track_data_Curve_loop:
 	MOVEQ	#0, D7
 	MOVEQ	#0, D3
 	MOVE.w	D2, D3 ; D2 = accumulated background displacement
 	MOVE.b	(A0)+, D6
-	BMI.b	loc_62BC
+	BMI.b	Load_track_data_Slope_start
 	LSL.w	#8, D6
 	MOVE.b	(A0)+, D6 ; D6 = length
 	MOVE.b	(A0)+, D1 ; D1 = curve data
-	BEQ.b	loc_62A6
+	BEQ.b	Load_track_data_Curve_entry
 	MOVEQ	#0, D5    ; ...
 	MOVE.b	(A0)+, D5 ; ...
 	LSL.w	#8, D5    ; ...
 	MOVE.b	(A0)+, D5 ; D5 = background displacement
 	BTST.l	#6, D1
-	BEQ.b	loc_6294 ; jump if right turn
+	BEQ.b	Load_track_data_Curve_right ; jump if right turn
 	SUB.w	D5, D2
-	BRA.b	loc_6296
-loc_6294:
+	BRA.b	Load_track_data_Curve_disp_store
+;loc_6294
+Load_track_data_Curve_right:
 	ADD.w	D5, D2
-loc_6296:
+;loc_6296
+Load_track_data_Curve_disp_store:
 	SWAP	D5
 	JSR	Divide_fractional ; D7 = D5 / D6 = displacement / length = displacement per step
 	BTST.l	#6, D1
-	BEQ.b	loc_62A6 ; jump if right turn
+	BEQ.b	Load_track_data_Curve_entry ; jump if right turn
 	NEG.l	D7
-loc_62A6:
+;loc_62A6
+Load_track_data_Curve_entry:
 	SUBQ.w	#1, D6 ; fix below loop count
-loc_62A8:
+;loc_62A8
+Load_track_data_Curve_entry_loop:
 	MOVE.b	D1, (A3)+ ; write decompressed curve data
 	SWAP	D3         ; ...
 	ADD.l	D7, D3     ; ...
 	SWAP	D3         ; D3 = D3+D7 with fractional addition
 	ANDI.w	#$03FF, D3 ; modulo 1024. So N=0, W=256, S=512, E=768
 	MOVE.w	D3, (A2)+ ; write decomperssed horizontal background displacement
-	DBF	D6, loc_62A8
-	BRA.b	loc_6270
-loc_62BC:
+	DBF	D6, Load_track_data_Curve_entry_loop
+	BRA.b	Load_track_data_Curve_loop
+;loc_62BC
+Load_track_data_Slope_start:
 	MOVE.b	#$FF, (A3)
 	MOVEA.l	(A1)+, A0 ; slope data
 	LEA	Visual_slope_data, A3
@@ -8889,57 +8919,65 @@ loc_62BC:
 	MOVE.b	(A0)+, D2 ; initial vertical background displacement
 	EXT.w	D2
 	MOVE.b	#$FF, (A3)+
-loc_62D6:
+;loc_62D6
+Load_track_data_Slope_loop:
 	MOVEQ	#0, D7
 	MOVE.b	(A0)+, D6
-	BMI.b	loc_6302
+	BMI.b	Load_track_data_Physslope_start
 	LSL.w	#8, D6
 	MOVE.b	(A0)+, D6
 	MOVE.b	(A0)+, D1
-	BEQ.b	loc_62F0
+	BEQ.b	Load_track_data_Slope_entry
 	MOVE.b	(A0)+, D7
 	LSL.w	#8, D7
 	BTST.l	#6, D1
-	BEQ.b	loc_62F0 ; jump if down slope
+	BEQ.b	Load_track_data_Slope_entry ; jump if down slope
 	NEG.l	D7
-loc_62F0:
+;loc_62F0
+Load_track_data_Slope_entry:
 	SUBQ.w	#1, D6
-loc_62F2:
+;loc_62F2
+Load_track_data_Slope_entry_loop:
 	MOVE.b	D1, (A3)+ ; write decompressed slope data
 	SWAP	D2     ; ...
 	ADD.l	D7, D2 ; ...
 	SWAP	D2     ; integrate vertical background displacement (accumulate D7 onto D2)
 	MOVE.b	D2, (A2)+ ; write decomperssed vertical background displacement
-	DBF	D6, loc_62F2
-	BRA.b	loc_62D6
-loc_6302:
+	DBF	D6, Load_track_data_Slope_entry_loop
+	BRA.b	Load_track_data_Slope_loop
+;loc_6302
+Load_track_data_Physslope_start:
 	MOVE.b	#$FF, (A3)
 	MOVEA.l	(A1)+, A0 ; physical slope data (decoded to Physical_slope_data at $00FF8300)
 	LEA	Physical_slope_data, A2 ; destination: physical slope table
-loc_630E:
+;loc_630E
+Load_track_data_Physslope_loop:
 	MOVE.b	(A0)+, D6
-	BMI.b	loc_6322
+	BMI.b	Load_track_data_Timing_start
 	LSL.w	#8, D6
 	MOVE.b	(A0)+, D6
 	MOVE.b	(A0)+, D1
 	SUBQ.w	#1, D6
-loc_631A:
+;loc_631A
+Load_track_data_Physslope_entry_loop:
 	MOVE.b	D1, (A2)+
-	DBF	D6, loc_631A
-	BRA.b	loc_630E
-loc_6322:
+	DBF	D6, Load_track_data_Physslope_entry_loop
+	BRA.b	Load_track_data_Physslope_loop
+;loc_6322
+Load_track_data_Timing_start:
 	MOVE.l	(A1)+, Track_lap_time_base_ptr.w ; Track_data +$3C: pointer into Track_lap_time_records for current track
 	MOVEA.l	(A1)+, A2
 	LEA	Track_lap_target_buf.w, A3
 	MOVEQ	#$0000000E, D0
-loc_632E:
+;loc_632E
+Load_track_data_Lap_target_loop:
 	CLR.b	(A3)+
 	MOVE.b	(A2)+, (A3)+
 	MOVE.b	(A2)+, (A3)+
 	MOVE.b	(A2)+, (A3)+
-	DBF	D0, loc_632E
+	DBF	D0, Load_track_data_Lap_target_loop
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_63B8
+	BEQ.b	Load_track_data_Steering_init
 	MOVEQ	#$00000050, D7
 	MOVEQ	#6, D6
 	MOVEQ	#0, D5
@@ -8947,24 +8985,26 @@ loc_632E:
 	MOVEQ	#$00000040, D3
 	MOVEQ	#1, D2
 	MOVE.w	Shift_type.w, D0
-	BEQ.b	loc_635A
+	BEQ.b	Load_track_data_Bcd_init_auto
 	MOVEQ	#0, D7
 	MOVEQ	#4, D6
 	SUBQ.w	#1, D0
-	BNE.b	loc_63B8
-loc_635A:
+	BNE.b	Load_track_data_Steering_init
+;loc_635A
+Load_track_data_Bcd_init_auto:
 	LEA	$FFFFAD74.w, A6
 	MOVEQ	#$0000000D, D1
-loc_6360:
+;loc_6360
+Load_track_data_Bcd_loop:
 	ADDI.w	#0, D0
 	MOVE.b	$3(A6), D0
 	ABCD	D7, D0
 	MOVE.b	D0, $3(A6)
 	MOVE.b	$2(A6), D0
 	ABCD	D6, D0
-	BCS.b	loc_6394
+	BCS.b	Load_track_data_Bcd_carry
 	CMP.b	D4, D0
-	BCS.b	loc_63AC
+	BCS.b	Load_track_data_Bcd_next
 	MOVE.b	D0, $2(A6)
 	MOVE.b	$1(A6), D0
 	ABCD	D2, D0
@@ -8972,8 +9012,9 @@ loc_6360:
 	ADDI.w	#0, D0
 	MOVE.b	$2(A6), D0
 	SBCD	D4, D0
-	BRA.b	loc_63AC
-loc_6394:
+	BRA.b	Load_track_data_Bcd_next
+;loc_6394
+Load_track_data_Bcd_carry:
 	MOVE.b	D0, $2(A6)
 	MOVE.b	$1(A6), D0
 	ABCD	D5, D0
@@ -8981,19 +9022,22 @@ loc_6394:
 	ADDI.w	#0, D0
 	MOVE.b	$2(A6), D0
 	ABCD	D3, D0
-loc_63AC:
+;loc_63AC
+Load_track_data_Bcd_next:
 	MOVE.b	D0, $2(A6)
 	LEA	-$4(A6), A6
-	DBF	D1, loc_6360
-loc_63B8:
+	DBF	D1, Load_track_data_Bcd_loop
+;loc_63B8
+Load_track_data_Steering_init:
 	MOVE.l	(A1)+, Steering_divisor_straight.w ; Track_data +$44: steering divisors (.w straight, .w curve)
 	MOVE.w	Track_length.w, $FFFF922C.w
 	MOVE.l	loc_FDCA, $FFFF922E.w
-	LEA	loc_73CA(PC), A6
+	LEA	Arcade_placement_seq_v1(PC), A6
 	CMPI.w	#1, Track_index_arcade_mode.w
-	BEQ.b	loc_63DA
-	LEA	loc_73DC(PC), A6
-loc_63DA:
+	BEQ.b	Load_track_data_Arcade_placement
+	LEA	Arcade_placement_seq_v2(PC), A6
+;loc_63DA
+Load_track_data_Arcade_placement:
 	MOVE.w	(A6), Current_placement.w
 	MOVE.w	(A6)+, Placement_next_threshold.w
 	MOVE.l	A6, $FFFF9284.w
@@ -9016,19 +9060,19 @@ Initialize_road_graphics_state:
 	LEA	Road_scale_table.w, A0
 	MOVEQ	#$0000003B, D0
 	MOVEQ	#$0000002F, D1
-loc_63F0:
+Initialize_road_graphics_state_Scale_loop:
 	MOVE.w	D1, (A0)+
 	MOVE.w	D1, (A0)+
 	SUBQ.w	#1, D1
-	DBF	D0, loc_63F0
+	DBF	D0, Initialize_road_graphics_state_Scale_loop
 	LEA	$FFFF9480.w, A0
 	MOVE.w	#$00B4, D0
 	MOVEQ	#$00000012, D1
-loc_6404:
+Initialize_road_graphics_state_Y_loop:
 	MOVE.w	D0, (A0)+
 	MOVE.w	D0, (A0)+
 	ADDQ.w	#1, D0
-	DBF	D1, loc_6404
+	DBF	D1, Initialize_road_graphics_state_Y_loop
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#1, D0
 	ANDI.w	#$FFFE, D0
@@ -9062,9 +9106,9 @@ Initialize_ui_tilemap_buffers:
 	LEA	$FFFFD900.w, A0
 	MOVE.w	#$04F9, D0
 	MOVE.w	#$06FF, D1
-loc_6434:
+Initialize_ui_tilemap_buffers_Clear_loop:
 	MOVE.w	D0, (A0)+
-	DBF	D1, loc_6434
+	DBF	D1, Initialize_ui_tilemap_buffers_Clear_loop
 	LEA	loc_54724, A0
 	JSR	Decompress_tilemap_to_buffer
 	MOVEQ	#7, D6
@@ -9091,9 +9135,9 @@ loc_6434:
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD680.w, A1
 	MOVE.w	#$009F, D0
-loc_649A:
+Initialize_ui_tilemap_buffers_Copy_loop:
 	MOVE.l	(A0)+, (A1)+
-	DBF	D0, loc_649A
+	DBF	D0, Initialize_ui_tilemap_buffers_Copy_loop
 	MOVEQ	#4, D5
 	LEA	$FFFFF1E0.w, A6
 	LEA	$FFFFD6C0.w, A5
@@ -9128,9 +9172,9 @@ loc_649A:
 	LEA	$FFFFD900.w, A0
 	LEA	$FFFFE000.w, A1
 	MOVE.w	#$01BF, D0
-loc_6516:
+Initialize_ui_tilemap_buffers_Copy2_loop:
 	MOVE.l	(A0)+, (A1)+
-	DBF	D0, loc_6516
+	DBF	D0, Initialize_ui_tilemap_buffers_Copy2_loop
 	MOVEQ	#6, D5
 	LEA	$FFFFF2D0.w, A6
 	LEA	$FFFFE080.w, A5
@@ -9146,19 +9190,19 @@ loc_6516:
 	MOVE.l	#$60006000, D1
 	MOVE.l	#$20002000, D2
 	MOVE.w	#$009F, D0
-	BSR.b	loc_6564
+	BSR.b	Apply_tilemap_attr_Or_loop
 	LEA	$FFFFD900.w, A0
 	LEA	$FFFFE000.w, A1
 	MOVE.w	#$01BF, D0
 
-loc_6564:
+Apply_tilemap_attr_Or_loop:
 	MOVE.l	(A0), D3
 	OR.l	D1, D3
 	MOVE.l	D3, (A0)+
 	MOVE.l	(A1), D3
 	OR.l	D2, D3
 	MOVE.l	D3, (A1)+
-	DBF	D0, loc_6564
+	DBF	D0, Apply_tilemap_attr_Or_loop
 	RTS
 
 ;Copy_2d_rect_words
@@ -9170,23 +9214,24 @@ Copy_2d_rect_words:
 	LEA	(A5), A3
 	LEA	(A6), A4
 	MOVE.w	D6, D2
-loc_657C:
+Copy_2d_rect_words_Inner_loop:
 	MOVE.w	(A4)+, (A3)+
-	DBF	D2, loc_657C
+	DBF	D2, Copy_2d_rect_words_Inner_loop
 	ADDA.w	D3, A5
 	ADDA.w	D4, A6
 	DBF	D5, Copy_2d_rect_words
 	RTS
 
-loc_658C:
+;loc_658C
+Initialize_road_scroll_state:
 	LEA	$FFFF9658.w, A0
 	LEA	$FFFF91BA.w, A1
 	MOVEQ	#6, D0
-loc_6596:
+Initialize_road_scroll_state_Loop:
 	MOVE.w	(A0), (A1)
 	LEA	$10(A0), A0
 	LEA	$A(A1), A1
-	DBF	D0, loc_6596
+	DBF	D0, Initialize_road_scroll_state_Loop
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD900.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
@@ -9206,14 +9251,14 @@ loc_6596:
 	MOVE.l	#$47000003, VDP_control_port
 	JSR	Write_road_scroll_with_sky_to_vdp(PC)
 	TST.w	Background_zone_index.w
-	BNE.b	loc_6622
+	BNE.b	Render_road_bg_Zone_nonzero
 	LEA	$FFFFD400.w, A0
 	LEA	$FFFFD900.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
 	MOVE.w	#$6000, D0
 	MOVE.l	#$4D000003, VDP_control_port
 	BRA.w	Write_road_scroll_with_sky_to_vdp
-loc_6622:
+Render_road_bg_Zone_nonzero:
 	LEA	$FFFFD680.w, A0
 	LEA	$FFFFE000.w, A1
 	JSR	Copy_displacement_rows_to_work_buffer(PC)
@@ -9237,12 +9282,12 @@ Write_road_scroll_with_sky_to_vdp:
 	MOVE.w	#$9FFF, D2
 	LEA	$FFFFF600.w, A0
 	LEA	VDP_data_port, A1
-loc_664E:
+Write_road_scroll_with_sky_to_vdp_Loop:
 	MOVE.w	(A0)+, D3
 	AND.w	D2, D3
 	OR.w	D0, D3
 	MOVE.w	D3, (A1)
-	DBF	D1, loc_664E
+	DBF	D1, Write_road_scroll_with_sky_to_vdp_Loop
 	RTS
 
 ;Copy_displacement_rows_to_work_buffer
@@ -9309,7 +9354,7 @@ Copy_displacement_rows_to_work_buffer:
 	MOVE.w	#$00FC, D1
 	MOVE.w	#$007C, D4
 	MOVEQ	#6, D0
-loc_6716:
+Copy_displacement_rows_Row_loop:
 	MOVE.w	(A0), D2
 	NEG.w	D2
 	SUBI.w	#$0080, D2
@@ -9318,18 +9363,18 @@ loc_6716:
 	LSR.w	#2, D2
 	LSR.w	#2, D5
 	MOVEQ	#$0000001F, D3
-loc_672A:
+Copy_displacement_rows_Inner_loop:
 	AND.w	D1, D2
 	AND.w	D4, D5
 	MOVE.l	(A1,D2.w), (A2,D5.w)
 	ADDQ.w	#4, D2
 	ADDQ.w	#4, D5
-	DBF	D3, loc_672A
+	DBF	D3, Copy_displacement_rows_Inner_loop
 	LEA	$10(A0), A0
 	LEA	$100(A1), A1
 	LEA	$80(A2), A2
-	DBF	D0, loc_6716
-loc_674C:
+	DBF	D0, Copy_displacement_rows_Row_loop
+Copy_displacement_rows_Rts:
 	RTS
 
 ;loc_674E:
@@ -9345,7 +9390,7 @@ Update_road_graphics:
 ;     then integrate toward target using Player_distance_fixed accumulator
 ;     (smooth parallax scrolling).  Store integer part in Player_distance_steps.
 ;  3. Road scanline descriptors: select one of 16 sub-step offset blocks from
-;     the pre-computed road scan-line descriptor table at loc_6F940 based on
+;     the pre-computed road scan-line descriptor table at Road_scanline_descriptor_table based on
 ;     (Player_distance & $F).  Copy 4 × 48-byte blocks to $FFFFAC40 (road
 ;     scan-line work area used by the road tile painter).
 ;  4. HUD scroll blanking: if HUD_scroll_base != 0, fill that row in the
@@ -9362,7 +9407,7 @@ Update_road_graphics:
 ;     per-row Y table; handles retire flash (alternating pattern at bit 0 of
 ;     Frame_counter).
 	TST.w	Race_finish_flag.w
-	BNE.b	loc_674C
+	BNE.b	Copy_displacement_rows_Rts
 	MOVE.w	Player_distance.w, D0
 	LSR.w	#2, D0
 	LEA	Background_vertical_displacement, A0
@@ -9389,7 +9434,7 @@ Update_road_graphics:
 	MOVE.w	D0, D1
 	ADD.w	D0, D0
 	ADD.w	D1, D0
-	LEA	loc_6F940, A6
+	LEA	Road_scanline_descriptor_table, A6
 	ADDA.w	D0, A6
 	LEA	$FFFFAC40.w, A5
 	MOVEM.l	(A6)+, D0-D7/A0-A3
@@ -9406,36 +9451,36 @@ Update_road_graphics:
 	LEA	$FFFFAC40.w, A6
 	LEA	(A6), A5
 	MOVE.w	HUD_scroll_base.w, D0
-	BEQ.b	loc_6804
+	BEQ.b	Update_road_graphics_Hud_blank_done
 	ADD.w	D0, D0
 	ADDA.w	D0, A5
 	MOVE.w	#$FF40, D1
 	MOVE.w	$FFFFFC48.w, D0
-loc_67F8:
+Update_road_graphics_Hud_blank_loop:
 	MOVE.w	D1, (A5)+
-	DBF	D0, loc_67F8
+	DBF	D0, Update_road_graphics_Hud_blank_loop
 	LEA	(A6), A5
 	CLR.w	HUD_scroll_base.w
-loc_6804:
+Update_road_graphics_Hud_blank_done:
 	BTST.b	#0, $FFFF9239.w
-	BEQ.b	loc_681C
+	BEQ.b	Update_road_graphics_Retire_flash_done
 	MOVE.w	$FFFFAFEC.w, D0
 	MOVE.w	#$FF40, D1
-loc_6814:
+Update_road_graphics_Retire_flash_loop:
 	MOVE.w	D1, (A5)+
-	DBF	D0, loc_6814
+	DBF	D0, Update_road_graphics_Retire_flash_loop
 	LEA	(A6), A5
-loc_681C:
+Update_road_graphics_Retire_flash_done:
 	TST.w	$FFFF923C.w
-	BEQ.b	loc_6836
+	BEQ.b	Update_road_graphics_Sign_row_done
 	MOVE.w	$FFFFAFEC.w, D0
 	MOVE.w	#$FF40, D1
 	LEA	$C0(A5), A5
-loc_682E:
+Update_road_graphics_Sign_row_loop:
 	MOVE.w	D1, -(A5)
-	DBF	D0, loc_682E
+	DBF	D0, Update_road_graphics_Sign_row_loop
 	LEA	(A6), A5
-loc_6836:
+Update_road_graphics_Sign_row_done:
 	LEA	$FFFF922A.w, A0
 	MOVE.w	(A0)+, D2
 	MOVE.w	(A0,D2.w), D2
@@ -9444,14 +9489,14 @@ loc_6836:
 	MOVE.w	D0, D1
 	SUB.w	Player_distance.w, D0
 	CMPI.w	#$00A0, D0
-	BCS.b	loc_685E
+	BCS.b	Update_road_graphics_Sign_in_range
 	MOVE.w	Player_distance.w, D0
 	ADD.w	D2, D0
 	SUB.w	D0, D1
-	BCS.b	loc_68A2
-	BEQ.b	loc_68A2
+	BCS.b	Update_road_graphics_Sign_skip
+	BEQ.b	Update_road_graphics_Sign_skip
 	MOVE.w	D1, D0
-loc_685E:
+Update_road_graphics_Sign_in_range:
 	MOVE.w	#$009F, D1
 	SUB.w	D0, D1
 	LEA	Ai_screen_y_table, A4
@@ -9460,22 +9505,22 @@ loc_685E:
 	MOVEQ	#$0000005F, D0
 	MOVE.b	(A4,D1.w), D2
 	CMPI.w	#$0098, D1
-	BCC.b	loc_687C
+	BCC.b	Update_road_graphics_Sign_height_lookup
 	MOVE.b	$8(A4,D1.w), D0
-loc_687C:
+Update_road_graphics_Sign_height_lookup:
 	SUB.b	D2, D0
 	ADD.w	D2, D2
 	LEA	(A5,D2.w), A5
-loc_6884:
+Update_road_graphics_Sign_fill_loop:
 	MOVE.w	#$FF40, (A5)+
-	DBF	D0, loc_6884
+	DBF	D0, Update_road_graphics_Sign_fill_loop
 	MOVE.w	#1, $FFFFFC86.w
 	LEA	$FFFFAD14.w, A0
 	TST.w	$FFFF9238.w
-	BEQ.b	loc_68D4
-	LEA	loc_7360(PC), A0
-	BRA.b	loc_68D4
-loc_68A2:
+	BEQ.b	Update_road_graphics_Bg_load
+	LEA	Default_bg_scroll_row_data(PC), A0
+	BRA.b	Update_road_graphics_Bg_load
+Update_road_graphics_Sign_skip:
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Render_road_bg_entry
 	TST.w	Track_index_arcade_mode.w
@@ -9486,23 +9531,23 @@ loc_68A2:
 	MOVE.w	$FFFF922A.w, D0
 	ADDQ.w	#2, D0
 	CMPI.w	#6, D0
-	BCS.b	loc_68C6
+	BCS.b	Update_road_graphics_Rot_wrap_done
 	MOVEQ	#0, D0
-loc_68C6:
+Update_road_graphics_Rot_wrap_done:
 	MOVE.w	D0, $FFFF922A.w
 ;loc_68CA
 Render_road_bg_entry:
 	TST.w	Track_horizon_override_flag.w
-	BEQ.b	loc_68DE
-	LEA	loc_7356(PC), A0
-loc_68D4:
+	BEQ.b	Update_road_graphics_Bg_done
+	LEA	Arcade_bg_scroll_row_data(PC), A0
+Update_road_graphics_Bg_load:
 	LEA	$FFFFE9F6.w, A1
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0)+, (A1)+
 	MOVE.w	(A0), (A1)
-loc_68DE:
+Update_road_graphics_Bg_done:
 	TST.w	Background_zone_index.w
-	BEQ.b	loc_691E
+	BEQ.b	Update_road_graphics_Road_tiles
 	MOVE.w	#$FF40, D7
 	MOVE.w	#$00A0, D1
 	SUB.w	Background_zone_index.w, D1
@@ -9513,19 +9558,19 @@ loc_68DE:
 	ADD.w	D1, D1
 	ADDA.w	D1, A5
 	BTST.b	#0, $FFFF9211.w
-	BNE.b	loc_6916
+	BNE.b	Update_road_graphics_Gnd_fill
 	MOVE.w	#$005F, D0
 	SUB.w	D2, D0
-loc_690E:
+Update_road_graphics_Sky_fill_loop:
 	ADD.w	D7, (A5)+
-	DBF	D0, loc_690E
-	BRA.b	loc_691E
-loc_6916:
+	DBF	D0, Update_road_graphics_Sky_fill_loop
+	BRA.b	Update_road_graphics_Road_tiles
+Update_road_graphics_Gnd_fill:
 	MOVE.w	D2, D0
-loc_6918:
+Update_road_graphics_Gnd_fill_loop:
 	ADD.w	D7, -(A5)
-	DBF	D0, loc_6918
-loc_691E:
+	DBF	D0, Update_road_graphics_Gnd_fill_loop
+Update_road_graphics_Road_tiles:
 	LEA	$FFFF9900.w, A5
 	LEA	$FFFF9600.w, A4
 	LEA	$FFFFA0C0.w, A1
@@ -9534,36 +9579,36 @@ loc_691E:
 	EORI.w	#$01C0, D7
 	ADDA.w	D7, A0
 	TST.w	Retire_flash_flag.w
-	BEQ.b	loc_6966
+	BEQ.b	Update_road_graphics_Normal_tiles
 	BTST.b	#0, Frame_counter.w
-	BEQ.b	loc_6966
-	LEA	loc_6E8A(PC), A1
+	BEQ.b	Update_road_graphics_Normal_tiles
+	LEA	Road_tile_offset_table(PC), A1
 	MOVEQ	#$00000019, D1
-loc_694C:
+Update_road_graphics_Retire_tile_loop:
 	MOVE.w	(A1)+, (A0)+
-	DBF	D1, loc_694C
+	DBF	D1, Update_road_graphics_Retire_tile_loop
 	MOVE.w	#$FFE2, D1
 	MOVE.w	#$00C5, D0
-loc_695A:
+Update_road_graphics_Retire_seq_loop:
 	MOVE.w	D1, (A0)+
 	SUBQ.w	#1, D1
-	DBF	D0, loc_695A
-	BRA.w	loc_6B60
-loc_6966:
+	DBF	D0, Update_road_graphics_Retire_seq_loop
+	BRA.w	Update_road_graphics_Dirty
+Update_road_graphics_Normal_tiles:
 	MOVEQ	#0, D5
 	MOVEQ	#0, D4
 	MOVEQ	#0, D1
 	MOVE.w	#$00DF, D3
-loc_6970:
+Update_road_graphics_Tile_loop:
 	MOVE.w	(A5)+, D0
-	BNE.b	loc_6982
+	BNE.b	Update_road_graphics_Tile_nonzero
 	ADDQ.w	#2, A1
 	ADDQ.w	#2, A0
 	ADDQ.w	#1, D5
 	ADDQ.w	#1, D4
-	DBF	D3, loc_6970
-	BRA.b	loc_699E
-loc_6982:
+	DBF	D3, Update_road_graphics_Tile_loop
+	BRA.b	Update_road_graphics_Minimap
+Update_road_graphics_Tile_nonzero:
 	SUBQ.w	#1, D0
 	MOVE.w	#$0190, D1
 	SUB.w	D5, D1
@@ -9573,21 +9618,21 @@ loc_6982:
 	MOVE.w	D1, (A0)+
 	MOVE.w	(A4,D0.w), (A1)+
 	ADDQ.w	#1, D5
-	DBF	D3, loc_6970
-loc_699E:
+	DBF	D3, Update_road_graphics_Tile_loop
+Update_road_graphics_Minimap:
 	MOVE.w	D4, Minimap_scroll_pos.w
 	LEA	$FFFF9DC0.w, A1
 	ADDA.w	D7, A1
 	CMPI.w	#2, $FFFF9238.w
-	BNE.b	loc_69C2
+	BNE.b	Update_road_graphics_Bg_scroll
 	SUBI.w	#$0041, D4
 	MOVE.w	#$FFC2, D3
-loc_69B8:
+Update_road_graphics_Tunnel_loop:
 	MOVE.w	D3, (A1)+
 	SUBQ.w	#1, D3
-	DBF	D4, loc_69B8
-	BRA.b	loc_6A0A
-loc_69C2:
+	DBF	D4, Update_road_graphics_Tunnel_loop
+	BRA.b	Update_road_graphics_Road_header
+Update_road_graphics_Bg_scroll:
 	MOVE.w	$FFFF9236.w, D0
 	MOVEQ	#$00000027, D1
 	SUB.w	D0, D1
@@ -9595,10 +9640,10 @@ loc_69C2:
 	MOVE.w	D1, Minimap_track_offset.w
 	ADDI.w	#$0041, Minimap_track_offset.w
 	MOVE.w	#$FFC0, D3
-loc_69DA:
+Update_road_graphics_Bg_col_loop:
 	MOVE.w	D3, (A1)+
 	SUBQ.w	#1, D3
-	DBF	D1, loc_69DA
+	DBF	D1, Update_road_graphics_Bg_col_loop
 	SUB.w	D2, D4
 	SUBI.w	#$0042, D4
 	ADDI.w	#$FFC0, D0
@@ -9606,48 +9651,48 @@ loc_69DA:
 	SUBA.w	D7, A0
 	MOVE.w	Player_distance_steps.w, D6
 	MOVE.w	#$0048, D1
-loc_69FA:
+Update_road_graphics_Horizon_loop:
 	MOVE.w	D6, (A0)+
 	MOVE.w	D0, (A1)+
 	SUBQ.w	#1, D1
-	BNE.b	loc_6A06
+	BNE.b	Update_road_graphics_Horizon_mid
 	MOVE.w	#$0080, D6
-loc_6A06:
-	DBF	D4, loc_69FA
-loc_6A0A:
+Update_road_graphics_Horizon_mid:
+	DBF	D4, Update_road_graphics_Horizon_loop
+Update_road_graphics_Road_header:
 	LEA	$FFFF9D40.w, A0
 	ADDA.w	D7, A0
-	LEA	loc_6E8A(PC), A1
+	LEA	Road_tile_offset_table(PC), A1
 	MOVEQ	#$00000019, D0
-loc_6A16:
+Update_road_graphics_Road_hdr_loop:
 	MOVE.w	(A1)+, (A0)+
-	DBF	D0, loc_6A16
+	DBF	D0, Update_road_graphics_Road_hdr_loop
 	LEA	$380(A0), A1
 	SUBA.w	D7, A1
 	MOVEQ	#$00000019, D6
 	CMPI.w	#2, $FFFF9238.w
-	BCS.b	loc_6A3C
+	BCS.b	Update_road_graphics_Normal_upper
 	MOVE.w	#$FFE8, D0
-loc_6A30:
+Update_road_graphics_Tunnel_upper_loop:
 	MOVE.w	D0, (A0)+
 	ADDQ.w	#2, A1
 	SUBQ.w	#1, D0
-	DBF	D6, loc_6A30
-	BRA.b	loc_6A4E
-loc_6A3C:
+	DBF	D6, Update_road_graphics_Tunnel_upper_loop
+	BRA.b	Update_road_graphics_Bg_check
+Update_road_graphics_Normal_upper:
 	MOVEQ	#0, D0
 	SUB.w	Player_distance_steps.w, D0
 	MOVE.w	#$FFF4, D1
-loc_6A46:
+Update_road_graphics_Normal_upper_loop:
 	MOVE.w	D0, (A1)+
 	MOVE.w	D1, (A0)+
-	DBF	D6, loc_6A46
-loc_6A4E:
+	DBF	D6, Update_road_graphics_Normal_upper_loop
+Update_road_graphics_Bg_check:
 	TST.w	$FFFF923C.w
-	BEQ.b	loc_6A5A
-	LEA	loc_736A(PC), A6
-	BRA.b	loc_6A74
-loc_6A5A:
+	BEQ.b	Update_road_graphics_Substep
+	LEA	Blank_bg_scroll_row_data(PC), A6
+	BRA.b	Update_road_graphics_Edge_write
+Update_road_graphics_Substep:
 	MOVEQ	#$0000000F, D0
 	SUB.w	Player_distance.w, D0
 	ANDI.w	#$000F, D0
@@ -9655,26 +9700,26 @@ loc_6A5A:
 	MOVE.w	D0, D1
 	ADD.w	D0, D0
 	ADD.w	D1, D0
-	LEA	loc_6F940, A6
+	LEA	Road_scanline_descriptor_table, A6
 	ADDA.w	D0, A6
-loc_6A74:
+Update_road_graphics_Edge_write:
 	LEA	$FFFF9400.w, A4
 	MOVE.w	#$000B, D3
 	MOVE.w	#$015C, D2
-loc_6A80:
+Update_road_graphics_Edge_loop:
 	MOVE.w	(A6), D1
 	ADDQ.w	#4, A6
 	ADD.w	D2, D1
 	MOVE.w	D1, (A0)+
 	ADDQ.w	#1, D2
 	MOVE.w	(A4)+, (A1)+
-	DBF	D3, loc_6A80
+	DBF	D3, Update_road_graphics_Edge_loop
 	LEA	$FFFF9D40.w, A0
 	ADDA.w	D7, A0
 	MOVEQ	#0, D3
 	MOVE.w	$FFFF9238.w, D0
 	SUBQ.w	#1, D0
-	BEQ.b	loc_6AD6
+	BEQ.b	Update_road_graphics_Horizon2
 	SUBQ.w	#2, D0
 	BNE.b	Update_road_graphics_Signs
 	MOVE.w	$FFFFFC3E.w, D0
@@ -9690,13 +9735,13 @@ loc_6A80:
 	LEA	$2(A0,D0.w), A2
 	LEA	$380(A2), A3
 	SUBA.w	D7, A3
-loc_6ACA:
+Update_road_graphics_Horizon_center_loop:
 	MOVE.w	D1, (A2)+
 	MOVE.w	D3, (A3)+
 	SUBQ.w	#1, D1
-	DBF	D2, loc_6ACA
+	DBF	D2, Update_road_graphics_Horizon_center_loop
 	BRA.b	Update_road_graphics_Signs
-loc_6AD6:
+Update_road_graphics_Horizon2:
 	MOVE.w	$FFFFFC36.w, D0
 	BEQ.b	Update_road_graphics_Signs
 	SUBI.w	#$0080, D0
@@ -9709,18 +9754,18 @@ loc_6AD6:
 	LEA	$2(A0,D0.w), A2
 	LEA	$380(A2), A3
 	SUBA.w	D7, A3
-loc_6AFA:
+Update_road_graphics_Horizon2_loop:
 	MOVE.w	D1, (A2)+
 	MOVE.w	D3, (A3)+
 	SUBQ.w	#1, D1
-	DBF	D2, loc_6AFA
+	DBF	D2, Update_road_graphics_Horizon2_loop
 ;Update_road_graphics_Signs
 Update_road_graphics_Signs:
 	LEA	$FFFFFC36.w, A1
 	MOVEQ	#1, D6
-loc_6B0A:
+Update_road_graphics_Signs_loop:
 	MOVE.w	(A1), D0
-	BEQ.b	loc_6B2C
+	BEQ.b	Update_road_graphics_Signs_next
 	CLR.w	(A1)
 	SUBI.w	#$0080, D0
 	MOVE.w	D0, D1
@@ -9729,17 +9774,17 @@ loc_6B0A:
 	ADD.w	D0, D0
 	LEA	$2(A0,D0.w), A2
 	MOVE.w	$2(A1), D0
-loc_6B24:
+Update_road_graphics_Signs_col_loop:
 	MOVE.w	D1, -(A2)
 	ADDQ.w	#1, D1
-	DBF	D0, loc_6B24
-loc_6B2C:
+	DBF	D0, Update_road_graphics_Signs_col_loop
+Update_road_graphics_Signs_next:
 	ADDQ.w	#4, A1
-	DBF	D6, loc_6B0A
+	DBF	D6, Update_road_graphics_Signs_loop
 	MOVEQ	#1, D6
-loc_6B34:
+Update_road_graphics_Signs2_loop:
 	MOVE.w	(A1), D0
-	BEQ.b	loc_6B5A
+	BEQ.b	Update_road_graphics_Signs2_next
 	CLR.w	(A1)
 	SUBI.w	#$0080, D0
 	MOVE.w	D0, D1
@@ -9749,14 +9794,14 @@ loc_6B34:
 	ADD.w	D0, D0
 	LEA	$2(A0,D0.w), A2
 	MOVE.w	$2(A1), D0
-loc_6B52:
+Update_road_graphics_Signs2_col_loop:
 	MOVE.w	D1, -(A2)
 	ADDQ.w	#1, D1
-	DBF	D0, loc_6B52
-loc_6B5A:
+	DBF	D0, Update_road_graphics_Signs2_col_loop
+Update_road_graphics_Signs2_next:
 	ADDQ.w	#4, A1
-	DBF	D6, loc_6B34
-loc_6B60:
+	DBF	D6, Update_road_graphics_Signs2_loop
+Update_road_graphics_Dirty:
 	MOVE.w	#$FFFF, Tileset_dirty_flag.w
 	RTS
 
@@ -9864,7 +9909,7 @@ Update_road_graphics_Scale_loop:
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF95C0.w, A6
 	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
-	LEA	loc_6F0E(PC), A4
+	LEA	Curve_interp_segment_counts(PC), A4
 ;loc_6C60
 Update_road_graphics_Interp_loop:
 	JSR	Interpolate_curveslope_segment(PC)
@@ -9964,7 +10009,7 @@ Update_road_graphics_Bg_scale_loop:
 	MOVEQ	#$00000018, D3
 	LEA	$FFFF9332.w, A6
 	LEA	$FFFF9842.w, A5 ; array output of Integrate_curveslope
-	LEA	loc_6F1A(PC), A4
+	LEA	Bg_interp_segment_counts(PC), A4
 ;loc_6D3A
 Update_road_graphics_Bg_interp_loop:
 	JSR	Interpolate_curveslope_segment(PC)
@@ -10005,7 +10050,7 @@ Update_slope_data:
 ;     look-up table at loc_6EBE (40 reciprocal scale factors).
 ;  4. Interpolate the scaled slope entries into the 96-entry display buffer
 ;     at $FFFF97C0 using Interpolate_curveslope_segment and a segment-count
-;     table at loc_6F0E.
+;     table at Curve_interp_segment_counts.
 ;  5. Add a ramp offset (0..47) to each of the 96 display entries to produce
 ;     the final per-scanline slope contribution.
 ;  6. Push a snapshot of the current register set into $FFFF9AC0 (8×14 regs)
@@ -10055,7 +10100,7 @@ Update_slope_data_Scale_loop:
 	MOVEQ	#$0000005F, D3
 	LEA	$FFFF97C0.w, A6
 	LEA	$FFFF984E.w, A5 ; array output of Integrate_curveslope
-	LEA	loc_6F0E(PC), A4
+	LEA	Curve_interp_segment_counts(PC), A4
 ;loc_6DD2
 Update_slope_data_Interp_loop:
 	JSR	Interpolate_curveslope_segment(PC)
@@ -10097,47 +10142,48 @@ Update_slope_data_Ramp_loop:
 	LEA	Road_scale_table.w, A1
 	LEA	$FFFF9900.w, A0
 	MOVE.w	(A1)+, D0
-	BMI.w	loc_6E88
+	BMI.w	Update_slope_data_Rts
 	MOVE.w	D0, D6
 	MOVE.w	D0, D3
 	MOVE.w	#$00DF, D2
 	SUB.w	D0, D2
-	BMI.w	loc_6E88
+	BMI.w	Update_slope_data_Rts
 	ADD.w	D2, D2
 	ADDA.w	D2, A0
 	MOVEQ	#1, D1
 	MOVEQ	#1, D2
 	MOVE.w	#$005E, D7
-loc_6E5C:
+Update_slope_data_Ycenter_loop:
 	CMP.w	(A1), D3
-	BPL.b	loc_6E64
+	BPL.b	Update_slope_data_Ycenter_no_peak
 	MOVE.w	(A1), D3
 	MOVE.w	D1, (A2)
-loc_6E64:
+Update_slope_data_Ycenter_no_peak:
 	MOVE.w	(A1)+, D0
 	SUB.w	D0, D6
-	BEQ.b	loc_6E7E
-	BPL.b	loc_6E74
-loc_6E6C:
+	BEQ.b	Update_slope_data_Ycenter_equal
+	BPL.b	Update_slope_data_Ycenter_above
+Update_slope_data_Ycenter_below:
 	MOVE.w	D1, -(A0)
 	ADDQ.w	#1, D6
-	BNE.b	loc_6E6C
-	BRA.b	loc_6E80
-loc_6E74:
+	BNE.b	Update_slope_data_Ycenter_below
+	BRA.b	Update_slope_data_Ycenter_next
+Update_slope_data_Ycenter_above:
 	ADDQ.w	#2, A0
 	MOVE.w	D1, (A0)
 	SUBQ.w	#1, D6
-	BNE.b	loc_6E74
-	BRA.b	loc_6E80
-loc_6E7E:
+	BNE.b	Update_slope_data_Ycenter_above
+	BRA.b	Update_slope_data_Ycenter_next
+Update_slope_data_Ycenter_equal:
 	MOVE.w	D1, (A0)
-loc_6E80:
+Update_slope_data_Ycenter_next:
 	ADD.w	D2, D1
 	MOVE.w	D0, D6
-	DBF	D7, loc_6E5C
-loc_6E88:
+	DBF	D7, Update_slope_data_Ycenter_loop
+Update_slope_data_Rts:
 	RTS
-loc_6E8A:
+;loc_6E8A
+Road_tile_offset_table:
 	dc.w	$0004
 	dc.w	$0003
 	dc.w	$0002
@@ -10206,14 +10252,16 @@ Slope_scale_factors:
 	dc.w	$79AA
 	dc.w	$9303
 	dc.w	$BB90
-loc_6F0E:
+;loc_6F0E
+Curve_interp_segment_counts:
 	dc.w	$001C
 	dc.w	$0010
 	dc.w	$000A
 	dc.w	$0007
 	dc.w	$0006
 	dc.w	$0004
-loc_6F1A:
+;loc_6F1A
+Bg_interp_segment_counts:
 	dc.w	$0003
 	dc.w	$0002
 	dc.w	$0003
@@ -10270,126 +10318,126 @@ Integrate_curveslope:
 ;  A4 = Road_displacement_table pointer for current streak (updated when D2 changes)
 ;  A6 = output array pointer (word, predecrement)
 	CMP.b	D2, D1
-	BEQ.b	loc_6F82 ; jump if same curve/slope data as last step (continues with precious A4 value)
+	BEQ.b	Integrate_curveslope_Accum ; jump if same curve/slope data as last step (continues with precious A4 value)
 	MOVE.w	D2, D1
 	ANDI.w	#$003F, D2
-	BEQ.b	loc_6F78 ; jump if straight/flat
+	BEQ.b	Integrate_curveslope_Flat ; jump if straight/flat
 	ADD.w	D2, D2                  ; ...
 	ADD.w	D2, D2                  ; ...
 	LEA	Road_displacement_table, A4 ; ...
 	MOVEA.l	(A4,D2.w), A4           ; new road displacement table lookup when curve/slope data changed from previous step (begin new "streak")
-loc_6F78:
+Integrate_curveslope_Flat:
 	MOVE.w	D1, D2 ; = curve/slope data for step
 	MOVE.w	D6, D3 ; previous curve/slope "streak" integral used as starting point
 	TST.l	D6
-	BMI.b	loc_6F82 ; jump if previous turn was right turn/up slope
+	BMI.b	Integrate_curveslope_Accum ; jump if previous turn was right turn/up slope
 	NEG.w	D3
-loc_6F82:
+Integrate_curveslope_Accum:
 	TST.b	D2
-	BNE.b	loc_6F8C ; jump if not 0 (not straight/flat road)
+	BNE.b	Integrate_curveslope_Curved ; jump if not 0 (not straight/flat road)
 	ADD.w	D3, D4 ; accumulate integral
 	MOVE.w	D4, -(A6) ; output
-	BRA.b	loc_6FB0
-loc_6F8C:
+	BRA.b	Integrate_curveslope_Rts
+Integrate_curveslope_Curved:
 	BCLR.l	#6, D2
-	BNE.b	loc_6FA2 ; jump if right turn/up slope
+	BNE.b	Integrate_curveslope_Right ; jump if right turn/up slope
 	BCLR.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
-	BMI.b	loc_6FB4 ; jump if end of displacement data
+	BMI.b	Integrate_curveslope_Sentinel ; jump if end of displacement data
 	SUB.w	D3, D6 ; add integral from previous curve/slope "streak"
 	SUB.w	D6, D4 ; accumulate integral
 	MOVE.w	D4, -(A6) ; output
-	BRA.b	loc_6FB0
-loc_6FA2:
+	BRA.b	Integrate_curveslope_Rts
+Integrate_curveslope_Right:
 	BSET.l	#$1F, D6
 	MOVE.w	(A4)+, D6 ; = this steps road displacement
-	BMI.b	loc_6FB4 ; jump if end of displacement data
+	BMI.b	Integrate_curveslope_Sentinel ; jump if end of displacement data
 	ADD.w	D3, D6 ; add integral from previous curve/slope "streak"
 	ADD.w	D6, D4 ; accumulate integral
 	MOVE.w	D4, -(A6) ; output
-loc_6FB0:
+Integrate_curveslope_Rts:
 	OR.w	D0, D0 ; clear carry flag
 	RTS
-loc_6FB4:
+Integrate_curveslope_Sentinel:
 	ORI	#1, CCR ; set carry flag
 	RTS
 
 ;Interpolate_curveslope_segment
 Interpolate_curveslope_segment:
 	MOVE.w	(A4)+, D6
-	BEQ.b	loc_700A
+	BEQ.b	Interpolate_curveslope_Rts
 	CMPI.w	#1, D6
-	BEQ.b	loc_6FFE
+	BEQ.b	Interpolate_curveslope_One
 	MOVE.w	(A5), D0
 	CMPI.w	#$8000, D0
-	BEQ.b	loc_700E
+	BEQ.b	Interpolate_curveslope_Sentinel
 	MOVEQ	#0, D5
 	MOVE.w	D2, D5
 	SUB.w	D0, D5
 	SMI	D4
-	BPL.b	loc_6FD8
+	BPL.b	Interpolate_curveslope_Pos
 	NEG.w	D5
-loc_6FD8:
+Interpolate_curveslope_Pos:
 	SWAP	D5
 	JSR	Divide_fractional
 	TST.b	D4
-	BEQ.b	loc_6FE6
+	BEQ.b	Interpolate_curveslope_Interp
 	NEG.l	D7
-loc_6FE6:
+Interpolate_curveslope_Interp:
 	MOVEQ	#0, D0
 	MOVE.w	D2, D0
 	SUBQ.w	#1, D6
-loc_6FEC:
+Interpolate_curveslope_Loop:
 	MOVE.w	D0, -(A6)
 	SUBQ.w	#1, D3
 	SWAP	D0
 	SUB.l	D7, D0
 	SWAP	D0
-	DBF	D6, loc_6FEC
+	DBF	D6, Interpolate_curveslope_Loop
 	MOVE.w	(A5), D2
-	BRA.b	loc_700A
-loc_6FFE:
+	BRA.b	Interpolate_curveslope_Rts
+Interpolate_curveslope_One:
 	MOVE.w	(A5), D2
 	CMPI.w	#$8000, D2
-	BEQ.b	loc_700E
+	BEQ.b	Interpolate_curveslope_Sentinel
 	MOVE.w	D2, -(A6)
 	SUBQ.w	#1, D3
-loc_700A:
+Interpolate_curveslope_Rts:
 	OR.w	D0, D0
 	RTS
-loc_700E:
+Interpolate_curveslope_Sentinel:
 	ORI	#1, CCR
 	RTS
 
 ;Scale_curveslope_entry
 Scale_curveslope_entry:
 	MOVE.w	(A5), D1
-	BEQ.b	loc_7046
+	BEQ.b	Scale_curveslope_Skip_advance
 	CMPI.w	#$8000, D1
-	BEQ.b	loc_7046
+	BEQ.b	Scale_curveslope_Skip_advance
 	TST.w	D1
 	SMI	D2
-	BPL.b	loc_7026
+	BPL.b	Scale_curveslope_Positive
 	NEG.w	D1
-loc_7026:
+Scale_curveslope_Positive:
 	MOVE.w	(A6)+, D3
-	BEQ.b	loc_7048
+	BEQ.b	Scale_curveslope_Advance
 	MULU.w	D3, D1
 	CMPI.l	#$01000000, D1
-	BCS.b	loc_703A
+	BCS.b	Scale_curveslope_In_range
 	MOVE.w	#$8000, D1
-	BRA.b	loc_7042
-loc_703A:
+	BRA.b	Scale_curveslope_Store
+Scale_curveslope_In_range:
 	SWAP	D1
 	TST.b	D2
-	BEQ.b	loc_7042
+	BEQ.b	Scale_curveslope_Store
 	NEG.w	D1
-loc_7042:
+Scale_curveslope_Store:
 	MOVE.w	D1, (A5)+
 	RTS
-loc_7046:
+Scale_curveslope_Skip_advance:
 	ADDQ.w	#2, A6
-loc_7048:
+Scale_curveslope_Advance:
 	ADDQ.w	#2, A5
 	RTS
 
@@ -10629,13 +10677,14 @@ Update_road_tile_scroll_next_row:
 	DBF	D2, Update_road_tile_scroll_curve_row
 	RTS
 
-loc_7298:
+;loc_7298
+Flush_vdp_mode_and_signs:
 	CMPI.w	#2, $FFFF9276.w
-	BNE.b	loc_72A6
+	BNE.b	Flush_vdp_mode_and_signs_Check
 	JSR	Set_vdp_mode_h32_variant_b
-loc_72A6:
+Flush_vdp_mode_and_signs_Check:
 	TST.w	$FFFF9282.w
-	BEQ.b	loc_72D0
+	BEQ.b	Flush_vdp_mode_and_signs_Skip
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96FB9500, D6
 	MOVE.l	#$94039300, D5
@@ -10643,22 +10692,23 @@ loc_72A6:
 	JSR	Send_D567_to_VDP
 	CLR.w	$FFFF9282.w
 	RTS
-loc_72D0:
+Flush_vdp_mode_and_signs_Skip:
 	JMP	Send_sign_tileset_to_VDP
 
-loc_72D6:
+;loc_72D6
+Upload_tilemap_rows_to_vdp:
 	MOVE.l	#$49800003, D0
 	LEA	$FFFF91BC.w, A0
 	LEA	VDP_data_port, A1
 	LEA	Tilemap_work_buf.w, A2
 	MOVEQ	#6, D1
-loc_72EC:
+Upload_tilemap_rows_to_vdp_Slot_loop:
 	TST.w	(A0)
-	BEQ.b	loc_7334
+	BEQ.b	Upload_tilemap_rows_to_vdp_Next_slot
 	LEA	(A2), A3
 	MOVE.l	D0, D2
 	MOVEQ	#3, D3
-loc_72F6:
+Upload_tilemap_rows_to_vdp_Strip_loop:
 	LEA	(A3), A4
 	MOVEQ	#0, D7
 	MOVE.w	$6(A0), D7
@@ -10666,26 +10716,26 @@ loc_72F6:
 	ADD.l	D2, D7
 	MOVE.l	D7, $4(A1)
 	MOVE.w	$2(A0), D4
-loc_730A:
+Upload_tilemap_rows_to_vdp_Row1_loop:
 	MOVE.w	(A4)+, (A1)
-	DBF	D4, loc_730A
+	DBF	D4, Upload_tilemap_rows_to_vdp_Row1_loop
 	CMPI.w	#1, (A0)
-	BEQ.b	loc_7324
+	BEQ.b	Upload_tilemap_rows_to_vdp_Strip_next
 	MOVE.l	D2, $4(A1)
 	MOVE.w	$4(A0), D4
-loc_731E:
+Upload_tilemap_rows_to_vdp_Row2_loop:
 	MOVE.w	(A4)+, (A1)
-	DBF	D4, loc_731E
-loc_7324:
+	DBF	D4, Upload_tilemap_rows_to_vdp_Row2_loop
+Upload_tilemap_rows_to_vdp_Strip_next:
 	LEA	$60(A3), A3
 	ADDI.l	#$06000000, D2
-	DBF	D3, loc_72F6
+	DBF	D3, Upload_tilemap_rows_to_vdp_Strip_loop
 	CLR.w	(A0)
-loc_7334:
+Upload_tilemap_rows_to_vdp_Next_slot:
 	ADDI.l	#$00800000, D0
 	LEA	$A(A0), A0
 	LEA	$180(A2), A2
-	DBF	D1, loc_72EC
+	DBF	D1, Upload_tilemap_rows_to_vdp_Slot_loop
 	RTS
 
 ;Fill_table_stride_loop
@@ -10695,12 +10745,15 @@ Fill_table_stride_loop:
 	ADD.w	D5, D2
 	DBF	D0, Fill_table_stride_loop
 	RTS
-loc_7356:
+;loc_7356
+Arcade_bg_scroll_row_data:
 	dc.b	$02, $C6, $02, $A2, $00, $62, $02, $68, $02, $22
-loc_7360:
+;loc_7360
+Default_bg_scroll_row_data:
 	dc.b	$00, $00, $00, $00, $08, $88, $08, $88
 	dc.w	$0888
-loc_736A:
+;loc_736A
+Blank_bg_scroll_row_data:
 	dc.w	$FF40
 	dc.b	$00, $00
 	dc.w	$FF40
@@ -10726,10 +10779,12 @@ loc_736A:
 	dc.w	$FF40
 	dc.b	$00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40
 	dc.b	$00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00
-loc_73CA:
+;loc_73CA
+Arcade_placement_seq_v1:
 	dc.w	$000E
 	dc.b	$00, $0C, $00, $0B, $00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05
-loc_73DC:
+;loc_73DC
+Arcade_placement_seq_v2:
 	dc.w	$000B
 	dc.b	$00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05, $00, $03, $00, $02
 ;loc_73EE:
@@ -42018,7 +42073,8 @@ loc_6F340:
 	dc.b	$05, $B5, $05, $B5, $05, $B4, $05, $B3, $05, $B3, $05, $B2, $05, $B1, $05, $B0, $05, $AF, $05, $AE, $05, $AE, $05, $AD, $05, $AC, $05, $AB, $05, $AB, $05, $AA
 	dc.b	$05, $B5, $05, $B5, $05, $B4, $05, $B3, $05, $B2, $05, $B2, $05, $B1, $05, $B0, $05, $AF, $05, $AE, $05, $AD, $05, $AD, $05, $AC, $05, $AB, $05, $AB, $05, $AA
 	dc.b	$05, $B5, $05, $B4, $05, $B4, $05, $B3, $05, $B2, $05, $B2, $05, $B1, $05, $B0, $05, $AF, $05, $AE, $05, $AD, $05, $AD, $05, $AC, $05, $AC, $05, $AB, $05, $AA
-loc_6F940:
+;loc_6F940
+Road_scanline_descriptor_table:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$FFA00000	;D2
