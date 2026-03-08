@@ -2084,31 +2084,37 @@ Load_race_hud_graphics:
 	JSR	Decompress_tilemap_to_buffer
 	JSR	Build_car_tilemap_buffers(PC)
 	CMPI.w	#$000C, Track_index.w
-	BNE.b	loc_110A
+	BNE.b	Load_hud_gfx_mode_check
 	MOVE.w	#$00FF, D0
 	MOVE.w	#$DDDD, D1
 	MOVE.l	#$48400002, VDP_control_port
-loc_1100:
+;loc_1100
+Load_hud_gfx_monaco_fill_loop:
 	MOVE.w	D1, VDP_data_port
-	DBF	D0, loc_1100
-loc_110A:
+	DBF	D0, Load_hud_gfx_monaco_fill_loop
+;loc_110A
+Load_hud_gfx_mode_check:
 	TST.w	Warm_up.w
-	BEQ.b	loc_1118
+	BEQ.b	Load_hud_gfx_practice_check
 	LEA	loc_56C6C, A0
-	BRA.b	loc_1132
-loc_1118:
+	BRA.b	Load_hud_gfx_decomp
+;loc_1118
+Load_hud_gfx_practice_check:
 	TST.w	Practice_mode.w
-	BEQ.b	loc_1126
+	BEQ.b	Load_hud_gfx_arcade_check
 	LEA	loc_56B4C, A0
-	BRA.b	loc_1132
-loc_1126:
+	BRA.b	Load_hud_gfx_decomp
+;loc_1126
+Load_hud_gfx_arcade_check:
 	TST.w	Track_index_arcade_mode.w
-	BNE.b	loc_1142
+	BNE.b	Load_hud_gfx_done
 	LEA	loc_56A1C, A0
-loc_1132:
+;loc_1132
+Load_hud_gfx_decomp:
 	MOVE.l	#$52400002, VDP_control_port
 	JSR	Decompress_to_vdp
-loc_1142:
+;loc_1142
+Load_hud_gfx_done:
 	RTS
 
 ;loc_1144:
@@ -2117,7 +2123,7 @@ Initialize_race_hud:
 ;
 ; Called once at race start (after Load_race_hud_graphics).  Performs:
 ;  1. Copy HUD palette entries from stream at loc_21FA to $FFFFE980 palette buffer.
-;  2. Initialize sprite objects via loc_13F6.
+;  2. Initialize sprite objects via Initialize_hud_objects.
 ;  3. Draw HUD tilemap list (background panels, border tiles) from loc_1E9A
 ;     to plane B using 32-cell row stride.
 ;  4. Decompress minimap track background tilemap (loc_5860A) into VRAM at
@@ -2136,7 +2142,7 @@ Initialize_race_hud:
 ; 12. If championship, normal race, or practice: draw lap time table / timer.
 	LEA	loc_21FA(PC), A6
 	JSR	Copy_word_run_from_stream
-	JSR	loc_13F6(PC)
+	JSR	Initialize_hud_objects(PC)
 	LEA	loc_1E9A(PC), A1
 	JSR	Draw_tilemap_list_to_vdp_32_cell_rows
 	LEA	loc_5860A, A0
@@ -2148,19 +2154,22 @@ Initialize_race_hud:
 	JSR	Decompress_tilemap_to_vdp_32_cell_rows_with_base
 	MOVE.l	#$40000003, VDP_control_port
 	MOVEQ	#$0000003F, D0
-loc_1186:
+;loc_1186
+Init_hud_clear_plane_a_loop:
 	MOVE.w	#$073F, VDP_data_port
-	DBF	D0, loc_1186
+	DBF	D0, Init_hud_clear_plane_a_loop
 	MOVE.l	#$5F800003, VDP_control_port
 	MOVEQ	#$0000003F, D0
-loc_119E:
+;loc_119E
+Init_hud_clear_plane_b_loop:
 	MOVE.w	#$873F, VDP_data_port
-	DBF	D0, loc_119E
+	DBF	D0, Init_hud_clear_plane_b_loop
 	MOVE.l	#$62000003, VDP_control_port
 	MOVEQ	#$0000001F, D0
-loc_11B6:
+;loc_11B6
+Init_hud_clear_road_row_loop:
 	MOVE.w	#$873C, VDP_data_port
-	DBF	D0, loc_11B6
+	DBF	D0, Init_hud_clear_road_row_loop
 	JSR	Load_track_data_pointer
 	LEA	$C(A1), A1 ; tile mapping for minimap
 	MOVEA.l	(A1)+, A0
@@ -2168,9 +2177,10 @@ loc_11B6:
 	MOVE.w	#$04C9, D1
 	MOVE.l	#$63B00003, D7
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_11E8
+	BEQ.b	Init_hud_minimap_champ
 	MOVE.l	#$63700003, D7
-loc_11E8:
+;loc_11E8
+Init_hud_minimap_champ:
 	MOVEQ	#6, D6
 	MOVEQ	#$0000000A, D5
 	JSR	Decompress_tilemap_to_vdp_32_cell_rows_with_base
@@ -2199,27 +2209,30 @@ loc_11E8:
 	MOVEQ	#1, D5
 	LEA	loc_584AA, A6
 	TST.w	Shift_type.w
-	BEQ.b	loc_1262
+	BEQ.b	Init_hud_draw_shift
 	MOVE.l	#$63820003, D7
 	MOVEQ	#5, D6
 	LEA	loc_584CA, A6
 	CMPI.w	#1, Shift_type.w
-	BEQ.b	loc_1262
+	BEQ.b	Init_hud_draw_shift
 	MOVEQ	#2, D5
-loc_1262:
+;loc_1262
+Init_hud_draw_shift:
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_12D2
+	BNE.b	Init_hud_champ_branch
 	TST.w	Track_index_arcade_mode.w
-	BNE.b	loc_1296
-loc_1274:
+	BNE.b	Init_hud_draw_laptime_rival
+;loc_1274
+Init_hud_draw_laptime:
 	MOVE.l	#$61460003, VDP_control_port
 	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_1EB4(PC), A1
 	JMP	Draw_packed_tilemap_list
-loc_1296:
+;loc_1296
+Init_hud_draw_laptime_rival:
 	MOVE.l	#$61040003, VDP_control_port
 	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
@@ -2231,9 +2244,10 @@ loc_1296:
 	JSR	loc_14AC(PC)
 	LEA	loc_1EE2(PC), A1
 	JMP	Draw_packed_tilemap_list
-loc_12D2:
+;loc_12D2
+Init_hud_champ_branch:
 	TST.w	Warm_up.w
-	BEQ.b	loc_131A
+	BEQ.b	Init_hud_champ_race_check
 	MOVE.l	#$61460003, VDP_control_port
 	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
@@ -2249,11 +2263,12 @@ loc_12D2:
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
 	JMP	Draw_tilemap_buffer_to_vdp_32_cell_rows
-loc_131A:
+;loc_131A
+Init_hud_champ_race_check:
 	TST.w	Practice_mode.w
-	BNE.w	loc_1274
+	BNE.w	Init_hud_draw_laptime
 	TST.w	Track_index_arcade_mode.w
-	BEQ.w	loc_1274
+	BEQ.w	Init_hud_draw_laptime
 	MOVE.l	#$61040003, VDP_control_port
 	MOVEA.l	Track_lap_time_base_ptr.w, A2
 	MOVE.w	#$8000, D3
@@ -2264,16 +2279,18 @@ loc_131A:
 	JSR	Draw_bcd_time_to_vdp
 	LEA	loc_2024(PC), A6
 	TST.w	Has_rival_flag.w
-	BNE.b	loc_1366
+	BNE.b	Init_hud_rival_present
 	LEA	loc_2044(PC), A6
-loc_1366:
+;loc_1366
+Init_hud_rival_present:
 	JSR	Draw_packed_tilemap_to_vdp
 	TST.w	Has_rival_flag.w
-	BEQ.b	loc_1382
+	BEQ.b	Init_hud_player_ordinal
 	MOVE.w	Rival_grid_position.w, D1
 	MOVE.l	#$62660003, D7
 	JSR	Draw_placement_ordinal_to_vdp
-loc_1382:
+;loc_1382
+Init_hud_player_ordinal:
 	MOVE.w	Player_grid_position.w, D1
 	MOVE.l	#$625C0003, D7
 	JSR	Draw_placement_ordinal_to_vdp
@@ -2294,7 +2311,8 @@ Draw_lap_number_and_times:
 	MOVE.w	#$E0AC, Screen_scroll.w
 	LEA	Lap_time_table_ptr.w, A2
 	MOVE.w	Laps_completed.w, Screen_timer.w
-loc_13CC:
+;loc_13CC
+Draw_lap_times_loop:
 	MOVE.w	Screen_scroll.w, D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
@@ -2303,42 +2321,47 @@ loc_13CC:
 	ADDQ.w	#4, A2
 	ADDI.w	#$0040, Screen_scroll.w
 	SUBQ.w	#1, Screen_timer.w
-	BPL.b	loc_13CC
+	BPL.b	Draw_lap_times_loop
 	RTS
 
-loc_13F6:
+;loc_13F6
+Initialize_hud_objects:
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_1446
+	BEQ.b	Init_hud_objects_copy_palette
 	TST.w	Practice_mode.w
-	BNE.b	loc_1446
+	BNE.b	Init_hud_objects_copy_palette
 	MOVEQ	#$0000000F, D7
 	MOVE.b	Player_team.w, D0
 	LEA	$FFFFE98C.w, A1
 	BSR.b	Load_team_palette_entry
 	TST.w	Track_index_arcade_mode.w
-	BNE.b	loc_1418
+	BNE.b	Init_hud_objects_rival
 	CLR.w	Has_rival_flag.w
-loc_1418:
+;loc_1418
+Init_hud_objects_rival:
 	MOVE.b	Rival_team.w, D0
 	LEA	$FFFFE9CC.w, A1
 	BSR.b	Load_team_palette_entry
 	MOVEQ	#$0000007F, D6
 	TST.w	Has_rival_flag.w
-	BEQ.b	loc_1430
+	BEQ.b	Init_hud_objects_car3_check
 	MOVE.b	Rival_team.w, D6
 	AND.w	D7, D6
-loc_1430:
+;loc_1430
+Init_hud_objects_car3_check:
 	MOVE.b	Player_team.w, D0
 	AND.w	D7, D0
 	ADDQ.w	#1, D0
 	AND.w	D7, D0
 	CMP.w	D0, D6
-	BNE.b	loc_1440
+	BNE.b	Init_hud_objects_car3_load
 	ADDQ.w	#2, D0
-loc_1440:
+;loc_1440
+Init_hud_objects_car3_load:
 	LEA	$FFFFE9AC.w, A1
 	BSR.b	Load_team_palette_entry
-loc_1446:
+;loc_1446
+Init_hud_objects_copy_palette:
 	LEA	$FFFF8FD2.w, A0
 	MOVE.l	$FFFFE9AC.w, (A0)+
 	MOVE.l	$FFFFE9B0.w, (A0)+
