@@ -2241,7 +2241,7 @@ Init_hud_draw_laptime_rival:
 	ADDQ.w	#4, A2
 	MOVE.w	#$8000, D3
 	JSR	Draw_bcd_time_to_vdp
-	JSR	loc_14AC(PC)
+	JSR	Render_placement_display_body(PC)
 	LEA	loc_1EE2(PC), A1
 	JMP	Draw_packed_tilemap_list
 ;loc_12D2
@@ -2373,7 +2373,7 @@ Init_hud_objects_copy_palette:
 Load_team_palette_entry:
 	AND.w	D7, D0
 	LSL.w	#3, D0
-	LEA	loc_2250(PC), A0
+	LEA	Team_colour_palette_table(PC), A0
 	ADDA.w	D0, A0
 	MOVE.l	(A0)+, (A1)+
 	MOVE.l	(A0), (A1)
@@ -2404,10 +2404,11 @@ Flush_tilemap_draw_queue:
 ; for each, then implicitly resets by re-reading Tilemap_queue_count.
 ; Called from the VBlank handler once per frame.
 	MOVE.w	Tilemap_queue_count.w, D0
-	BEQ.b	loc_14A4
+	BEQ.b	Flush_tilemap_queue_done
 	SUBQ.w	#1, D0
 	LEA	Tilemap_draw_queue.w, A0
-loc_148E:
+;loc_148E
+Flush_tilemap_queue_loop:
 	MOVE.l	(A0)+, D7
 	MOVEA.l	(A0)+, A6
 	MOVEQ	#0, D6
@@ -2415,8 +2416,9 @@ loc_148E:
 	MOVE.b	(A0)+, D6
 	MOVE.b	(A0)+, D5
 	JSR	Draw_tilemap_buffer_to_vdp_32_cell_rows
-	DBF	D0, loc_148E
-loc_14A4:
+	DBF	D0, Flush_tilemap_queue_loop
+;loc_14A4
+Flush_tilemap_queue_done:
 	RTS
 
 ;loc_14A6
@@ -2428,9 +2430,10 @@ Render_placement_display:
 ; (bottom-left HUD area) via Queue_tilemap_draw.
 ; Clears Placement_display_dirty after drawing.
 	TST.w	Placement_display_dirty.w
-	BEQ.b	loc_14F0
+	BEQ.b	Unpack_placement_nop
 
-loc_14AC:
+;loc_14AC
+Render_placement_display_body:
 	CLR.w	Placement_display_dirty.w
 	LEA	$FFFFE8AC.w, A1
 	MOVE.w	Race_time_bcd.w, D0
@@ -2440,7 +2443,7 @@ loc_14AC:
 	BSR.b	Unpack_placement_nibble_to_tile
 	BSR.b	Unpack_placement_nibble_to_tile
 	BSR.b	Unpack_placement_nibble_to_tile
-	BSR.b	loc_14F2
+	BSR.b	Unpack_placement_units
 	MOVE.l	#$63360003, D7
 	MOVEQ	#3, D6
 	MOVEQ	#0, D5
@@ -2452,20 +2455,24 @@ Unpack_placement_nibble_to_tile:
 	ROL.w	#4, D0
 	MOVE.w	D0, D1
 	AND.w	D2, D1
-	BEQ.b	loc_14E8
+	BEQ.b	Unpack_placement_zero
 	ADD.w	D4, D1
 	MOVEQ	#1, D3
-	BRA.b	loc_14EE
-loc_14E8:
+	BRA.b	Unpack_placement_store
+;loc_14E8
+Unpack_placement_zero:
 	TST.w	D3
-	BEQ.b	loc_14EE
+	BEQ.b	Unpack_placement_store
 	ADD.w	D4, D1
-loc_14EE:
+;loc_14EE
+Unpack_placement_store:
 	MOVE.w	D1, (A1)+
-loc_14F0:
+;loc_14F0
+Unpack_placement_nop:
 	RTS
 
-loc_14F2:
+;loc_14F2
+Unpack_placement_units:
 	ROL.w	#4, D0
 	MOVE.w	D0, D1
 	AND.w	D2, D1
@@ -2499,46 +2506,51 @@ Unpack_bcd_digits_to_buffer:
 	MOVEQ	#$0000000F, D4
 	MOVE.w	D0, D3
 	ADD.w	D3, D3
-loc_1530:
+;loc_1530
+Unpack_bcd_digits_loop:
 	MOVE.w	D1, D2
 	AND.w	D4, D2
 	ADD.w	D7, D2
 	MOVE.w	D2, (A1,D3.w)
 	SUBQ.w	#2, D3
 	LSR.w	#4, D1
-	DBF	D0, loc_1530
+	DBF	D0, Unpack_bcd_digits_loop
 	RTS
 
 ;Copy_digits_to_tilemap
 Copy_digits_to_tilemap:
 	MOVEQ	#0, D2
-	BRA.b	loc_154A
+	BRA.b	Copy_digits_shared_body
 
 ;Copy_digits_to_tilemap_with_suppress
 Copy_digits_to_tilemap_with_suppress:
 	MOVEQ	#-1, D2
-loc_154A:
+;loc_154A
+Copy_digits_shared_body:
 	MOVE.w	D0, D1
 	ADDQ.w	#1, D1
 	ADD.w	D1, D1
 	LEA	loc_585D2, A2
-loc_1556:
+;loc_1556
+Copy_digits_loop:
 	MOVE.w	(A1), D3
-	BNE.b	loc_1566
+	BNE.b	Copy_digits_nonzero
 	TST.w	D2
-	BNE.b	loc_1568
+	BNE.b	Copy_digits_emit
 	TST.w	D0
-	BEQ.b	loc_1568
+	BEQ.b	Copy_digits_emit
 	MOVEQ	#$0000000D, D3
-	BRA.b	loc_1568
-loc_1566:
+	BRA.b	Copy_digits_emit
+;loc_1566
+Copy_digits_nonzero:
 	MOVEQ	#-1, D2
-loc_1568:
+;loc_1568
+Copy_digits_emit:
 	ADD.w	D3, D3
 	ADD.w	D3, D3
 	MOVE.w	(A2,D3.w), (A1)+
 	MOVE.w	$2(A2,D3.w), -$2(A1,D1.w)
-	DBF	D0, loc_1556
+	DBF	D0, Copy_digits_loop
 	RTS
 
 ;loc_157C:
@@ -2546,19 +2558,22 @@ Binary_to_decimal: ; For instance: input D0 = $007B yields output D1 = $0123
 	CLR.l	$FFFFFCFC.w ; clears bytes referenced from A2 below
 	LEA	Format_bcd_time_to_tile_buffer(PC), A1
 	MOVEQ	#$0000000F, D2
-loc_1586: ; iterate through each bit in D0
+;loc_1586
+Binary_to_decimal_loop: ; iterate through each bit in D0
 	ROR.w	#1, D0
-	BCS.b	loc_158E ; if current bit in D0 was set, jump to perform decimal addition (ABCD)
+	BCS.b	Binary_to_decimal_bit_set ; if current bit in D0 was set, jump to perform decimal addition (ABCD)
 	SUBQ.w	#3, A1
-	BRA.b	loc_159C
-loc_158E:            ; then add corresponding value from byte table below
+	BRA.b	Binary_to_decimal_next
+;loc_158E
+Binary_to_decimal_bit_set:            ; then add corresponding value from byte table below
 	LEA	Track_lap_time_records.w, A2 ; reuse lap-time block as BCD scratch (ABCD pre-dec: bytes at $FFFFFD00-$FFFFFD02)
 	ADDI.w	#0, D0 ; clear extend bit
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
 	ABCD	-(A1), -(A2)
-loc_159C:
-	DBF	D2, loc_1586
+;loc_159C
+Binary_to_decimal_next:
+	DBF	D2, Binary_to_decimal_loop
 	MOVE.l	$FFFFFCFC.w, D1
 	RTS
 ; Table used by ABCD instructions above, input bits determine which rows to include in binary summation
@@ -3574,7 +3589,8 @@ loc_21FA:
 	dc.b	$02, $29, $00, $00, $0E, $EE, $0A, $AA, $02, $22, $06, $66, $04, $4E, $00, $08, $0E, $EE, $08, $88, $0C, $00, $02, $2E, $00, $00, $04, $44, $00, $0E, $00, $CE
 	dc.b	$00, $00, $00, $00, $02, $2E, $0E, $EE, $02, $22, $06, $66, $00, $0E, $00, $08, $00, $EE, $00, $88, $04, $44, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
 	dc.b	$00, $00, $00, $00, $00, $AE, $0E, $EE, $02, $22, $06, $66, $02, $A0, $00, $40, $02, $A0, $00, $40, $04, $44
-loc_2250: ; Teams in-game palette
+;loc_2250
+Team_colour_palette_table: ; Teams in-game palette
 	dc.b	$00, $0E, $00, $08,	$00, $EE,	$00, $88 ; Madonna
 	dc.b	$02, $2E, $00, $08,	$02, $2E, $00, $08 ; Firenze
 	dc.b	$0E, $44, $0A, $02,	$00, $EE, $00, $88 ; Millions
