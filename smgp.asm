@@ -12916,7 +12916,7 @@ Sign_handler_dispatch_rts:
 	dc.l	Init_background_ai_car_11
 ;loc_8B6E
 Special_sign_dispatch_table:
-	dc.l	loc_AB3E
+	dc.l	Crash_car_obj_init
 	dc.l	loc_AF2A
 	dc.l	loc_B09E
 ; Init_ai_sign_pass: initialise the AI sign-pass object (installed via Special_sign_dispatch_table + $C)
@@ -15921,25 +15921,27 @@ Update_ai_car_screen_x_Behind:
 	MOVE.w	#$8000, D3
 	MOVEQ	#8, D7
 	BRA.b	loc_AB04
-loc_AB3E:
-	MOVE.l	#loc_AE9C, $FFFFB040.w
+;loc_AB3E
+Crash_car_obj_init:
+	MOVE.l	#Crash_shadow_obj_init, $FFFFB040.w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
-	MOVE.l	#$0000ADA2, D1
+	MOVE.l	#Crash_lateral_follower_obj_init, D1
 	JSR	Alloc_aux_object_slot
-	BCS.b	loc_AB86
+	BCS.b	Crash_car_obj_setup
 	ADDQ.w	#8, D0
-	MOVE.l	#$0000AE06, D1
+	MOVE.l	#Crash_depth_obj_init, D1
 	JSR	Find_free_aux_object_slot
-	MOVE.l	#$0000AE1E, D1
+	MOVE.l	#Crash_depth_obj_init_b, D1
 	JSR	Find_free_aux_object_slot
 	ADDQ.w	#8, D0
-	MOVE.l	#$0000ADBC, D1
+	MOVE.l	#Crash_lateral_follower_obj_init_b, D1
 	JSR	Find_free_aux_object_slot
-loc_AB86:
-	MOVE.l	#$0000AC78, $FFFFB000.w
+;loc_AB86
+Crash_car_obj_setup:
+	MOVE.l	#Crash_car_obj2_init, $FFFFB000.w
 	MOVE.w	D0, $FFFFB01E.w
-	MOVE.l	#$0000ABBA, D0
+	MOVE.l	#Crash_car_obj, D0
 	MOVE.l	#$00010944, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
@@ -15947,17 +15949,21 @@ loc_AB86:
 	LEA	loc_B2D0, A1
 	LEA	$FFFFE9F6.w, A2
 	MOVEQ	#4, D0
-loc_ABB4:
+;loc_ABB4
+Crash_car_obj_copy_loop:
 	MOVE.w	(A1)+, (A2)+
-	DBF	D0, loc_ABB4
+	DBF	D0, Crash_car_obj_copy_loop
+;loc_ABBA
+Crash_car_obj:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	TST.w	D7
-	BNE.b	loc_ABD2
+	BNE.b	Crash_car_obj_update_body
 	RTS
-loc_ABD2:
+;loc_ABD2
+Crash_car_obj_update_body:
 	JSR	Check_ai_lateral_bounds_wide(PC)
 	MOVE.w	$E(A0), D4
 	MOVE.w	D4, D1
@@ -15969,69 +15975,82 @@ loc_ABD2:
 	LSR.w	#1, D2
 	MOVE.w	$16(A0), D3
 	TST.w	$2A(A0)
-	BNE.b	loc_AC48
+	BNE.b	Crash_car_obj_left
 	TST.w	D1
-	BMI.b	loc_AC2E
-loc_ABFC:
+	BMI.b	Crash_car_obj_behind
+;loc_ABFC
+Crash_car_obj_screen_right:
 	SUB.w	D4, D3
 	MOVE.w	D3, $FFFFFC36.w
 	SUB.w	D2, D3
 	SUBI.w	#$00C2, D3
-	BCC.b	loc_AC0C
+	BCC.b	Crash_car_obj_clamp_depth
 	ADD.w	D3, D2
-loc_AC0C:
+;loc_AC0C
+Crash_car_obj_clamp_depth:
 	MOVE.w	D2, $FFFFFC38.w
 	MOVE.w	$E(A0), D0
 	LEA	Ai_screen_y_table, A1
 
 	MOVE.b	(A1,D0.w), D0
 	CMPI.w	#$005F, D0
-	BLS.b	loc_AC28
+	BLS.b	Crash_car_obj_store_hud
 	MOVE.w	#$005F, D0
-loc_AC28:
+;loc_AC28
+Crash_car_obj_store_hud:
 	MOVE.w	D0, HUD_scroll_base.w
 	RTS
-loc_AC2E:
+;loc_AC2E
+Crash_car_obj_behind:
 	MOVE.w	#2, $FFFF923A.w
 	MOVE.l	#loc_10920, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
-	BRA.b	loc_AC5E
-loc_AC48:
+	BRA.b	Crash_car_obj_offscreen
+;loc_AC48
+Crash_car_obj_left:
 	TST.w	D1
-	BMI.b	loc_AC5E
+	BMI.b	Crash_car_obj_offscreen
 	MOVE.l	#loc_10944, $8(A0)
 	CLR.w	$2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
-	BRA.b	loc_ABFC
-loc_AC5E:
+	BRA.b	Crash_car_obj_screen_right
+;loc_AC5E
+Crash_car_obj_offscreen:
 	ADDQ.w	#1, D1
-	BEQ.b	loc_AC76
+	BEQ.b	Crash_car_obj_Rts
 	SUB.w	D4, D3
 	CMPI.w	#$009A, D3
-	BCS.b	loc_AC76
+	BCS.b	Crash_car_obj_Rts
 	MOVE.w	D3, $FFFFFC42.w
 	SUBI.w	#$009A, D3
 	MOVE.w	D3, $FFFFFC44.w
-loc_AC76:
+;loc_AC76
+Crash_car_obj_Rts:
 	RTS
-	MOVE.l	#$0000AC8E, D0
+;loc_AC78
+Crash_car_obj2_init:
+	MOVE.l	#Crash_car_obj2, D0
 	MOVE.l	#$00010920, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
+;loc_AC8E
+Crash_car_obj2:
 	TST.l	$FFFFAFC0.w
-	BNE.b	loc_AC9A
+	BNE.b	Crash_car_obj2_update
 	JMP	Clear_object_slot
-loc_AC9A:
+;loc_AC9A
+Crash_car_obj2_update:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	TST.w	D7
-	BNE.b	loc_ACB2
+	BNE.b	Crash_car_obj2_update_body
 	RTS
-loc_ACB2:
+;loc_ACB2
+Crash_car_obj2_update_body:
 	JSR	Check_ai_lateral_bounds_wide(PC)
 	MOVE.w	$E(A0), D4
 	MOVE.w	D4, D1
@@ -16043,100 +16062,119 @@ loc_ACB2:
 	LSR.w	#1, D2
 	MOVE.w	$16(A0), D3
 	TST.w	$2A(A0)
-	BNE.b	loc_AD52
+	BNE.b	Crash_car_obj2_left
 	TST.w	D1
-	BMI.b	loc_AD3A
-loc_ACDC:
+	BMI.b	Crash_car_obj2_behind
+;loc_ACDC
+Crash_car_obj2_screen_right:
 	MOVE.w	$E(A0), D0
 	LEA	Ai_screen_y_table, A1
 
 	MOVE.b	(A1,D0.w), D0
 	CMPI.w	#$005F, D0
-	BLS.b	loc_ACF4
+	BLS.b	Crash_car_obj2_clamp_depth
 	MOVE.w	#$005F, D0
-loc_ACF4:
+;loc_ACF4
+Crash_car_obj2_clamp_depth:
 	MOVE.w	HUD_scroll_base.w, D1
-	BNE.b	loc_ACFE
+	BNE.b	Crash_car_obj2_hud_set
 	MOVE.w	#$005F, D1
-loc_ACFE:
+;loc_ACFE
+Crash_car_obj2_hud_set:
 	SUB.w	D0, D1
-	BNE.b	loc_AD08
+	BNE.b	Crash_car_obj2_hud_nonzero
 	CLR.w	HUD_scroll_base.w
-	BRA.b	loc_AD12
-loc_AD08:
+	BRA.b	Crash_car_obj2_depth
+;loc_AD08
+Crash_car_obj2_hud_nonzero:
 	MOVE.w	D0, HUD_scroll_base.w
 	SUBQ.w	#1, D1
 	MOVE.w	D1, $FFFFFC48.w
-loc_AD12:
+;loc_AD12
+Crash_car_obj2_depth:
 	SUB.w	D4, D3
 	MOVE.w	$FFFFFC36.w, D7
-	BNE.b	loc_AD28
+	BNE.b	Crash_car_obj2_depth_nonzero
 	MOVE.w	D3, $FFFFFC3E.w
 	SUBI.w	#$00C2, D3
 	MOVE.w	D3, $FFFFFC40.w
 	RTS
-loc_AD28:
+;loc_AD28
+Crash_car_obj2_depth_nonzero:
 	SUB.w	D3, D7
-	BCC.b	loc_AD38
+	BCC.b	Crash_car_obj2_depth_Rts
 	MOVE.w	D3, $FFFFFC3E.w
 	NEG.w	D7
 	SUBQ.w	#1, D7
 	MOVE.w	D7, $FFFFFC40.w
-loc_AD38:
+;loc_AD38
+Crash_car_obj2_depth_Rts:
 	RTS
-loc_AD3A:
+;loc_AD3A
+Crash_car_obj2_behind:
 	CLR.w	$FFFF923A.w
 	MOVE.l	#loc_10944, $8(A0)
 	MOVE.w	#$FFFF, $2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
-	BRA.b	loc_AD6A
-loc_AD52:
+	BRA.b	Crash_car_obj2_offscreen
+;loc_AD52
+Crash_car_obj2_left:
 	TST.w	D1
-	BMI.b	loc_AD6A
+	BMI.b	Crash_car_obj2_offscreen
 	MOVE.l	#loc_10920, $8(A0)
 	CLR.w	$2A(A0)
 	JSR	Update_ai_car_sprite_frame(PC)
-	BRA.w	loc_ACDC
-loc_AD6A:
+	BRA.w	Crash_car_obj2_screen_right
+;loc_AD6A
+Crash_car_obj2_offscreen:
 	ADDQ.w	#1, D1
-	BEQ.b	loc_ADA0
+	BEQ.b	Crash_car_obj2_Rts
 	SUB.w	D4, D3
 	CMPI.w	#$009A, D3
-	BCS.b	loc_ADA0
+	BCS.b	Crash_car_obj2_Rts
 	MOVE.w	D3, $FFFFFC3A.w
 	SUB.w	D2, D3
 	SUBI.w	#$009A, D3
-	BCC.b	loc_AD84
+	BCC.b	Crash_car_obj2_shadow_clamp
 	ADD.w	D3, D2
-loc_AD84:
+;loc_AD84
+Crash_car_obj2_shadow_clamp:
 	MOVE.w	D2, $FFFFFC3C.w
 	MOVE.w	$FFFFFC42.w, D0
 	MOVE.w	$FFFFFC3A.w, D1
 	SUB.w	D1, D0
-	BLS.b	loc_AD9C
+	BLS.b	Crash_car_obj2_clear_fc42
 	SUBQ.w	#1, D0
 	MOVE.w	D0, $FFFFFC44.w
 	RTS
-loc_AD9C:
+;loc_AD9C
+Crash_car_obj2_clear_fc42:
 	CLR.w	$FFFFFC42.w
-loc_ADA0:
+;loc_ADA0
+Crash_car_obj2_Rts:
 	RTS
-	MOVE.l	#$0000ADD4, D0
+;loc_ADA2
+Crash_lateral_follower_obj_init:
+	MOVE.l	#Crash_lateral_follower_obj, D0
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
 	JSR	Setup_ai_object_state(PC)
 	MOVE.l	#$FFFFAFC0, $2C(A0)
-	BRA.b	loc_ADD4
-	MOVE.l	#$0000ADD4, D0
+	BRA.b	Crash_lateral_follower_obj
+;loc_ADBC
+Crash_lateral_follower_obj_init_b:
+	MOVE.l	#Crash_lateral_follower_obj, D0
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
 	JSR	Setup_ai_object_state(PC)
 	MOVE.l	#$FFFFB000, $2C(A0)
-loc_ADD4:
+;loc_ADD4
+Crash_lateral_follower_obj:
 	TST.l	$FFFFAFC0.w
-	BNE.b	loc_ADE0
+	BNE.b	Crash_lateral_follower_obj_update
 	JMP	Clear_object_slot
-loc_ADE0:
+;loc_ADE0
+Crash_lateral_follower_obj_update:
 	MOVEA.l	$2C(A0), A1
 	MOVE.l	$8(A1), D0
 	ADDI.w	#$0048, D0
@@ -16146,22 +16184,28 @@ loc_ADE0:
 	LEA	Ai_car_lateral_dispatch_table, A1
 	JSR	(A1,D7.w)
 	BRA.w	Check_ai_lateral_bounds_wide
-	MOVE.l	#$0000AE34, D0
+;loc_AE06
+Crash_depth_obj_init:
+	MOVE.l	#Crash_depth_obj, D0
 	MOVE.l	#$00010920, D1
 	MOVEQ	#-1, D2
 	MOVE.w	#$FE80, D3
 	JSR	Setup_ai_object_state(PC)
-	BRA.b	loc_AE34
-	MOVE.l	#$0000AE34, D0
+	BRA.b	Crash_depth_obj
+;loc_AE1E
+Crash_depth_obj_init_b:
+	MOVE.l	#Crash_depth_obj, D0
 	MOVE.l	#$00010968, D1
 	MOVEQ	#0, D2
 	MOVE.w	#$0180, D3
 	JSR	Setup_ai_object_state(PC)
-loc_AE34:
+;loc_AE34
+Crash_depth_obj:
 	TST.l	$FFFFAFC0.w
-	BNE.b	loc_AE40
+	BNE.b	Crash_depth_obj_update
 	JMP	Clear_object_slot
-loc_AE40:
+;loc_AE40
+Crash_depth_obj_update:
 	JSR	Update_ai_car_screen_x(PC)
 	MOVE.w	#$800A, D1
 	LEA	Ai_car_lateral_dispatch_table, A1
@@ -16202,26 +16246,31 @@ Update_ai_car_sprite_frame:
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D0.w), $4(A0)
 	RTS
-loc_AE9C:
-	MOVE.l	#loc_AEB0, (A0)
-	MOVE.l	#loc_AF1C, $4(A0)
+;loc_AE9C
+Crash_shadow_obj_init:
+	MOVE.l	#Crash_shadow_obj, (A0)
+	MOVE.l	#Crash_shadow_sprite_data, $4(A0)
 	MOVE.w	#$0100, $18(A0)
-loc_AEB0:
+;loc_AEB0
+Crash_shadow_obj:
 	LEA	$FFFFAFC0.w, A1
 	TST.l	(A1)
-	BNE.b	loc_AEBE
+	BNE.b	Crash_shadow_obj_check_side
 	JMP	Clear_object_slot
-loc_AEBE:
+;loc_AEBE
+Crash_shadow_obj_check_side:
 	TST.w	$E(A1)
-	BPL.b	loc_AEC8
+	BPL.b	Crash_shadow_obj_car1
 	LEA	$40(A1), A1
-loc_AEC8:
+;loc_AEC8
+Crash_shadow_obj_car1:
 	MOVE.w	$E(A1), D0
 	MOVE.w	D0, D1
 	ADDQ.w	#1, D0
-	BNE.b	loc_AED4
+	BNE.b	Crash_shadow_obj_update
 	RTS
-loc_AED4:
+;loc_AED4
+Crash_shadow_obj_update:
 	MOVE.w	D1, D0
 	ANDI.w	#$7FFF, D0
 	LEA	Ai_screen_y_table_b, A2
@@ -16231,25 +16280,28 @@ loc_AED4:
 	SUB.w	D0, D2
 	MOVE.w	D2, $16(A0)
 	TST.w	D1
-	BMI.b	loc_AF04
+	BMI.b	Crash_shadow_obj_left
 	ADDQ.w	#2, D1
 	CMPI.w	#$00A1, D1
-	BHI.b	loc_AF1A
+	BHI.b	Crash_shadow_obj_Rts
 	MOVE.w	D1, $E(A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_AF04:
+;loc_AF04
+Crash_shadow_obj_left:
 	ANDI.w	#$7FFF, D1
 	ADDQ.w	#2, D1
 	CMPI.w	#$0091, D1
-	BHI.b	loc_AF1A
+	BHI.b	Crash_shadow_obj_Rts
 	MOVE.w	D1, $E(A0)
 	JMP	Queue_object_for_alt_sprite_buffer
-loc_AF1A:
+;loc_AF1A
+Crash_shadow_obj_Rts:
 	RTS
-loc_AF1C:
+;loc_AF1C
+Crash_shadow_sprite_data:
 	dc.b	$00, $01, $F1, $01, $FF, $FE, $00, $00, $F1, $01, $FF, $FF, $00, $00
 loc_AF2A:
-	MOVE.l	#loc_AE9C, $FFFFB040.w
+	MOVE.l	#Crash_shadow_obj_init, $FFFFB040.w
 	ADDI.w	#$0014, $1E(A0)
 	MOVE.w	$1E(A0), D0
 	MOVE.l	#$0000B008, $FFFFB000.w
