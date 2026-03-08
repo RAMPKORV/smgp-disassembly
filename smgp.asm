@@ -10923,7 +10923,7 @@ Update_race_timer_Show_current:
 	MOVE.w	#1, Overtake_event_flag.w
 	CMPI.w	#$000E, Current_lap.w
 	BNE.w	Update_race_timer_Return
-	MOVE.l	#$00008076, D1
+	MOVE.l	#Checkpoint_anim_obj_init, D1
 	JSR	Alloc_aux_object_slot
 	BRA.w	Update_race_timer_Return
 ;loc_758E
@@ -11386,13 +11386,13 @@ Crash_obj_Retire:
 	MOVEQ	#0, D7
 	JSR	Update_gap_to_rival_Steering(PC)
 	LEA	Collision_palette_buf.w, A2
-	MOVE.l	#$00007E2A, D1
-	MOVE.l	#$00007EE2, D3
+	MOVE.l	#Retire_car_obj_init_low, D1
+	MOVE.l	#Slide_car_obj_init_from_bottom, D3
 	TST.b	Ai_side_flag.w
 	BNE.b	Crash_obj_Retire_palette
 	ADDQ.w	#6, A2
-	MOVE.l	#$00007E32, D1
-	MOVE.l	#$00007EF8, D3
+	MOVE.l	#Retire_car_obj_init_high, D1
+	MOVE.l	#Slide_car_obj_init_from_top, D3
 Crash_obj_Retire_palette:
 	LEA	loc_12A3D, A1
 	JSR	Write_3_palette_vdp_bytes(PC)
@@ -11624,43 +11624,51 @@ Write_3_palette_vdp_bytes:
 	MOVE.b	#$95, (A2)+
 	MOVE.b	(A1), (A2)+
 	RTS
-loc_7E28:
+;loc_7E28
+Retire_car_obj_decel_table:
 	dc.b	$0C
 	dc.b	$0A
+;loc_7E2A
+Retire_car_obj_init_low:
 	MOVE.w	#$00C8, $18(A0)
-	BRA.b	loc_7E38
+	BRA.b	Retire_car_obj_init_common
+;loc_7E32
+Retire_car_obj_init_high:
 	MOVE.w	#$0138, $18(A0)
-loc_7E38:
-	MOVE.l	#loc_7E5E, (A0)
+;loc_7E38
+Retire_car_obj_init_common:
+	MOVE.l	#Retire_car_obj_anim, (A0)
 	MOVE.l	#loc_12652, $4(A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0170, $16(A0)
 	MOVE.w	#$000F, $30(A0)
 	MOVE.w	#1, Retire_flash_flag.w
-loc_7E5E:
+;loc_7E5E
+Retire_car_obj_anim:
 	SUBI.l	#$0000F000, $30(A0)
 	MOVE.w	$30(A0), D0
 	SUB.w	D0, $16(A0)
 	MOVE.w	$16(A0), D0
 	CMPI.w	#$0170, D0
-	BLS.b	loc_7EB0
+	BLS.b	Retire_car_obj_flash
 	MOVE.w	#$0170, $16(A0)
 	MOVE.w	$2E(A0), D0
 	MOVEQ	#0, D1
 	MOVE.w	D1, $32(A0)
-	MOVE.b	loc_7E28(PC,D0.w), D1
+	MOVE.b	Retire_car_obj_decel_table(PC,D0.w), D1
 	MOVE.w	D1, $30(A0)
 	ADDQ.w	#1, D0
 	MOVE.w	D0, $2E(A0)
 	CMPI.w	#3, D0
-	BCS.b	loc_7EB0
+	BCS.b	Retire_car_obj_flash
 	CLR.w	Retire_flash_flag.w
-	MOVE.l	#loc_7FA8, (A0)
+	MOVE.l	#Race_finish_obj, (A0)
 	CLR.w	$36(A0)
 	MOVE.w	#3, $34(A0)
-loc_7EB0:
+;loc_7EB0
+Retire_car_obj_flash:
 	SUBQ.w	#1, $36(A0)
-	BPL.b	loc_7EDC
+	BPL.b	Retire_car_obj_queue
 	MOVE.w	#1, $36(A0)
 	ADDQ.w	#1, $34(A0)
 	MOVE.w	$34(A0), D0
@@ -11671,131 +11679,159 @@ loc_7EB0:
 	ADDA.w	D0, A1
 	LEA	$FFFFFCEA.w, A2
 	JSR	Write_3_palette_vdp_bytes(PC)
-loc_7EDC:
+;loc_7EDC
+Retire_car_obj_queue:
 	JMP	Queue_object_for_sprite_buffer
+;loc_7EE2
+Slide_car_obj_init_from_bottom:
 	MOVE.l	#loc_10640, $8(A0)
 	MOVE.w	#$00F0, $18(A0)
 	MOVE.w	#$FFF9, $2E(A0)
-	BRA.b	loc_7F0C
+	BRA.b	Slide_car_obj_init_common
+;loc_7EF8
+Slide_car_obj_init_from_top:
 	MOVE.l	#loc_10648, $8(A0)
 	MOVE.w	#$0110, $18(A0)
 	MOVE.w	#7, $2E(A0)
-loc_7F0C:
-	MOVE.l	#loc_7F26, (A0)
+;loc_7F0C
+Slide_car_obj_init_common:
+	MOVE.l	#Slide_car_obj_set_palette, (A0)
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0178, $16(A0)
 	MOVE.w	#6, $2C(A0)
 	RTS
-loc_7F26:
-	MOVE.l	#loc_7F3A, (A0)
+;loc_7F26
+Slide_car_obj_set_palette:
+	MOVE.l	#Slide_car_obj_move, (A0)
 	LEA	Car_sprite_ptr_table, A1
 	LEA	$FFFFFCF0.w, A2
 	JSR	Write_3_palette_vdp_bytes(PC)
-loc_7F3A:
+;loc_7F3A
+Slide_car_obj_move:
 	MOVE.w	$2C(A0), D0
 	SUB.w	D0, $16(A0)
 	MOVE.w	$2E(A0), D0
-	BMI.b	loc_7F64
+	BMI.b	Slide_car_obj_move_up
 	ADD.w	D0, $18(A0)
 	MOVE.w	$18(A0), D0
 	CMPI.w	#$01A0, D0
-	BHI.w	loc_7FA2
+	BHI.w	Slide_car_obj_done
 	CMPI.w	#$0150, D0
-	BCS.b	loc_7F8E
+	BCS.b	Slide_car_obj_draw
 	MOVE.w	#6, D0
-	BRA.b	loc_7F7E
-loc_7F64:
+	BRA.b	Slide_car_obj_bounce
+;loc_7F64
+Slide_car_obj_move_up:
 	ADD.w	D0, $18(A0)
 	MOVE.w	$18(A0), D0
 	CMPI.w	#$0060, D0
-	BCS.w	loc_7FA2
+	BCS.w	Slide_car_obj_done
 	CMPI.w	#$00B0, D0
-	BHI.b	loc_7F8E
+	BHI.b	Slide_car_obj_draw
 	MOVE.w	#$FFFA, D0
-loc_7F7E:
+;loc_7F7E
+Slide_car_obj_bounce:
 	MOVE.w	#4, $2C(A0)
 	MOVE.w	D0, $2E(A0)
 	MOVE.w	#4, $22(A0)
-loc_7F8E:
+;loc_7F8E
+Slide_car_obj_draw:
 	MOVE.w	$22(A0), D0
 	MOVEA.l	$8(A0), A1
 	MOVE.l	(A1,D0.w), $4(A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_7FA2:
+;loc_7FA2
+Slide_car_obj_done:
 	JMP	Clear_object_slot
-loc_7FA8:
+;loc_7FA8
+Race_finish_obj:
 	MOVE.w	#1, Laps_done_flag.w
 	MOVE.w	#1, Race_finish_flag.w
 	CLR.w	Audio_engine_flags
 	TST.w	Warm_up.w
-	BNE.b	loc_8032
+	BNE.b	Race_finish_obj_Warmup_init
 	TST.w	Practice_mode.w
-	BNE.w	loc_8054
+	BNE.w	Race_finish_obj_Practice_init
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_8004
+	BEQ.b	Race_finish_obj_Normal_init
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_7FEC
+	BNE.b	Race_finish_obj_Championship
 	MOVE.l	#$00009E08, D1
 	JSR	Alloc_aux_object_slot
 	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_7FEC:
+;loc_7FEC
+Race_finish_obj_Championship:
 	MOVE.l	#$00009DB8, D1
 	JSR	Alloc_aux_object_slot
 	MOVE.l	#Queue_object_for_sprite_buffer, (A0)
 	JMP	Queue_object_for_sprite_buffer
-loc_8004:
-	MOVE.l	#loc_8010, (A0)
+;loc_8004
+Race_finish_obj_Normal_init:
+	MOVE.l	#Race_finish_obj_Normal_wait, (A0)
 	MOVE.w	#$001E, $36(A0)
-loc_8010:
+;loc_8010
+Race_finish_obj_Normal_wait:
 	SUBQ.w	#1, $36(A0)
-	BEQ.b	loc_801C
+	BEQ.b	Race_finish_obj_Show_results
 	JMP	Queue_object_for_sprite_buffer
-loc_801C:
+;loc_801C
+Race_finish_obj_Show_results:
 	MOVE.w	#$000E, Current_lap.w
 	MOVE.b	#$FF, Lap_time_ptr.w
 	MOVE.l	#Race_finish_results_init, Frame_callback.w
 	RTS
-loc_8032:
-	MOVE.l	#loc_803E, (A0)
+;loc_8032
+Race_finish_obj_Warmup_init:
+	MOVE.l	#Race_finish_obj_Warmup_wait, (A0)
 	MOVE.w	#$001E, $36(A0)
-loc_803E:
+;loc_803E
+Race_finish_obj_Warmup_wait:
 	SUBQ.w	#1, $36(A0)
-	BEQ.b	loc_804A
+	BEQ.b	Race_finish_obj_Warmup_done
 	JMP	Queue_object_for_sprite_buffer
-loc_804A:
+;loc_804A
+Race_finish_obj_Warmup_done:
 	MOVE.l	#Title_menu, Frame_callback.w
 	RTS
-loc_8054:
-	MOVE.l	#loc_8060, (A0)
+;loc_8054
+Race_finish_obj_Practice_init:
+	MOVE.l	#Race_finish_obj_Practice_wait, (A0)
 	MOVE.w	#$001E, $36(A0)
-loc_8060:
+;loc_8060
+Race_finish_obj_Practice_wait:
 	SUBQ.w	#1, $36(A0)
-	BEQ.b	loc_806C
+	BEQ.b	Race_finish_obj_Practice_done
 	JMP	Queue_object_for_sprite_buffer
-loc_806C:
+;loc_806C
+Race_finish_obj_Practice_done:
 	MOVE.l	#$00005690, Frame_callback.w
 	RTS
-	MOVE.l	#loc_8082, (A0)
+;loc_8076
+Checkpoint_anim_obj_init:
+	MOVE.l	#Checkpoint_anim_obj, (A0)
 	MOVE.w	#$0028, $36(A0)
-loc_8082:
+;loc_8082
+Checkpoint_anim_obj:
 	MOVE.b	Frame_counter.w, D0
 	ANDI.w	#1, D0
 	ADDQ.w	#1, D0
 	MOVE.w	D0, Overtake_event_flag.w
 	MOVE.w	Retire_animation_flag.w, D0
 	OR.w	Retire_flag.w, D0
-	BNE.b	loc_80C2
+	BNE.b	Checkpoint_anim_obj_Rts
 	SUBQ.w	#1, $1C(A0)
-	BPL.b	loc_80AE
+	BPL.b	Checkpoint_anim_obj_Countdown
 	MOVE.w	#4, $1C(A0)
 	MOVE.w	#Sfx_checkpoint, Audio_sfx_cmd      ; checkpoint / lap event SFX
-loc_80AE:
+;loc_80AE
+Checkpoint_anim_obj_Countdown:
 	SUBQ.w	#1, $36(A0)
-	BNE.b	loc_80C2
+	BNE.b	Checkpoint_anim_obj_Rts
 	MOVE.b	#$FF, Lap_time_ptr.w
 	MOVE.l	#Race_finish_results_init, Frame_callback.w
-loc_80C2:
+;loc_80C2
+Checkpoint_anim_obj_Rts:
 	RTS
 
 ;Compute_minimap_index
