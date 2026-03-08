@@ -202,7 +202,7 @@ Return_from_exception:
 ;       Otherwise fall into the cold-boot VDP/Z80 pre-init block.
 ;
 ;  2. Cold-boot pre-init ($226-$2A0):
-;       Load register set from loc_4B4 (register init table):
+;       Load register set from Boot_init_data (register init table):
 ;         D5 = $00008000, D6 = $3FFF, D7 = $0100
 ;         A0 = Z80 RAM ($00A00000), A1 = Z80_bus_request ($A11100)
 ;         A2 = Z80_reset ($A11200), A3 = VDP_data_port ($C00000)
@@ -211,7 +211,7 @@ Return_from_exception:
 ;       present — write "SEGA" ($53454741) to TMSS register ($A14000) to unlock
 ;       VDP access.  Skip if TMSS not present (older hardware revisions).
 ;       Clear D0, set USP to 0.
-;       Write 24 VDP initialisation bytes from loc_4B4+$1C to VDP_control_port.
+;       Write 24 VDP initialisation bytes from Boot_init_data+$1C to VDP_control_port.
 ;       Set VRAM write at $0080 via VDP_control_port.
 ;       Request Z80 bus ($A11100 = $0100), assert Z80 reset ($A11200 = $0100,
 ;       $0000, then $0100), wait for bus grant, copy 40 bytes to Z80 RAM.
@@ -222,7 +222,7 @@ Return_from_exception:
 ;       Set VRAM write target at $C0000000.
 ;       Clear $20 VRAM longwords (32-bit writes to VDP_data_port × $20).
 ;       Set VRAM write at $0010.
-;       Write 4 bytes ($10 area) from remaining loc_4B4 bytes.
+;       Write 4 bytes ($10 area) from remaining Boot_init_data bytes.
 ;       Release Z80 reset and restore registers from USP (zeroed) area.
 ;       Disable interrupts (SR = $2700).
 ;
@@ -278,7 +278,7 @@ EntryPoint_Settle_loop:
 ;loc_220
 EntryPoint_Cold_boot:
 	; ---- Cold-boot: load register-init table and perform pre-boot hardware setup ----
-	LEA	loc_4B4(PC), A5         ; A5 = register init data table (VDP init bytes follow)
+	LEA	Boot_init_data(PC), A5         ; A5 = register init data table (VDP init bytes follow)
 	MOVEM.l	(A5)+, D5-D7/A0-A4  ; load D5-D7 and A0-A4 from table; A5 advances past them
 	; After MOVEM: D5=$8000, D6=$3FFF, D7=$0100,
 	;   A0=Z80_ram($A00000), A1=Z80_bus_request($A11100),
@@ -296,7 +296,7 @@ EntryPoint_Tmss_done:
 	MOVEQ	#$00000017, D1      ; D1 = 23 (24-1 VDP init bytes)
 ;loc_244
 EntryPoint_Vdp_init_loop:
-	; Write 24 VDP register init values from A5 (loc_4B4 data) to VDP_control_port.
+	; Write 24 VDP register init values from A5 (Boot_init_data data) to VDP_control_port.
 	; Each byte is written as a word after adding D7=$0100 (register address prefix).
 	MOVE.b	(A5)+, D5           ; read next init byte
 	MOVE.w	D5, (A4)            ; write to VDP control port
@@ -545,7 +545,8 @@ loc_4A4:
 	DBF	D0, loc_4A4
 	MOVE.w	#$0100, Z80_reset
 	RTS
-loc_4B4:
+;Boot_init_data
+Boot_init_data:
 ; Register initialisation table used by EntryPoint cold-boot pre-init.
 ; MOVEM.l (A5)+, D5-D7/A0-A4 loads the first 7 longwords into registers;
 ; the byte arrays that follow are consumed as init data by subsequent loops.
@@ -1575,13 +1576,13 @@ Decode_packed_flipv_done:
 	MOVE.b	(A0), D5
 	ROL.b	D7, D5
 	ADD.w	D7, D7
-	AND.w	loc_BDC(PC,D7.w), D5
+	AND.w	Decode_packed_bit_mask_table(PC,D7.w), D5
 	ADD.w	D5, D1
 ;loc_BB6
 Decode_packed_mask_finish:
 	MOVE.w	A5, D0
 	ADD.w	D0, D0
-	AND.w	loc_BDC(PC,D0.w), D1
+	AND.w	Decode_packed_bit_mask_table(PC,D0.w), D1
 	ADD.w	D3, D1
 	MOVE.b	(A0)+, D5
 	LSL.w	#8, D5
@@ -1593,14 +1594,15 @@ Decode_packed_enough_bits:
 	LSR.w	D7, D1
 	MOVE.w	A5, D0
 	ADD.w	D0, D0
-	AND.w	loc_BDC(PC,D0.w), D1
+	AND.w	Decode_packed_bit_mask_table(PC,D0.w), D1
 	ADD.w	D3, D1
 	MOVE.w	A5, D0
 	BRA.b	Refill_tilemap_bit_buffer
 ;loc_BDA
 Decode_packed_exact_fit:
 	MOVEQ	#$00000010, D6
-loc_BDC:
+;loc_BDC
+Decode_packed_bit_mask_table:
 	BRA.b	Decode_packed_mask_finish
 	dc.w	$0001, $0003, $0007, $000F, $001F, $003F, $007F, $00FF, $01FF, $03FF
 	dc.b	$07, $FF, $0F, $FF, $1F, $FF, $3F, $FF, $7F, $FF, $FF, $FF
@@ -2257,7 +2259,7 @@ Init_hud_champ_branch:
 	MOVE.w	Title_menu_cursor.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_585D6, A6
+	LEA	Lap_number_tilemap_table, A6
 	ADDA.w	D0, A6
 	MOVE.l	#$627C0003, D7
 	MOVEQ	#0, D6
@@ -2302,7 +2304,7 @@ Draw_lap_number_and_times:
 	MOVE.w	Laps_completed.w, D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_585D6, A6
+	LEA	Lap_number_tilemap_table, A6
 	ADDA.w	D0, A6
 	MOVE.l	#$62780003, D7
 	MOVEQ	#0, D6
@@ -2806,7 +2808,7 @@ Update_overtake_lap_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
 	MOVE.l	#$62A20003, VDP_control_port
-	LEA	loc_20F2(PC), A0
+	LEA	Placement_tile_data(PC), A0
 	MOVE.l	(A0,D0.w), VDP_data_port
 	CLR.w	Overtake_event_flag.w
 ;loc_184A
@@ -2835,7 +2837,7 @@ Update_placement_anim_check:
 Update_placement_lap_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_20F2(PC), A6
+	LEA	Placement_tile_data(PC), A6
 	ADDA.w	D0, A6
 	LEA	loc_2192(PC), A4
 	LEA	loc_2102(PC), A3
@@ -2886,7 +2888,7 @@ Update_placement_anim_b_check:
 Update_placement_b_clamp:
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_20F2(PC), A6
+	LEA	Placement_tile_data(PC), A6
 	ADDA.w	D0, A6
 	LEA	loc_21B2(PC), A4
 	CMPI.w	#1, Placement_anim_state_b.w
@@ -3522,7 +3524,8 @@ loc_2086:
 	dc.b	$8C, $7C, $8C, $79, $84, $6E, $84, $71, $84, $74, $84, $77, $84, $85, $84, $87, $84, $8A, $84, $8D, $84, $90, $8C, $90, $8C, $8D, $8C, $8A, $8C, $87, $8C, $85
 	dc.b	$8C, $83, $8C, $80, $8C, $7D, $8C, $7A, $84, $6F, $84, $72, $84, $75, $84, $78, $84, $86, $84, $88, $84, $8B, $84, $8E, $84, $91, $8C, $91, $8C, $8E, $8C, $8B
 	dc.b	$8C, $88, $8C, $86, $8C, $84, $8C, $81, $8C, $7E, $8C, $7B
-loc_20F2:
+;loc_20F2
+Placement_tile_data:
 	dc.w	$A7DC, $A7DD, $A7D7, $A7CD, $A7DB, $A7CD, $A7DD, $A7D1
 loc_2102:
 	dc.w	$A7D9, $A7D8, $A7DC, $A7D2, $A7DD, $A7D2, $A7D8, $A7D7, $0000, $0000, $0000, $0000, $0000, $0000, $A7D5, $A7D2, $A7D6, $A7D2, $A7DD, $A7E8
@@ -4271,7 +4274,7 @@ loc_2952:
 	MOVE.w	#$9280, VDP_control_port
 	MOVE.w	#$001E, Screen_timer.w
 	MOVE.l	#$63A00001, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$40000000, VDP_control_port
 	LEA	loc_5EA52, A0
@@ -5340,11 +5343,12 @@ loc_395C:
 	MOVE.w	#$0068, D0
 	LEA	loc_4141(PC), A1
 	TST.w	Practice_flag.w
-	BEQ.b	loc_3986
+	BEQ.b	Init_ai_placement_loop
 	TST.w	Easy_flag.w
-	BEQ.b	loc_3986
+	BEQ.b	Init_ai_placement_loop
 	LEA	loc_418D(PC), A1
-loc_3986:
+;loc_3986
+Init_ai_placement_loop:
 	MOVEQ	#0, D6
 	LEA	Ai_car_array.w, A0
 	MOVE.w	Track_length.w, D1
@@ -5440,7 +5444,7 @@ loc_3A80:
 	BNE.b	loc_3AAC
 	MOVE.l	#$00008C74, D2
 	MOVE.w	#$0078, D0
-	BRA.w	loc_3986
+	BRA.w	Init_ai_placement_loop
 loc_3AAC:
 	MOVEQ	#0, D6
 	LEA	$FFFFB0C0.w, A0
@@ -5735,7 +5739,7 @@ loc_3E4E:
 	BRA.w	loc_3E62
 	BRA.w	loc_3EB0
 	BRA.w	loc_3EBE
-	BRA.w	loc_3ECE
+	BRA.w	Race_loop_commit_tileset
 loc_3E62:
 	TST.w	Tileset_dirty_flag.w
 	BEQ.b	loc_3E72
@@ -5753,18 +5757,19 @@ loc_3E72:
 	JSR	Upload_palette_buffer_to_cram_delayed(PC)
 	JSR	Flush_pending_dma_transfers(PC)
 	JSR	loc_7298(PC)
-	BRA.b	loc_3ECE
+	BRA.b	Race_loop_commit_tileset
 loc_3EB0:
 	JSR	loc_1CCC(PC)
 	JSR	loc_72D6(PC)
 	JSR	Send_sign_tileset_to_VDP(PC)
-	BRA.b	loc_3ECE
+	BRA.b	Race_loop_commit_tileset
 loc_3EBE:
 	JSR	Update_input_bitset(PC) ; Update_input_bitset called from multiple locations, from here during practice mode
 	JSR	loc_3EE4(PC)
 	JSR	Update_car_palette_dma(PC)
 	JSR	Flush_tilemap_draw_queue(PC)
-loc_3ECE:
+;loc_3ECE
+Race_loop_commit_tileset:
 	MOVE.w	#$9D42, D0
 	ADD.w	Tileset_base_offset.w, D0
 	MOVE.w	D0, $FFFFFFF0.w
@@ -7128,18 +7133,19 @@ loc_50DC:
 	BEQ.b	loc_50F0
 	ADDQ.w	#1, D0
 	CMPI.w	#$0060, D0
-	BLS.b	loc_5104
+	BLS.b	Car_selection_store_scroll
 	SUBQ.w	#1, D0
-	BRA.b	loc_5104
+	BRA.b	Car_selection_store_scroll
 loc_50F0:
 	BTST.b	#KEY_DOWN, Input_state_bitset.w
 	BEQ.b	loc_5108
 loc_50F8:
 	SUBQ.w	#1, D0
-	BPL.b	loc_5104
+	BPL.b	Car_selection_store_scroll
 	MOVE.w	#$FFFF, Temp_distance.w
 	MOVEQ	#0, D0
-loc_5104:
+;loc_5104
+Car_selection_store_scroll:
 	MOVE.w	D0, Anim_delay.w
 loc_5108:
 	RTS
@@ -7305,7 +7311,7 @@ loc_5282:
 	dc.b	$95, $80
 	dc.l	loc_58624
 	dc.b	$0B, $E0
-	dc.l	loc_56E36
+	dc.l	$00056E36
 loc_52A8:
 	dc.b	$02, $0E, $00, $00, $0E, $EE, $00, $AE, $06, $E2, $02, $22, $04, $44, $06, $66, $08, $88, $0A, $AA, $0C, $CC, $0E, $EE, $00, $AC, $00, $08, $00, $0C, $08, $22
 	dc.b	$22, $01, $00, $00, $02, $2E, $42, $01, $00, $00, $00, $CE, $60, $0F, $08, $AA, $02, $22, $04, $44, $04, $66, $04, $68, $06, $88, $08, $AA, $0A, $AA, $04, $44
@@ -7460,7 +7466,7 @@ loc_56C6:
 	LEA	Curve_data, A4
 	JSR	Decompress_to_ram
 	MOVE.l	#$46400000, VDP_control_port
-	LEA	loc_56E36, A0
+	LEA	Race_hud_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$50400000, VDP_control_port
 	LEA	loc_3275A, A0
@@ -7658,7 +7664,7 @@ loc_59DA: ; Jump to when shift type is Automatic
 	ASL.w	#2, D0
 	JMP	(A1,D0.w)
 loc_59FE:
-	BRA.w	loc_5A2A ; shift is 0 (RTS)
+	BRA.w	Update_shift_Return ; shift is 0 (RTS)
 	BRA.w	loc_5A0E ; shift is 1
 	BRA.w	loc_5A18 ; shift is 2
 	BRA.w	loc_5A22 ; shift is 3
@@ -7673,7 +7679,8 @@ loc_5A18:
 loc_5A22:
 	CMPI.w	#974, Player_rpm.w ; automatic shift down RPM threshold for shift 3
 	BCS.b	Update_shift_Down
-loc_5A2A:
+;loc_5A2A
+Update_shift_Return:
 	RTS
 loc_5A2C: ; Jump to when shift type is 4-shift
 	MOVE.w	#3, D0 ; Max shift
@@ -7688,7 +7695,7 @@ loc_5A36:
 	RTS
 loc_5A44:
 	CMP.w	Player_shift.w, D0 ; if max shift
-	BEQ.b	loc_5A2A           ; then RTS
+	BEQ.b	Update_shift_Return        ; then RTS
 	ADDQ.w	#1, Player_shift.w ; else shift up
 	MOVE.w	Player_rpm.w, D0
 	MOVE.w	Player_shift.w, D1
@@ -7700,7 +7707,7 @@ loc_5A44:
 ;Update_shift_Down
 Update_shift_Down:
 	CMPI.w	#0, Player_shift.w ; if shift 0
-	BEQ.b	loc_5A2A           ; then RTS
+	BEQ.b	Update_shift_Return        ; then RTS
 
 loc_5A6A:
 	SUBQ.w	#1, Player_shift.w ; else shift down
@@ -7733,14 +7740,15 @@ loc_5AB0: ; crash/spin deceleration: rpm -= 30/frame, sync visual, auto-downshif
 	SUBI.w	#30, Player_rpm.w
 	BCC.b	loc_5ABE
 	CLR.w	Player_rpm.w
-	BRA.b	loc_5ACE
+	BRA.b	Sync_visual_rpm
 loc_5ABE:
 	CMPI.w	#700, Player_rpm.w
-	BCC.b	loc_5ACE
+	BCC.b	Sync_visual_rpm
 	TST.w	Player_shift.w
-	BEQ.b	loc_5ACE
+	BEQ.b	Sync_visual_rpm
 	BSR.b	loc_5A6A
-loc_5ACE:
+;loc_5ACE
+Sync_visual_rpm:
 	MOVE.w	Player_rpm.w, Visual_rpm.w
 	RTS
 
@@ -7813,21 +7821,22 @@ loc_5B34:
 	MOVE.w	#$FF00, D1
 	MOVE.b	(A1,D0.w), D1 ; D1 = $FF00 + value from Acceleration_data
 	BTST.l	#7, D1
-	BNE.b	loc_5B7E ; Jump if max rpm for shift?
+	BNE.b	Apply_acceleration_done ; Jump if max rpm for shift?
 	ANDI.w	#$00FF, D1 ; D1 = value from Acceleration_data (acc)
 	MOVE.w	Acceleration_modifier.w, D0; # Either of $FFFF(-1), $0000, $0001, $0002
-	BEQ.b	loc_5B7E ; D0 == 0
+	BEQ.b	Apply_acceleration_done ; D0 == 0
 	BMI.b	loc_5B76 ; D0 < 0
 	MOVE.w	D1, D2
 	LSR.w	D0, D2 ; D2 = 0.5x or 0.25x acc
 	ADD.w	D2, D1 ; acc = acc*1.25 or acc*1.5
-	BRA.b	loc_5B7E
+	BRA.b	Apply_acceleration_done
 loc_5B76:
 	MOVE.w	D1, D2
 	NEG.w	D0 ; $FFFF -> $0001 (only possible value)
 	LSR.w	D0, D2 ; D2 = acc/2
 	SUB.w	D2, D1 ; acc = acc/2
-loc_5B7E:
+;loc_5B7E
+Apply_acceleration_done:
 	TST.w	Road_marker_state.w
 	BEQ.b	loc_5B9E
 	CLR.l	D2
@@ -7877,14 +7886,15 @@ Update_visual_rpm:
 	SUB.w	Visual_rpm.w, D0 ; D0 = (rpm+1) - visual_rpm == delta between rpm and visual (but +1)
 	BMI.b	loc_5C0E ; Jump if (rpm+1) - visual_rpm < 0, meaning rpm+1 < visual_rpm (rpm is at least 2 less than visual)
 	CMPI.w	#80, D0
-	BCS.b	loc_5C18 ; if delta > 80
+	BCS.b	Apply_visual_rpm_delta ; if delta > 80
 	MOVE.w	#80, D0  ; then delta = 80
-	BRA.b	loc_5C18
+	BRA.b	Apply_visual_rpm_delta
 loc_5C0E:
 	CMPI.w	#-150, D0
-	BCC.b	loc_5C18  ; if delta < -150
+	BCC.b	Apply_visual_rpm_delta  ; if delta < -150
 	MOVE.w	#-150, D0 ; then delta = -150
-loc_5C18:
+;loc_5C18
+Apply_visual_rpm_delta:
 	ADD.w	D0, Visual_rpm.w ; Add capped delta to visual rpm, making it approach actual rpm (but +1)
 	RTS
 
@@ -7952,13 +7962,14 @@ loc_5CA8:
 
 loc_5CAA:
 	MOVE.w	Track_phys_slope_value.w, D0 ; physical slope at current position (negative = uphill → RPM drag)
-	BEQ.b	loc_5CC2
+	BEQ.b	Update_rpm_Return
 	BTST.b	#0, Frame_counter.w
-	BNE.b	loc_5CC2
+	BNE.b	Update_rpm_Return
 	ADD.w	D0, Player_rpm.w
-	BPL.b	loc_5CC2
+	BPL.b	Update_rpm_Return
 	CLR.w	Player_rpm.w
-loc_5CC2:
+;loc_5CC2
+Update_rpm_Return:
 	RTS
 
 loc_5CC4:
@@ -8088,14 +8099,15 @@ Update_speed:
 	SUB.w	Player_speed.w, D0 ; delta speed
 	BMI.b	loc_5F9E ; if negative, go to max deacceleration check
 	CMPI.w	#2, D0
-	BCS.b	loc_5FA8 ; if not D0 < 2 (max acceleration)
+	BCS.b	Apply_speed_delta ; if not D0 < 2 (max acceleration)
 	MOVE.w	#2, D0   ; then D0 = 2
-	BRA.b	loc_5FA8
+	BRA.b	Apply_speed_delta
 loc_5F9E:
 	CMPI.w	#-5, D0
-	BCC.b	loc_5FA8   ; if D0 < -5 (max deacceleration)
+	BCC.b	Apply_speed_delta   ; if D0 < -5 (max deacceleration)
 	MOVE.w	#-5, D0 ; then D0 = -5
-loc_5FA8:
+;loc_5FA8
+Apply_speed_delta:
 	ADD.w	D0, Player_speed.w; Add delta speed and return
 	RTS
 
@@ -8143,10 +8155,10 @@ Engine_data: ; Defines RPM at 100km/h for each shift and shift type, 6 different
 ; Skipped entirely if Crash_spin_flag is set.
 Update_breaking:
 	TST.w	Crash_spin_flag.w
-	BNE.b	loc_60BE
+	BNE.b	Update_breaking_Return
 	MOVE.b	Control_key_brake.w, D6
 	BTST.b	D6, Input_state_bitset.w ; if break key pressed, then continue
-	BEQ.b	loc_60BE                 ; else exit early
+	BEQ.b	Update_breaking_Return   ; else exit early
 	CMPI.w	#Engine_rpm_max, Player_rpm.w
 	BCS.b	loc_6080           ; if rpm > max
 	ADDI.w	#-40, Player_rpm.w ; then rpm = rpm-40
@@ -8158,19 +8170,21 @@ loc_6080:
 	ADD.w	Player_shift.w, D0
 	MOVE.b	(A1,D0.w), D1
 	TST.w	Use_world_championship_tracks.w
-	BEQ.b	loc_60B2
+	BEQ.b	Subtract_rpm_floor_zero
 	TST.w	Practice_mode.w
-	BNE.b	loc_60B2
+	BNE.b	Subtract_rpm_floor_zero
 	MOVE.w	Track_braking_index.w, D0
 	LEA	loc_60D0(PC), A0
 	ADD.w	(A0,D0.w), D1
-	BPL.b	loc_60B2
+	BPL.b	Subtract_rpm_floor_zero
 	MOVEQ	#0, D1
-loc_60B2:
+;loc_60B2
+Subtract_rpm_floor_zero:
 	SUB.w	D1, Player_rpm.w
-	BPL.b	loc_60BE
+	BPL.b	Update_breaking_Return
 	MOVE.w	#0, Player_rpm.w
-loc_60BE:
+;loc_60BE
+Update_breaking_Return:
 	RTS
 
 loc_60C0:
@@ -8310,14 +8324,15 @@ loc_61DE:
 	SUBI.b	#$80, D7
 	BMI.b	loc_61F0
 	SUBQ.b	#8, D7
-	BCC.b	loc_61F6
+	BCC.b	Apply_steering_output
 	MOVEQ	#0, D7
-	BRA.b	loc_61F6
+	BRA.b	Apply_steering_output
 loc_61F0:
 	ADDQ.b	#8, D7
-	BCC.b	loc_61F6
+	BCC.b	Apply_steering_output
 	MOVEQ	#0, D7
-loc_61F6:
+;loc_61F6
+Apply_steering_output:
 	MOVE.b	D7, Steering_output.w
 	RTS
 loc_61FC: ; Suspected backwindow tile mappings
@@ -8991,11 +9006,11 @@ loc_6884:
 	BRA.b	loc_68D4
 loc_68A2:
 	TST.w	Use_world_championship_tracks.w
-	BNE.b	loc_68CA
+	BNE.b	Render_road_bg_entry
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_68CA
+	BEQ.b	Render_road_bg_entry
 	TST.w	$FFFFFC86.w
-	BEQ.b	loc_68CA
+	BEQ.b	Render_road_bg_entry
 	CLR.w	$FFFFFC86.w
 	MOVE.w	$FFFF922A.w, D0
 	ADDQ.w	#2, D0
@@ -9004,7 +9019,8 @@ loc_68A2:
 	MOVEQ	#0, D0
 loc_68C6:
 	MOVE.w	D0, $FFFF922A.w
-loc_68CA:
+;loc_68CA
+Render_road_bg_entry:
 	TST.w	Track_horizon_override_flag.w
 	BEQ.b	loc_68DE
 	LEA	loc_7356(PC), A0
@@ -9358,7 +9374,7 @@ loc_6C34:
 	MOVE.w	#$8000, -(A6)
 	DBF	D7, loc_6C34
 loc_6C3C:
-	LEA	loc_6EBE(PC), A6
+	LEA	Slope_scale_factors(PC), A6
 	LEA	$FFFF9800.w, A5
 	MOVEQ	#$00000027, D0
 loc_6C46:
@@ -9445,7 +9461,7 @@ loc_6D0E:
 	MOVE.w	#$8000, -(A6)
 	DBF	D7, loc_6D0E
 loc_6D16:
-	LEA	loc_6EBE(PC), A6
+	LEA	Slope_scale_factors(PC), A6
 	LEA	$FFFF9800.w, A5
 	MOVEQ	#$00000021, D0
 loc_6D20:
@@ -9527,7 +9543,7 @@ loc_6DA6:
 	MOVE.w	#$8000, -(A6)
 	DBF	D7, loc_6DA6
 loc_6DAE:
-	LEA	loc_6EBE(PC), A6
+	LEA	Slope_scale_factors(PC), A6
 	LEA	$FFFF9800.w, A5
 	MOVEQ	#$00000027, D0
 loc_6DB8:
@@ -9643,7 +9659,8 @@ loc_6E8A:
 	dc.w	$FFED
 	dc.w	$FFE9
 	dc.w	$FFE8
-loc_6EBE:
+;loc_6EBE
+Slope_scale_factors:
 	dc.w	$1000
 	dc.w	$0000
 	dc.w	$0000
@@ -10213,20 +10230,23 @@ loc_73DC:
 ;loc_73EE:
 Update_race_timer:
 	TST.w	Race_timer_freeze.w
-	BNE.b	loc_73FE
+	BNE.b	Update_race_timer_Not_started
 	CLR.w	New_lap_flag.w
 	TST.w	Race_started.w
-	BNE.b	loc_7414
-loc_73FE:
+	BNE.b	Update_race_timer_Decrement
+;loc_73FE
+Update_race_timer_Not_started:
 	RTS
-loc_7400:
+;loc_7400
+Race_timer_countdown_table:
 	dc.b	$95, $90, $85, $80, $75, $70, $65, $60, $55, $50, $45, $40, $35, $30, $25, $20, $15, $10, $05, $00
-loc_7414:
+;loc_7414
+Update_race_timer_Decrement:
 	TST.w	Laps_done_flag.w
-	BNE.b	loc_73FE
+	BNE.b	Update_race_timer_Not_started
 	LEA	Race_timer_bcd.w, A0
 	SUBQ.b	#1, (A0)
-	BNE.b	loc_745A
+	BNE.b	Update_race_timer_Sub_tick
 	MOVE.b	#$14, (A0)
 	MOVEQ	#1, D0
 	MOVEQ	#$00000060, D1
@@ -10234,24 +10254,28 @@ loc_7414:
 	ADDI.w	#0, D0
 	ABCD	D0, D2
 	CMP.b	D1, D2
-	BCS.b	loc_7456
+	BCS.b	Update_race_timer_Seconds_ok
 	ADDI.w	#0, D0
 	SBCD	D1, D2
 	MOVE.b	$1(A0), D3
 	ADDI.w	#0, D0
 	ABCD	D0, D3
-	BCC.b	loc_7452
+	BCC.b	Update_race_timer_Minutes_ok
 	MOVE.l	#$01995999, (A0)
-	BRA.b	loc_7464
-loc_7452:
+	BRA.b	Update_race_timer_Draw_lap
+;loc_7452
+Update_race_timer_Minutes_ok:
 	MOVE.b	D3, $1(A0)
-loc_7456:
+;loc_7456
+Update_race_timer_Seconds_ok:
 	MOVE.b	D2, $2(A0)
-loc_745A:
+;loc_745A
+Update_race_timer_Sub_tick:
 	MOVEQ	#0, D0
 	MOVE.b	(A0), D0
-	MOVE.b	loc_7400-1(PC,D0.w), $3(A0)
-loc_7464:
+	MOVE.b	Race_timer_countdown_table-1(PC,D0.w), $3(A0)
+;loc_7464
+Update_race_timer_Draw_lap:
 	MOVE.l	(A0), Lap_time_ptr.w
 	CLR.b	Lap_time_ptr.w
 	MOVE.w	Best_ai_distance.w, D0
@@ -10267,50 +10291,55 @@ loc_7464:
 	CLR.l	(A0)
 	MOVE.b	#$14, (A0)
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_74B2
+	BEQ.b	Update_race_timer_Lap_store
 	ADD.w	D1, D1
 	ADD.w	D1, D1
 	LEA	Lap_time_ptr.w, A1
 	MOVE.l	Lap_time_ptr.w, (A1,D1.w)
-loc_74B2:
-	JSR	loc_7614(PC)
+;loc_74B2
+Update_race_timer_Lap_store:
+	JSR	Update_best_lap_time(PC)
 	LEA	Lap_time_table_ptr.w, A1
 	LEA	Lap_time_ptr.w, A2
 	JSR	Bcd_add_lap_time(PC)
 	TST.w	Track_index_arcade_mode.w
-	BNE.b	loc_74EA
+	BNE.b	Update_race_timer_Arcade
 	TST.w	Warm_up.w
-	BNE.b	loc_74DC
+	BNE.b	Update_race_timer_Warmup
 	TST.w	Practice_mode.w
 	BNE.b	Update_race_timer_Next_lap
 	MOVE.w	#1, Overtake_event_flag.w
-	BRA.b	loc_74FC
-loc_74DC:
+	BRA.b	Update_race_timer_Alloc_obj
+;loc_74DC
+Update_race_timer_Warmup:
 	MOVE.w	Title_menu_cursor.w, D0
 	ADDQ.w	#1, D0
 	CMP.w	Laps_completed.w, D0
-	BEQ.b	loc_74FC
+	BEQ.b	Update_race_timer_Alloc_obj
 	BRA.b	Update_race_timer_Next_lap
-loc_74EA:
+;loc_74EA
+Update_race_timer_Arcade:
 	MOVE.w	Use_world_championship_tracks.w, D0
 	ADD.w	D0, D0
 	ADDQ.w	#3, D0
 	CMP.w	Laps_completed.w, D0
 	BHI.b	Update_race_timer_Next_lap
-	JSR	loc_7656(PC)
-loc_74FC:
+	JSR	Update_rival_best_lap_time(PC)
+;loc_74FC
+Update_race_timer_Alloc_obj:
 	MOVE.l	#$0000A50E, D1
 	JSR	Alloc_aux_object_slot
 	MOVE.w	#1, Laps_done_flag.w
 ;Update_race_timer_Next_lap
 Update_race_timer_Next_lap:
 	TST.w	Track_index_arcade_mode.w
-	BNE.b	loc_758E
+	BNE.b	Update_race_timer_Champ
 	MOVE.l	(A0), D0
 	TST.w	Laps_done_flag.w
-	BEQ.b	loc_7520
+	BEQ.b	Update_race_timer_Show_current
 	MOVE.l	Lap_time_ptr.w, D0
-loc_7520:
+;loc_7520
+Update_race_timer_Show_current:
 	LEA	$FFFFE81C.w, A1
 	JSR	Pack_hex_digits_to_tilemap
 	MOVEQ	#7, D0
@@ -10337,19 +10366,22 @@ loc_7520:
 	MOVE.l	#$00008076, D1
 	JSR	Alloc_aux_object_slot
 	BRA.w	Update_race_timer_Return
-loc_758E:
+;loc_758E
+Update_race_timer_Champ:
 	TST.w	Ai_active_flag.w
 	BNE.b	Update_race_timer_Return
 	TST.w	New_lap_flag.w
-	BEQ.b	loc_75AA
+	BEQ.b	Update_race_timer_Champ_current
 	MOVE.w	Best_lap_vdp_step.w, D7
 	ADDI.w	#$0040, Best_lap_vdp_step.w
 	MOVE.l	Lap_time_ptr.w, D0
-	BRA.b	loc_75B0
-loc_75AA:
+	BRA.b	Update_race_timer_Format_display
+;loc_75AA
+Update_race_timer_Champ_current:
 	MOVE.w	Best_lap_vdp_step.w, D7
 	MOVE.l	(A0), D0
-loc_75B0:
+;loc_75B0
+Update_race_timer_Format_display:
 	MOVE.w	#$C000, D3
 	LEA	$FFFFE87C.w, A3
 	JSR	Format_bcd_time_to_tile_buffer
@@ -10374,39 +10406,43 @@ loc_75B0:
 	MOVEQ	#1, D5
 	LEA	$FFFFE80C.w, A6
 	JSR	Queue_tilemap_draw
-;Update_race_timer_Return
+;loc_7612
 Update_race_timer_Return:
 	RTS
 
-loc_7614:
+;loc_7614
+Update_best_lap_time:
 	MOVEA.l	$4(A0), A1
 	MOVE.l	Lap_time_ptr.w, D0
 	CMP.l	(A1), D0
-	BCC.b	loc_7654
+	BCC.b	Update_best_lap_Return
 	MOVE.l	D0, (A1)
 	TST.w	Ai_active_flag.w
-	BNE.b	loc_7654
+	BNE.b	Update_best_lap_Return
 	MOVE.w	#$8000, D3
 	LEA	$FFFFE85C.w, A3
 	JSR	Format_bcd_time_to_tile_buffer
 	MOVE.l	#$61460003, D7
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_7648
+	BEQ.b	Update_best_lap_Draw
 	MOVE.l	#$61040003, D7
-loc_7648:
+;loc_7648
+Update_best_lap_Draw:
 	MOVEQ	#7, D6
 	MOVEQ	#0, D5
 	LEA	(A3), A6
 	JSR	Queue_tilemap_draw
-loc_7654:
+;loc_7654
+Update_best_lap_Return:
 	RTS
 
-loc_7656:
+;loc_7656
+Update_rival_best_lap_time:
 	MOVEA.l	$4(A0), A1
 	ADDQ.w	#4, A1
 	MOVE.l	$FFFF92DC.w, D0
 	CMP.l	(A1), D0
-	BCC.b	loc_7686
+	BCC.b	Update_rival_best_lap_Return
 	MOVE.l	D0, (A1)
 	MOVE.w	#$8000, D3
 	LEA	$FFFFE86C.w, A3
@@ -10416,7 +10452,8 @@ loc_7656:
 	MOVEQ	#0, D5
 	LEA	(A3), A6
 	JSR	Queue_tilemap_draw
-loc_7686:
+;loc_7686
+Update_rival_best_lap_Return:
 	RTS
 
 ;Bcd_add_lap_time
@@ -10457,7 +10494,7 @@ loc_76C0:
 	MOVE.w	Laps_completed.w, D1
 	ADD.w	D1, D1
 	ADD.w	D1, D1
-	LEA	loc_585D6, A6
+	LEA	Lap_number_tilemap_table, A6
 	ADDA.w	D1, A6
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
@@ -10487,7 +10524,7 @@ loc_772A:
 	MOVE.l	#$62780003, D7
 	ADD.w	D1, D1
 	ADD.w	D1, D1
-	LEA	loc_585D6, A6
+	LEA	Lap_number_tilemap_table, A6
 	ADDA.w	D1, A6
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
@@ -11311,7 +11348,7 @@ loc_8176:
 	BCLR.l	#6, D0 ; zero the bit indicating left/right turn
 	SNE	D1 ; D1=$FF if right turn, else D1=$00
 	ADD.w	D0, D0
-	LEA	loc_86AE(PC), A1
+	LEA	Curve_displacement_table(PC), A1
 	MOVE.w	(A1,D0.w), D0
 	MULU.w	D3, D0 ; D0 = curve sharpness * player speed
 	TST.b	D1
@@ -11394,26 +11431,29 @@ Update_horizontal_position_Done:
 Update_race_position:
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
-	BEQ.b	loc_825C
-loc_825A:
+	BEQ.b	Update_race_position_Check_arcade
+;loc_825A
+Update_race_position_Return_early:
 	RTS
-loc_825C:
+;loc_825C
+Update_race_position_Check_arcade:
 	TST.w	Track_index_arcade_mode.w
-	BEQ.b	loc_825A
+	BEQ.b	Update_race_position_Return_early
 	TST.w	Use_world_championship_tracks.w
-	BNE.w	loc_8466
+	BNE.w	Update_race_position_Champ
 	MOVE.w	Player_grid_position.w, D1
 	TST.w	Retire_animation_flag.w
-	BNE.w	loc_8386
+	BNE.w	Update_race_position_Check_pos_change
 	TST.w	Placement_change_flag.w
-	BEQ.b	loc_8290
+	BEQ.b	Update_race_position_Poll_threshold
 	MOVE.w	#2, New_placement.w
 	MOVE.w	Laps_completed.w, D0
 	BEQ.b	Update_race_position_Recalc
 	CMPI.w	#3, D0
-	BCS.b	loc_82B6
+	BCS.b	Update_race_position_Advance_ptr
 	BRA.b	Update_race_position_Recalc
-loc_8290:
+;loc_8290
+Update_race_position_Poll_threshold:
 	MOVE.w	New_placement.w, D0
 	LEA	$FFFF922C.w, A0
 	MOVE.w	(A0,D0.w), D1
@@ -11421,38 +11461,43 @@ loc_8290:
 	BHI.b	Update_race_position_Recalc
 	ADDQ.w	#2, D0
 	CMPI.w	#6, D0
-	BCS.b	loc_82AC
+	BCS.b	Update_race_position_Wrap_placement
 	MOVEQ	#0, D0
-loc_82AC:
+;loc_82AC
+Update_race_position_Wrap_placement:
 	MOVE.w	D0, New_placement.w
 	MOVE.w	#1, Placement_award_pending.w
-loc_82B6:
+;loc_82B6
+Update_race_position_Advance_ptr:
 	MOVEA.l	$FFFF9284.w, A0
 	MOVE.w	(A0)+, D0
 	MOVE.w	D0, Placement_next_threshold.w
 	MOVE.l	A0, $FFFF9284.w
 	CMP.w	Player_grid_position.w, D0
-	BCS.b	loc_82CE
+	BCS.b	Update_race_position_Init_anim
 	MOVE.w	D0, Current_placement.w
-loc_82CE:
+;loc_82CE
+Update_race_position_Init_anim:
 	MOVE.l	#$00008586, D1
 	TST.w	Placement_change_flag.w
-	BEQ.b	loc_82E0
+	BEQ.b	Update_race_position_Set_anim
 	MOVE.l	#$000085A4, D1
-loc_82E0:
+;loc_82E0
+Update_race_position_Set_anim:
 	MOVE.l	D1, $FFFFADC0.w
 	MOVE.w	#1, Placement_anim_state.w
 Update_race_position_Recalc:
 	CLR.w	Placement_change_flag.w
 	MOVE.w	Current_placement.w, D1
 	CMP.w	Placement_next_threshold.w, D1
-	BEQ.b	loc_8312
+	BEQ.b	Update_race_position_Rank_loop_init
 	CMP.w	Player_grid_position.w, D1
-	BLS.b	loc_8312
+	BLS.b	Update_race_position_Rank_loop_init
 	MOVE.w	Player_grid_position.w, Current_placement.w
 	MOVE.l	#$000085A4, $FFFFADC0.w
 	MOVE.w	#1, Placement_anim_state.w
-loc_8312:
+;loc_8312
+Update_race_position_Rank_loop_init:
 	MOVE.w	Player_place_score.w, D0
 	LEA	Rival_car_place_score.w, A0
 	MOVEQ	#0, D1
@@ -11460,63 +11505,71 @@ loc_8312:
 	MOVEQ	#-1, D6
 	MOVEQ	#0, D7
 	MOVEQ	#$0000000E, D2
-loc_8324:
+;loc_8324
+Update_race_position_Rank_loop:
 	CMP.w	(A0), D7
-	BHI.b	loc_832C
+	BHI.b	Update_race_position_Check_second
 	MOVE.w	(A0), D7
 	LEA	(A0), A6
-loc_832C:
+;loc_832C
+Update_race_position_Check_second:
 	CMP.w	(A0), D0
-	BHI.b	loc_833C
+	BHI.b	Update_race_position_Check_behind
 	ADDQ.w	#1, D1
 	CMP.w	(A0), D6
 	BLS.b	Update_race_position_Loop_next
 	MOVE.w	(A0), D6
 	LEA	(A0), A5
 	BRA.b	Update_race_position_Loop_next
-loc_833C:
+;loc_833C
+Update_race_position_Check_behind:
 	CMP.w	(A0), D5
 	BHI.b	Update_race_position_Loop_next
 	MOVE.w	(A0), D5
 	LEA	(A0), A4
 Update_race_position_Loop_next:
 	LEA	$40(A0), A0
-	DBF	D2, loc_8324
+	DBF	D2, Update_race_position_Rank_loop
 	LEA	-$1E(A4), A4
 	MOVE.w	A4, Best_ai_car_ptr.w
 	LEA	-$1E(A5), A5
 	MOVE.w	A5, Second_ai_car_ptr.w
 	MOVE.w	Rival_ai_car_ptr.w, D0
-	BEQ.b	loc_8370
+	BEQ.b	Update_race_position_Set_rival_b
 	MOVEA.w	D0, A4
 	LEA	$400(A4), A4
-	MOVE.l	#loc_127C8, $4(A4)
-loc_8370:
+	MOVE.l	#Rival_car_anim_data_a, $4(A4)
+;loc_8370
+Update_race_position_Set_rival_b:
 	LEA	-$1E(A6), A6
 	MOVE.w	A6, Rival_ai_car_ptr.w
 	LEA	(A6), A4
 	LEA	$400(A4), A4
-	MOVE.l	#loc_127C0, $4(A4)
-loc_8386:
+	MOVE.l	#Rival_car_anim_data_b, $4(A4)
+;loc_8386
+Update_race_position_Check_pos_change:
 	CMP.w	Player_grid_position.w, D1
-	BEQ.b	loc_8398
+	BEQ.b	Update_race_position_Calc_delta
 	MOVE.w	D1, Player_grid_position.w
 	MOVE.l	#$00010001, Placement_anim_state.w
-loc_8398:
+;loc_8398
+Update_race_position_Calc_delta:
 	SUB.w	Current_placement.w, D1
 	BCS.w	Update_race_position_Check_award
 	MOVEQ	#1, D0
 	BTST.b	#1, Frame_counter.w
-	BNE.b	loc_83AE
+	BNE.b	Update_race_position_Store_anim
 	MOVE.w	#2, D0
-loc_83AE:
+;loc_83AE
+Update_race_position_Store_anim:
 	MOVE.w	D0, Placement_anim_state.w
 	MOVE.w	D0, Placement_anim_state_b.w
 	TST.w	D1
-	BEQ.b	loc_840E
+	BEQ.b	Update_race_position_Tied
 	SUBQ.w	#1, D1
-	BEQ.b	loc_8430
-loc_83BE:
+	BEQ.b	Update_race_position_One_ahead
+;loc_83BE
+Update_race_position_Two_ahead:
 	MOVE.w	#3, Placement_anim_state.w
 	MOVE.w	#3, Placement_anim_state_b.w
 	MOVE.w	Retire_animation_flag.w, D0
@@ -11533,7 +11586,8 @@ loc_83BE:
 	MOVE.l	#$00009E08, D1
 	JSR	Alloc_aux_object_slot
 	BRA.b	Update_race_position_Check_award
-loc_840E:
+;loc_840E
+Update_race_position_Tied:
 	TST.w	Race_started.w
 	BEQ.b	Update_race_position_Return
 	MOVEA.w	Best_ai_car_ptr.w, A0
@@ -11542,15 +11596,17 @@ loc_840E:
 	LSR.w	#4, D1
 	ADDQ.w	#1, D1
 	CMPI.w	#8, D1
-	BLS.b	loc_843E
+	BLS.b	Update_race_position_Award_countdown
 	MOVE.w	#8, D1
-	BRA.b	loc_843E
-loc_8430:
+	BRA.b	Update_race_position_Award_countdown
+;loc_8430
+Update_race_position_One_ahead:
 	MOVEA.w	Second_ai_car_ptr.w, A0
 	CMPI.w	#$0078, $E(A0)
-	BCS.b	loc_83BE
+	BCS.b	Update_race_position_Two_ahead
 	MOVEQ	#1, D1
-loc_843E:
+;loc_843E
+Update_race_position_Award_countdown:
 	SUBQ.w	#1, $FFFFFCAE.w
 	BPL.b	Update_race_position_Check_award
 	MOVE.w	D1, $FFFFFCAE.w
@@ -11566,41 +11622,46 @@ Update_race_position_Check_award:
 Update_race_position_Return:
 	RTS
 
-loc_8466:
+;loc_8466
+Update_race_position_Champ:
 	TST.w	Retire_animation_flag.w
 	BNE.b	Update_race_position_Return
 	TST.w	Has_rival_flag.w
-	BNE.w	loc_84E4
+	BNE.w	Update_race_position_Rival
 	MOVE.w	Player_place_score.w, D0
 	LEA	Rival_car_place_score.w, A0
 	MOVEQ	#0, D1
 	MOVEQ	#0, D7
 	MOVEQ	#$0000000E, D2
-loc_8482:
+;loc_8482
+Update_race_position_Champ_loop:
 	CMP.w	(A0), D7
-	BHI.b	loc_848A
+	BHI.b	Update_race_position_Champ_check_pos
 	MOVE.w	(A0), D7
 	LEA	(A0), A6
-loc_848A:
+;loc_848A
+Update_race_position_Champ_check_pos:
 	CMP.w	(A0), D0
-	BHI.b	loc_8490
+	BHI.b	Update_race_position_Champ_next
 	ADDQ.w	#1, D1
-loc_8490:
+;loc_8490
+Update_race_position_Champ_next:
 	LEA	$40(A0), A0
-	DBF	D2, loc_8482
+	DBF	D2, Update_race_position_Champ_loop
 	MOVE.w	Rival_ai_car_ptr.w, D0
-	BEQ.b	loc_84AC
+	BEQ.b	Update_race_position_Champ_set_rival_b
 	MOVEA.w	D0, A4
 	LEA	$400(A4), A4
-	MOVE.l	#loc_127C8, $4(A4)
-loc_84AC:
+	MOVE.l	#Rival_car_anim_data_a, $4(A4)
+;loc_84AC
+Update_race_position_Champ_set_rival_b:
 	LEA	-$1E(A6), A6
 	MOVE.w	A6, Rival_ai_car_ptr.w
 	LEA	$400(A6), A6
-	MOVE.l	#loc_127C0, $4(A6)
+	MOVE.l	#Rival_car_anim_data_b, $4(A6)
 	MOVE.w	D1, Player_grid_position.w
 	TST.w	Ai_active_flag.w
-	BNE.b	loc_84E2
+	BNE.b	Update_race_position_Done
 	MOVE.l	#$625C0003, D7
 
 ;loc_84D0:
@@ -11611,40 +11672,48 @@ Draw_placement_ordinal_to_vdp:
 	MOVEQ	#3, D6
 	MOVEQ	#1, D5
 	JSR	Queue_tilemap_draw
-loc_84E2:
+;loc_84E2
+Update_race_position_Done:
 	RTS
-loc_84E4:
+;loc_84E4
+Update_race_position_Rival:
 	MOVE.w	Player_place_score.w, D0
 	MOVE.w	Rival_car_place_score.w, D1
 	LEA	$FFFFB0DE.w, A0
 	MOVEQ	#0, D2
 	MOVEQ	#0, D3
 	MOVEQ	#$0000000D, D4
-loc_84F6:
+;loc_84F6
+Update_race_position_Rival_loop:
 	CMP.w	(A0), D0
-	BHI.b	loc_84FC
+	BHI.b	Update_race_position_Rival_check_rival
 	ADDQ.w	#1, D2
-loc_84FC:
+;loc_84FC
+Update_race_position_Rival_check_rival:
 	CMP.w	(A0), D1
-	BHI.b	loc_8502
+	BHI.b	Update_race_position_Rival_next
 	ADDQ.w	#1, D3
-loc_8502:
+;loc_8502
+Update_race_position_Rival_next:
 	LEA	$40(A0), A0
-	DBF	D4, loc_84F6
+	DBF	D4, Update_race_position_Rival_loop
 	CMP.w	D2, D3
-	BNE.b	loc_8510
+	BNE.b	Update_race_position_Rival_compare
 	CMP.w	D1, D0
-loc_8510:
-	BHI.b	loc_8516
+;loc_8510
+Update_race_position_Rival_compare:
+	BHI.b	Update_race_position_Rival_ahead
 	ADDQ.w	#1, D2
-	BRA.b	loc_8518
-loc_8516:
+	BRA.b	Update_race_position_Rival_store
+;loc_8516
+Update_race_position_Rival_ahead:
 	ADDQ.w	#1, D3
-loc_8518:
+;loc_8518
+Update_race_position_Rival_store:
 	MOVE.w	D2, Player_grid_position.w
 	MOVE.w	D3, Rival_grid_position.w
 	TST.w	Ai_active_flag.w
-	BNE.b	loc_84E2
+	BNE.b	Update_race_position_Done
 	MOVE.w	D2, D1
 	MOVE.l	#$625C0003, D7
 	JSR	Draw_placement_ordinal_to_vdp(PC)
@@ -11652,16 +11721,17 @@ loc_8518:
 	MOVE.l	#$62660003, D7
 	JMP	Draw_placement_ordinal_to_vdp(PC)
 	SUBQ.w	#1, $22(A0)
-	BPL.b	loc_8584
+	BPL.b	Update_placement_overlay_Wide_return
 	MOVE.w	#4, $22(A0)
 	NOT.w	$1A(A0)
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
 	TST.w	$1A(A0)
-	BEQ.b	loc_8564
-	LEA	loc_8722(PC), A6
-	LEA	loc_8730(PC), A4
-loc_8564:
+	BEQ.b	Update_placement_overlay_Draw_normal
+	LEA	Placement_hud_tiles_wide_a(PC), A6
+	LEA	Placement_hud_tiles_wide_b(PC), A4
+;loc_8564
+Update_placement_overlay_Draw_normal:
 	MOVE.l	#$63640003, D7
 	MOVEQ	#6, D6
 	MOVEQ	#0, D5
@@ -11670,53 +11740,62 @@ loc_8564:
 	MOVE.l	#$63A80003, D7
 	MOVEQ	#3, D6
 	JSR	Queue_tilemap_draw
-loc_8584:
+;loc_8584
+Update_placement_overlay_Wide_return:
 	RTS
 	MOVEQ	#2, D7
 	MOVE.w	Current_placement.w, D0
 	CMP.w	Player_grid_position.w, D0
-	BLS.b	loc_8594
+	BLS.b	Update_placement_overlay_Set_b
 	MOVEQ	#1, D7
-loc_8594:
+;loc_8594
+Update_placement_overlay_Set_b:
 	MOVE.w	D7, $2A(A0)
 	TST.w	Overtake_flag.w
-	BNE.b	loc_85A4
+	BNE.b	Update_placement_overlay_Init
 	MOVE.w	#1, Overtake_flag.w
-loc_85A4:
-	MOVE.l	#loc_85B8, (A0)
+;loc_85A4
+Update_placement_overlay_Init:
+	MOVE.l	#Update_placement_overlay_Frame, (A0)
 	MOVE.w	#$000E, $1C(A0)
 	CLR.w	$22(A0)
 	CLR.w	$1A(A0)
-loc_85B8:
+;loc_85B8
+Update_placement_overlay_Frame:
 	TST.w	Player_eliminated.w
-	BEQ.b	loc_85C6
+	BEQ.b	Update_placement_overlay_Alive
 	CLR.w	$1A(A0)
-	BSR.b	loc_85F6
-	BRA.b	loc_85DC
-loc_85C6:
+	BSR.b	Update_placement_overlay_Redraw
+	BRA.b	Update_placement_overlay_Clear
+;loc_85C6
+Update_placement_overlay_Alive:
 	SUBQ.w	#1, $22(A0)
-	BPL.b	loc_862C
+	BPL.b	Update_placement_overlay_Done
 	MOVE.w	#4, $22(A0)
 	NOT.w	$1A(A0)
 	SUBQ.w	#1, $1C(A0)
-	BPL.b	loc_85E2
-loc_85DC:
+	BPL.b	Update_placement_overlay_Tick
+;loc_85DC
+Update_placement_overlay_Clear:
 	JMP	Clear_object_slot
-loc_85E2:
+;loc_85E2
+Update_placement_overlay_Tick:
 	CMPI.w	#7, $1C(A0)
-	BNE.b	loc_85F6
+	BNE.b	Update_placement_overlay_Redraw
 	MOVE.w	$2A(A0), D0
-	BEQ.b	loc_85F6
+	BEQ.b	Update_placement_overlay_Redraw
 	MOVE.w	D0, $00FF5AC2
 
-loc_85F6:
+;loc_85F6
+Update_placement_overlay_Redraw:
 	LEA	$00FF5980, A6
 	LEA	(A6), A4
 	TST.w	$1A(A0)
-	BEQ.b	loc_860C
-	LEA	loc_870E(PC), A6
-	LEA	loc_8718(PC), A4
-loc_860C:
+	BEQ.b	Update_placement_overlay_Queue
+	LEA	Placement_hud_tiles_a(PC), A6
+	LEA	Placement_hud_tiles_b(PC), A4
+;loc_860C
+Update_placement_overlay_Queue:
 	MOVE.l	#$62640003, D7
 	MOVEQ	#4, D6
 	MOVEQ	#0, D5
@@ -11725,7 +11804,8 @@ loc_860C:
 	MOVE.l	#$62A80003, D7
 	MOVEQ	#4, D6
 	JSR	Queue_tilemap_draw
-loc_862C:
+;loc_862C
+Update_placement_overlay_Done:
 	RTS
 
 ;Decrement_lap_time_bcd
@@ -11735,9 +11815,10 @@ Decrement_lap_time_bcd:
 	ADDI.w	#0, D0
 	SBCD	-(A2), -(A1)
 	SBCD	-(A2), -(A1)
-	BCC.b	loc_8642
+	BCC.b	Decrement_lap_time_Check
 	CLR.w	(A1)
-loc_8642:
+;loc_8642
+Decrement_lap_time_Check:
 	TST.w	Use_world_championship_tracks.w
 	BNE.b	Decrement_lap_time_Return
 	TST.w	Track_index_arcade_mode.w
@@ -11752,27 +11833,30 @@ Award_race_position_points:
 	CMP.w	Current_placement.w, D0
 	BCC.b	Decrement_lap_time_Return
 	ADD.w	D0, D0
-	LEA	loc_8694(PC), A1
+	LEA	Race_placement_bonus_table(PC), A1
 	MOVE.w	(A1,D0.w), D2
-loc_866A:
+;loc_866A
+Award_race_position_points_Add:
 	MOVE.w	Race_time_bcd.w, D0
 	MOVEQ	#0, D1
 	JSR	Bcd_add_loop
 	MOVE.w	D0, Race_time_bcd.w
-	BRA.b	loc_8642
+	BRA.b	Decrement_lap_time_Check
 
 ;loc_867C
 Advance_lap_checkpoint:
 	MOVE.w	$FFFFFC8E.w, D0
 	CMP.w	Player_place_score.w, D0
-	BLS.b	loc_8688
+	BLS.b	Advance_lap_checkpoint_Add
 	RTS
-loc_8688:
+;loc_8688
+Advance_lap_checkpoint_Add:
 	ADDI.w	#$003C, D0
 	MOVE.w	D0, $FFFFFC8E.w
 	MOVEQ	#1, D2
-	BRA.b	loc_866A
-loc_8694:
+	BRA.b	Award_race_position_points_Add
+;loc_8694
+Race_placement_bonus_table:
 	dc.w	$0014
 	dc.w	$0013
 	dc.w	$0012
@@ -11786,7 +11870,8 @@ loc_8694:
 	dc.w	$0004
 	dc.w	$0003
 	dc.w	$0002
-loc_86AE:
+;loc_86AE
+Curve_displacement_table:
 	dc.w	$0001
 	dc.w	$24D4
 	dc.w	$1B8C
@@ -11835,13 +11920,17 @@ loc_86AE:
 	dc.w	$0119
 	dc.w	$0111
 	dc.w	$0105
-loc_870E:
+;loc_870E
+Placement_hud_tiles_a:
 	dc.w	$A7F1, $A7F2, $A7D7, $A7CE, $A7E0
-loc_8718:
+;loc_8718
+Placement_hud_tiles_b:
 	dc.w	$A7D5, $A7D2, $A7D6, $A7D2, $A7DD
-loc_8722:
+;loc_8722
+Placement_hud_tiles_wide_a:
 	dc.w	$A7F1, $A7F2, $A7D5, $A7D2, $A7D6, $A7D2, $A7DD
-loc_8730:
+;loc_8730
+Placement_hud_tiles_wide_b:
 	dc.w	$A7D8, $A7DF, $A7CE, $A7DB
 	dc.w	$0010
 
@@ -12027,7 +12116,7 @@ Parse_sign_data:
 ; In championship/arcade mode: only spawns signs during the first lap
 ;   (championship) or during the correct lap count (arcade multi-lap).
 ; Near the finish line (< 120 units from track end): loads the flagkeeper
-;   tileset (loc_12A34) and sets Finish_line_sign_active = 1.
+;   tileset (Flagkeeper_tileset) and sets Finish_line_sign_active = 1.
 ;
 ; Sign data stream format (Track_data +$24):
 ;   Word 0 (.w) : track distance of this sign group
@@ -12068,8 +12157,8 @@ loc_8A20:
 	BCC.b	Parse_sign_data_Next                          ; > 120 units to end → no finish-line sign yet
 	MOVE.w	#1, Finish_line_sign_active.w      ; arm flagkeeper; block further sign spawns
 	MOVE.l	#$0000A174, $FFFFAF80.w            ; flagkeeper full-track handler pointer
-	LEA	loc_12A34, A0
-	BRA.b	loc_89E4                           ; write loc_12A34 tileset to Sign_tileset_buf
+	LEA	Flagkeeper_tileset, A0
+	BRA.b	loc_89E4                           ; write Flagkeeper_tileset tileset to Sign_tileset_buf
 ;Parse_sign_data_Next
 Parse_sign_data_Next:
 	MOVEA.l	Signs_data_ptr.w, A0
@@ -12547,13 +12636,13 @@ loc_8F72:
 ;loc_8F76
 Advance_ai_track_position:
 ; Shared merge point: advance AI car track position by its current speed.
-; Uses loc_6EC60 speed-to-distance table: D0 = speed*4 word index.
+; Uses Speed_to_distance_table speed-to-distance table: D0 = speed*4 word index.
 ; Adds distance delta to $1E(A0) (AI track distance lo-word) and $1A(A0) (hi-word offset).
 ; When position wraps past Track_length, increments lap count and may set obstacle flag.
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_6EC60, A1
+	LEA	Speed_to_distance_table, A1
 	MOVE.l	(A1,D0.w), D0
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
@@ -13056,7 +13145,7 @@ Advance_rival_track_position_Step:
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_6EC60, A1
+	LEA	Speed_to_distance_table, A1
 	MOVE.l	(A1,D0.w), D0
 	ADD.l	D0, $1E(A0)
 	ADD.l	$1A(A0), D0
@@ -14142,7 +14231,7 @@ loc_A0E6:
 	MOVE.w	$26(A0), D0
 	ADD.w	D0, D0
 	ADD.w	D0, D0
-	LEA	loc_6EC60, A1
+	LEA	Speed_to_distance_table, A1
 	MOVE.l	(A1,D0.w), D0
 	ADD.l	$1A(A0), D0
 	SWAP	D0
@@ -14381,7 +14470,7 @@ loc_A564:
 	RTS
 loc_A566:
 	MOVE.l	#loc_A5D4, (A0)
-	MOVE.l	#loc_127C8, D0
+	MOVE.l	#Rival_car_anim_data_a, D0
 	MOVE.w	#$FC00, D1
 	CMPA.w	#$B440, A0
 	BNE.b	loc_A592
@@ -14396,7 +14485,7 @@ loc_A592:
 	BEQ.b	loc_A5AA
 	CMPA.w	#$B480, A0
 	BNE.b	loc_A5AA
-	MOVE.l	#loc_127C0, D0
+	MOVE.l	#Rival_car_anim_data_b, D0
 loc_A5AA:
 	TST.l	(A0,D1.w)
 	BNE.b	loc_A5B6
@@ -14658,7 +14747,7 @@ Init_background_ai_car_b:
 	MOVE.l	#loc_A922, (A0)
 	MOVE.l	D1, $8(A0)
 	MOVE.w	#2, $24(A0)
-	MOVE.l	#loc_6E894, $30(A0)
+	MOVE.l	#$0006E894, $30(A0)
 	MOVE.w	D0, $34(A0)
 loc_A922:
 	JSR	Update_ai_car_screen_x(PC)
@@ -15108,7 +15197,7 @@ Setup_ai_object_state:
 ; lateral offset D2, spawn param D3, and the standard angle table loc_6E894.
 ; Inputs:  A0=object slot, D0=handler addr, D1=sprite table ptr,
 ;          D2=initial lateral offset, D3=spawn parameter
-	MOVE.l	#loc_6E894, $30(A0)
+	MOVE.l	#$0006E894, $30(A0)
 ;Setup_ai_object_state_common
 Setup_ai_object_state_common:
 	MOVE.l	D0, (A0)
@@ -15526,7 +15615,7 @@ loc_B37E:
 	JSR	Draw_gear_indicator(PC)
 	JSR	Draw_race_timer(PC)
 	JSR	Update_gap_to_rival_display
-	JSR	loc_8466
+	JSR	Update_race_position_Champ
 	JSR	Update_race_timer
 	BSR.w	loc_C12E
 	LEA	loc_B42C, A1
@@ -16224,7 +16313,7 @@ Championship_next_race_init:
 	BSR.w	Initialize_results_screen
 	JSR	loc_12BF8
 	MOVE.l	#$6B800001, VDP_control_port
-	LEA	loc_576D2, A0
+	LEA	Podium_car_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
 	LEA	Aux_object_pool.w, A1
@@ -16273,7 +16362,7 @@ loc_BE12:
 	ADD.b	D1, D2
 	MOVE.b	D2, (A1,D0.w)
 	MOVE.l	#$6B800001, VDP_control_port
-	LEA	loc_576D2, A0
+	LEA	Podium_car_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.w	#2, D0
 	LEA	Aux_object_pool.w, A1
@@ -16362,7 +16451,7 @@ loc_BFA4:
 	LEA	loc_16166, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$63A00001, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.w	#5, D0
 	LEA	loc_145B0, A1
@@ -16417,7 +16506,7 @@ loc_C074:
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MULS.w	#$0038, D0
 	ADDI.w	#$000A, D0
-	LEA	loc_20FAE, A1
+	LEA	Team_palette_data, A1
 	ADDA.l	D0, A1
 	LEA	$FFFFE98C.w, A2
 	MOVE.w	#3, D0
@@ -16598,7 +16687,7 @@ loc_C2CE:
 Draw_gear_indicator:
 	MOVE.w	Laps_completed.w, D0
 	LSL.w	#2, D0
-	LEA	loc_585D6, A6
+	LEA	Lap_number_tilemap_table, A6
 	ADDA.w	D0, A6
 	MOVEQ	#0, D6
 	MOVEQ	#1, D5
@@ -16774,7 +16863,8 @@ loc_C51C:
 	dc.b	$07, $F4, $2B, $FF
 loc_C520:
 	dc.b	$0E, $F4, $2B, $FF
-loc_C524:
+;Minimap_team_colour_strips
+Minimap_team_colour_strips:
 	dc.w	$0000, $87C1, $A7DC, $A7DD, $0000, $87C2, $A7D7, $A7CD, $0000, $87C3, $A7DB, $A7CD, $0000, $87C4, $A7DD, $A7D1, $0000, $87C5, $A7DD, $A7D1, $0000, $87C6, $A7DD, $A7D1, $0000, $87C7, $A7DD, $A7D1, $0000, $87C8, $A7DD, $A7D1
 	dc.b	$00, $00, $87, $C9, $A7, $DD, $A7, $D1, $87, $C1, $87, $C0, $A7, $DD, $A7, $D1
 	dc.w	$87C1, $87C1, $A7DD, $A7D1
@@ -16835,7 +16925,7 @@ Copy_words_A5_to_A6:
 
 ;Load_driver_name_text_pointer
 Load_driver_name_text_pointer:
-	LEA	loc_193BE, A1
+	LEA	Driver_info_table, A1
 	MULS.w	#$000C, D0
 	ADDA.l	D0, A1
 	MOVEA.l	(A1)+, A2
@@ -16857,7 +16947,7 @@ Build_minimap_player_row_buffer:
 ; (used in the race standings/minimap panel).
 ; Copies a 26-word header template from loc_C5A4 into $FFFFC080, then
 ; for each of 6 standings rows copies a 4-word team-colour strip from
-; loc_C524 and writes the driver name + car spec text tiles for the
+; Minimap_team_colour_strips and writes the driver name + car spec text tiles for the
 ; matching driver at that position into the buffer row.
 ; Output buffer: $FFFFC080 (consumed by Draw_packed_tilemap_to_vdp later)
 	LEA	$FFFFC080.w, A6
@@ -16865,7 +16955,7 @@ Build_minimap_player_row_buffer:
 	MOVEQ	#$00000019, D7
 	JSR	Copy_words_A5_to_A6(PC)
 	MOVEQ	#5, D6
-	LEA	loc_C524(PC), A4
+	LEA	Minimap_team_colour_strips(PC), A4
 	LEA	$FFFF906E.w, A3
 loc_C6EE:
 	ADDQ.w	#2, A6
@@ -16929,7 +17019,7 @@ loc_C784:
 	MOVE.w	Player_grid_position.w, D0
 	BMI.b	loc_C7A0
 	LSL.w	#3, D0
-	LEA	loc_C524(PC), A5
+	LEA	Minimap_team_colour_strips(PC), A5
 	ADDA.w	D0, A5
 loc_C7A0:
 	MOVEQ	#3, D7
@@ -16979,7 +17069,7 @@ loc_C7EE:
 	MOVEQ	#$00000019, D7
 	JSR	Copy_words_A5_to_A6(PC)
 	MOVEQ	#5, D6
-	LEA	loc_C524(PC), A4
+	LEA	Minimap_team_colour_strips(PC), A4
 	LEA	Score_scratch_buf.w, A3
 	LEA	Depth_sort_buf.w, A0
 loc_C81A:
@@ -17075,7 +17165,7 @@ loc_C8E6:
 	MOVEQ	#0, D0
 	MOVE.b	(A0,D1.w), D0
 	LSL.w	#3, D0
-	LEA	loc_C524(PC), A5
+	LEA	Minimap_team_colour_strips(PC), A5
 	ADDA.w	D0, A5
 loc_C918:
 	MOVEQ	#3, D7
@@ -17685,7 +17775,7 @@ loc_D0FC:
 	BEQ.b	loc_D124
 	MOVE.l	$FFFFB8CE.w, D7
 	MOVEA.l	$FFFFB8D2.w, A1
-	BSR.w	loc_D1CC
+	BSR.w	Step_road_marker_tile
 	ADDQ.w	#1, $FFFFB8D6.w
 loc_D122:
 	RTS
@@ -17714,7 +17804,7 @@ Advance_road_marker_sequence_b:
 ; Decrements $FFFFB90E frame counter; when it reaches 0 resets it to 6 and
 ; calls loc_D1CC to step the marker sprite at $FFFFB94E/$FFFFB952.
 ; When the sequence index ($FFFFB956) equals the end index ($FFFFB916),
-; reloads the marker pointer from loc_193B6 and the step table from loc_193BE
+; reloads the marker pointer from loc_193B6 and the step table from Driver_info_table
 ; using Race_frame_counter as the sequence selector.
 	SUBQ.b	#1, $FFFFB90E.w
 	BNE.b	loc_D18A
@@ -17724,7 +17814,7 @@ Advance_road_marker_sequence_b:
 	BEQ.b	loc_D18C
 	MOVE.l	$FFFFB94E.w, D7
 	MOVEA.l	$FFFFB952.w, A1
-	BSR.w	loc_D1CC
+	BSR.w	Step_road_marker_tile
 	ADDQ.w	#1, $FFFFB956.w
 loc_D18A:
 	RTS
@@ -17736,7 +17826,7 @@ loc_D18C:
 	CLR.l	D0
 	MOVE.b	$FFFFFC19.w, D0
 	MULS.w	#$000C, D0
-	LEA	loc_193BE, A1
+	LEA	Driver_info_table, A1
 	ADDA.l	D0, A1
 	MOVE.w	$FFFFB912.w, D0
 	MULS.w	#6, D0
@@ -17747,10 +17837,11 @@ loc_D18C:
 	ADDQ.w	#1, $FFFFB912.w
 	RTS
 
-loc_D1CC:
+;loc_D1CC
+Step_road_marker_tile:
 	ADDI.l	#$00020000, D7
 	ADDA.l	#1, A1
-	DBF	D0, loc_D1CC
+	DBF	D0, Step_road_marker_tile
 	CLR.w	D0
 	MOVE.b	(A1), D0
 	CMPI.b	#$FF, D0
@@ -17852,10 +17943,10 @@ loc_D2F6:
 	SUBQ.b	#1, $FFFFFC19.w
 loc_D320:
 	MOVE.l	#$63A00001, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$6B800001, VDP_control_port
-	LEA	loc_576D2, A0
+	LEA	Podium_car_tiles, A0
 	JSR	Decompress_to_vdp
 	LEA	loc_1E3DC, A0
 	MOVE.l	#$50000000, VDP_control_port
@@ -17880,7 +17971,7 @@ loc_D320:
 	MOVE.l	#$48200000, VDP_control_port
 	JSR	Decompress_to_vdp
 	MOVE.l	#$7A000001, VDP_control_port
-	LEA	loc_56E36, A0
+	LEA	Race_hud_tiles, A0
 	JSR	Decompress_to_vdp
 	CLR.l	D0
 	LEA	DriverPortraitTileMappings, A1
@@ -17966,7 +18057,7 @@ loc_D50A:
 	MOVE.b	Temp_distance.w, D0
 	MULS.w	#$0038, D0
 	ADDI.w	#$000A, D0
-	LEA	loc_20FAE, A1
+	LEA	Team_palette_data, A1
 	ADDA.l	D0, A1
 	LEA	$FFFFE9EC.w, A2
 	MOVE.w	#3, D0
@@ -18190,13 +18281,13 @@ loc_D8A2:
 	LEA	loc_21F7E, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$63A00001, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$6B800001, VDP_control_port
-	LEA	loc_576D2, A0
+	LEA	Podium_car_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$7A000001, VDP_control_port
-	LEA	loc_56E36, A0
+	LEA	Race_hud_tiles, A0
 	JSR	Decompress_to_vdp
 	LEA	loc_21D08, A1
 	MOVE.w	#2, D1
@@ -18251,7 +18342,7 @@ loc_D940:
 	MOVE.b	Player_team.w, D0
 	ANDI.b	#$0F, D0 ; isolate the player's team number
 	MULS.w	#$0038, D0
-	LEA	loc_20FAE, A2
+	LEA	Team_palette_data, A2
 	ADDA.l	D0, A2
 	LEA	Palette_buffer.w, A1
 	MOVE.w	(A2)+, $6(A1)
@@ -18813,7 +18904,7 @@ loc_E29C:
 	MOVE.w	Screen_scroll.w, D7
 	JSR	Tile_index_to_vdp_command
 	MOVE.l	D7, VDP_control_port
-	LEA	loc_20F2, A0
+	LEA	Placement_tile_data, A0
 	MOVE.l	(A0,D0.w), VDP_data_port
 	RTS
 
@@ -18933,37 +19024,37 @@ loc_E42C:
 	MOVE.l	(A2)+, (A1)+
 	DBF	D0, loc_E42C
 	SUBI.w	#$0020, Screen_data_ptr.w
-	BCS.w	loc_E5F4
+	BCS.w	Championship_team_select_scroll_reset
 loc_E43C:
 	RTS
 loc_E43E:
 	SUBQ.w	#1, Screen_subcounter.w
 	BNE.w	loc_E4DA
 	LEA	Aux_object_pool.w, A1
-	MOVE.l	#loc_E722, (A1)
+	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0120, $16(A1)
 	MOVE.w	#1, $E(A1)
 	MOVE.l	#loc_33910, $4(A1)
 	LEA	$40(A1), A1
-	MOVE.l	#loc_E722, (A1)
+	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$0120, $18(A1)
 	MOVE.w	#$0128, $16(A1)
 	MOVE.w	#1, $E(A1)
 	MOVE.l	#loc_33978, $4(A1)
 	LEA	$40(A1), A1
-	MOVE.l	#loc_E722, (A1)
+	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$00F4, $18(A1)
 	MOVE.w	#$0148, $16(A1)
 	MOVE.w	#1, $E(A1)
 	MOVE.l	#loc_339CE, $4(A1)
 	LEA	$40(A1), A1
-	MOVE.l	#loc_E722, (A1)
+	MOVE.l	#$0000E722, (A1)
 	MOVE.w	#$014C, $18(A1)
 	MOVE.w	#$0148, $16(A1)
 	MOVE.w	#1, $E(A1)
 	MOVE.l	#loc_33A3C, $4(A1)
-	BSR.w	loc_E5F4
+	BSR.w	Championship_team_select_scroll_reset
 loc_E4DA:
 	RTS
 loc_E4DC:
@@ -18974,7 +19065,7 @@ loc_E4DC:
 	BNE.b	loc_E532
 	MOVE.w	#8, Temp_x_pos.w
 	CMPI.w	#$005A, $FFFFFC16.w
-	BEQ.w	loc_E5F4
+	BEQ.w	Championship_team_select_scroll_reset
 	MOVEA.l	Temp_distance.w, A1
 	LEA	$FFFF905E.w, A2
 	MOVE.b	#$5F, D0
@@ -19002,7 +19093,7 @@ loc_E53E:
 	ORI	#$0700, SR
 	JSR	Draw_packed_tilemap_to_vdp
 	ANDI	#$F8FF, SR
-	BSR.w	loc_E5F4
+	BSR.w	Championship_team_select_scroll_reset
 loc_E55C:
 	RTS
 loc_E55E:
@@ -19048,7 +19139,8 @@ loc_E5EA:
 	MOVE.l	#$00002592, Frame_callback.w
 	RTS
 
-loc_E5F4:
+;loc_E5F4
+Championship_team_select_scroll_reset:
 	MOVE.w	#$0050, Screen_subcounter.w
 	ADDQ.w	#4, Screen_scroll.w
 	RTS
@@ -19067,7 +19159,7 @@ Championship_driver_select_init:
 	LEA	loc_33AFE, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$7D000001, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	LEA	loc_33AAA, A0
 	MOVE.w	#$6146, D0
@@ -19108,7 +19200,8 @@ loc_E6CE:
 	MOVE.w	#1, Vblank_enable.w
 	MOVE.w	#$8174, VDP_control_port
 	RTS
-loc_E722:
+;loc_E722
+Queue_sprite_thunk:
 	JSR	Queue_object_for_sprite_buffer
 	RTS
 loc_E72A:
@@ -19579,7 +19672,7 @@ Options_screen_champ_init:
 	LEA	loc_332A4, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$7E800000, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	LEA	loc_33254, A0
 	MOVE.w	#$6001, D0
@@ -19975,7 +20068,7 @@ loc_F336:
 	LEA	loc_39F68, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$4C800000, VDP_control_port
-	LEA	loc_573A8, A0
+	LEA	Race_common_tiles, A0
 	JSR	Decompress_to_vdp
 	MOVE.l	#$04440444, $FFFFE982.w
 	MOVE.l	#$0EEE0800, $FFFFE9A4.w
@@ -20122,7 +20215,7 @@ loc_F568:
 	RTS
 
 loc_F576:
-	LEA	loc_3B9A2, A1
+	LEA	Team_name_strings_table, A1
 	TST.w	English_flag.w
 	BEQ.b	loc_F588
 	ADDA.l	#$00000040, A1
@@ -20139,7 +20232,7 @@ loc_F59A:
 	MOVE.b	Player_team.w, D7
 	ANDI.b	#$0F, D7 ; isolate the player's team number
 	MULS.w	#$0028, D7
-	LEA	loc_3BB14, A1
+	LEA	Team_msg_after_race_table, A1
 	TST.w	English_flag.w
 	BEQ.b	loc_F5BA
 	ADDA.l	#$00000280, A1
@@ -21212,7 +21305,7 @@ loc_105B0:
 	dc.l	Sprite_frame_data_11392
 	dc.l	Sprite_frame_data_113A0
 	dc.l	Sprite_frame_data_113A8
-	dc.l	loc_113C2
+	dc.l	Sprite_frame_data_113C2
 	dc.l	loc_1136C
 	dc.l	Sprite_frame_data_11374
 	dc.l	Sprite_frame_data_1137C
@@ -21220,17 +21313,17 @@ loc_105B0:
 	dc.l	Sprite_frame_data_11392
 	dc.l	Sprite_frame_data_113A0
 	dc.l	Sprite_frame_data_113A8
-	dc.l	loc_113C2
-	dc.l	loc_113C2
+	dc.l	Sprite_frame_data_113C2
+	dc.l	Sprite_frame_data_113C2
 	dc.l	Sprite_frame_data_11374
 	dc.l	Sprite_frame_data_1137C
 	dc.l	Sprite_frame_data_11384
 	dc.l	Sprite_frame_data_11392
 	dc.l	Sprite_frame_data_113A0
 	dc.l	Sprite_frame_data_113A8
-	dc.l	loc_113C2
-	dc.l	loc_113C2
-	dc.l	loc_113C2
+	dc.l	Sprite_frame_data_113C2
+	dc.l	Sprite_frame_data_113C2
+	dc.l	Sprite_frame_data_113C2
 loc_10640:
 	dc.l	loc_1266C
 	dc.l	loc_12686
@@ -21500,17 +21593,17 @@ loc_10944:
 	dc.l	Sprite_frame_data_12986
 	dc.l	Sprite_frame_data_1298E
 	dc.l	Sprite_frame_data_12996
-	dc.l	loc_1299E
-	dc.l	loc_1299E
+	dc.l	Sprite_frame_data_1299E
+	dc.l	Sprite_frame_data_1299E
 	dc.l	0
 	dc.l	0
 	dc.l	Sprite_frame_data_12986
 	dc.l	Sprite_frame_data_12986
 	dc.l	Sprite_frame_data_12986
 	dc.l	Sprite_frame_data_1298E
-	dc.l	loc_1299E
-	dc.l	loc_1299E
-	dc.l	loc_1299E
+	dc.l	Sprite_frame_data_1299E
+	dc.l	Sprite_frame_data_1299E
+	dc.l	Sprite_frame_data_1299E
 	dc.l	0
 	dc.l	0
 	dc.l	Sprite_frame_data_12986
@@ -21518,8 +21611,8 @@ loc_10944:
 	dc.l	Sprite_frame_data_12986
 	dc.l	Sprite_frame_data_129A6
 	dc.l	Sprite_frame_data_12996
-	dc.l	loc_1299E
-	dc.l	loc_1299E
+	dc.l	Sprite_frame_data_1299E
+	dc.l	Sprite_frame_data_1299E
 loc_10AAC:
 	dc.b	$00, $05, $C8, $0E, $00, $01, $FF, $E0, $E0, $0B, $00, $0D, $FF, $C8
 	dc.b	$E0, $0F, $00, $19, $FF, $E0, $C8, $0E, $08, $01, $00, $00, $E0, $0B
@@ -21862,7 +21955,8 @@ Sprite_frame_data_113A0:
 Sprite_frame_data_113A8:
 	dc.b	$00, $03, $EF, $05, $04, $05, $FF, $F0, $EF, $05, $0C, $05, $00, $00
 	dc.b	$FF, $05, $14, $05, $FF, $F0, $FF, $05, $1C, $05, $00, $00
-loc_113C2:
+;Sprite_frame_data_113C2
+Sprite_frame_data_113C2:
 	dc.b	$00, $03, $E7, $0A, $03, $FC, $FF, $E8, $E7, $0A, $0B, $FC, $00, $00
 	dc.b	$FF, $0A, $13, $FC, $FF, $E8, $FF, $0A, $1B, $FC, $00, $00
 loc_113DC:
@@ -22521,9 +22615,11 @@ loc_12774:
 	dc.b	$00, $18, $F0, $09, $04, $20, $00, $30, $F0, $09, $04, $20, $00, $48
 	dc.b	$E8, $0C, $04, $26, $00, $00, $E8, $0C, $04, $2A, $00, $20, $E8, $0C
 	dc.b	$04, $2E, $00, $40, $00, $00, $FD, $00, $87, $38, $FF, $FD
-loc_127C0:
+;loc_127C0
+Rival_car_anim_data_b:
 	dc.b	$00, $00, $FD, $00, $87, $39, $FF, $FD
-loc_127C8:
+;loc_127C8
+Rival_car_anim_data_a:
 	dc.b	$00, $00, $FD, $00, $87, $3A, $FF, $FD
 loc_127D0:
 	dc.b	$00, $0C, $F8, $00, $87, $EF, $00, $00, $F8, $00, $87, $DC, $00, $08
@@ -22570,7 +22666,8 @@ Sprite_frame_data_1298E:
 ;loc_12996
 Sprite_frame_data_12996:
 	dc.b	$00, $00, $F4, $06, $00, $00, $FF, $F8
-loc_1299E:
+;Sprite_frame_data_1299E
+Sprite_frame_data_1299E:
 	dc.b	$00, $00, $F4, $0A, $00, $00, $FF, $F4
 ;loc_129A6
 Sprite_frame_data_129A6:
@@ -22607,7 +22704,8 @@ Sign_tileset_table:
 	dc.w	$0EE0
 	dc.b	$00, $02, $10, $04, $5B, $E0
 	dc.w	$0AA0
-loc_12A34: ; flagkeeper tileset
+;loc_12A34
+Flagkeeper_tileset: ; flagkeeper tileset
 	dc.b	$00, $02, $07, $A4, $65, $40
 	dc.w	$0860
 	dc.b	$00
@@ -23909,21 +24007,21 @@ loc_145B0:
 	dc.b	$A0, $E0, $00, $14, $00, $02
 loc_14604:
 	dc.l	$53840003
-	dc.l	loc_14F6A
+	dc.l	Result_screen_tile_col_b
 	dc.b	$53, $98, $00, $03
-	dc.l	loc_14F52
+	dc.l	Result_screen_tile_col_a
 	dc.b	$53, $A0, $00, $03
-	dc.l	loc_14F82
+	dc.l	Result_screen_tile_col_c
 	dc.b	$53, $A4, $00, $03
-	dc.l	loc_14F52
+	dc.l	Result_screen_tile_col_a
 	dc.b	$53, $E8, $00, $03
-	dc.l	loc_14F82
+	dc.l	Result_screen_tile_col_c
 	dc.b	$53, $F8, $00, $03
-	dc.l	loc_14F52
+	dc.l	Result_screen_tile_col_a
 	dc.b	$53, $FC, $00, $03
-	dc.l	loc_14F6A
+	dc.l	Result_screen_tile_col_b
 	dc.b	$53, $08, $00, $03
-	dc.l	loc_14F52
+	dc.l	Result_screen_tile_col_a
 loc_14644:
 	dc.w	$0000, $0148, $0008, $0088
 	dc.b	$00, $01, $4C, $1C, $00, $01, $47, $34, $00, $00, $01, $48, $00, $08, $00, $88, $00, $01, $4C, $24, $00, $01, $47, $40, $FE, $0A, $01, $4A, $00, $18, $00, $88
@@ -24043,11 +24141,14 @@ loc_14F04:
 	dc.b	$E2, $40
 	dc.b	$86
 	dc.b	$A8, $50, $06, $C0, $8B, $D1, $20, $AF, $A2, $04, $51, $BC, $1C, $01, $CA, $04, $02, $32, $1A, $20, $A2, $22, $1F, $C0
-loc_14F52:
+;loc_14F52
+Result_screen_tile_col_a:
 	dc.w	$4205, $4206, $4207, $4208, $4209, $420A, $420B, $420C, $420D, $420E, $420F, $4210
-loc_14F6A:
+;loc_14F6A
+Result_screen_tile_col_b:
 	dc.w	$4211, $4212, $4213, $4214, $4215, $4216, $4217, $4218, $4219, $421A, $421B, $421C
-loc_14F82:
+;loc_14F82
+Result_screen_tile_col_c:
 	dc.w	$421D, $421E, $421F, $4220, $4221, $4222, $4223, $4224, $4225, $4226, $4227, $4228
 loc_14F9A:
 	dc.b	$81, $4C, $80, $03, $01, $14, $04, $25, $0A, $35, $10, $45, $12, $55, $0F, $65, $14, $73, $00, $81, $04, $06, $16, $34, $28, $EA, $82, $05, $11, $18, $E3, $83
@@ -24699,70 +24800,70 @@ loc_19114:
 	dc.w	$000B       ; Car 1 name length
 	dc.l	loc_192E6-1 ; Car 1 engine
 	dc.w	$000C       ; Car 1 engine length
-	dc.l	loc_1935C-1 ; Car 1 max power
+	dc.l	Car_max_power_text_a-1 ; Car 1 max power
 	dc.w	$0012       ; Car 1 max power length
 
 	dc.l	loc_19240-1 ; Car 2 name
 	dc.w	$000B       ; Car 2 name length
 	dc.l	loc_192F2-1 ; Car 2 engine
 	dc.w	$000E       ; Car 2 engine length
-	dc.l	loc_1935C-1 ; Car 2 max power
+	dc.l	Car_max_power_text_a-1 ; Car 2 max power
 	dc.w	$0012       ; Car 2 max power length
 
 	dc.l	loc_1924C-1 ; Car 3 name
 	dc.w	$000C       ; Car 3 name length
 	dc.l	loc_19300-1 ; Car 3 engine
 	dc.w	$000B       ; Car 3 engine length
-	dc.l	loc_1936E-1 ; Car 3 max power
+	dc.l	Car_max_power_text_b-1 ; Car 3 max power
 	dc.w	$0012       ; Car 3 max power length
 
 	dc.l	loc_19258-1 ; Car 4 name
 	dc.w	$000C       ; Car 4 name length
-	dc.l	loc_1930C-1 ; Car 4 engine
+	dc.l	Car_engine_text_vapor-1 ; Car 4 engine
 	dc.w	$000D       ; Car 4 engine length
-	dc.l	loc_1936E-1 ; Car 4 max power
+	dc.l	Car_max_power_text_b-1 ; Car 4 max power
 	dc.w	$0012       ; Car 4 max power length
 
 	dc.l	loc_19264-1 ; Car 5 name
 	dc.w	$000B       ; Car 5 name length
 	dc.l	loc_1931A-1 ; Car 5 engine
 	dc.w	$000D       ; Car 5 engine length
-	dc.l	loc_1936E-1 ; Car 5 max power
+	dc.l	Car_max_power_text_b-1 ; Car 5 max power
 	dc.w	$0012       ; Car 5 max power length
 
 	dc.l	loc_19270-1 ; Car 6 name
 	dc.w	$000A       ; Car 6 name length
-	dc.l	loc_19328-1 ; Car 6 engine
+	dc.l	Car_engine_text_lizzie-1 ; Car 6 engine
 	dc.w	$000C       ; Car 6 engine length
-	dc.l	loc_1935C-1 ; Car 6 max power
+	dc.l	Car_max_power_text_a-1 ; Car 6 max power
 	dc.w	$0012       ; Car 6 max power length
 
 	dc.l	loc_1927A-1 ; Car 7 name
 	dc.w	$0009       ; Car 7 name length
-	dc.l	loc_1930C-1 ; Car 7 engine
+	dc.l	Car_engine_text_vapor-1 ; Car 7 engine
 	dc.w	$000D       ; Car 7 engine length
-	dc.l	loc_19380-1 ; Car 7 max power
+	dc.l	Car_max_power_text_c-1 ; Car 7 max power
 	dc.w	$0012       ; Car 7 max power length
 
 	dc.l	loc_19284-1 ; Car 8 name
 	dc.w	$0007       ; Car 8 name length
 	dc.l	loc_19334-1 ; Car 8 engine
 	dc.w	$000B       ; Car 8 engine length
-	dc.l	loc_1935C-1 ; Car 8 max power
+	dc.l	Car_max_power_text_a-1 ; Car 8 max power
 	dc.w	$0012       ; Car 8 max power length
 
 	dc.l	loc_1928C-1 ; Car 9 name
 	dc.w	$000B       ; Car 9 name length
-	dc.l	loc_19328-1 ; Car 9 engine
+	dc.l	Car_engine_text_lizzie-1 ; Car 9 engine
 	dc.w	$000C       ; Car 9 engine length
-	dc.l	loc_19380-1 ; Car 9 max power
+	dc.l	Car_max_power_text_c-1 ; Car 9 max power
 	dc.w	$0012       ; Car 9 max power length
 
 	dc.l	loc_19298-1 ; Car 10 name
 	dc.w	$000A       ; Car 10 name length
-	dc.l	loc_1930C-1 ; Car 10 engine
+	dc.l	Car_engine_text_vapor-1 ; Car 10 engine
 	dc.w	$000D       ; Car 10 engine length
-	dc.l	loc_1936E-1 ; Car 10 max power
+	dc.l	Car_max_power_text_b-1 ; Car 10 max power
 	dc.w	$0012       ; Car 10 max power length
 
 	dc.l	loc_192A2-1 ; Car 11 name
@@ -24776,7 +24877,7 @@ loc_19114:
 	dc.w	$000B       ; Car 12 name length
 	dc.l	loc_19340-1 ; Car 12 engine
 	dc.w	$000E       ; Car 12 engine length
-	dc.l	loc_19380-1 ; Car 12 max power
+	dc.l	Car_max_power_text_c-1 ; Car 12 max power
 	dc.w	$0012       ; Car 12 max power length
 
 	dc.l	loc_192BA-1 ; Car 13 name
@@ -24788,7 +24889,7 @@ loc_19114:
 
 	dc.l	loc_192C4-1 ; Car 14 name
 	dc.w	$0009       ; Car 14 name length
-	dc.l	loc_19328-1 ; Car 14 engine
+	dc.l	Car_engine_text_lizzie-1 ; Car 14 engine
 	dc.w	$000C       ; Car 14 engine length
 	dc.l	loc_193A4-1 ; Car 14 max power
 	dc.w	$0012       ; Car 14 max power length
@@ -24797,7 +24898,7 @@ loc_19114:
 	dc.w	$000A       ; Car 15 name length
 	dc.l	loc_1934E-1 ; Car 15 engine
 	dc.w	$000D       ; Car 15 engine length
-	dc.l	loc_19380-1 ; Car 15 max power
+	dc.l	Car_max_power_text_c-1 ; Car 15 max power
 	dc.w	$0012       ; Car 15 max power length
 
 	dc.l	loc_192D8-1 ; Car 16 name
@@ -24867,7 +24968,8 @@ loc_19300:
 	txt "DICK", $FF
 	txt "MD", $FF
 	txt "V10", $00
-loc_1930C:
+;loc_1930C
+Car_engine_text_vapor:
 	txt "VAPOR", $FF
 	txt "DNPQ", $FF
 	txt "V8", 0
@@ -24875,7 +24977,8 @@ loc_1931A:
 	txt "DELTA", $FF
 	txt "103", $FF
 	txt "V10", $00
-loc_19328:
+;loc_19328
+Car_engine_text_lizzie:
 	txt "LIZZIE", $FF
 	txt "24", $FF
 	txt "V8"
@@ -24891,13 +24994,16 @@ loc_1934E:
 	txt "MISFIRE", $FF
 	txt "50", $FF
 	txt "V8", $00
-loc_1935C:
+;loc_1935C
+Car_max_power_text_a:
 	txt "700,750,850", $FF
 	txt "PS/RPM"
-loc_1936E:
+;loc_1936E
+Car_max_power_text_b:
 	txt "670,720,820", $FF
 	txt "PS/RPM"
-loc_19380:
+;loc_19380
+Car_max_power_text_c:
 	txt "640,690,790", $FF
 	txt "PS/RPM"
 loc_19392:
@@ -24909,7 +25015,8 @@ loc_193A4:
 loc_193B6:
 	dc.l	$6A200003
 	dc.l	$6B2E0003
-loc_193BE:
+;loc_193BE
+Driver_info_table:
 	dc.l	loc_19496-1 ; Driver 0 name
 	dc.w	$0007       ; Driver 0 name length
 	dc.l	loc_19526-1 ; Driver 0 country
@@ -26271,7 +26378,8 @@ loc_20F2E:
 	dc.b	$00, $00, $00, $00, $0E, $C0, $0E, $EE, $02, $22, $06, $66, $02, $4E, $00, $0A, $00, $CC, $00, $88, $04, $44, $0E, $CA, $0E, $C8, $0E, $C6, $0E, $C4, $0E, $C2
 	dc.b	$00, $00, $00, $00, $0E, $EE, $08, $00, $06, $AE, $04, $6A, $02, $48, $00, $26, $0C, $CC, $08, $88, $04, $44, $06, $6E, $02, $2C, $02, $06, $02, $44, $00, $00
 	dc.b	$08, $AA, $00, $00, $00, $EE, $00, $00, $06, $AE, $04, $6A, $0A, $AA, $0E, $EE, $02, $48, $06, $66, $00, $6C, $02, $AE, $00, $26, $0E, $EE, $08, $AA, $02, $44
-loc_20FAE: ; Team palette (everywhere except while driving)
+;loc_20FAE
+Team_palette_data: ; Team palette (everywhere except while driving)
 
 	dc.b	$00, $06, $00, $0C, $00, $EC, $0A, $AE, $00, $0E  ; Madonna truck
 	dc.w	$000E, $0008, $00EE, $0088                        ; Madonna car
@@ -26358,27 +26466,27 @@ Team_intro_layout_table: ; Pointers to team introduction layouts
 	dc.l	loc_21B42 ; ZeroForce
 loc_2136E:
 	dc.w	$000C ; Num items in table ($C=12, meaning table has 13 items)
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07 ; One row per item. Format: ?, ?, y-tile, x-tile, ?, ?, ?, ?, ?, ?
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F6C
 	dc.b	$60, $01, $68, $B6, $00, $03, $00, $03, $00, $08
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $3E, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $44, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $82, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $0C, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $16, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $32, $00, $03, $00, $04, $00, $01
@@ -26386,75 +26494,75 @@ loc_2136E:
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
 loc_21426:
 	dc.w  	$000B
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $06, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F02
+	dc.l	Intro_sprite_data_21F02
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F42
 	dc.b	$60, $01, $69, $42, $00, $03, $00, $01, $00, $07
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $82, $00, $03, $00, $01, $00, $03
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $0A, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $14, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
 loc_214D0:
 	dc.w	$000B
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $08, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0E, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F3A
 	dc.b	$60, $01, $69, $14, $00, $03, $00, $01, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $42, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $82, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $86, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $3E, $00, $03, $00, $06, $00, $01
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $30, $00, $03, $00, $06, $00, $01
 loc_2157A:
 	dc.w	$000A
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F3A
 	dc.b	$60, $01, $69, $30, $00, $03, $00, $01, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $34, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $3A, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $40, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $3A, $00, $03, $00, $04, $00, $01
@@ -26462,221 +26570,221 @@ loc_2157A:
 	dc.b	$20, $01, $6D, $44, $00, $03, $00, $04, $00, $01
 loc_21616:
 	dc.w	$000A
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $08, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $0E, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $14, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F42
 	dc.b	$60, $01, $69, $1A, $00, $03, $00, $01, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $12, $00, $03, $00, $06, $00, $01
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $CA, $00, $03, $00, $01, $00, $03
 loc_216B2:
 	dc.w	$0009
 	dc.l	loc_21F3A
 	dc.b	$60, $01, $69, $0E, $00, $03, $00, $01, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $12, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $3C, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C8, $00, $03, $00, $01, $00, $03
 loc_21740:
 	dc.w	$0009
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F02
+	dc.l	Intro_sprite_data_21F02
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $0E, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $18, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
 loc_217CE:
 	dc.w	$0008
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F02
+	dc.l	Intro_sprite_data_21F02
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $32, $00, $03, $00, $06, $00, $01
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $06, $00, $01
 loc_2184E:
 	dc.w	$0007
 	dc.l	loc_21F6C
 	dc.b	$60, $01, $68, $90, $00, $03, $00, $03, $00, $08
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $10, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C4, $00, $03, $00, $01, $00, $03
 loc_218C0:
 	dc.w	$0009
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $0C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C2, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $C6, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $CA, $00, $03, $00, $01, $00, $03
 loc_2194E: ; Linden team introduction layout
 	dc.w	$0007
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F62
 	dc.b	$60, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $04, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $38, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $42, $00, $03, $00, $04, $00, $01
 loc_219C0: ; Minarae team introduction layout
 	dc.w	$0006
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $3C, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $06, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21ECC
+	dc.l	Intro_sprite_data_21ECC
 	dc.b	$20, $01, $6D, $40, $00, $03, $00, $04, $00, $01
 loc_21A24:
 	dc.w	$0006
-	dc.l	loc_21F02
+	dc.l	Intro_sprite_data_21F02
 	dc.b	$40, $01, $69, $12, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F2E
+	dc.l	Intro_sprite_data_21F2E
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $08, $00, $03, $00, $06, $00, $01
-	dc.l	loc_21ED4
+	dc.l	Intro_sprite_data_21ED4
 	dc.b	$20, $01, $6D, $16, $00, $03, $00, $06, $00, $01
-	dc.l	loc_21E9C
+	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
 loc_21A88:
 	dc.w	$0005
-	dc.l	loc_21F1E
+	dc.l	Intro_sprite_data_21F1E
 	dc.b	$40, $01, $69, $10, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $16, $00, $03, $00, $02, $00, $07
 	dc.l	loc_21F62
 	dc.b	$60, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
 	dc.l	Team_intro_anim_data
 	dc.b	$20, $01, $6D, $08, $00, $03, $00, $04, $00, $01
-	dc.l	loc_21E9C
+	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
 loc_21ADE:
 	dc.w	$0006
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $04, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F02
+	dc.l	Intro_sprite_data_21F02
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $30, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F54
+	dc.l	Intro_sprite_data_21F54
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $8C, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21EC0
+	dc.l	Intro_sprite_data_21EC0
 	dc.b	$20, $01, $6C, $90, $00, $03, $00, $01, $00, $03
-	dc.l	loc_21E9C
+	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
 loc_21B42:
 	dc.w	$0003
-	dc.l	loc_21EF6
+	dc.l	Intro_sprite_data_21EF6
 	dc.b	$40, $01, $69, $2E, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F4A
+	dc.l	Intro_sprite_data_21F4A
 	dc.b	$40, $01, $69, $18, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21F14
+	dc.l	Intro_sprite_data_21F14
 	dc.b	$40, $01, $69, $36, $00, $03, $00, $02, $00, $07
-	dc.l	loc_21E9C
+	dc.l	Intro_sprite_data_21E9C
 	dc.b	$00, $01, $6D, $3C, $00, $03, $00, $07, $00, $00
 loc_21B7C: ; Team names (except in menu)
 	dc.l	loc_21BBC
@@ -26773,16 +26881,20 @@ loc_21D58:
 	dc.b	$21, $60, $58, $2F, $31, $04, $CA, $75, $82, $CA, $44, $20, $10, $0D, $80, $E0, $08, $20, $42, $10, $60, $1B, $A1, $7B, $34, $42, $C0, $B0, $D1, $0B, $02, $C3
 	dc.b	$44, $2C, $0B, $0D, $10, $B0, $2C, $0A, $00, $58, $0F, $21, $04, $DD, $79, $01, $46, $58, $82, $14, $F1, $06, $18, $82, $0B, $E0, $BE, $FB, $EF, $BE, $FB, $1F
 	dc.b	$C0, $00
-loc_21E9C:
+;loc_21E9C
+Intro_sprite_data_21E9C:
 	dc.b	$08, $00, $00, $EF, $00, $EF, $1F, $F8
 loc_21EA4:
 	dc.b	$09, $01, $00, $F7, $00, $00, $44, $3E, $17, $BA, $62, $22, $26, $1C, $0C, $08, $18, $00, $98, $F0, $91, $39, $E1, $C8, $6E, $19, $85
 	dc.b	$FF
-loc_21EC0:
+;Intro_sprite_data_21EC0
+Intro_sprite_data_21EC0:
 	dc.b	$09, $01, $01, $10, $01, $10, $02, $06, $20, $2F, $F0, $00
-loc_21ECC:
+;Intro_sprite_data_21ECC
+Intro_sprite_data_21ECC:
 	dc.b	$09, $00, $01, $17, $01, $17, $27, $F8
-loc_21ED4:
+;Intro_sprite_data_21ED4
+Intro_sprite_data_21ED4:
 	dc.b	$09, $01, $00, $FA, $00, $FA, $80, $90
 	dc.b	$81
 	dc.b	$45, $22, $E7, $91
@@ -26793,23 +26905,30 @@ loc_21ED4:
 ;loc_21EEE
 Team_intro_anim_data:
 	dc.b	$09, $00, $01, $25, $01, $25, $27, $F8
-loc_21EF6:
+;Intro_sprite_data_21EF6
+Intro_sprite_data_21EF6:
 	dc.b	$09, $00, $01, $2F, $00, $00, $40, $04, $0F, $13, $F8, $00
-loc_21F02:
+;Intro_sprite_data_21F02
+Intro_sprite_data_21F02:
 	dc.b	$09, $00, $01, $45, $00, $00, $40, $64, $01, $40, $14, $01, $40, $14, $01, $43, $F8, $00
-loc_21F14:
+;Intro_sprite_data_21F14
+Intro_sprite_data_21F14:
 	dc.b	$09, $00, $01, $56, $00, $00, $05, $03, $C4, $FE
-loc_21F1E:
+;Intro_sprite_data_21F1E
+Intro_sprite_data_21F1E:
 	dc.b	$09, $00, $01, $3E, $00, $00, $43, $8D, $B4, $01, $76, $DC, $05, $5B, $E7, $F0
-loc_21F2E:
+;Intro_sprite_data_21F2E
+Intro_sprite_data_21F2E:
 	dc.b	$09, $00, $01, $82, $00, $00, $40, $04, $0F, $13, $F8, $00
 loc_21F3A:
 	dc.b	$09, $00, $01, $98, $01, $98, $3F, $F8
 loc_21F42:
 	dc.b	$09, $00, $01, $A8, $01, $A8, $3F, $F8
-loc_21F4A:
+;Intro_sprite_data_21F4A
+Intro_sprite_data_21F4A:
 	dc.b	$09, $00, $01, $B8, $00, $00, $05, $03, $C4, $FE
-loc_21F54:
+;Intro_sprite_data_21F54
+Intro_sprite_data_21F54:
 	dc.b	$09, $02, $01, $CF, $00, $00, $40, $04, $0D, $81, $A0
 	dc.b	$8B
 	dc.b	$FC, $00
@@ -30339,15 +30458,15 @@ loc_39F68:
 ;loc_3A27A
 ; 288-entry pointer table: Japanese pre-race team messages, indexed by [team × 18 + lap?]
 Team_msg_jp_table:
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FE
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_d
 	dc.l	loc_3A710
 	dc.l	loc_3A724
 	dc.l	loc_3A732
-	dc.l	loc_3A6FE
+	dc.l	Team_msg_jp_d
 	dc.l	loc_3A740
 	dc.l	loc_3A75C
 	dc.l	loc_3A768
@@ -30358,76 +30477,76 @@ Team_msg_jp_table:
 	dc.l	loc_3A7C2
 	dc.l	loc_3A75C
 	dc.l	loc_3A7D0
-	dc.l	loc_3A7DA
-	dc.l	loc_3A7E6
+	dc.l	Team_msg_jp_e
+	dc.l	$0003A7E6
 	dc.l	loc_3C2DE
-	dc.l	loc_3A6FE
-	dc.l	loc_3A7DA
-	dc.l	loc_3A7E6
-	dc.l	loc_3A7F0
-	dc.l	loc_3A7DA
-	dc.l	loc_3A7FC
-	dc.l	loc_3A804
-	dc.l	loc_3A80E
-	dc.l	loc_3A818
-	dc.l	loc_3A6FE
-	dc.l	loc_3A7DA
-	dc.l	loc_3A828
-	dc.l	loc_3A818
-	dc.l	loc_3A7DA
+	dc.l	Team_msg_jp_d
+	dc.l	Team_msg_jp_e
+	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o2
+	dc.l	Team_msg_jp_e
+	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_h
+	dc.l	Team_msg_jp_l
+	dc.l	$0003A818
+	dc.l	Team_msg_jp_d
+	dc.l	Team_msg_jp_e
+	dc.l	Team_msg_jp_m
+	dc.l	$0003A818
+	dc.l	Team_msg_jp_e
 	dc.l	loc_3A838
 	dc.l	Team_msg_jp_b
 	dc.l	loc_3A84E
 	dc.l	loc_3A858
-	dc.l	loc_3A80E
+	dc.l	Team_msg_jp_l
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A6FE
-	dc.l	loc_3A804
+	dc.l	Team_msg_jp_d
+	dc.l	Team_msg_jp_h
 	dc.l	Team_msg_jp_b
 	dc.l	loc_3A7D0
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A7E6
-	dc.l	loc_3A7F0
+	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o2
 	dc.l	loc_3A86A
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A828
-	dc.l	loc_3A878
+	dc.l	Team_msg_jp_m
+	dc.l	Team_msg_jp_a2
 	dc.l	Team_msg_jp_b
 	dc.l	loc_3A888
-	dc.l	loc_3A896
+	dc.l	Team_msg_jp_i
 	dc.l	loc_3A8A0
 	dc.l	loc_3A8BA
 	dc.l	loc_3A8C8
 	dc.l	loc_3A8D2
-	dc.l	loc_3A6FE
-	dc.l	loc_3A818
-	dc.l	loc_3A896
+	dc.l	Team_msg_jp_d
+	dc.l	$0003A818
+	dc.l	Team_msg_jp_i
 	dc.l	loc_3A838
-	dc.l	loc_3A8DC
-	dc.l	loc_3A7E6
-	dc.l	loc_3A7F0
-	dc.l	loc_3A8EE
-	dc.l	loc_3A8DC
-	dc.l	loc_3A8EE
-	dc.l	loc_3A906
-	dc.l	loc_3A8DC
+	dc.l	Team_msg_jp_j
+	dc.l	$0003A7E6
+	dc.l	Team_msg_jp_o2
+	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_j
+	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_r2
+	dc.l	Team_msg_jp_j
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3B2B4
-	dc.l	loc_3A8DC
+	dc.l	Team_msg_jp_g
+	dc.l	Team_msg_jp_j
 	dc.l	loc_3A858
 	dc.l	loc_3A86A
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A828
-	dc.l	loc_3A878
+	dc.l	Team_msg_jp_m
+	dc.l	Team_msg_jp_a2
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A7FC
+	dc.l	$0003A7FC
 	dc.l	Team_msg_jp_b
 	dc.l	loc_3A84E
 	dc.l	loc_3C2DE
-	dc.l	loc_3A828
+	dc.l	Team_msg_jp_m
 	dc.l	Team_msg_jp_b
-	dc.l	loc_3A80E
-	dc.l	loc_3A906
+	dc.l	Team_msg_jp_l
+	dc.l	Team_msg_jp_r2
 	dc.l	Team_msg_jp_b
 	dc.l	loc_3A920
 	dc.l	loc_3A932
@@ -30438,15 +30557,15 @@ Team_msg_jp_table:
 	dc.l	loc_3A990
 	dc.l	loc_3A99C
 	dc.l	loc_3A990
-	dc.l	loc_3B2B4
-	dc.l	loc_3A804
-	dc.l	loc_3A8DC
-	dc.l	loc_3A9AC
-	dc.l	loc_3A8EE
-	dc.l	loc_3B2B4
-	dc.l	loc_3A8EE
+	dc.l	Team_msg_jp_g
+	dc.l	Team_msg_jp_h
+	dc.l	Team_msg_jp_j
+	dc.l	Team_msg_jp_b2
+	dc.l	$0003A8EE
+	dc.l	Team_msg_jp_g
+	dc.l	$0003A8EE
 	dc.l	loc_3A9BC
-	dc.l	loc_3A804
+	dc.l	Team_msg_jp_h
 	dc.l	loc_3A9D4
 	dc.l	loc_3A9E8
 	dc.l	loc_3A9F4
@@ -30456,42 +30575,42 @@ Team_msg_jp_table:
 	dc.l	loc_3AA2C
 	dc.l	loc_3AA3C
 	dc.l	loc_3A9E8
-	dc.l	loc_3A804
-	dc.l	loc_3B2B4
-	dc.l	loc_3A8DC
-	dc.l	loc_3A9AC
-	dc.l	loc_3A6FE
-	dc.l	loc_3B2B4
-	dc.l	loc_3A80E
-	dc.l	loc_3A818
-	dc.l	loc_3B2B4
-	dc.l	loc_3A804
-	dc.l	loc_3A896
-	dc.l	loc_3A7FC
-	dc.l	loc_3A896
-	dc.l	loc_3A906
-	dc.l	loc_3A896
-	dc.l	loc_3A828
-	dc.l	loc_3A878
-	dc.l	loc_3A896
-	dc.l	loc_3A7FC
-	dc.l	loc_3A7DA
-	dc.l	loc_3A80E
-	dc.l	loc_3A9AC
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FA
-	dc.l	loc_3A6FA
-	dc.l	loc_3A7DA
+	dc.l	Team_msg_jp_h
+	dc.l	Team_msg_jp_g
+	dc.l	Team_msg_jp_j
+	dc.l	Team_msg_jp_b2
+	dc.l	Team_msg_jp_d
+	dc.l	Team_msg_jp_g
+	dc.l	Team_msg_jp_l
+	dc.l	$0003A818
+	dc.l	Team_msg_jp_g
+	dc.l	Team_msg_jp_h
+	dc.l	Team_msg_jp_i
+	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_i
+	dc.l	Team_msg_jp_r2
+	dc.l	Team_msg_jp_i
+	dc.l	Team_msg_jp_m
+	dc.l	Team_msg_jp_a2
+	dc.l	Team_msg_jp_i
+	dc.l	$0003A7FC
+	dc.l	Team_msg_jp_e
+	dc.l	Team_msg_jp_l
+	dc.l	Team_msg_jp_b2
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_a
+	dc.l	Team_msg_jp_e
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
-	dc.l	loc_3AA4C
+	dc.l	Team_msg_your_days_gone
 	dc.l	loc_3AA62
 	dc.l	loc_3AA86
 	dc.l	loc_3AAAA
-	dc.l	loc_3AA4C
+	dc.l	Team_msg_your_days_gone
 	dc.l	loc_3AAC2
 	dc.l	loc_3AAE8
 	dc.l	loc_3AB04
@@ -30502,76 +30621,76 @@ Team_msg_jp_table:
 	dc.l	loc_3ABA6
 	dc.l	loc_3AAE8
 	dc.l	loc_3ABC0
-	dc.l	loc_3ABD6
-	dc.l	loc_3ABF4
+	dc.l	Team_msg_faster_than_you
+	dc.l	$0003ABF4
 	dc.l	loc_3C882
-	dc.l	loc_3AA4C
-	dc.l	loc_3ABD6
-	dc.l	loc_3ABF4
-	dc.l	loc_3AC10
-	dc.l	loc_3ABD6
-	dc.l	loc_3AC24
-	dc.l	loc_3AC38
-	dc.l	loc_3AC4C
-	dc.l	loc_3AC66
-	dc.l	loc_3AA4C
-	dc.l	loc_3ABD6
-	dc.l	loc_3AC8A
-	dc.l	loc_3AC66
-	dc.l	loc_3ABD6
+	dc.l	Team_msg_your_days_gone
+	dc.l	Team_msg_faster_than_you
+	dc.l	$0003ABF4
+	dc.l	Team_msg_en_dont_be_stuck
+	dc.l	Team_msg_faster_than_you
+	dc.l	$0003AC24
+	dc.l	Team_msg_lets_drive_fair
+	dc.l	Team_msg_better_stop_racing
+	dc.l	$0003AC66
+	dc.l	Team_msg_your_days_gone
+	dc.l	Team_msg_faster_than_you
+	dc.l	Team_msg_cearas_era
+	dc.l	$0003AC66
+	dc.l	Team_msg_faster_than_you
 	dc.l	loc_3ACA0
 	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ACEA
 	dc.l	loc_3AD02
-	dc.l	loc_3AC4C
+	dc.l	Team_msg_better_stop_racing
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AA4C
-	dc.l	loc_3AC38
+	dc.l	Team_msg_your_days_gone
+	dc.l	Team_msg_lets_drive_fair
 	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ABC0
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3ABF4
-	dc.l	loc_3AC10
+	dc.l	$0003ABF4
+	dc.l	Team_msg_en_dont_be_stuck
 	dc.l	loc_3AD24
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AC8A
-	dc.l	loc_3AD3C
+	dc.l	Team_msg_cearas_era
+	dc.l	Team_msg_en_you_can_never_win
 	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AD5A
-	dc.l	loc_3AD74
+	dc.l	Team_msg_go_easy
 	dc.l	loc_3AD86
 	dc.l	loc_3ADAE
 	dc.l	loc_3ADC6
 	dc.l	loc_3ADE4
-	dc.l	loc_3AA4C
-	dc.l	loc_3AC66
-	dc.l	loc_3AD74
+	dc.l	Team_msg_your_days_gone
+	dc.l	$0003AC66
+	dc.l	Team_msg_go_easy
 	dc.l	loc_3ACA0
-	dc.l	loc_3ADF4
-	dc.l	loc_3ABF4
-	dc.l	loc_3AC10
-	dc.l	loc_3AE18
-	dc.l	loc_3ADF4
-	dc.l	loc_3AE18
-	dc.l	loc_3AE34
-	dc.l	loc_3ADF4
+	dc.l	Team_msg_no_easy_with_me
+	dc.l	$0003ABF4
+	dc.l	Team_msg_en_dont_be_stuck
+	dc.l	$0003AE18
+	dc.l	Team_msg_no_easy_with_me
+	dc.l	$0003AE18
+	dc.l	Team_msg_en_do_you_intend
+	dc.l	Team_msg_no_easy_with_me
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3B4FC
-	dc.l	loc_3ADF4
+	dc.l	Team_msg_hi
+	dc.l	Team_msg_no_easy_with_me
 	dc.l	loc_3AD02
 	dc.l	loc_3AD24
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AC8A
-	dc.l	loc_3AD3C
+	dc.l	Team_msg_cearas_era
+	dc.l	Team_msg_en_you_can_never_win
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AC24
+	dc.l	$0003AC24
 	dc.l	Team_msg_lets_compete
 	dc.l	loc_3ACEA
 	dc.l	loc_3C882
-	dc.l	loc_3AC8A
+	dc.l	Team_msg_cearas_era
 	dc.l	Team_msg_lets_compete
-	dc.l	loc_3AC4C
-	dc.l	loc_3AE34
+	dc.l	Team_msg_better_stop_racing
+	dc.l	Team_msg_en_do_you_intend
 	dc.l	Team_msg_lets_compete
 	dc.l	loc_3AE56
 	dc.l	loc_3AE7E
@@ -30582,15 +30701,15 @@ Team_msg_jp_table:
 	dc.l	loc_3AF2A
 	dc.l	loc_3AF3E
 	dc.l	loc_3AF2A
-	dc.l	loc_3B4FC
-	dc.l	loc_3AC38
-	dc.l	loc_3ADF4
-	dc.l	loc_3AF5A
-	dc.l	loc_3AE18
-	dc.l	loc_3B4FC
-	dc.l	loc_3AE18
+	dc.l	Team_msg_hi
+	dc.l	Team_msg_lets_drive_fair
+	dc.l	Team_msg_no_easy_with_me
+	dc.l	Team_msg_en_im_serious
+	dc.l	$0003AE18
+	dc.l	Team_msg_hi
+	dc.l	$0003AE18
 	dc.l	loc_3AF6C
-	dc.l	loc_3AC38
+	dc.l	Team_msg_lets_drive_fair
 	dc.l	loc_3AF96
 	dc.l	loc_3AFBC
 	dc.l	loc_3AFDE
@@ -30600,36 +30719,38 @@ Team_msg_jp_table:
 	dc.l	loc_3B042
 	dc.l	loc_3B062
 	dc.l	loc_3AFBC
-	dc.l	loc_3AC38
-	dc.l	loc_3B4FC
-	dc.l	loc_3ADF4
-	dc.l	loc_3AF5A
-	dc.l	loc_3AA4C
-	dc.l	loc_3B4FC
-	dc.l	loc_3AC4C
-	dc.l	loc_3AC66
-	dc.l	loc_3B4FC
-	dc.l	loc_3AC38
-	dc.l	loc_3AD74
-	dc.l	loc_3AC24
-	dc.l	loc_3AD74
-	dc.l	loc_3AE34
-	dc.l	loc_3AD74
-	dc.l	loc_3AC8A
-	dc.l	loc_3AD3C
-	dc.l	loc_3AD74
-	dc.l	loc_3AC24
-	dc.l	loc_3ABD6
-	dc.l	loc_3AC4C
-	dc.l	loc_3AF5A
+	dc.l	Team_msg_lets_drive_fair
+	dc.l	Team_msg_hi
+	dc.l	Team_msg_no_easy_with_me
+	dc.l	Team_msg_en_im_serious
+	dc.l	Team_msg_your_days_gone
+	dc.l	Team_msg_hi
+	dc.l	Team_msg_better_stop_racing
+	dc.l	$0003AC66
+	dc.l	Team_msg_hi
+	dc.l	Team_msg_lets_drive_fair
+	dc.l	Team_msg_go_easy
+	dc.l	$0003AC24
+	dc.l	Team_msg_go_easy
+	dc.l	Team_msg_en_do_you_intend
+	dc.l	Team_msg_go_easy
+	dc.l	Team_msg_cearas_era
+	dc.l	Team_msg_en_you_can_never_win
+	dc.l	Team_msg_go_easy
+	dc.l	$0003AC24
+	dc.l	Team_msg_faster_than_you
+	dc.l	Team_msg_better_stop_racing
+	dc.l	Team_msg_en_im_serious
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
 	dc.l	Team_msg_error
-	dc.l	loc_3ABD6
-loc_3A6FA:
+	dc.l	Team_msg_faster_than_you
+;Team_msg_jp_a
+Team_msg_jp_a:
 	dc.b	$42, $65, $2C, $FF
-loc_3A6FE:
+;Team_msg_jp_d
+Team_msg_jp_d:
 	dc.b	$3F, $6C, $4E, $57, $32, $B8, $BC, $40, $58, $32, $43, $6A, $75, $4E, $64, $79, $FF
 	dc.b	$00
 loc_3A710:
@@ -30658,23 +30779,31 @@ loc_3A7C2:
 	dc.b	$3F, $40, $44, $6A, $65, $B9, $32, $45, $4E, $53, $40, $53, $79, $FF
 loc_3A7D0:
 	dc.b	$43, $68, $58, $32, $58, $62, $40, $BA, $79, $FF
-loc_3A7DA:
+;Team_msg_jp_e
+Team_msg_jp_e:
 	dc.b	$43, $68, $57, $5C, $41, $B2, $32, $58, $62, $40, $79, $FF
-loc_3A7E6:
+;loc_3A7E6
+Team_msg_jp_o:
 	dc.b	$5D, $BC, $32, $62, $67, $45, $44, $2E, $FF, $00
-loc_3A7F0:
+;loc_3A7F0
+Team_msg_jp_o2:
 	dc.b	$40, $40, $45, $54, $32, $53, $67, $53, $64, $79, $FF
 	dc.b	$00
-loc_3A7FC:
+;loc_3A7FC
+Team_msg_jp_p:
 	dc.b	$43, $61, $4A, $69, $40, $79, $FF, $00
-loc_3A804:
+;Team_msg_jp_h
+Team_msg_jp_h:
 	dc.b	$97, $AC, $7C, $54, $32, $40, $48, $41, $79, $FF
-loc_3A80E:
+;Team_msg_jp_l
+Team_msg_jp_l:
 	dc.b	$62, $60, $51, $32, $43, $45, $53, $64, $79, $FF
-loc_3A818:
+;loc_3A818
+Team_msg_jp_q:
 	dc.b	$48, $57, $3F, $40, $BC, $58, $32, $63, $BC, $6C, $4A, $4E, $64, $79, $FF
 	dc.b	$00
-loc_3A828:
+;Team_msg_jp_m
+Team_msg_jp_m:
 	dc.b	$40, $5D, $58, $32, $89, $7C, $A2, $57, $32, $B8, $BC, $40, $BC, $64, $79, $FF
 loc_3A838:
 	dc.b	$01, $00, $56, $6C, $32, $58, $62, $40, $64, $79, $FF, $00
@@ -30687,12 +30816,14 @@ loc_3A858:
 	dc.b	$4D, $41, $4D, $41, $32, $5D, $B4, $68, $58, $32, $43, $48, $65, $53, $40, $64, $79, $FF
 loc_3A86A:
 	dc.b	$5D, $BC, $32, $A5, $2C, $88, $32, $62, $75, $51, $6C, $57, $79, $FF
-loc_3A878:
+;loc_3A878
+Team_msg_jp_a2:
 	dc.b	$89, $7C, $A2, $54, $58, $32, $44, $51, $53, $40, $46, $4C, $54, $79, $FF
 	dc.b	$00
 loc_3A888:
 	dc.b	$43, $4E, $B2, $40, $54, $32, $B2, $6C, $C1, $69, $41, $79, $FF, $00
-loc_3A896:
+;Team_msg_jp_i
+Team_msg_jp_i:
 	dc.b	$43, $51, $62, $6A, $65, $44, $54, $79, $FF
 	dc.b	$00
 loc_3A8A0:
@@ -30703,11 +30834,14 @@ loc_3A8C8:
 	dc.b	$3F, $68, $2E, $32, $40, $4E, $6C, $BC, $79, $FF
 loc_3A8D2:
 	dc.b	$4E, $40, $5B, $6C, $BF, $4B, $56, $79, $FF, $00
-loc_3A8DC:
+;Team_msg_jp_j
+Team_msg_jp_j:
 	dc.b	$51, $44, $B5, $6C, $4B, $67, $32, $59, $50, $64, $41, $58, $32, $53, $40, $64, $79, $FF
-loc_3A8EE:
+;loc_3A8EE
+Team_msg_jp_r:
 	dc.b	$43, $4F, $60, $57, $32, $62, $50, $52, $58, $32, $46, $4F, $61, $FC, $45, $45, $4E, $46, $56, $42, $53, $79, $FF, $00
-loc_3A906:
+;loc_3A906
+Team_msg_jp_r2:
 	dc.b	$8F, $B1, $E1, $D4, $A2, $7D, $D5, $2C, $54, $32, $81, $9C, $D5, $B1, $83, $4B, $67, $FC, $50, $61, $66, $53, $57, $44, $79, $FF
 loc_3A920:
 	dc.b	$4C, $6C, $DA, $40, $54, $32, $58, $53, $6B, $32, $61, $4E, $4C, $69, $64, $79, $FF, $00
@@ -30727,7 +30861,8 @@ loc_3A990:
 loc_3A99C:
 	dc.b	$43, $5D, $42, $61, $32, $5D, $BC, $5D, $BC, $32, $62, $67, $53, $79, $FF
 	dc.b	$00
-loc_3A9AC:
+;loc_3A9AC
+Team_msg_jp_b2:
 	dc.b	$4D, $69, $4D, $69, $32, $5C, $6C, $45, $6B, $32, $BC, $4B, $44, $53, $79, $FF
 loc_3A9BC:
 	dc.b	$8F, $B1, $E1, $D4, $A2, $7D, $D5, $2C, $BF, $61, $32, $53, $40, $46, $4C, $54, $FC, $40, $C1, $67, $53, $79, $FF
@@ -30752,7 +30887,8 @@ loc_3AA3C:
 ;loc_3AA46
 Team_msg_error:
 	txt "ERROR", $FF
-loc_3AA4C:
+;Team_msg_your_days_gone
+Team_msg_your_days_gone:
 	dc.b	$FD
 	txt "YOUR DAYS ARE GONE!", $FF, $00
 loc_3AA62:
@@ -30780,24 +30916,32 @@ loc_3ABA6:
 loc_3ABC0:
 	dc.b	$FD
 	txt "I DRIVE QUITE FAST.", $FF, $00
-loc_3ABD6:
+;Team_msg_faster_than_you
+Team_msg_faster_than_you:
 	txt "I CAN DRIVE FASTER\nTHAN YOU.", $FF, $00
-loc_3ABF4:
+;loc_3ABF4
+Team_msg_you_still_want:
 	txt "YOU STILL WANT TO\nCONTINUE.", $FF
-loc_3AC10:
+;loc_3AC10
+Team_msg_en_dont_be_stuck:
 	dc.b	$FD
 	txt "DON'T BE STUCK UP!", $FF
-loc_3AC24:
+;loc_3AC24
+Team_msg_its_interesting:
 	dc.b	$FD
 	txt "IT'S INTERESTING.", $FF, $00
-loc_3AC38:
+;Team_msg_lets_drive_fair
+Team_msg_lets_drive_fair:
 	dc.b	$FD
 	txt "LET'S DRIVE FAIR!", $FF, $00
-loc_3AC4C:
+;Team_msg_better_stop_racing
+Team_msg_better_stop_racing:
 	txt "YOU'D BETTER STOP\nRACING.", $FF
-loc_3AC66:
+;loc_3AC66
+Team_msg_i_underestimated:
 	txt "I UNDERESTIMATED YOU\nTHE OTHER DAY.", $FF
-loc_3AC8A:
+;Team_msg_cearas_era
+Team_msg_cearas_era:
 	txt "IT'S CEARA'S ERA\nNOW!", $FF
 loc_3ACA0:
 	txt "I GUESS YOU NEED\nMORE EXPERIENCE.", $FF
@@ -30810,11 +30954,13 @@ loc_3AD02:
 	txt "YOU CAN SELDOM WIN\nBY SHEER LUCK.", $FF
 loc_3AD24:
 	txt "ARE YOU STILL\nA RACER?", $FF, $00
-loc_3AD3C:
+;loc_3AD3C
+Team_msg_en_you_can_never_win:
 	txt "YOU CAN NEVER WIN\nOVER CEARA.", $FF
 loc_3AD5A:
 	txt "LET'S TRY TO DO OUR\nBEST.", $FF
-loc_3AD74:
+;Team_msg_go_easy
+Team_msg_go_easy:
 	dc.b	$FD
 	txt "GO EASY WITH ME!", $FF
 loc_3AD86:
@@ -30826,11 +30972,14 @@ loc_3ADC6:
 loc_3ADE4:
 	dc.b	$FD
 	txt "WORKING HARD?", $FF, $00
-loc_3ADF4:
+;Team_msg_no_easy_with_me
+Team_msg_no_easy_with_me:
 	txt "YOU DON'T HAVE TO GO\nEASY WITH ME.", $FF, $00
-loc_3AE18:
+;loc_3AE18
+Team_msg_never_speak_underdogs:
 	txt "I NEVER SPEAK TO\nUNDERDOGS.", $FF
-loc_3AE34:
+;loc_3AE34
+Team_msg_en_do_you_intend:
 	txt "DO YOU INTEND TO\nMAKE A COMEBACK?", $FF
 loc_3AE56:
 	txt "LOSING TO A JUNIOR\nDRIVER IS A DISGRACE", $FF
@@ -30849,7 +30998,8 @@ loc_3AF2A:
 	txt "OK, THEN COME ON!", $FF, $00
 loc_3AF3E:
 	txt "YOU'RE STILL\nA GOOD RACER.", $FF, $00
-loc_3AF5A:
+;loc_3AF5A
+Team_msg_en_im_serious:
 	dc.b	$FD
 	txt "I'M SERIOUS NOW.", $FF
 loc_3AF6C:
@@ -30888,25 +31038,25 @@ Team_intro_table: ; Pointers to team introductions
 	dc.l	loc_3B262
 	dc.l	loc_3B26E
 	dc.l	loc_3B284
-	dc.l	loc_3B296
+	dc.l	Team_msg_jp_f
 	dc.l	loc_3B2A6
-	dc.l	loc_3B2B4
+	dc.l	Team_msg_jp_g
 	dc.l	loc_3B2BA
 	dc.l	loc_3B17E
 	dc.l	loc_3B1A6
-	dc.l	loc_3B1D0
-	dc.l	loc_3B1D0
+	dc.l	Team_msg_jp_n
+	dc.l	Team_msg_jp_n
 	dc.l	loc_3B1F8
-	dc.l	loc_3B192
-	dc.l	loc_3B1D0
-	dc.l	loc_3B192
-	dc.l	loc_3B1D0
-	dc.l	loc_3B192
+	dc.l	Team_msg_jp_k
+	dc.l	Team_msg_jp_n
+	dc.l	Team_msg_jp_k
+	dc.l	Team_msg_jp_n
+	dc.l	Team_msg_jp_k
 	dc.l	loc_3B26E
-	dc.l	loc_3B1D0
-	dc.l	loc_3B192
-	dc.l	loc_3B192
-	dc.l	loc_3B192
+	dc.l	Team_msg_jp_n
+	dc.l	Team_msg_jp_k
+	dc.l	Team_msg_jp_k
+	dc.l	Team_msg_jp_k
 	dc.l	loc_3B2BA
 	dc.l	loc_3B2CE
 	dc.l	loc_3B31A
@@ -30920,36 +31070,38 @@ Team_intro_table: ; Pointers to team introductions
 	dc.l	loc_3B45C
 	dc.l	loc_3B480
 	dc.l	loc_3B4A4
-	dc.l	loc_3B4BC
+	dc.l	Team_msg_envy_high_spirits
 	dc.l	loc_3B4D6
-	dc.l	loc_3B4FC
+	dc.l	Team_msg_hi
 	dc.l	loc_3B502
 	dc.l	loc_3B2CE
 	dc.l	loc_3B31A
-	dc.l	loc_3B366
-	dc.l	loc_3B366
+	dc.l	Team_msg_help_comeback
+	dc.l	Team_msg_help_comeback
 	dc.l	loc_3B3AA
-	dc.l	loc_3B2F4
-	dc.l	loc_3B366
-	dc.l	loc_3B2F4
-	dc.l	loc_3B366
-	dc.l	loc_3B2F4
+	dc.l	Team_msg_can_still_drive
+	dc.l	Team_msg_help_comeback
+	dc.l	Team_msg_can_still_drive
+	dc.l	Team_msg_help_comeback
+	dc.l	Team_msg_can_still_drive
 	dc.l	loc_3B480
-	dc.l	loc_3B366
-	dc.l	loc_3B2F4
-	dc.l	loc_3B2F4
-	dc.l	loc_3B2F4
+	dc.l	Team_msg_help_comeback
+	dc.l	Team_msg_can_still_drive
+	dc.l	Team_msg_can_still_drive
+	dc.l	Team_msg_can_still_drive
 	dc.l	loc_3B502
 loc_3B17E:
 	dc.b	$49, $40, $48, $41, $57, $9A, $87, $A8, $BF, $32, $8F, $B1, $E1, $6B, $60, $B7, $4C, $79, $FF
 	dc.b	$00
-loc_3B192:
+;Team_msg_jp_k
+Team_msg_jp_k:
 	dc.b	$5C, $6C, $52, $41, $54, $32, $5D, $BC, $32, $58, $4A, $68, $67, $6C, $BC, $69, $41, $53, $79, $FF
 loc_3B1A6:
 	dc.b	$BC, $52, $41, $9A, $D4, $A8, $90, $2D, $FC, $C0, $41, $BC, $32, $62, $75, $51, $5E, $53, $40, $44, $79, $FF
 loc_3B1BC:
 	dc.b	$4D, $69, $4D, $69, $32, $0F, $01, $B2, $32, $5E, $42, $51, $32, $45, $4E, $44, $53, $79, $FF, $00
-loc_3B1D0:
+;Team_msg_jp_n
+Team_msg_jp_n:
 	dc.b	$45, $5E, $57, $81, $9C, $D5, $B1, $83, $54, $32, $51, $6B, $44, $4D, $41, $79, $FF, $00
 loc_3B1E2:
 	dc.b	$41, $4F, $57, $9A, $87, $A8, $58, $32, $4A, $6C, $65, $40, $4C, $40, $B2, $32, $4E, $44, $40, $79, $FF, $00
@@ -30969,24 +31121,28 @@ loc_3B26E:
 	dc.b	$52, $66, $3F, $42, $B9, $32, $5C, $4A, $74, $41, $45, $6C, $6B, $32, $61, $65, $43, $41, $44, $79, $FF, $00
 loc_3B284:
 	dc.b	$B2, $6C, $C1, $75, $51, $32, $44, $51, $67, $64, $41, $54, $32, $53, $69, $41, $79, $FF
-loc_3B296:
+;Team_msg_jp_f
+Team_msg_jp_f:
 	dc.b	$40, $40, $56, $79, $32, $45, $5E, $58, $32, $B5, $6C, $45, $BF, $79, $FF
 	dc.b	$00
 loc_3B2A6:
 	dc.b	$5D, $3F, $32, $4E, $57, $4A, $46, $32, $62, $69, $41, $79, $FF, $00
-loc_3B2B4:
+;Team_msg_jp_g
+Team_msg_jp_g:
 	dc.b	$64, $69, $4A, $46, $2D, $FF
 loc_3B2BA:
 	dc.b	$45, $5E, $54, $32, $45, $51, $61, $65, $42, $68, $C1, $32, $4E, $4B, $44, $67, $64, $79, $FF, $00
 loc_3B2CE:
 	txt "BE THE TOP DRIVER\nWITH THE BEST CAR.", $FF, $00
-loc_3B2F4:
+;Team_msg_can_still_drive
+Team_msg_can_still_drive:
 	txt "ARE YOU SURE IF YOU\nCAN STILL DRIVE?", $FF, $00
 loc_3B31A:
 	txt "LET'S TRY TO BEAT\nTHE MADONNA TEAM.", $FF
 loc_3B33E:
 	txt "ARE YOU GETTING FA-\nMILIAR WITH THE F1?", $FF
-loc_3B366:
+;Team_msg_help_comeback
+Team_msg_help_comeback:
 	txt "I'LL HELP YOU MAKE\nA COMEBACK.", $FF, $00
 loc_3B386:
 	txt "WE HAVE THE MOST\nRELIABLE MACHINE.", $FF, $00
@@ -31006,11 +31162,13 @@ loc_3B480:
 	txt "ANYWAY, GIVE ME\nTHE SECURITY MONEY.", $FF
 loc_3B4A4:
 	txt "LET'S TRY HARD\nTO WIN.", $FF, $00
-loc_3B4BC:
+;Team_msg_envy_high_spirits
+Team_msg_envy_high_spirits:
 	txt "I ENVY YOUR HIGH\nSPIRITS.", $FF
 loc_3B4D6:
 	txt "WELL, LET'S ENJOY\nTHE RACE TOGETHER.", $FF, $00
-loc_3B4FC:
+;Team_msg_hi
+Team_msg_hi:
 	dc.b	$FD
 	txt "HI!", $FF, $00
 loc_3B502:
@@ -31124,7 +31282,10 @@ loc_3B954:
 	txt "DON'T SOUP UP YOUR\nENGINE TOO MUCH!", $FF
 loc_3B978:
 	txt "COMPLETELY SLOW DOWN\nAT THE SHARP CURVES.", $FF
-loc_3B9A2:
+;loc_3B9A2
+; 32-entry pointer table: team name display strings (JP names 0..15, EN names 16..31)
+; Accessed via +$40 offset for English. See loc_F576 for usage.
+Team_name_strings_table:
 	dc.l	loc_3BA22
 	dc.l	loc_3BA28
 	dc.l	loc_3BA30
@@ -31221,380 +31382,401 @@ loc_3BB02:
 	txt " ORCHIS", $FF
 loc_3BB0A:
 	txt "ZEROFORCE", $FF
-loc_3BB14:
-	dc.l	loc_3C018
+;loc_3BB14
+; 320-entry pointer table: post-race team messages (JP block 0..159, EN block 160..319)
+; Indexed by [team * 10 + race_index], with +$280 byte offset for EN version.
+; EN block ends at loc_3C898 region. Parallels Team_msg_jp_table (pre-race).
+Team_msg_after_race_table:
+	dc.l	Team_msg_jp_after_a2
 	dc.l	loc_3C024
-	dc.l	loc_3C03C
-	dc.l	loc_3C014
-	dc.l	loc_3C018
-	dc.l	loc_3C014
+	dc.l	Team_msg_jp_after_a3
+	dc.l	Team_msg_jp_after_a
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_a
 	dc.l	loc_3C046
 	dc.l	loc_3C056
-	dc.l	loc_3C014
-	dc.l	loc_3C06A
-	dc.l	loc_3C078
-	dc.l	loc_3C088
-	dc.l	loc_3C098
-	dc.l	loc_3C078
-	dc.l	loc_3C0A0
-	dc.l	loc_3C0B4
-	dc.l	loc_3C098
+	dc.l	Team_msg_jp_after_a
+	dc.l	$0003C06A
+	dc.l	Team_msg_jp_after_b
+	dc.l	Team_msg_jp_after_b2
+	dc.l	$0003C098
+	dc.l	Team_msg_jp_after_b
+	dc.l	Team_msg_jp_after_c
+	dc.l	Team_msg_jp_after_c2
+	dc.l	$0003C098
 	dc.l	loc_3C0C8
-	dc.l	loc_3C078
-	dc.l	loc_3C0A0
-	dc.l	loc_3C0D8
-	dc.l	loc_3C0E6
+	dc.l	Team_msg_jp_after_b
+	dc.l	Team_msg_jp_after_c
+	dc.l	Team_msg_jp_after_d
+	dc.l	$0003C0E6
 	dc.l	loc_3C0F2
-	dc.l	loc_3C0D8
-	dc.l	loc_3C102
-	dc.l	loc_3C03C
-	dc.l	loc_3C10E
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_e
+	dc.l	Team_msg_jp_after_a3
+	dc.l	Team_msg_jp_after_f
 	dc.l	loc_3C120
 	dc.l	loc_3C130
-	dc.l	loc_3C144
-	dc.l	loc_3C15C
-	dc.l	loc_3C018
-	dc.l	loc_3C03C
-	dc.l	loc_3C0D8
-	dc.l	loc_3C018
-	dc.l	loc_3C102
-	dc.l	loc_3C168
+	dc.l	Team_msg_jp_after_g
+	dc.l	Team_msg_jp_after_h
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_a3
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_e
+	dc.l	$0003C168
 	dc.l	loc_3C174
 	dc.l	loc_3C186
-	dc.l	loc_3C06A
-	dc.l	loc_3C196
-	dc.l	loc_3C196
-	dc.l	loc_3C196
-	dc.l	loc_3C196
-	dc.l	loc_3C196
-	dc.l	loc_3C196
-	dc.l	loc_3C196
+	dc.l	$0003C06A
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_i
 	dc.l	loc_3C1A6
 	dc.l	loc_3C1BA
-	dc.l	loc_3C196
-	dc.l	loc_3C0D8
-	dc.l	loc_3C018
-	dc.l	loc_3C0E6
-	dc.l	loc_3C0D8
-	dc.l	loc_3C0A0
-	dc.l	loc_3C0E6
+	dc.l	Team_msg_jp_after_i
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_a2
+	dc.l	$0003C0E6
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_c
+	dc.l	$0003C0E6
 	dc.l	loc_3C046
 	dc.l	loc_3C1D2
-	dc.l	loc_3C144
-	dc.l	loc_3C144
-	dc.l	loc_3C018
-	dc.l	loc_3C102
-	dc.l	loc_3C1E0
-	dc.l	loc_3C018
-	dc.l	loc_3C102
-	dc.l	loc_3C03C
-	dc.l	loc_3C10E
+	dc.l	Team_msg_jp_after_g
+	dc.l	Team_msg_jp_after_g
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_e
+	dc.l	$0003C1E0
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_e
+	dc.l	Team_msg_jp_after_a3
+	dc.l	Team_msg_jp_after_f
 	dc.l	loc_3C1EA
 	dc.l	loc_3C1FC
-	dc.l	loc_3C06A
+	dc.l	$0003C06A
 	dc.l	loc_3C20E
-	dc.l	loc_3C10E
-	dc.l	loc_3C168
-	dc.l	loc_3C018
-	dc.l	loc_3C018
+	dc.l	Team_msg_jp_after_f
+	dc.l	$0003C168
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_a2
 	dc.l	loc_3C218
 	dc.l	loc_3C0F2
 	dc.l	loc_3C226
 	dc.l	loc_3C236
 	dc.l	loc_3C130
-	dc.l	loc_3C0D8
-	dc.l	loc_3C15C
-	dc.l	loc_3C03C
-	dc.l	loc_3C0D8
-	dc.l	loc_3C018
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_h
+	dc.l	Team_msg_jp_after_a3
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_a2
 	dc.l	loc_3C24A
-	dc.l	loc_3C0E6
+	dc.l	$0003C0E6
 	dc.l	loc_3C25A
 	dc.l	loc_3C186
-	dc.l	loc_3C06A
-	dc.l	loc_3C15C
-	dc.l	loc_3C088
-	dc.l	loc_3C1E0
-	dc.l	loc_3C15C
-	dc.l	loc_3C0A0
-	dc.l	loc_3C088
-	dc.l	loc_3C0B4
+	dc.l	$0003C06A
+	dc.l	Team_msg_jp_after_h
+	dc.l	Team_msg_jp_after_b2
+	dc.l	$0003C1E0
+	dc.l	Team_msg_jp_after_h
+	dc.l	Team_msg_jp_after_c
+	dc.l	Team_msg_jp_after_b2
+	dc.l	Team_msg_jp_after_c2
 	dc.l	loc_3C272
 	dc.l	loc_3C286
-	dc.l	loc_3C144
+	dc.l	Team_msg_jp_after_g
 	dc.l	loc_3C294
 	dc.l	loc_3C294
-	dc.l	loc_3C098
+	dc.l	$0003C098
 	dc.l	loc_3C294
-	dc.l	loc_3C0A0
-	dc.l	loc_3C10E
-	dc.l	loc_3C098
+	dc.l	Team_msg_jp_after_c
+	dc.l	Team_msg_jp_after_f
+	dc.l	$0003C098
 	dc.l	loc_3C2A4
-	dc.l	loc_3C144
-	dc.l	loc_3C144
+	dc.l	Team_msg_jp_after_g
+	dc.l	Team_msg_jp_after_g
 	dc.l	loc_3C20E
-	dc.l	loc_3C018
-	dc.l	loc_3C1E0
+	dc.l	Team_msg_jp_after_a2
+	dc.l	$0003C1E0
 	dc.l	loc_3C130
-	dc.l	loc_3C0A0
+	dc.l	Team_msg_jp_after_c
 	dc.l	loc_3C218
-	dc.l	loc_3C168
+	dc.l	$0003C168
 	dc.l	loc_3C2B0
 	dc.l	loc_3C1FC
-	dc.l	loc_3C0A0
-	dc.l	loc_3B296
-	dc.l	loc_3B296
+	dc.l	Team_msg_jp_after_c
+	dc.l	Team_msg_jp_f
+	dc.l	Team_msg_jp_f
 	dc.l	loc_3C2BE
-	dc.l	loc_3B296
-	dc.l	loc_3B296
+	dc.l	Team_msg_jp_f
+	dc.l	Team_msg_jp_f
 	dc.l	loc_3C24A
 	dc.l	loc_3C2BE
 	dc.l	loc_3C2C4
-	dc.l	loc_3B296
-	dc.l	loc_3B296
-	dc.l	loc_3C078
-	dc.l	loc_3C078
+	dc.l	Team_msg_jp_f
+	dc.l	Team_msg_jp_f
+	dc.l	Team_msg_jp_after_b
+	dc.l	Team_msg_jp_after_b
 	dc.l	loc_3C0F2
-	dc.l	loc_3C078
-	dc.l	loc_3C078
-	dc.l	loc_3C1E0
-	dc.l	loc_3C168
+	dc.l	Team_msg_jp_after_b
+	dc.l	Team_msg_jp_after_b
+	dc.l	$0003C1E0
+	dc.l	$0003C168
 	dc.l	loc_3C2D8
 	dc.l	loc_3C286
-	dc.l	loc_3C144
-	dc.l	loc_3C0D8
-	dc.l	loc_3C15C
-	dc.l	loc_3C102
-	dc.l	loc_3C15C
-	dc.l	loc_3C0A0
+	dc.l	Team_msg_jp_after_g
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_h
+	dc.l	Team_msg_jp_after_e
+	dc.l	Team_msg_jp_after_h
+	dc.l	Team_msg_jp_after_c
 	dc.l	loc_3C218
-	dc.l	loc_3C0B4
+	dc.l	Team_msg_jp_after_c2
 	dc.l	loc_3C2DE
 	dc.l	loc_3C236
-	dc.l	loc_3C144
+	dc.l	Team_msg_jp_after_g
 	dc.l	loc_3C20E
-	dc.l	loc_3C018
-	dc.l	loc_3C10E
-	dc.l	loc_3C0D8
-	dc.l	loc_3C014
+	dc.l	Team_msg_jp_after_a2
+	dc.l	Team_msg_jp_after_f
+	dc.l	Team_msg_jp_after_d
+	dc.l	Team_msg_jp_after_a
 	dc.l	loc_3C24A
-	dc.l	loc_3C014
+	dc.l	Team_msg_jp_after_a
 	dc.l	loc_3C2E8
 	dc.l	loc_3C1FC
-	dc.l	loc_3C014
-	dc.l	loc_3C306
+	dc.l	Team_msg_jp_after_a
+	dc.l	Team_msg_en_good_driving
 	dc.l	loc_3C324
-	dc.l	loc_3C346
-	dc.l	loc_3C300
-	dc.l	loc_3C306
-	dc.l	loc_3C300
+	dc.l	Team_msg_en_really_a_pity
+	dc.l	Team_msg_en_error
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_error
 	dc.l	loc_3C35C
 	dc.l	loc_3C370
-	dc.l	loc_3C300
-	dc.l	loc_3C398
-	dc.l	loc_3C3B0
-	dc.l	loc_3C3CE
-	dc.l	loc_3C3EE
-	dc.l	loc_3C3B0
-	dc.l	loc_3C3FE
+	dc.l	Team_msg_en_error
+	dc.l	$0003C398
+	dc.l	Team_msg_en_really_a_race
+	dc.l	Team_msg_en_more_aggressive
+	dc.l	$0003C3EE
+	dc.l	Team_msg_en_really_a_race
+	dc.l	Team_msg_en_only_natural
 	dc.l	loc_3C422
-	dc.l	loc_3C3EE
+	dc.l	$0003C3EE
 	dc.l	loc_3C448
-	dc.l	loc_3C3B0
-	dc.l	loc_3C3FE
-	dc.l	loc_3C470
+	dc.l	Team_msg_en_really_a_race
+	dc.l	Team_msg_en_only_natural
+	dc.l	Team_msg_en_wonderful
 	dc.l	loc_3C486
 	dc.l	loc_3C4AC
-	dc.l	loc_3C470
-	dc.l	loc_3C4CA
-	dc.l	loc_3C346
-	dc.l	loc_3C4DC
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_thats_about_it
+	dc.l	Team_msg_en_really_a_pity
+	dc.l	Team_msg_en_little_better
 	dc.l	loc_3C4FE
 	dc.l	loc_3C51E
-	dc.l	loc_3C544
-	dc.l	loc_3C56A
-	dc.l	loc_3C306
-	dc.l	loc_3C346
-	dc.l	loc_3C470
-	dc.l	loc_3C306
-	dc.l	loc_3C4CA
-	dc.l	loc_3C590
+	dc.l	Team_msg_en_not_leaving
+	dc.l	Team_msg_en_done_better
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_really_a_pity
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_thats_about_it
+	dc.l	$0003C590
 	dc.l	loc_3C5A6
 	dc.l	loc_3C5BC
-	dc.l	loc_3C398
-	dc.l	loc_3C5E6
-	dc.l	loc_3C5E6
-	dc.l	loc_3C5E6
-	dc.l	loc_3C5E6
-	dc.l	loc_3C5E6
-	dc.l	loc_3C5E6
-	dc.l	loc_3C5E6
+	dc.l	$0003C398
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_lets_go_party
 	dc.l	loc_3C602
 	dc.l	loc_3C62C
-	dc.l	loc_3C5E6
-	dc.l	loc_3C470
-	dc.l	loc_3C306
+	dc.l	Team_msg_en_lets_go_party
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_good_driving
 	dc.l	loc_3C486
-	dc.l	loc_3C470
-	dc.l	loc_3C3FE
-	dc.l	loc_3C470
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_only_natural
+	dc.l	Team_msg_en_wonderful
 	dc.l	loc_3C35C
 	dc.l	loc_3C650
-	dc.l	loc_3C544
-	dc.l	loc_3C544
-	dc.l	loc_3C306
-	dc.l	loc_3C4CA
-	dc.l	loc_3C66A
-	dc.l	loc_3C306
-	dc.l	loc_3C4CA
-	dc.l	loc_3C346
-	dc.l	loc_3C4DC
+	dc.l	Team_msg_en_not_leaving
+	dc.l	Team_msg_en_not_leaving
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_thats_about_it
+	dc.l	$0003C66A
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_thats_about_it
+	dc.l	Team_msg_en_really_a_pity
+	dc.l	Team_msg_en_little_better
 	dc.l	loc_3C68E
 	dc.l	loc_3C6B2
-	dc.l	loc_3C398
+	dc.l	$0003C398
 	dc.l	loc_3C6D2
-	dc.l	loc_3C4DC
-	dc.l	loc_3C590
-	dc.l	loc_3C306
-	dc.l	loc_3C306
+	dc.l	Team_msg_en_little_better
+	dc.l	$0003C590
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_good_driving
 	dc.l	loc_3C6E2
 	dc.l	loc_3C4AC
 	dc.l	loc_3C708
 	dc.l	loc_3C72C
 	dc.l	loc_3C51E
-	dc.l	loc_3C470
-	dc.l	loc_3C56A
-	dc.l	loc_3C346
-	dc.l	loc_3C470
-	dc.l	loc_3C306
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_done_better
+	dc.l	Team_msg_en_really_a_pity
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_good_driving
 	dc.l	loc_3C74C
 	dc.l	loc_3C486
 	dc.l	loc_3C776
 	dc.l	loc_3C5BC
-	dc.l	loc_3C398
-	dc.l	loc_3C56A
-	dc.l	loc_3C3CE
-	dc.l	loc_3C66A
-	dc.l	loc_3C56A
-	dc.l	loc_3C3FE
-	dc.l	loc_3C3CE
+	dc.l	$0003C398
+	dc.l	Team_msg_en_done_better
+	dc.l	Team_msg_en_more_aggressive
+	dc.l	$0003C66A
+	dc.l	Team_msg_en_done_better
+	dc.l	Team_msg_en_only_natural
+	dc.l	Team_msg_en_more_aggressive
 	dc.l	loc_3C422
 	dc.l	loc_3C79A
 	dc.l	loc_3C7C4
-	dc.l	loc_3C544
+	dc.l	Team_msg_en_not_leaving
 	dc.l	loc_3C7DE
 	dc.l	loc_3C7DE
-	dc.l	loc_3C3EE
+	dc.l	$0003C3EE
 	dc.l	loc_3C7DE
-	dc.l	loc_3C3FE
-	dc.l	loc_3C4DC
-	dc.l	loc_3C3EE
+	dc.l	Team_msg_en_only_natural
+	dc.l	Team_msg_en_little_better
+	dc.l	$0003C3EE
 	dc.l	loc_3C7FC
-	dc.l	loc_3C544
-	dc.l	loc_3C544
+	dc.l	Team_msg_en_not_leaving
+	dc.l	Team_msg_en_not_leaving
 	dc.l	loc_3C6D2
-	dc.l	loc_3C306
-	dc.l	loc_3C66A
+	dc.l	Team_msg_en_good_driving
+	dc.l	$0003C66A
 	dc.l	loc_3C51E
-	dc.l	loc_3C3FE
+	dc.l	Team_msg_en_only_natural
 	dc.l	loc_3C6E2
-	dc.l	loc_3C590
+	dc.l	$0003C590
 	dc.l	loc_3C822
 	dc.l	loc_3C6B2
-	dc.l	loc_3C3FE
-	dc.l	loc_3B4BC
-	dc.l	loc_3B4BC
+	dc.l	Team_msg_en_only_natural
+	dc.l	Team_msg_envy_high_spirits
+	dc.l	Team_msg_envy_high_spirits
 	dc.l	loc_3C842
-	dc.l	loc_3B4BC
-	dc.l	loc_3B4BC
+	dc.l	Team_msg_envy_high_spirits
+	dc.l	Team_msg_envy_high_spirits
 	dc.l	loc_3C74C
 	dc.l	loc_3C842
 	dc.l	loc_3C84C
-	dc.l	loc_3B4BC
-	dc.l	loc_3B4BC
-	dc.l	loc_3C3B0
-	dc.l	loc_3C3B0
+	dc.l	Team_msg_envy_high_spirits
+	dc.l	Team_msg_envy_high_spirits
+	dc.l	Team_msg_en_really_a_race
+	dc.l	Team_msg_en_really_a_race
 	dc.l	loc_3C4AC
-	dc.l	loc_3C3B0
-	dc.l	loc_3C3B0
-	dc.l	loc_3C66A
-	dc.l	loc_3C590
+	dc.l	Team_msg_en_really_a_race
+	dc.l	Team_msg_en_really_a_race
+	dc.l	$0003C66A
+	dc.l	$0003C590
 	dc.l	loc_3C864
 	dc.l	loc_3C7C4
-	dc.l	loc_3C544
-	dc.l	loc_3C470
-	dc.l	loc_3C56A
-	dc.l	loc_3C4CA
-	dc.l	loc_3C56A
-	dc.l	loc_3C3FE
+	dc.l	Team_msg_en_not_leaving
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_done_better
+	dc.l	Team_msg_en_thats_about_it
+	dc.l	Team_msg_en_done_better
+	dc.l	Team_msg_en_only_natural
 	dc.l	loc_3C6E2
 	dc.l	loc_3C422
 	dc.l	loc_3C882
 	dc.l	loc_3C72C
-	dc.l	loc_3C544
+	dc.l	Team_msg_en_not_leaving
 	dc.l	loc_3C6D2
-	dc.l	loc_3C306
-	dc.l	loc_3C4DC
-	dc.l	loc_3C470
-	dc.l	loc_3C300
+	dc.l	Team_msg_en_good_driving
+	dc.l	Team_msg_en_little_better
+	dc.l	Team_msg_en_wonderful
+	dc.l	Team_msg_en_error
 	dc.l	loc_3C74C
-	dc.l	loc_3C300
+	dc.l	Team_msg_en_error
 	dc.l	loc_3C898
 	dc.l	loc_3C6B2
-	dc.l	loc_3C300
-loc_3C014: ; Suspected Japanese strings
+	dc.l	Team_msg_en_error
+;Team_msg_jp_after_a
+Team_msg_jp_after_a:
 	dc.b	$7F, $A2, $2C, $FF
-loc_3C018:
+;Team_msg_jp_after_a2
+Team_msg_jp_after_a2:
 	dc.b	$90, $7D, $88, $32, $D4, $A2, $7D, $D6, $A8, $C8, $2D, $FF
 loc_3C024:
 	dc.b	$41, $4F, $58, $32, $8F, $B1, $E1, $6B, $52, $65, $53, $45, $72, $FC, $40, $47, $53, $40, $6C, $BC, $64, $79, $FF, $00
-loc_3C03C:
+;Team_msg_jp_after_a3
+Team_msg_jp_after_a3:
 	dc.b	$B7, $6C, $56, $6C, $BC, $75, $4E, $53, $79, $FF
 loc_3C046:
 	dc.b	$61, $41, $32, $5D, $47, $67, $6C, $B8, $72, $32, $53, $40, $BB, $79, $FF
 	dc.b	$00
 loc_3C056:
 	dc.b	$45, $5E, $57, $32, $48, $41, $40, $58, $32, $47, $40, $62, $46, $32, $40, $58, $6C, $BC, $79, $FF
-loc_3C06A:
+;loc_3C06A
+Team_msg_jp_after_jp1:
 	dc.b	$4D, $57, $4F, $74, $41, $4A, $BF, $32, $40, $48, $41, $79, $FF, $00
-loc_3C078:
+;Team_msg_jp_after_b
+Team_msg_jp_after_b:
 	dc.b	$D7, $A2, $D9, $2C, $2D, $32, $48, $68, $B2, $32, $A5, $2C, $88, $BC, $2D, $FF
-loc_3C088:
+;loc_3C088
+Team_msg_jp_after_b2:
 	dc.b	$61, $75, $52, $32, $B2, $6C, $B2, $6C, $32, $4C, $60, $69, $64, $79, $FF, $00
-loc_3C098:
+;loc_3C098
+Team_msg_jp_after_jp2:
 	dc.b	$C1, $44, $62, $69, $41, $2D, $FF, $00
-loc_3C0A0:
+;Team_msg_jp_after_c
+Team_msg_jp_after_c:
 	dc.b	$4D, $6C, $53, $62, $50, $54, $32, $44, $50, $57, $58, $32, $3F, $4E, $66, $5D, $42, $BC, $79, $FF
-loc_3C0B4:
+;loc_3C0B4
+Team_msg_jp_after_c2:
 	dc.b	$53, $6C, $BF, $32, $3F, $57, $9A, $87, $A8, $54, $32, $44, $51, $53, $40, $6C, $BC, $79, $FF, $00
 loc_3C0C8:
 	dc.b	$41, $C1, $B4, $67, $5D, $BF, $61, $32, $48, $69, $B2, $4A, $51, $69, $2D, $FF
-loc_3C0D8:
+;Team_msg_jp_after_d
+Team_msg_jp_after_d:
 	dc.b	$4B, $B6, $40, $2D, $32, $62, $67, $B8, $72, $53, $40, $44, $2D, $FF
-loc_3C0E6:
+;loc_3C0E6
+Team_msg_jp_after_jp3:
 	dc.b	$4A, $74, $41, $C3, $32, $64, $6A, $40, $53, $79, $FF, $00
 loc_3C0F2:
 	dc.b	$45, $5E, $61, $32, $61, $66, $49, $B5, $51, $32, $46, $68, $67, $56, $79, $FF
-loc_3C102:
+;Team_msg_jp_after_e
+Team_msg_jp_after_e:
 	dc.b	$4D, $6C, $53, $32, $52, $48, $69, $BC, $53, $79, $FF, $00
-loc_3C10E:
+;Team_msg_jp_after_f
+Team_msg_jp_after_f:
 	dc.b	$61, $41, $4B, $48, $4A, $32, $53, $6C, $52, $44, $32, $53, $65, $53, $40, $44, $79, $FF
 loc_3C120:
 	dc.b	$5D, $BC, $5D, $BC, $32, $3F, $5D, $40, $64, $32, $45, $5E, $58, $79, $FF, $00
 loc_3C130:
 	dc.b	$45, $5E, $58, $32, $51, $45, $54, $32, $5D, $6A, $4A, $4E, $46, $32, $53, $40, $53, $79, $FF, $00
-loc_3C144:
+;Team_msg_jp_after_g
+Team_msg_jp_after_g:
 	dc.b	$5D, $49, $44, $32, $BF, $51, $40, $46, $32, $50, $61, $66, $B8, $72, $FC, $53, $40, $BC, $69, $41, $53, $79, $FF, $00
-loc_3C15C:
+;Team_msg_jp_after_h
+Team_msg_jp_after_h:
 	dc.b	$45, $4E, $40, $32, $40, $B8, $74, $41, $BC, $79, $FF
 	dc.b	$00
-loc_3C168:
+;loc_3C168
+Team_msg_jp_after_jp4:
 	dc.b	$4A, $75, $44, $66, $32, $4A, $51, $46, $68, $64, $79, $FF
 loc_3C174:
 	dc.b	$40, $5D, $5D, $BF, $32, $C0, $41, $61, $32, $B6, $46, $69, $41, $49, $6C, $79, $FF, $00
 loc_3C186:
 	dc.b	$B2, $6C, $C1, $75, $51, $32, $8F, $B1, $E1, $6B, $60, $B7, $4C, $79, $FF, $00
-loc_3C196:
+;Team_msg_jp_after_i
+Team_msg_jp_after_i:
 	dc.b	$64, $4A, $79, $32, $DF, $2C, $8E, $AA, $2C, $54, $32, $40, $46, $BB, $79, $FF
 loc_3C1A6:
 	dc.b	$45, $74, $41, $57, $32, $DF, $2C, $8E, $AA, $2C, $54, $58, $32, $46, $67, $53, $64, $79, $FF, $00
@@ -31602,7 +31784,8 @@ loc_3C1BA:
 	dc.b	$60, $40, $61, $6C, $8C, $2C, $9C, $BF, $32, $4A, $73, $B3, $74, $41, $6B, $FC, $50, $6C, $BF, $5E, $69, $79, $FF, $00
 loc_3C1D2:
 	dc.b	$8C, $2C, $9C, $54, $32, $C0, $69, $6B, $55, $67, $45, $44, $2D, $FF
-loc_3C1E0:
+;loc_3C1E0
+Team_msg_jp_after_jp5:
 	dc.b	$DF, $B1, $52, $32, $4A, $53, $40, $53, $79, $FF
 loc_3C1EA:
 	dc.b	$45, $5E, $52, $58, $32, $61, $41, $32, $62, $75, $51, $40, $47, $53, $40, $79, $FF, $00
@@ -31641,13 +31824,16 @@ loc_3C2DE:
 	dc.b	$43, $48, $65, $4C, $67, $53, $64, $79, $FF, $00
 loc_3C2E8:
 	dc.b	$45, $5E, $58, $32, $A2, $7D, $89, $A8, $88, $6B, $FC, $52, $66, $3F, $B5, $65, $68, $67, $32, $4D, $41, $BC, $79, $FF
-loc_3C300:
+;Team_msg_en_error
+Team_msg_en_error:
 	txt "ERROR", $FF
-loc_3C306:
+;Team_msg_en_good_driving
+Team_msg_en_good_driving:
 	txt "GOOD DRIVING!\nYOU'VE DONE IT.", $FF
 loc_3C324:
 	txt "WE SHOULD ALWAYS BE\nTHE TOP TEAM.", $FF
-loc_3C346:
+;Team_msg_en_really_a_pity
+Team_msg_en_really_a_pity:
 	dc.b	$FD
 	txt "IT'S REALLY A PITY!", $FF, $00
 loc_3C35C:
@@ -31655,48 +31841,60 @@ loc_3C35C:
 	txt "NEVER LOSE AGAIN!", $FF, $00
 loc_3C370:
 	txt "YOU ARE NOT LIVING\nUP TO YOUR CONTRACT.", $FF
-loc_3C398:
+;loc_3C398
+Team_msg_en_youll_be_staying:
 	txt "YOU'LL BE STAYING,\nHUH?", $FF
-loc_3C3B0:
+;Team_msg_en_really_a_race
+Team_msg_en_really_a_race:
 	txt "YEAH! THIS IS\nREALLY A RACE.", $FF, $00
-loc_3C3CE:
+;Team_msg_en_more_aggressive
+Team_msg_en_more_aggressive:
 	txt "YOU SHOULD BE MORE\nAGGRESSIVE!", $FF, $00
-loc_3C3EE:
+;loc_3C3EE
+Team_msg_en_you_darn_fool:
 	dc.b	$FD
 	txt "YOU DARN FOOL!", $FF
-loc_3C3FE:
+;Team_msg_en_only_natural
+Team_msg_en_only_natural:
 	txt	"IT'S ONLY NATURAL\nYOU WON OVER HIM.", $FF
 loc_3C422:
 	txt "WHY CAN'T YOU WIN\nAGAINST THAT TEAM?", $FF, $00
 loc_3C448:
 	txt "YOU ARE BETTER OFF\nDRIVING A BABY BUGGY", $FF
-loc_3C470:
+;Team_msg_en_wonderful
+Team_msg_en_wonderful:
 	txt "WONDERFUL!\nGOOD JOB!", $FF, $00
 loc_3C486:
 	txt "ONLY BAD LUCK KEPT\nYOU FROM WINNING.", $FF, $00
 loc_3C4AC:
 	txt "YOU'VE DISCOURAGED\nALL OF US.", $FF
-loc_3C4CA:
+;Team_msg_en_thats_about_it
+Team_msg_en_thats_about_it:
 	dc.b	$FD
 	txt "THAT'S ABOUT IT.", $FF
-loc_3C4DC:
+;Team_msg_en_little_better
+Team_msg_en_little_better:
 	txt "CAN'T YOU DO IT\nA LITTLE BETTER?", $FF, $00
 loc_3C4FE:
 	txt "YOU ARE STILL JUST\nAN AMATEUR.", $FF, $00
 loc_3C51E:
 	txt "WE DON'T WANT YOU TO\nBECOME A RIVAL.", $FF, $00
-loc_3C544:
+;Team_msg_en_not_leaving
+Team_msg_en_not_leaving:
 	txt "YOU'RE NOT GOING TO\nLEAVE US, RIGHT?", $FF, $00
-loc_3C56A:
+;Team_msg_en_done_better
+Team_msg_en_done_better:
 	txt "YOU'VE DONE BETTER\nTHAN WE EXPECTED!", $FF, $00
-loc_3C590:
+;loc_3C590
+Team_msg_en_get_hold:
 	txt "GET HOLD OF\\nYOURSELF!", $FF
 loc_3C5A6:
 	dc.b	$FD
 	txt "THANKS FOR NOTHING.", $FF, $00
 loc_3C5BC:
 	txt "DO YOUR BEST TO BE-\nCOME THE TOP DRIVER.", $FF, $00
-loc_3C5E6:
+;Team_msg_en_lets_go_party
+Team_msg_en_lets_go_party:
 	txt "OK. LET'S GO TO\nTHE PARTY.", $FF, $00
 loc_3C602:
 	txt "DON'T SHOW YOUR FACE\nAT THE PARTY TODAY!", $FF, $00
@@ -31704,7 +31902,8 @@ loc_3C62C:
 	txt "TRY TRAINING WITH\\nA PRESTIGE TEAM.", $FF, $00
 loc_3C650:
 	txt "DON'T DISGRACE\\nOUR TEAM!", $FF, $00
-loc_3C66A:
+;loc_3C66A
+Team_msg_en_could_have_done:
 	txt "YOU COULD HAVE DONE\nIT MUCH BETTER.", $FF
 loc_3C68E:
 	txt "WE CAN'T PUT UP WITH\nYOU ANY MORE.", $FF, $00
@@ -37375,7 +37574,8 @@ loc_56DEA:
 	dc.b	$00, $03, $80, $14, $0B, $23, $04, $34, $0D, $74, $0E, $81, $04, $0A, $8D, $03, $02, $25, $1E, $8E, $02, $00, $8F, $03, $03, $14, $0C, $FF, $BF, $DE, $C5, $FB
 	dc.b	$F5, $6B, $16, $5A, $C5, $96, $BF, $7E, $AD, $67, $A7, $EF, $7B, $B4, $66, $8F, $F1, $8C, $8F, $F5, $8E, $3F, $D6, $38, $3F, $C6, $33, $46, $77, $7F, $02, $8A
 	dc.b	$DA, $11, $50, $F1, $0F, $12, $84, $56, $D1, $5D, $00, $00
-loc_56E36:
+;loc_56E36
+Race_hud_tiles:
 	dc.b	$80, $3A, $80, $03, $04, $14, $0C, $24, $0B, $35, $1A, $45, $1C, $56, $36, $66, $3C, $73, $02, $81, $03, $03, $17, $7A, $26, $3B, $82, $04, $0A, $16, $3A, $28
 	dc.b	$F8, $83, $02, $00, $16, $37, $27, $7B, $FF, $D7, $4D, $6A, $B0, $6B, $47, $29, $21, $EA, $94, $2B, $6D, $EE, $A1, $E9, $2B, $DD, $E6, $F3, $D5, $F7, $9F, $B2
 	dc.b	$7C, $20, $D2, $95, $07, $E5, $41, $D9, $07, $A2, $0F, $4C, $83, $A8, $46, $97, $95, $07, $85, $43, $3F, $87, $1C, $FE, $8F, $3E, $1D, $D4, $35, $50, $C1, $E9
@@ -37421,7 +37621,8 @@ loc_570CA:
 	dc.b	$DE, $7C, $1A, $DA, $2E, $34, $5C, $B9, $7D, $DC, $BC, $45, $C5, $B5, $3C, $8F, $FA, $3A, $67, $83, $3C, $8C, $B6, $E8, $BE, $F1, $BE, $CD, $6B, $4E, $E7, $11
 	dc.b	$8B, $19, $F2, $BD, $7F, $E2, $7F, $E1, $D6, $B5, $AF, $47, $E8, $FD, $1F, $F8, $75, $4B, $37, $A4, $3B, $99, $97, $39, $73, $97, $1A, $AB, $94, $8E, $E6, $2F
 	dc.b	$DA, $30, $A6, $11, $C4, $76, $BF, $C1, $73, $FC, $07, $2F, $FE, $05, $FE, $05, $DA, $38, $8C, $23, $97, $9D, $9A, $D6, $B5, $AD, $63, $D1, $FF, $84
-loc_573A8:
+;Race_common_tiles
+Race_common_tiles:
 	dc.b	$00, $3F, $81, $02, $00, $14, $08, $25, $1C, $37, $7A, $48, $F8, $82, $05, $17, $13, $02, $24, $0C, $36, $3A, $46, $3C, $57, $7B, $83, $03, $03, $14, $09, $25
 	dc.b	$1B, $35, $16, $44, $0A, $56, $3B, $75, $1A, $FF, $9E, $89, $50, $87, $78, $68, $44, $A1, $12, $84, $35, $CE, $A2, $7E, $3B, $46, $FA, $36, $28, $B2, $2D, $85
 	dc.b	$94, $59, $15, $CA, $E8, $95, $08, $68, $68, $7C, $51, $39, $13, $91, $3E, $E7, $FC, $36, $C3, $77, $84, $6C, $C3, $6B, $8E, $E3, $43, $43, $43, $3A, $89, $F8
@@ -37448,7 +37649,8 @@ loc_573A8:
 	dc.b	$F4, $51, $48, $A4, $52, $29, $15, $FF, $2F, $F9, $7F, $C7, $5A, $D6, $B5, $FE, $23, $FC, $5F, $D1, $45, $22, $91, $48, $A4, $52, $11, $48, $A4, $52, $29, $14
 	dc.b	$8A, $45, $23, $52, $8A, $45, $22, $91, $48, $A4, $52, $29, $08, $A4, $52, $29, $14, $8A, $FF, $97, $FC, $BF, $E3, $AD, $6B, $5A, $FF, $97, $FC, $BF, $E3, $48
 	dc.b	$A4, $52, $29, $14, $8F, $F1, $1F, $E2, $FF, $88
-loc_576D2:
+;loc_576D2
+Podium_car_tiles:
 	dc.b	$00, $74, $81, $02, $00, $82, $02, $01, $15, $1C, $25, $1D, $36, $3D, $58, $FA, $67, $7C, $83, $04, $08, $14, $09, $24, $0A, $35, $1A, $45, $1B, $54, $0B, $66
 	dc.b	$3C, $74, $0C, $FF, $A4, $D7, $F0, $8A, $4B, $E8, $91, $C2, $12, $11, $11, $12, $12, $12, $38, $42, $64, $25, $24, $26, $91, $34, $89, $A4, $4D, $22, $24, $24
 	dc.b	$A7, $9D, $33, $5E, $92, $94, $96, $96, $9B, $4A, $E9, $A4, $F1, $2B, $E8, $DA, $6D, $36, $89, $49, $09, $29, $5C, $25, $21, $29, $25, $3F, $84, $69, $2F, $D2
@@ -37603,7 +37805,8 @@ loc_585C6:
 loc_585D2:
 	dc.w	$C4B2
 	dc.w	$C4B3
-loc_585D6:
+;Lap_number_tilemap_table
+Lap_number_tilemap_table:
 	dc.w	$C4B4, $C4B5, $C4B6, $C4B7, $C4B8, $C4B9, $C4BA, $C4BB, $C4BC, $C4BD, $C4BE, $C4BF
 	dc.b	$C4, $C0, $C4, $C1, $C4, $C2, $C4, $C3, $C4, $C4, $C4, $C5, $C4, $C6, $00, $00, $C4, $C7, $00, $00, $C4, $C8, $C4, $C9
 	dc.w	$0000
@@ -40971,7 +41174,8 @@ Ai_screen_y_table_b:
 	dc.b	$12, $12, $12, $13, $13, $13, $13, $13, $14, $14, $14, $14, $16, $16, $16, $17, $17, $17, $18, $18, $18, $19, $19, $1B, $1B, $1B, $1C, $1C, $1D, $1D, $1E, $20
 	dc.b	$20, $21, $21, $22, $23, $25, $26, $26, $27, $29, $2A, $2B, $2E, $2F, $30, $33, $34, $36, $39, $3C, $3E, $42, $44, $48, $4D, $51, $57, $5D, $64, $6C, $76, $80
 	dc.b	$8E, $9E
-loc_6E894:
+;loc_6E894
+Ai_angle_table:
 	dc.b	$00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14, $00, $14
 	dc.b	$00, $14, $00, $14, $00, $14, $00, $14, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17
 	dc.b	$00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $17, $00, $1B, $00, $1B, $00, $1B
@@ -40993,7 +41197,8 @@ loc_6EB1C:
 	dc.w	$1959, $1959, $1959, $1959, $1959, $1959, $1BE2, $1BE2, $1BE2, $1BE2, $1BE2, $1BE2, $1BE2, $1BE2, $1E6A, $1E6A, $1E6A, $1E6A, $1E6A, $1E6A, $1E6A, $20F3, $20F3, $20F3, $20F3, $20F3, $237C, $237C, $237C, $237C, $237C, $2605
 	dc.w	$2605, $2605, $2605, $2605, $288E, $288E, $288E, $288E, $2B17, $2B17, $2B17, $2DA0, $2DA0, $2DA0, $3029, $3029, $3029, $32B1, $32B1, $353A, $353A, $353A, $37C3, $37C3, $3A4C, $3A4C, $3CD5, $3F5E, $3F5E, $41E7, $41E7, $4470
 	dc.w	$46F8, $4981, $4C0A, $4C0A, $4E93, $511C, $53A5, $562E, $5B3F, $5DC8, $6051, $6563, $67EC, $6CFD, $720F, $7721, $7C33, $83CD, $88DF, $907A, $9A9D, $A238, $AEE4, $B908, $C83D, $D772, $EBB9, $0000, $1BE2, $3CD5
-loc_6EC60:
+;Speed_to_distance_table
+Speed_to_distance_table:
 	dc.l	$00000000, $000005AF, $00000B5E, $0000110D, $000016BC, $00001C6B, $0000221A, $000027C9, $00002D78, $00003327, $000038D6, $00003E85, $00004434, $000049E3, $00004F92, $00005541, $00005AF0, $0000609F, $0000664E, $00006BFD, $000071AC, $0000775B, $00007D0A, $000082B9, $00008868, $00008E17, $000093C6, $00009975, $00009F24, $0000A4D3, $0000AA82, $0000B031
 	dc.l	$0000B5E0, $0000BB8F, $0000C13E, $0000C6ED, $0000CC9C, $0000D24B, $0000D7FA, $0000DDA9, $0000E358, $0000E907, $0000EEB6, $0000F465, $0000FA14, $0000FFC3, $00010572, $00010B21, $000110D0, $0001167F, $00011C2E, $000121DD, $0001278C, $00012D3B, $000132EA, $00013899, $00013E48, $000143F7, $000149A6, $00014F55, $00015504, $00015AB3, $00016062, $00016611
 	dc.l	$00016BC0, $0001716F, $0001771E, $00017CCD, $0001827C, $0001882B, $00018DDA, $00019389, $00019938, $00019EE7, $0001A496, $0001AA45, $0001AFF4, $0001B5A3, $0001BB52, $0001C101, $0001C6B0, $0001CC5F, $0001D20E, $0001D7BD, $0001DD6C, $0001E31B, $0001E8CA, $0001EE79, $0001F428, $0001F9D7, $0001FF86, $00020535, $00020AE4, $00021093, $00021642, $00021BF1
@@ -42256,18 +42461,18 @@ Sign_lookup_table:
 	dc.l	loc_714E2
 	dc.l	loc_714E5
 	dc.l	loc_714EA
-	dc.l	loc_714EF
-	dc.l	loc_714F2
-	dc.l	loc_714F5
-	dc.l	loc_714FA
+	dc.l	Sign_seq_6
+	dc.l	Sign_seq_7
+	dc.l	Sign_seq_8
+	dc.l	Sign_seq_9
 	dc.l	loc_714FF
 	dc.l	loc_71502
 	dc.l	loc_71505
 	dc.l	loc_7150A
-	dc.l	loc_714EF
-	dc.l	loc_714F2
-	dc.l	loc_714F5
-	dc.l	loc_714FA
+	dc.l	Sign_seq_6
+	dc.l	Sign_seq_7
+	dc.l	Sign_seq_8
+	dc.l	Sign_seq_9
 	dc.l	loc_7150F
 	dc.l	loc_71511
 	dc.l	loc_71513
@@ -42276,18 +42481,18 @@ Sign_lookup_table:
 	dc.l	loc_7151A
 	dc.l	loc_7151D
 	dc.l	loc_71522
-	dc.l	loc_714EF
-	dc.l	loc_714F2
-	dc.l	loc_714F5
-	dc.l	loc_714FA
-	dc.l	loc_714EF
-	dc.l	loc_714F2
-	dc.l	loc_714F5
-	dc.l	loc_714FA
-	dc.l	loc_714EF
-	dc.l	loc_714F2
-	dc.l	loc_714F5
-	dc.l	loc_714FA
+	dc.l	Sign_seq_6
+	dc.l	Sign_seq_7
+	dc.l	Sign_seq_8
+	dc.l	Sign_seq_9
+	dc.l	Sign_seq_6
+	dc.l	Sign_seq_7
+	dc.l	Sign_seq_8
+	dc.l	Sign_seq_9
+	dc.l	Sign_seq_6
+	dc.l	Sign_seq_7
+	dc.l	Sign_seq_8
+	dc.l	Sign_seq_9
 	dc.l	loc_71527
 	dc.l	loc_71529
 	dc.l	loc_7152B
@@ -42321,13 +42526,17 @@ loc_714E5:
 	dc.b	$09, $0A, $09, $0A, $FF
 loc_714EA:
 	dc.b	$0A, $09, $0A, $09, $FF
-loc_714EF:
+;Sign_seq_6
+Sign_seq_6:
 	dc.b	$0B, $00, $FF
-loc_714F2:
+;Sign_seq_7
+Sign_seq_7:
 	dc.b	$0C, $00, $FF
-loc_714F5:
+;Sign_seq_8
+Sign_seq_8:
 	dc.b	$0B, $00, $0C, $00, $FF
-loc_714FA:
+;Sign_seq_9
+Sign_seq_9:
 	dc.b	$0C, $00, $0B, $00, $FF
 loc_714FF:
 	dc.b	$0D, $00, $FF
@@ -44024,11 +44233,11 @@ loc_75C9C:
 	LEA	loc_761FE(PC), A5
 	LEA	$00A01FA2, A3
 	MOVEQ	#$0000000F, D7
-	JSR	loc_761DC(PC)
+	JSR	Z80_bus_arbitrate_and_copy(PC)
 	LEA	loc_761FE(PC), A5
 	LEA	$00A01FC2, A3
 	MOVEQ	#3, D7
-	JSR	loc_761DC(PC)
+	JSR	Z80_bus_arbitrate_and_copy(PC)
 	BSET.b	#1, $1E(A6)
 loc_75CDA:
 	CMPI.w	#4, D0
@@ -44415,7 +44624,8 @@ Copy_scratch_to_z80_ram:
 ; to the bus-arbitration block to copy D7+1 bytes from A4 to Z80 RAM at A3.
 	MOVEA.l	A4, A5
 
-loc_761DC:
+;loc_761DC
+Z80_bus_arbitrate_and_copy:
 	MOVE.w	#$0100, Z80_bus_request
 loc_761E4:
 	BTST.b	#0, Z80_bus_request
