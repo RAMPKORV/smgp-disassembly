@@ -802,14 +802,16 @@ Reset_vdp_update_state:
 	MOVE.l	#0, VDP_data_port
 	LEA	Screen_timer.w, A0
 	MOVE.w	#$003F, D0
-loc_6BE:
+;loc_6BE
+Reset_vdp_screen_clr_loop:
 	CLR.l	(A0)+
-	DBF	D0, loc_6BE
+	DBF	D0, Reset_vdp_screen_clr_loop
 	LEA	Sprite_attr_buf.w, A0
 	MOVE.w	#$009F, D0
-loc_6CC:
+;loc_6CC
+Reset_vdp_sprite_clr_loop:
 	CLR.l	(A0)+
-	DBF	D0, loc_6CC
+	DBF	D0, Reset_vdp_sprite_clr_loop
 	CLR.w	Audio_engine_flags
 	RTS
 
@@ -824,9 +826,10 @@ Copy_word_run_from_stream:
 Copy_word_run_to_buffer:
 	LEA	Palette_buffer.w, A5
 	ADDA.w	D0, A5
-loc_6E8:
+;loc_6E8
+Copy_word_run_loop:
 	MOVE.w	(A6)+, (A5)+
-	DBF	D1, loc_6E8
+	DBF	D1, Copy_word_run_loop
 	RTS
 
 ;loc_6F0:
@@ -837,10 +840,12 @@ Upload_palette_buffer_to_cram:
 ; Vdp_dma_setup=$C0000080 (CRAM DMA transfer mode).
 	MOVE.w	#$0400, D0
 	TST.b	Pal_flag.w
-	BEQ.b	loc_6FE
-loc_6FA:
-	DBF	D0, loc_6FA
-loc_6FE:
+	BEQ.b	Upload_palette_dma
+;loc_6FA
+Upload_palette_pal_wait:
+	DBF	D0, Upload_palette_pal_wait
+;loc_6FE
+Upload_palette_dma:
 	MOVE.l	#$94009340, D5
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96F495C0, D6
@@ -853,10 +858,12 @@ Upload_palette_buffer_to_cram_delayed:
 ; Used in contexts where less PAL-mode wait time is needed.
 	MOVE.w	#$0320, D0
 	TST.b	Pal_flag.w
-	BEQ.b	loc_728
-loc_724:
-	DBF	D0, loc_724
-loc_728:
+	BEQ.b	Upload_palette_delayed_dma
+;loc_724
+Upload_palette_delayed_wait:
+	DBF	D0, Upload_palette_delayed_wait
+;loc_728
+Upload_palette_delayed_dma:
 	MOVE.l	#$94009340, D5
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96F495C0, D6
@@ -870,7 +877,7 @@ Upload_h40_tilemap_buffer_to_vram:
 ; The tilemap buffer spans 40 cells wide × N rows at the plane B address.
 	MOVE.l	#$94019340, D5
 	MOVE.l	#$74000083, Vdp_dma_setup.w
-	BRA.b	loc_762
+	BRA.b	Upload_tilemap_dma
 
 ;loc_754:
 Upload_h32_tilemap_buffer_to_vram:
@@ -878,7 +885,8 @@ Upload_h32_tilemap_buffer_to_vram:
 ; Sets stride to H32 ($94019300) and VRAM DMA mode ($6C000083).
 	MOVE.l	#$94019300, D5
 	MOVE.l	#$6C000083, Vdp_dma_setup.w
-loc_762:
+;loc_762
+Upload_tilemap_dma:
 	MOVE.w	#$977F, D7
 	MOVE.l	#$96CD9560, D6
 	JMP	Send_D567_to_VDP(PC)
@@ -893,7 +901,7 @@ Draw_tilemap_buffer_to_vdp_128_cell_rows:
 ;  D5 = row count minus 1
 ;  A6 = source tilemap word buffer (consumed)
 	MOVE.l	#$01000000, D3
-	BRA.b	loc_786
+	BRA.b	Draw_tilemap_buffer_body
 
 ;loc_778:
 Draw_tilemap_buffer_to_vdp_64_cell_rows:
@@ -901,7 +909,7 @@ Draw_tilemap_buffer_to_vdp_64_cell_rows:
 ; Used for plane B when the VDP scroll size is set to 64 cells wide.
 ; Same inputs as Draw_tilemap_buffer_to_vdp_128_cell_rows.
 	MOVE.l	#$00800000, D3
-	BRA.b	loc_786
+	BRA.b	Draw_tilemap_buffer_body
 
 ;loc_780:
 Draw_tilemap_buffer_to_vdp_32_cell_rows:
@@ -909,16 +917,19 @@ Draw_tilemap_buffer_to_vdp_32_cell_rows:
 ; Used for normal 32-cell wide plane layouts (H32 mode and some H40 tilemaps).
 ; Same inputs as Draw_tilemap_buffer_to_vdp_128_cell_rows.
 	MOVE.l	#$00400000, D3
-loc_786:
+;loc_786
+Draw_tilemap_buffer_body:
 	LEA	VDP_data_port, A5
-loc_78C:
+;loc_78C
+Draw_tilemap_buffer_row:
 	MOVE.l	D7, $4(A5)
 	MOVE.w	D6, D4
-loc_792:
+;loc_792
+Draw_tilemap_buffer_tile:
 	MOVE.w	(A6)+, (A5)
-	DBF	D4, loc_792
+	DBF	D4, Draw_tilemap_buffer_tile
 	ADD.l	D3, D7
-	DBF	D5, loc_78C
+	DBF	D5, Draw_tilemap_buffer_row
 	RTS
 
 ;loc_7A0:
@@ -943,9 +954,10 @@ Decompress_tilemap_to_vdp_64_cell_rows:
 	LEA	Tilemap_work_buf.w, A6
 	BRA.b	Draw_tilemap_buffer_to_vdp_64_cell_rows
 	dc.b	$4E, $BA, $02, $FA, $4D, $F8, $EA, $00, $60, $C2
-loc_7BE:
+;loc_7BE
+Decompress_tilemap_128cell_with_base:
 	MOVE.l	#$01000000, D3
-	BRA.b	loc_7D4
+	BRA.b	Decompress_tilemap_with_base_body
 	dc.b	$26, $3C, $00, $80, $00, $00, $60, $06
 ;loc_7CE:
 Decompress_tilemap_to_vdp_32_cell_rows_with_base:
@@ -959,7 +971,8 @@ Decompress_tilemap_to_vdp_32_cell_rows_with_base:
 ;  D1 = tile base offset added to non-zero tile indices
 ;  D0 = decompression mode / base word passed to Decompress_tilemap_to_buffer
 	MOVE.l	#$00400000, D3
-loc_7D4:
+;loc_7D4
+Decompress_tilemap_with_base_body:
 	JSR	Decompress_tilemap_to_buffer(PC)
 	LEA	Tilemap_work_buf.w, A6
 
@@ -974,21 +987,24 @@ Write_tilemap_rows_to_vdp:
 ;  D1 = tile base offset (added to non-zero tile indices)
 ;  A6 = source tilemap buffer (consumed)
 	LEA	VDP_data_port, A5
-loc_7E2:
+;loc_7E2
+Write_tilemap_rows_row:
 	MOVE.l	D7, $4(A5)
 	MOVE.w	D6, D4
-loc_7E8:
+;loc_7E8
+Write_tilemap_rows_tile:
 	MOVE.w	(A6)+, D2
 	MOVE.w	D2, D0
 	ANDI.w	#$07FF, D2
-	BEQ.b	loc_7F6
+	BEQ.b	Write_tilemap_rows_zero
 	MOVE.w	D0, D2
 	ADD.w	D1, D2
-loc_7F6:
+;loc_7F6
+Write_tilemap_rows_zero:
 	MOVE.w	D2, (A5)
-	DBF	D4, loc_7E8
+	DBF	D4, Write_tilemap_rows_tile
 	ADD.l	D3, D7
-	DBF	D5, loc_7E2
+	DBF	D5, Write_tilemap_rows_row
 	RTS
 	dc.b	$32, $1A		; MOVE.w (A2)+, D1
 	dc.b	$3E, $1A, $4E, $BA	; MOVE.w (A2)+, D7
@@ -1005,21 +1021,24 @@ loc_7F6:
 ;loc_822:
 Copy_tilemap_block_with_base:
 	MOVE.w	#$0180, D3
-loc_826:
+;loc_826
+Copy_tilemap_block_row:
 	LEA	(A5), A4
 	MOVE.w	D6, D4
-loc_82A:
+;loc_82A
+Copy_tilemap_block_tile:
 	MOVE.w	(A6)+, D2
 	MOVE.w	D2, D0
 	ANDI.w	#$07FF, D2
-	BEQ.b	loc_838
+	BEQ.b	Copy_tilemap_block_zero
 	MOVE.w	D0, D2
 	ADD.w	D1, D2
-loc_838:
+;loc_838
+Copy_tilemap_block_zero:
 	MOVE.w	D2, (A4)+
-	DBF	D4, loc_82A
+	DBF	D4, Copy_tilemap_block_tile
 	ADDA.w	D3, A5
-	DBF	D5, loc_826
+	DBF	D5, Copy_tilemap_block_row
 	RTS
 
 ;loc_846:
@@ -1048,37 +1067,45 @@ Draw_packed_tilemap_to_vdp_preset_base:
 	MOVE.w	D6, D7
 	JSR	Tile_index_to_vdp_command(PC)
 	MOVE.l	D7, $4(A5)
-loc_858:
+;loc_858
+Draw_packed_fetch:
 	MOVEQ	#0, D1
 	MOVE.b	(A6)+, D1
 	CMPI.w	#$00FA, D1
-	BCC.b	loc_868
+	BCC.b	Draw_packed_ctrl
 	ADD.w	D0, D1
-loc_864:
+;loc_864
+Draw_packed_emit:
 	MOVE.w	D1, (A5)
-	BRA.b	loc_858
-loc_868:
+	BRA.b	Draw_packed_fetch
+;loc_868
+Draw_packed_ctrl:
 	SUBI.w	#$00FA, D1
 	ADD.w	D1, D1
 	ADD.w	D1, D1
-	JMP	loc_874(PC,D1.w)
-loc_874:
-	BRA.w	loc_864
-	BRA.w	loc_88A
-	BRA.w	loc_892
-	BRA.w	loc_896
-	BRA.w	loc_89A
+	JMP	Draw_packed_dispatch(PC,D1.w)
+;loc_874
+Draw_packed_dispatch:
+	BRA.w	Draw_packed_emit
+	BRA.w	Draw_packed_new_base
+	BRA.w	Draw_packed_base_add80
+	BRA.w	Draw_packed_base_add40a
+	BRA.w	Draw_packed_base_add40b
 	RTS
-loc_88A:
+;loc_88A
+Draw_packed_new_base:
 	MOVE.b	(A6)+, D0
 	LSL.w	#8, D0
 	MOVE.b	(A6)+, D0
-	BRA.b	loc_858
-loc_892:
+	BRA.b	Draw_packed_fetch
+;loc_892
+Draw_packed_base_add80:
 	ADDI.w	#$0080, D6
-loc_896:
+;loc_896
+Draw_packed_base_add40a:
 	ADDI.w	#$0040, D6
-loc_89A:
+;loc_89A
+Draw_packed_base_add40b:
 	ADDI.w	#$0040, D6
 	BRA.b	Draw_packed_tilemap_to_vdp_preset_base
 
@@ -1086,10 +1113,11 @@ loc_89A:
 Draw_packed_tilemap_list:
 	MOVE.w	(A1)+, D2
 
-loc_8A2:
+;loc_8A2
+Draw_packed_list_loop:
 	MOVEA.l	(A1)+, A6
 	JSR	Draw_packed_tilemap_to_vdp(PC)
-	DBF	D2, loc_8A2
+	DBF	D2, Draw_packed_list_loop
 	RTS
 
 ;loc_8AE:
@@ -1112,10 +1140,12 @@ Fade_palette_to_black:
 	ANDI	#$F8FF, SR
 	JSR	Wait_for_vblank
 	MOVEQ	#6, D0
-loc_8CC:
+;loc_8CC
+Fade_palette_frame:
 	LEA	Palette_buffer.w, A0
 	MOVEQ	#$0000003F, D1
-loc_8D2:
+;loc_8D2
+Fade_palette_entry:
 	MOVEQ	#0, D5
 	MOVE.w	(A0), D2
 	ROL.w	#4, D2
@@ -1123,14 +1153,15 @@ loc_8D2:
 	BSR.b	Darken_palette_component
 	BSR.b	Darken_palette_component
 	MOVE.w	D5, (A0)+
-	DBF	D1, loc_8D2
+	DBF	D1, Fade_palette_entry
 	CLR.w	Practice_vblank_step.w
 	JSR	Wait_for_vblank
 	TST.b	Pal_flag.w
-	BNE.b	loc_8FA
+	BNE.b	Fade_palette_pal_extra
 	JSR	Wait_for_vblank
-loc_8FA:
-	DBF	D0, loc_8CC
+;loc_8FA
+Fade_palette_pal_extra:
+	DBF	D0, Fade_palette_frame
 	RTS
 
 ;loc_900:
@@ -1145,9 +1176,10 @@ Darken_palette_component:
 	MOVE.w	D2, D3
 	ANDI.w	#$000E, D3
 	SUBQ.w	#2, D3
-	BCC.b	loc_910
+	BCC.b	Darken_palette_clamp
 	MOVEQ	#0, D3
-loc_910:
+;loc_910
+Darken_palette_clamp:
 	OR.w	D3, D5
 	RTS
 
@@ -1198,10 +1230,11 @@ Start_vdp_dma_fill:
 	MOVE.w	#$9780, (A5)
 	MOVE.l	D7, (A5)
 	MOVE.b	D5, -$4(A5)
-loc_960:
+;loc_960
+Start_dma_fill_wait:
 	MOVE.w	(A5), D4
 	ANDI.w	#2, D4
-	BNE.b	loc_960
+	BNE.b	Start_dma_fill_wait
 	MOVE.w	#$8F02, VDP_control_port
 	RTS
 
@@ -5869,7 +5902,7 @@ Race_finish_results_init:
 	MOVEQ	#3, D2
 loc_434C:
 	LEA	loc_4694(PC), A1
-	JSR	loc_8A2
+	JSR	Draw_packed_list_loop
 	JSR	loc_43E2(PC)
 	JSR	loc_440E(PC)
 	LEA	loc_4622, A6
@@ -7386,7 +7419,7 @@ loc_58C4:
 	MOVE.w	#0, D0
 	MOVEQ	#6, D6
 	MOVEQ	#$0000000A, D5
-	JSR	loc_7BE
+	JSR	Decompress_tilemap_128cell_with_base
 	JSR	Load_track_data_pointer
 	MOVEA.l	$4(A1), A0 ; tiles used for background
 	MOVE.l	#$70000002, VDP_control_port
