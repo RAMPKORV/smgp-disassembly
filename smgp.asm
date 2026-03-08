@@ -1922,23 +1922,25 @@ Build_sprites_write_links_done:
 ;loc_EEA:
 Queue_object_for_alt_sprite_buffer:
 	LEA	$FFFFA7B0.w, A1
-	BRA.b	loc_EF4
+	BRA.b	Queue_object_shared_body
 
 ;loc_EF0:
 Queue_object_for_sprite_buffer:
 	LEA	$FFFFA280.w, A1
-loc_EF4:
+;loc_EF4
+Queue_object_shared_body:
 	MOVE.w	$E(A0), D0
 	ANDI.w	#$FFFE, D0
 	ASL.w	#3, D0
 	ADDA.w	D0, A1
 	MOVE.w	(A1), D1
 	CMPI.w	#$000E, D1
-	BCC.b	loc_F10
+	BCC.b	Queue_object_full
 	ADDQ.w	#2, (A1)
 	MOVE.w	A0, $2(A1,D1.w)
 	RTS
-loc_F10:
+;loc_F10
+Queue_object_full:
 	ADDI.w	#$FFFF, D1
 	RTS
 
@@ -1946,46 +1948,50 @@ loc_F10:
 Clear_main_object_pool:
 	LEA	Main_object_pool.w, A0
 	MOVEQ	#$0000004B, D1
-	BRA.b	loc_F2C
+	BRA.b	Clear_object_pool_loop
 
 ;loc_F1E:
 Clear_partial_main_object_pool:
 	LEA	Main_object_pool.w, A0
 	MOVEQ	#$0000000B, D1
-	BRA.b	loc_F2C
+	BRA.b	Clear_object_pool_loop
 
 ;loc_F26:
 Clear_aux_object_pool:
 	LEA	Aux_object_pool.w, A0
 	MOVEQ	#$00000020, D1
-loc_F2C:
+;loc_F2C
+Clear_object_pool_loop:
 	BSR.b	Clear_object_slot
 	LEA	$40(A0), A0
-	DBF	D1, loc_F2C
+	DBF	D1, Clear_object_pool_loop
 	RTS
 
 ;loc_F38:
 Clear_object_slot:
 	LEA	(A0), A1
 	MOVEQ	#$0000000F, D0
-loc_F3C:
+;loc_F3C
+Clear_object_slot_loop:
 	CLR.l	(A1)+
-	DBF	D0, loc_F3C
+	DBF	D0, Clear_object_slot_loop
 	RTS
 	MOVE.l	#Queue_object_for_alt_sprite_buffer, (A0)
-	MOVE.l	#loc_FA4, $4(A0)
+	MOVE.l	#Scaled_sprite_frame_a_data, $4(A0)
 	MOVE.w	#$0091, $E(A0)
 	MOVE.w	#$00C8, $16(A0)
 	MOVE.w	#$0100, $18(A0)
 	BRA.b	Queue_object_for_alt_sprite_buffer
-	MOVE.l	#loc_F7A, (A0)
-	MOVE.l	#loc_FBE, $4(A0)
+	MOVE.l	#Update_scaled_sprite, (A0)
+	MOVE.l	#Scaled_sprite_frame_b_data, $4(A0)
 	MOVE.w	#$0100, $18(A0)
-loc_F7A:
+;loc_F7A
+Update_scaled_sprite:
 	MOVE.w	$1A(A0), D0
-	BNE.b	loc_F82
+	BNE.b	Update_scaled_sprite_body
 	RTS
-loc_F82:
+;loc_F82
+Update_scaled_sprite_body:
 	ADD.w	D0, D0
 	LEA	Road_scale_table.w, A1
 	MOVE.w	(A1,D0.w), D1
@@ -1993,14 +1999,17 @@ loc_F82:
 	NEG.w	D1
 	ADDI.w	#$0150, D1
 	MOVE.w	D1, $16(A0)
-	MOVE.w	loc_FCC(PC,D0.w), $E(A0)
+	MOVE.w	Scaled_sprite_size_table(PC,D0.w), $E(A0)
 	JMP	Queue_object_for_sprite_buffer(PC)
-loc_FA4:
+;loc_FA4
+Scaled_sprite_frame_a_data:
 	dc.b	$00, $03, $B2, $03, $FF, $FE, $00, $00, $B2, $03, $FF, $FF, $00, $00
 	dc.b	$FA, $03, $FF, $FE, $00, $00, $FA, $03, $FF, $FF, $00, $00
-loc_FBE:
+;loc_FBE
+Scaled_sprite_frame_b_data:
 	dc.b	$00, $01, $E0, $03, $FF, $FE, $00, $00, $E0, $03, $FF, $FF, $00, $00
-loc_FCC:
+;loc_FCC
+Scaled_sprite_size_table:
 	dc.b	$00, $13
 	dc.w	$0026, $0034, $0040, $0049, $0051
 	dc.b	$00, $58
@@ -2012,15 +2021,17 @@ loc_FCC:
 	dc.b	$00, $8B
 	MOVE.w	$36(A0), D0
 	SUBQ.w	#1, D0
-	BPL.b	loc_1010
+	BPL.b	Update_flag_anim_wrap
 	MOVEQ	#$00000015, D0
-loc_1010:
+;loc_1010
+Update_flag_anim_wrap:
 	MOVE.w	D0, $36(A0)
-	LEA	loc_105A(PC), A6
+	LEA	Flag_anim_tiles_phase1(PC), A6
 	CMPI.w	#$000B, D0
-	BCS.b	loc_1022
-	LEA	loc_107E(PC), A6
-loc_1022:
+	BCS.b	Update_flag_anim_phase2
+	LEA	Flag_anim_tiles_phase2(PC), A6
+;loc_1022
+Update_flag_anim_phase2:
 	MOVE.l	#$644E0003, D7
 	MOVEQ	#$00000011, D6
 	MOVEQ	#0, D5
@@ -2030,13 +2041,16 @@ loc_1022:
 	MOVE.w	#$00A1, $E(A0)
 	MOVE.w	#$0108, $16(A0)
 	BTST.b	#5, Frame_counter.w
-	BEQ.b	loc_1058
+	BEQ.b	Update_flag_enqueue_done
 	JSR	Queue_object_for_sprite_buffer(PC)
-loc_1058:
+;loc_1058
+Update_flag_enqueue_done:
 	RTS
-loc_105A:
+;loc_105A
+Flag_anim_tiles_phase1:
 	dc.w	$87D9, $87DB, $87CE, $87DC, $87DC, $0000, $87DC, $87DD, $87CA, $87DB, $87DD, $0000, $87CB, $87DE, $87DD, $87DD, $87D8, $87D7
-loc_107E:
+;loc_107E
+Flag_anim_tiles_phase2:
 	dc.w	$87B1, $87B2, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000, $0000
 
 ;loc_10A2:
