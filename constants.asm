@@ -742,3 +742,39 @@ Digit_scratch_buf  = $FFFFFCB0 ; 8-byte scratch buffer used by Render_packed_dig
 Ai_active_flag  = $FFFFFCBC ; .w  non-zero while AI collision/placement update is in progress
 Collision_palette_buf = $FFFFFCDE ; pointer used by Write_3_palette_vdp_bytes during
                                     ;   collision-flash palette swap (6-byte palette data address)
+
+; ============================================================
+; Tire wear / braking performance  ($FFFF9010–$FFFF902C, $FFFF9150–$FFFF9172)
+; ============================================================
+; Durability cap values (used by result-screen binary→decimal display)
+Tire_stat_max_base      = $FFFF9010 ; .w  max cap for race stat 0 (accel bar cap)
+Tire_stat_max_1         = $FFFF9012 ; .w  max cap for race stat 1
+Tire_stat_max_2         = $FFFF9014 ; .w  max cap for race stat 2
+Tire_stat_max_3         = $FFFF9016 ; .w  max cap for race stat 3
+Tire_stat_max_4         = $FFFF9018 ; .w  max cap for race stat 4
+; Durability accumulators (decremented each relevant event; shown on result screen)
+Tire_steering_durability_acc  = $FFFF901A ; .w  steering durability accumulator (shown as steering bar)
+Tire_braking_durability_acc   = $FFFF901C ; .w  braking durability accumulator
+Tire_accel_durability_acc     = $FFFF901E ; .w  accel/acceleration durability accumulator
+Tire_braking_zone_acc         = $FFFF9020 ; .w  braking-zone durability channel (player-brake-triggered)
+Tire_engine_durability_acc    = $FFFF9022 ; .w  engine durability accumulator
+; Per-tick delta values for stat accumulation
+Tire_stat_delta_base    = $FFFF9024 ; .w  per-tick delta for stat 0
+; (stats 1–4 follow at +2, +4, +6, +8)
+; Wear rates (set from team/car data at race start)
+Tire_wear_degrade_level = $FFFF9150 ; .w  tire wear degradation level written on degrade event:
+                                     ;     1 = steering degraded; 2 = engine/accel degraded
+Tire_accel_wear_rate    = $FFFF9152 ; .w  accel wear rate (team car data × multiplier)
+Tire_engine_wear_rate   = $FFFF9154 ; .w  engine wear rate
+Tire_steering_wear_rate = $FFFF9156 ; .w  steering wear rate
+Tire_braking_wear_rate  = $FFFF9158 ; .w  braking wear rate (4× base)
+Tire_braking_wear_rate_full = $FFFF915A ; .w  full braking wear rate (used in braking zone)
+; Durability counters (decremented by wear rates; trigger degrade event on underflow)
+Tire_accel_durability   = $FFFF9166 ; .w  accel durability counter
+Tire_engine_durability  = $FFFF9168 ; .w  engine durability counter
+Tire_steering_durability = $FFFF916A ; .w  steering durability counter
+Tire_braking_durability_b = $FFFF916C ; .w  braking durability counter B (road-marker collision)
+Tire_braking_durability_a = $FFFF916E ; .w  braking durability counter A (player-brake triggered)
+; Braking event timers
+Tire_collision_brake_timer  = $FFFF9170 ; .w  collision braking event countdown (init $00F0)
+Tire_road_marker_brake_timer = $FFFF9172 ; .w  road-marker braking event countdown (init $0028)
