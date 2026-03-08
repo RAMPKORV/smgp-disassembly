@@ -1,17 +1,27 @@
 {
   "_meta": {
     "project": "Super Monaco GP Disassembly",
-    "description": "Roadmap derived from the much more mature vermilion project. Executing these tasks would move smgp-disassembly from an early monolithic matching disassembly to a vermilion-like state with broad label coverage, documented subsystems, split modules, decoded data formats, and modding-oriented tooling.",
+    "description": "Roadmap refreshed after reviewing the more mature ../vermilion project structure and full commit history. The old phase of RAM-address naming and loc_ cleanup is effectively complete; the remaining gap to vermilion is architectural maturity: split modules under src/, split constant files, stronger docs/tooling, and a systematic audit for hidden pointers inside data blocks.",
     "created": "2026-03-07",
-    "phase": 1,
-    "label_progress": "ALL loc_ label definitions eliminated as of batch 41+. 0 loc_ definitions remain (3064 loc_XXXX preservation comments remain as cross-reference anchors). ~1369 new labels added in this final batch covering: HUD asset/tilemap lists, Z80 audio engine internals, sprite frame data cluster, standings/standings sort, per-track data records (all 19 tracks), championship/endgame/podium assets, result screen data, save/load routines, AI placement data, driver standings display assets, audio sequencer, and more.",
-    "total_commits": 200,
+    "updated": "2026-03-08",
+    "phase": 2,
+    "source_project_reviewed": "../vermilion (structure, docs, todos.json, roadmap/refactor docs, and full git commit subjects)",
+    "label_progress": "0 active loc_ label definitions remain in the build. Remaining naming work is consistency/audit of opaque data blocks, not routine/branch label cleanup.",
+    "ram_progress": "All known work RAM, I/O, and core hardware addresses are now symbolized. Remaining constant work is architectural reorganization, not broad raw-address cleanup.",
     "current_state": [
-      "Single monolithic smgp.asm source file (~46.7K normalized lines after blank-line cleanup)",
-      "Bit-perfect Windows verification exists via verify.bat",
-      "Major subsystems now documented: startup, race loop, driving model, rendering/HUD, race flow, Track_data, slope data, and sign parsing",
-      "Macro coverage now includes verified VDP helpers plus several exact whole-block helper macros",
-      "Open reverse-engineering gaps remain in notes.txt: artwork identification, Z80 audio, music IDs, AI/placement internals, and many remaining internal loc_ branch labels"
+      "Single active source file: smgp.asm still contains the whole ROM in build order",
+      "Bit-perfect verification exists and is the required correctness gate via verify.bat",
+      "Startup, race loop, driving model, rendering/HUD, race flow, Track_data, slope data, and sign data are already documented",
+      "Major helper macros already exist for VDP/control-flow patterns; future macro work is selective cleanup, not first-wave adoption",
+      "The largest parity gaps versus vermilion are include-based source splitting, split constants files, symbol/index tooling, module-level docs, and a hidden-pointer audit of opaque data blocks",
+      "Open reverse-engineering focus areas now center on AI/placement internals, Z80/audio internals, artwork/blob identification, and pointer-like values still buried in data"
+    ],
+    "completed_milestones": [
+      "Bit-perfect Windows-first build/verify workflow is in place",
+      "All known loc_ label definitions have been renamed",
+      "All known RAM/I/O address references have symbolic names",
+      "Track_data, slope-data encoding, and sign-data format have been decoded",
+      "Core gameplay, rendering, and race-flow routines have headers/comments"
     ]
   },
   "schema_version": 2,
@@ -21,729 +31,524 @@
     ],
     "acceptance": [
       "Bit-perfect build: cmd //c verify.bat exits 0",
-      "No dc.b/dc.w/dc.l table changes unless output remains byte-identical",
-      "New labels follow repo conventions and preserve original ROM address comments when renaming loc_ labels",
-      "New RAM, I/O, and struct constants are centralized in constants.asm until the project is ready to split files"
+      "No code or data move changes ROM bytes or label addresses unless the result still verifies bit-perfect",
+      "New labels follow repo conventions and preserve original ROM address comments when renaming legacy symbols",
+      "New constants live in the appropriate split constants file once ARCH-005 is complete"
     ],
     "editing_rules": [
-      "Prefer symbolic constants over raw RAM and I/O addresses",
-      "Prefer macros only when the expansion is verified byte-identical under ASM68K",
-      "Keep solved reverse-engineering notes in source comments, not only in notes.txt",
-      "Use Python 3 standard library for automation; notebooks may assist exploration but should not be the only source of truth"
+      "Prefer symbolic constants over raw RAM, I/O, and hardware literals",
+      "Prefer existing proven macros over repeating exact instruction sequences",
+      "Preserve ROM order exactly while splitting the monolith into include files",
+      "Use Python 3 standard library for automation unless a stronger repo-local convention emerges"
     ]
   },
   "quality_gates": {
     "always": [
       "Run cmd //c verify.bat after every code or data change",
       "If verify fails, isolate the exact cause rather than reverting unrelated work",
-      "Preserve ROM layout and branch ranges when renaming labels or introducing macros"
+      "When splitting files, compare listing addresses before and after each extraction step"
     ],
     "before_refactors": [
-      "Add explanatory comments for routine inputs, outputs, and invariants before moving or splitting code",
-      "Confirm all dc.* tables remain byte-identical after formatting or symbolization",
-      "When splitting smgp.asm, preserve exact ROM order and use include boundaries that do not change addresses"
+      "Add or preserve routine headers and invariants before moving code into a new module",
+      "Confirm all dc.b/dc.w/dc.l blocks remain byte-identical after formatting or symbolization",
+      "Preserve original ROM-offset comments for renamed legacy symbols and pointer blocks",
+      "Keep a referenceable monolithic source or generated address map while the split is in progress"
     ]
   },
   "categories": {
-    "build_foundation": {
-      "description": "Completed baseline work needed before larger reverse-engineering tasks can proceed safely.",
-      "tasks": [
-        {
-          "id": "BUILD-001",
-          "title": "Adopt vermilion-style Windows verification workflow",
-          "description": "Replace the old shell-based checksum flow with a Windows-first verify.bat that builds the ROM and checks a known-good SHA256 hash. This gives the project the same one-command bit-perfect verification loop used in vermilion.",
-          "file": "verify.bat",
-          "priority": "high",
-          "effort": "small",
-          "status": "done"
-        },
-        {
-          "id": "BUILD-002",
-          "title": "Document build and verify workflow for humans and agents",
-          "description": "Update README.md and AGENTS.md so build.bat is the direct assembler entry point and verify.bat or varify.bat is the canonical correctness check after any change.",
-          "files": [
-            "README.md",
-            "AGENTS.md",
-            "varify.bat"
-          ],
-          "priority": "medium",
-          "effort": "small",
-          "status": "done"
-        }
-      ]
-    },
-    "label_coverage": {
-      "description": "Systematically replace loc_ labels with intent-revealing names, using the same label-first discipline that drove vermilion from raw disassembly to readable source.",
-      "tasks": [
-        {
-          "id": "LABEL-001",
-          "title": "Rename all JSR- and BSR-called routines in dependency order",
-          "description": "Build a call graph from smgp.lst or smgp.asm, then rename every externally called routine before tackling low-value internal branch targets. Start with boot, race loop, rendering, decompression, and menu handlers. This is the highest-leverage readability improvement and should mirror vermilion's early function-renaming campaign.",
-          "file": "smgp.asm",
-          "priority": "critical",
-          "effort": "very_large",
-          "status": "done",
-          "progress_notes": "All JSR/BSR-called loc_ targets renamed across four batches (0 remaining). Final batch: Decompress_tilemap_to_vdp_64_cell_rows (was loc_7AA, 28 callsites), Load_default_control_type_handler (loc_3C02), Load_control_type_handler (loc_3C06), Draw_car_machine_tilemap (loc_C2CE), Build_minimap_player_row_buffer (loc_C6D6), Build_minimap_standings_row_buffer (loc_C7E0), Advance_road_marker_sequence_b (loc_D164). Also corrected mislabeled Decompress_tilemap_to_vdp_64_cell_rows (was using 128-cell stride) to Decompress_tilemap_to_vdp_128cell_with_tile_offset. 354 named labels total, 3859 loc_ labels remain (mostly branch targets)."
-        },
-        {
-          "id": "LABEL-002",
-          "title": "Rename high-reference shared branch targets and loop labels",
-          "description": "After call targets are named, rename common internal join points, loop backs, returns, and done paths to RoutineName_Loop, RoutineName_Return, RoutineName_Next, and similar local conventions. This makes large routines navigable and is the direct counterpart to vermilion's large batch label cleanup commits.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "very_large",
-          "depends_on": "LABEL-001",
-          "status": "done",
-          "progress_notes": "COMPLETE. All loc_ label definitions eliminated across 41+ batches. 0 loc_ definitions remain in smgp.asm. Final batch (~1369 new labels): HUD asset/tilemap lists (Race_hud_full_asset_list, Race_hud_tilemap_list, Hud_best/rival/champ_lap_tilemap_list, etc.), Z80 audio engine internals (Audio_engine_seq_*, Audio_engine_ym_*, Audio_engine_psg_*, etc.), sprite frame data cluster ($108D8-$129AE), standings sort buffers, per-track data records for all 19 tracks, championship/endgame/podium assets, result screen data, save/load routines, AI placement data, driver standings display assets. Fixed one incorrect Race_hud_tiles_a->Race_hud_tiles_f substitution in Race_hud_asset_list that broke bit-perfect verification. Build verified bit-perfect SHA256 9046c9d6... Previous: Batches 1-40 complete. Batch 40: Options_screen_cram_data, TeamMessagesBeforeRace, Team_name_strings_table, etc."
-        },
-        {
-          "id": "LABEL-003",
-          "title": "Name major data blocks and pointer tables",
-          "description": "Rename unnamed dc.l, dc.w, and dc.b tables for tracks, teams, portraits, results, sign assets, graphics blobs, and sound data. Prioritize tables that already have partial notes or are referenced by named routines.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "large",
-          "status": "in_progress",
-          "progress_notes": "Batch 26 named all 19 background palette tables, 57 road-style data tables (sideline/road/finish per track), 17 lap-time target tables, 11 sprite-frame pointer tables, 9 crash car frame data labels, and 2 player car sprite frame index tables. Original ROM offset comments preserved for all renamed loc_ labels. Earlier renames should still be audited for consistency project-wide."
-        },
-        {
-          "id": "LABEL-004",
-          "title": "Preserve original ROM offsets for every renamed symbol",
-          "description": "Ensure every loc_ rename keeps a nearby commented original address such as ;loc_59BC. This safeguards cross-referencing with old notes, emulator traces, and earlier commits while the codebase is still monolithic.",
-          "file": "smgp.asm",
-          "priority": "medium",
-          "effort": "medium",
-          "status": "in_progress",
-          "progress_notes": "Naming style is now being standardized for new internal labels using helper-oriented names such as *_Rts, *_Loop, *_Scroll_text, *_Copy_row, and *_special_char_*. This is partially done in championship team-select, save/load, endgame portrait, and text rendering paths but not yet consistent across the whole ROM. Latest audit passes restored explicit ;loc_ ROM-offset preservation comments for renamed team-text data across the $3A6FA-$3C0D8 region and the full team-intro text block at $3B17E-$3B502, including JP/EN intro strings and short helper messages such as Team_intro_jp_1, Team_msg_jp_help_comeback, Team_intro_en_be_top_driver, Team_msg_can_still_drive, Team_msg_envy_high_spirits, Team_msg_hi, Team_msg_jp_after_error, and Team_msg_jp_after_wonderful. More regions still need the same audit."
-        },
-        {
-          "id": "LABEL-005",
-          "title": "Standardize local label naming inside major routines",
-          "description": "Large subsystems like race update, track parsing, and menu flow should use a consistent local naming style instead of anonymous loc_ chains. Adopt suffixes such as _Loop, _Done, _Return, _Skip, and _Next to match the eventual mature style.",
-          "file": "smgp.asm",
-          "priority": "medium",
-          "effort": "large",
-          "depends_on": "LABEL-001",
-          "status": "todo",
-          "progress_notes": "Now more valuable after normalized source formatting and recent high-impact helper renames; should report 1861 remaining loc_ labels and prioritize internal branch targets by reference count and region."
-        },
-        {
-          "id": "LABEL-006",
-          "title": "Name interrupt handlers and state dispatch tables",
-          "description": "Identify the vertical blank, horizontal blank, trap, menu-state, race-state, and other dispatch entry points so the top-level control flow becomes legible. These labels should become anchors for later documentation and file splitting.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Named all 46 Frame_callback and Vblank_callback assignment targets across the full ROM. Labels include all attract, title, pre-race, race result, championship, options, team-select, credits, endgame, and game-over screen init and frame callbacks. Added Default_vblank_handler ($3D8), Default_vblank_handler_h32 ($3E0, h32 variant start), Vblank_tail ($3E6, shared tail), Install_hblank_handler. Renamed loc_32E0->Options_screen_arcade_init, loc_3800->Arcade_race_init, loc_42F8->Race_finish_results_init. Applied 34 symbolic name replacements for backward-reference-safe MOVE.l targets. Corrected a mislabeled Vblank_tail (was named Default_vblank_handler_h32 pointing at wrong offset). All 20 forward-reference MOVE.l targets remain as raw hex literals per the single-pass assembler constraint. Build bit-perfect."
-        },
-        {
-          "id": "LABEL-007",
-          "title": "Create automated label coverage reporting",
-          "description": "Add a tool that reports total labels, remaining loc_ labels, named call targets, and high-reference unnamed symbols. This gives the project the same measurable progress tracking that vermilion used during its long naming phase.",
-          "file": "tools/label_coverage.py",
-          "priority": "medium",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Added verified byte-identical helper macros in macros.asm and applied them across smgp.asm. Current macro set includes VDP helpers (vdpComm, VdpRowAdvance, SetH40MenuRegs), interrupt/display helpers (InterruptDisable, InterruptEnable, EnableDisplay, EnableDisplay_Rts, EnableDisplayAfterWait, InterruptWaitEnable_Rts), setup helpers (InitH40ClearObjects, HaltAudioAndEnableAfterWait), and exact whole-block helpers (WaitTwoVblanks, VdpWriteD7D0, DrawPackedTilemapInterrupt_Rts, GetPlayerAndRivalTeamsD0D1, ReturnToTitleMenu, SetPlayerTeamChampionship_Rts, DecompressTilemap64_27x1B). Safe vdpComm replacements now cover multiple repeated command classes including $0000/$0002/$0020/$0E16/$0E24/$1212/$1222/$3E80/$41A0/$63A0/$6B80/$7A00. Build verified bit-perfect."
-        }
-      ]
-    },
-    "constants_and_structs": {
-      "description": "Replace raw addresses, offsets, and mode values with symbolic names, then document the key RAM-backed structs that drive gameplay.",
-      "tasks": [
-        {
-          "id": "CONST-001",
-          "title": "Replace remaining raw work RAM references with symbolic constants",
-          "description": "Audit all $FFFFxxxx and $00FFxxxx operands in smgp.asm and define symbolic names in constants.asm for any remaining raw RAM accesses. The current constants file covers only a small subset of gameplay state; vermilion reached maturity by making RAM naming nearly universal.",
-          "files": [
-            "constants.asm",
-            "smgp.asm"
-          ],
-          "priority": "critical",
-          "effort": "very_large",
-          "status": "done",
-          "progress_notes": "constants.asm rewritten from 59 lines to ~260 lines with 100+ named constants covering hardware registers, frame dispatch, input, system flags, VDP cache, title/menu state, race event flags, player vehicle state, track/road state, screen scratch variables, tilemap draw queue, pause/music state, lap/overtake flags, race/standings state. 1217+38 raw $FFFFxxxx/$FFFFFFxx literals replaced in smgp.asm. Missing Horizontal_position ($FFFFAE12) and Player_distance ($FFFFAE1A) restored after rewrite. Follow-up RAM audit work added tools/report_raw_ram_refs.py to enumerate remaining raw RAM operands and then continued in multiple naming batches: Screen_state_word_0/1 ($FFFFFC06/$FFFFFC16), Screen_state_byte_0/1/2 ($FFFFFC19/$FFFFFC1A/$FFFFFC1B), Team_select_state ($FFFFFC1E), Player_grid_position_b/Rival_grid_position_b ($FFFFFF35/$FFFFFF3B), font/dialogue/digit buffers, special-road-scene state, road row/scanline buffers, UI tilemap banks, podium minimap state, road-column DMA state, save-buffer aliases, cursor/dialogue scratch bytes, depth-sort/rival-time helpers, and palette-buffer offset expressions replacing many remaining raw $FFFFE98x-$FFFFE9Fx literals while preserving bit-perfect output. The report count has been reduced from 349 unique raw RAM operands at the start of this pass to 290, and each completed batch has been build-verified bit-perfect."
-        },
-        {
-          "id": "CONST-002",
-          "title": "Replace remaining raw hardware, VDP, and Z80 control literals",
-          "description": "Define any missing Mega Drive hardware constants for I/O ports, VDP commands, Z80 bus control, and audio handshakes, then replace raw literals throughout the source.",
-          "files": [
-            "constants.asm",
-            "smgp.asm"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "All raw hardware, VDP, and Z80 control literals replaced. Added: Version_register ($00A10001), Io_ctrl_port_1/2/3_data/dir ($00A10003/$00A10008/$00A1000C etc.), Io_port_settle_l/w, Vdp_plane_row_bytes ($FFFFFF16), Vdp_plane_tile_count ($FFFFFF24), Object_update_counter ($FFFFFF14), Track_preview_index ($FFFFFF28), Boot_init_sentinel ($FFFFFFFC), Sprite_attr_buf ($FFFF9AC0), Road_scale_table ($FFFF9700), Main_object_pool ($FFFFAD80), Aux_object_pool ($FFFFB840), Championship_logo_buf ($FFFFEE80). Replaced all raw $00A11200 (Z80_reset) and $00FF5AC6 (Audio_engine_flags) occurrences. No remaining raw $FFFFxxxx or $00A1xxxx literals in active code. Build verified bit-perfect."
-        },
-        {
-          "id": "CONST-003",
-          "title": "Reverse-engineer the player state struct near $FFFFAE00",
-          "description": "The notes mention a probable player state struct around $AE00 with horizontal position, distance, speed, and other runtime values. Identify the full layout, define struct field constants, and replace raw offsets in all related routines.",
-          "files": [
-            "constants.asm",
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Car object struct documented: size $40 bytes, fields at +$00 (fn ptr), +$12 (x pos), +$1A (track dist), +$1E (place score), +$2B (byte), +$30 (max speed), +$32 (max speed*128), +$34 (accel cap). Named Player_obj=$FFFFAE00, Horizontal_position=$FFFFAE12, Player_distance=$FFFFAE1A, Player_place_score=$FFFFAE1E. Defined Car_obj_* offset constants in constants.asm."
-        },
-        {
-          "id": "CONST-004",
-          "title": "Reverse-engineer the AI car struct array near $FFFFB080",
-          "description": "Document the full AI car entity layout, define field offsets, and replace raw struct access patterns. This is the racing-game counterpart to vermilion's large object struct cleanup work.",
-          "files": [
-            "constants.asm",
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "AI car array at $FFFFB080, 16 entries × $40 bytes. Entry 0 is rival car (Rival_car_obj=$FFFFB080), entries 1-15 are background AI. Defined Ai_car_array, Ai_car_stride, Rival_car_obj, Rival_car_place_score=$FFFFB09E. Same Car_obj_* field offsets apply as for player object. Remaining struct fields (+$04, +$0E, +$16, +$18, +$22, +$26, +$28) not yet named — needs deeper RE."
-        },
-        {
-          "id": "CONST-005",
-          "title": "Define race, menu, and championship state constants",
-          "description": "Replace raw mode values controlling practice, warm-up, shift type, race start, result screens, standings, and championship progression with named constants. This will make control flow and conditionals much easier to follow.",
-          "files": [
-            "constants.asm",
-            "smgp.asm"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "status": "done"
-        },
-        {
-          "id": "CONST-006",
-          "title": "Define team, car, engine, and acceleration selector constants",
-          "description": "Replace raw values and selectors related to Team_car_characteristics, Engine_data_offset, Acceleration_modifier, points tables, and team-specific car behavior with symbolic constants and per-field comments.",
-          "files": [
-            "constants.asm",
-            "smgp.asm"
-          ],
-          "priority": "medium",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Added Engine_data_offset_practice = $003C to constants.asm with explanatory comment (practice/warm-up/attract mode uses variant 2 mid-strength engine, not team-specific). Replaced all 3 raw #$003C Engine_data_offset initialization literals in smgp.asm (attract/arcade init at line 3707, free-practice init at line 4786, championship warm-up init at line 7814). Expanded Team_car_acceleration and related constant comments to show byte-offset semantics. Fixed incorrect variant-5 comment (was 'practice default', now just 'weakest'). Updated variant-2 comment to note Engine_data_offset_practice. Build verified bit-perfect."
-        },
-        {
-          "id": "CONST-007",
-          "title": "Reorganize constants.asm with sections and access-size notes",
-          "description": "Add clear hardware, input, RAM map, struct field, and mode sections to constants.asm. Include byte or word access expectations where non-obvious, mirroring the way vermilion eventually turned constants into a primary source of documentation.",
-          "file": "constants.asm",
-          "priority": "medium",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Completed the constants.asm reorganization pass. The file now uses explicit section blocks for hardware, input, RAM state, object structs, audio, mode values, and work buffers, and this batch filled in remaining access-size/purpose notes for core unannotated symbols such as Input_state_bitset, Input_click_bitset, Player_team, Rival_team, Track_index_arcade_mode, Race_started, Practice_mode, Warm_up, Player_shift, Player_rpm, Player_speed, Visual_rpm, Steering_output, and Road_x_offset. constants.asm now reads as the primary symbolic RAM map reference."
-        }
-      ]
-    },
-    "documentation_core": {
-      "description": "Raise documentation quality from isolated comments to subsystem-level explanations, with the same emphasis on function headers and control-flow commentary that made vermilion readable.",
-      "tasks": [
-        {
-          "id": "DOC-001",
-          "title": "Document vectors, ROM header, startup checks, and hardware init",
-          "description": "Add routine headers and explanatory comments for StartOfRom, the exception vector table, ROM header fields, checksum handling, and EntryPoint startup logic. This should explain the boot sequence clearly enough that a new contributor can follow the first few hundred lines without external notes.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Added full block comment before StartOfRom explaining vector table layout with all 64 vector offsets and active handler summary. ROM header fully documented with offset/size/description table for all 16 fields. ErrorTrap1/2/3 explained with per-class description. EntryPoint documented with a 6-step boot sequence overview covering: TMSS check/warm-reboot shortcut, cold-boot VDP/Z80/RAM pre-init, ROM checksum verification, first-boot lap time init + language detection, full work RAM + hardware init, and main frame loop. All EntryPoint instructions now have inline comments. loc_4B4 register init table annotated. loc_510A renamed Initialize_default_lap_times with header comment. loc_6428 renamed Initialize_ui_tilemap_buffers with header comment. Wait_for_vblank comment corrected (no longer a question). loc_57C documented as LCG PRNG with algorithm description. Build verified bit-perfect."
-        },
-        {
-          "id": "DOC-002",
-          "title": "Document the main per-frame race loop and update order",
-          "description": "Identify the core frame loop for gameplay and document the order of input sampling, RPM updates, shift logic, speed integration, AI updates, VDP writes, and race-state transitions. This is the most important missing high-level explanation in the current codebase.",
-          "file": "smgp.asm",
-          "priority": "critical",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Added full Race_loop header comment documenting all 25 steps in per-frame update order. Race_loop is at $36B6. Replaced raw #$000036B6 forward references with #Race_loop in Championship_race_init and Arcade_race_init. Build bit-perfect."
-        },
-        {
-          "id": "DOC-003",
-          "title": "Document the driving model subsystems",
-          "description": "Complete the documentation around Update_shift, Update_rpm, Update_visual_rpm, speed, braking, steering, crash, and retire behavior. Include how physical constants are interpreted and where decimal literals reflect game design rather than raw encoding.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Added function header comments to all 8 driving model routines: Update_shift (gear ratio math, auto-shift thresholds), Update_rpm (Acceleration_data indexing, sub-routine call chain, pre-race rev animation, crash decel), Update_visual_rpm (±80/150 per-frame interpolation), Update_engine_sound_pitch ($022E/$0E86 shift-warning pulse), Update_speed (RPM→km/h via Engine_data table, ±2/5 rate limit), Update_breaking (braking strength table, track-quality modifier), Update_steering (Road_x_offset zones, boundary wobble, auto-centre, dead zone), Update_horizontal_position (curve displacement, steering integration, collision flag). Added 14 new symbolic constants to constants.asm: Control_key_shift_down/up/accel/brake, Crash_animation_flag, Crash_spin_flag, Retire_animation_flag, Spin_off_track_flag, Overtake_position_delta, Track_steering_index/b, Track_braking_index, Replay_steer_override, Engine_sound_pitch. Replaced 34 additional raw literals in smgp.asm. Build verified bit-perfect."
-        },
-        {
-          "id": "DOC-004",
-          "title": "Document rendering, HUD, and road display pipeline",
-          "description": "Explain the speedometer, RPM gauge, minimap, sign rendering, road displacement, background rotation, and VDP command flow. This should include the interaction between decompressed track data and on-screen presentation.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Second batch complete: added/improved function header comments for all remaining rendering/HUD/road-display routines. Covered: Write_tilemap_rows_to_vdp (VDP row writer with tile base offset), Draw_packed_tilemap_to_vdp + Draw_packed_tilemap_to_vdp_preset_base (RLE packed stream decoder), Decompress_to_vdp (Huffman tile decompressor → VDP), Decompress_to_ram (same → RAM), Build_decompression_code_table (flat decode table builder), Build_car_tilemap_buffers (6 forward car frames + 4 priority-flip mirror buffers), Initialize_car_tile_scroll (renamed from loc_1A7C; car DMA initializer), Update_background_scroll_delta (per-frame road-car scroll ring update), Update_slope_data (40-entry slope integrator + scale + interpolate pipeline), Integrate_curveslope (expanded header: streak integrator, direction flag, carry sentinel), Render_text_to_tilemap (expanded: control byte decode table, JP/EN buffer layout), Draw_bcd_time_to_vdp (BCD time formatter → VDP), Compute_minimap_index + Load_minimap_position (track-position → minimap (x,y)), Build_minimap_player_row_buffer (renamed from loc_C6D6), Build_minimap_standings_row_buffer (renamed from loc_C7E0), Advance_road_marker_sequence_b (renamed from loc_D164). All 4 callsites for renamed labels updated. Build verified bit-perfect."
-        },
-        {
-          "id": "DOC-005",
-          "title": "Document race flow, menus, and championship progression",
-          "description": "Add headers and comments covering attract mode, title screen, team selection, practice and warm-up modes, race start countdown, results, standings, and the multi-race championship progression.",
-          "file": "smgp.asm",
-          "priority": "high",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Added a GAME FLOW OVERVIEW block comment before the first screen routine documenting the full Frame_callback dispatch chain: attract cycle, world championship path (16 races), arcade path, and free-practice path. Added function header comments to all 28 screen init and frame routines: Race_preview_screen_init, Attract_screen_logo_frame, Title_menu, Title_anim_frame, Title_menu_frame, Championship_start_init, Options_screen_arcade_init, Options_screen_init, Options_setup_frame, Championship_race_init, Arcade_race_init, Race_loop (pre-existing), Championship_warmup_race_frame, Practice_mode_init, Race_results_frame, Race_finish_results_init, Pre_race_display_frame, Pre_race_preview_car_frame, Pre_race_screen_championship_init, Race_result_overlay_frame, Championship_next_race_init, Driver_standings_frame, Driver_standings_init, Team_select_frame, Team_select_screen_init, Championship_standings_init, Championship_team_select_frame, Championship_podium_frame, Championship_standings_2_init. Build verified bit-perfect."
-        },
-        {
-          "id": "DOC-006",
-          "title": "Document AI car behavior and placement logic",
-          "description": "Identify the routines and data tables that govern AI speed, position, lane movement, collisions, placement, and points. Add comments that tie RAM structures to race behavior and scoreboard updates.",
-          "file": "smgp.asm",
-          "priority": "medium",
-          "effort": "large",
-          "status": "todo"
-        },
-        {
-          "id": "DOC-007",
-          "title": "Annotate major data tables entry-by-entry",
-          "description": "Tables for teams, drivers, portraits, track assets, messages, points, and signs should have per-entry labels or comments so data can be edited safely without constantly referring to the ROM in a debugger.",
-          "file": "smgp.asm",
-          "priority": "medium",
-          "effort": "large",
-          "status": "todo"
-        }
-      ]
-    },
-    "data_formats_and_assets": {
-      "description": "Decode the remaining opaque gameplay and asset formats so track, sign, art, and text data are understandable enough to support future editing tools.",
-      "tasks": [
-        {
-          "id": "TRACK-001",
-          "title": "Fully decode the Track_data record layout",
-          "description": "Document every field in Track_data, including pointers, lengths, tilesets, background assets, minimap assets, decompression targets, and any track-specific behavior flags. Every track entry should become self-describing.",
-          "file": "smgp.asm",
-          "priority": "critical",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "All 19 Track_data entries (16 championship + 3 arcade Monaco variants) fully documented. Each entry is $48 bytes. Fields: +$00..+$1C 8×pointer (minimap tiles, BG tiles, BG mapping, minimap mapping, palette, sideline style, road style, finish line style), +$20 horizon override flag, +$22 track length, +$24 signs data ptr, +$28 signs tileset ptr, +$2C minimap position map ptr, +$30 curve data ptr, +$34 visual slope data ptr, +$38 physical slope data ptr, +$3C lap time base ptr, +$40 lap target time table ptr, +$44 steering sensitivity divisors (high=straight, low=curve). Added constants: Track_horizon_override_flag, Track_phys_slope_value, Visual_slope_data, Physical_slope_data, Steering_divisor_straight/curve, Track_lap_time_records, Track_lap_target_buf, Track_lap_time_base_ptr. All raw literals replaced with symbolic names throughout smgp.asm. Full structured comment block before Track_data and Load_track_data. Build verified bit-perfect."
-        },
-        {
-          "id": "TRACK-002",
-          "title": "Crack slope data encoding and parser behavior",
-          "description": "Finish the open notes.txt task for slope data. Determine the exact ROM encoding, decompression behavior, integrator math, sentinel semantics, and any edge cases that currently freeze or glitch. Replace the partial notes with precise source-level documentation.",
-          "files": [
-            "smgp.asm",
-            "notes.txt",
-            "tools/Render_slopes.ipynb",
-            "tools/util.py"
-          ],
-          "priority": "critical",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "ROM encoding fully documented in smgp.asm (Update_slope_data, Integrate_curveslope headers). Visual slope uses 3/4-byte RLE records with initial background-displacement byte and per-record delta. Physical slope uses simpler 3-byte RLE. Both streams terminate with high-byte bit 7 set (BMI). Decompressed byte encoding identical to curve data: $00=flat, $01-$2F=downslope, $41-$6F=upslope, $80+=$FF sentinel/wrap. Track_phys_slope_value drives RPM drag in Update_rpm. notes.txt updated to SOLVED."
-        }
-      ]
-    },
-    "audio_and_z80": {
-      "description": "Bring the audio side of the ROM up to the same documentation standard as the 68K game logic, eventually ending with a real Z80 disassembly rather than an opaque data blob.",
-      "tasks": [
-        {
-          "id": "TRACK-003",
-          "title": "Crack sign data format and per-track signage flow",
-          "description": "Finish the open notes.txt task for signs. Identify the sign record layout, tileset switching rules, parser state machine, pointer usage, placement semantics, and any compressed or banked data involved.",
-          "files": [
-            "smgp.asm",
-            "notes.txt"
-          ],
-          "priority": "critical",
-          "effort": "large",
-          "status": "done",
-          "progress_notes": "Sign data stream format fully documented: 4-byte records (distance.w, count.b, sign_id.b), $FFFF sentinel resets to stream start each lap. Tileset stream: 4-byte records (distance.w, tileset_offset.w), $FFFF sentinel. Sign_lookup_table: .l pointers to $FF-terminated frame-index lists. Values 1-$14=normal signs (aux object handler from loc_8B1C), $15+=special objects (tunnel etc., handler to $FFFFAFC0). Signs_in_row_count signs spaced $0010 apart at Signs_location. Finish-line flagkeeper spawned when player within 120 units of track end (Finish_line_sign_active flag). Added 10 sign RAM constants to constants.asm ($FFFF9240-$FFFF925C). All raw literals replaced in Parse_tileset_for_signs and Parse_sign_data with symbolic names and full header comments added. notes.txt updated to SOLVED."
-        }
-      ]
-    },
-    "architecture_and_extraction": {
-      "description": "Refactor the monolithic source into a maintainable include-based layout while preserving ROM order and exact bytes, following the same structural maturation that vermilion went through.",
+    "architecture_and_split": {
+      "description": "Primary parity gap with vermilion. The next major milestone is to turn the monolithic build into a thin top-level file plus ordered src/ modules without changing ROM output.",
       "tasks": [
         {
           "id": "ARCH-001",
-          "title": "Split smgp.asm into an include-based top-level file",
-          "description": "Convert smgp.asm from a 43K-line monolith into a thin top-level file that includes ordered modules for header, init, gameplay, data, graphics, and audio. Preserve original ROM layout exactly. This is the single biggest architectural step needed to reach vermilion-like maintainability.",
+          "title": "Split smgp.asm into a thin top-level include file",
+          "description": "Make smgp.asm behave like vermilion.asm: a short file that includes macros/constants plus ordered modules under src/. This is the immediate next step and the biggest maintainability win still missing.",
           "files": [
             "smgp.asm",
             "src/"
           ],
           "priority": "critical",
           "effort": "very_large",
-          "depends_on": [
-            "LABEL-001",
-            "LABEL-003",
-            "DOC-001",
-            "DOC-002"
-          ],
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "Initial split complete and bit-perfect verified. `smgp.asm` is now a 5-line top-level include file loading `macros.asm`, `constants.asm`, `header.asm`, `init.asm`, and `src/core.asm`. This establishes the include-based build shape needed for further module extraction without changing ROM output."
         },
         {
           "id": "ARCH-002",
-          "title": "Extract header, vectors, and startup code into dedicated modules",
-          "description": "Move StartOfRom, Vectors, Header, ErrorTrap handlers, and EntryPoint-related initialization into their own include files. These top-of-ROM structures are natural, low-risk first splits.",
+          "title": "Extract header, vectors, error traps, and startup into dedicated files",
+          "description": "Create low-risk first modules similar to vermilion's header.asm and init.asm so top-of-ROM structures stop living inside the gameplay monolith.",
           "files": [
             "smgp.asm",
-            "src/header.asm",
-            "src/init.asm"
+            "header.asm",
+            "init.asm",
+            "src/"
           ],
           "priority": "high",
           "effort": "large",
           "depends_on": "ARCH-001",
-          "status": "todo"
+          "status": "done",
+          "progress_notes": "First low-risk extraction step complete and bit-perfect verified. Top-of-ROM structures now live in `header.asm` (vectors, ROM header, error traps) and `init.asm` (EntryPoint, VBlank/HBlank setup, boot helpers, startup graphics/Z80 loader, Boot_init_data, Initialize_vdp)."
         },
         {
           "id": "ARCH-003",
-          "title": "Split gameplay and rendering subsystems into thematic modules",
-          "description": "Create separate include files for input, driving model, race flow, rendering, menus, AI, and track parsing once the relevant labels and docs exist. This is the direct analogue of vermilion's code-region split into src/*.asm modules.",
+          "title": "Split gameplay code into thematic src modules",
+          "description": "Break the remaining code region into modules such as core, race flow, driving model, rendering/HUD, menus, AI, and audio interface, preserving exact ROM order and using the existing documentation as boundaries.",
           "files": [
             "smgp.asm",
             "src/"
           ],
-          "priority": "high",
-          "effort": "large",
+          "priority": "critical",
+          "effort": "very_large",
           "depends_on": [
             "ARCH-001",
-            "DOC-003",
-            "DOC-004",
-            "DOC-005",
-            "DOC-006"
+            "ARCH-002"
           ],
-          "status": "todo"
+          "status": "in_progress",
+          "progress_notes": "Eleventh extraction step complete and bit-perfect verified. The late-game/result path now has its own `src/endgame.asm`, pulling the results-screen setup, credits/car-spec endgame flow, and closely-related late-game data away from the residual `src/gameplay.asm` tail. `src/gameplay.asm` now starts at `Draw_track_name_and_championship_standings`, so the remaining module is mostly championship/race-summary glue plus shared late-game helpers. New insight: the source split is now mature enough that additional architecture work should focus on stable data-region extraction (`ARCH-004`) rather than more tiny code-only splits."
         },
         {
           "id": "ARCH-004",
           "title": "Split major data tables and asset regions into dedicated modules",
-          "description": "Move track data, team and driver tables, text data, graphics data, and sound/Z80 data into ordered include files. This makes later tooling and extraction work dramatically safer.",
+          "description": "Move track/team/text/graphics/sound regions into ordered src/*.asm or data-oriented include files once the code split is stable. This prepares the project for pointer auditing and later extraction tooling.",
           "files": [
             "smgp.asm",
             "src/",
             "data/"
           ],
           "priority": "high",
+          "effort": "very_large",
+          "depends_on": [
+            "ARCH-001",
+            "ARCH-003",
+            "TOOL-005"
+          ],
+          "status": "in_progress",
+          "progress_notes": "Ninth `ARCH-004` extraction step complete and bit-perfect verified. A stable endgame/results block was first moved from `src/gameplay.asm` into `src/endgame.asm`, then contiguous late-game data islands were peeled out in place: the arcade-car-spec/endgame region into `src/endgame_data.asm`, the race-finish/credits-result region into `src/endgame_result_data.asm`, the credits frame-table/asset-list island into `src/endgame_credits_data.asm`, the game-over asset/text block into `src/endgame_game_over_data.asm`, the result-screen decompression/tilemap list block into `src/result_screen_lists.asm`, a larger result-screen animation/art island (starting at `Result_sprite_anim_data` and continuing through `Result_tiles_e`) into `src/result_sprite_anim_data.asm`, the adjacent result-screen asset block (`Result_tiles_f` through `Result_screen_tiles_a`) into `src/result_screen_assets.asm`, and the next contiguous result-screen art block (`Result_screen_tiles_b`) into `src/result_screen_tiles_b.asm`. All remain reincluded at their original ROM locations from `src/gameplay.asm`, preserving exact ROM order while steadily shrinking the mixed late-game module. This continues to validate that include-in-place extraction works not only for small tables, but also for large adjacent art/animation runs."
+        },
+        {
+          "id": "ARCH-005",
+          "title": "Split constants.asm into hardware, RAM, game, and sound constant files",
+          "description": "Match vermilion's mature layout by separating constants into focused files such as hw_constants.asm, ram_addresses.asm, game_constants.asm, and sound_constants.asm, then wire them into the new top-level build.",
+          "files": [
+            "constants.asm",
+            "hw_constants.asm",
+            "ram_addresses.asm",
+            "game_constants.asm",
+            "sound_constants.asm"
+          ],
+          "priority": "high",
           "effort": "large",
           "depends_on": [
             "ARCH-001",
-            "TRACK-001",
-            "DATA-001",
-            "DATA-002",
-            "DATA-003"
+            "ARCH-002"
+          ],
+          "status": "done",
+          "progress_notes": "Initial constants split complete and bit-perfect verified. `constants.asm` is now a thin include file that pulls in `hw_constants.asm`, `ram_addresses.asm`, `sound_constants.asm`, and `game_constants.asm`. `tools/split_constants.py` was added to regenerate the split files from the monolithic baseline while the architecture migration continues."
+        },
+        {
+          "id": "ARCH-006",
+          "title": "Create module-boundary and refactor-log docs for the split build",
+          "description": "Add docs/module_boundaries.md and docs/refactor_log.md so future contributors can see ownership, call boundaries, known misplacements, and why each extraction step was safe. This is a major part of vermilion's mature shape.",
+          "files": [
+            "docs/module_boundaries.md",
+            "docs/refactor_log.md",
+            "src/"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": [
+            "ARCH-003",
+            "ARCH-004",
+            "ARCH-005"
           ],
           "status": "todo"
         },
         {
-          "id": "ARCH-005",
-          "title": "Extract large binary blobs with incbin where safe",
-          "description": "Once assets are clearly identified, move suitable large binary data blocks to external files referenced by incbin, using helper labels and comments to preserve exact offsets. Do this only for stable, well-understood data regions.",
+          "id": "ARCH-007",
+          "title": "Preserve a reference-only monolithic source during the split",
+          "description": "Keep one reference file or generated address map that represents the pre-split monolith so line/address comparisons remain easy while modules are being extracted.",
           "files": [
             "smgp.asm",
-            "data/"
+            "smgp_full.asm"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "ARCH-001",
+          "status": "done",
+          "progress_notes": "Added `smgp_full.asm` as a generated reference-only monolithic snapshot composed from the current include tree. It is not part of the build, but it preserves a single-file view for line-based inspection during the ongoing split."
+        }
+      ]
+    },
+    "documentation_and_data_audit": {
+      "description": "Once the split exists, the next parity step is the same one vermilion went through: module-level docs plus systematic auditing of opaque data and embedded pointers.",
+      "tasks": [
+        {
+          "id": "DOC-006",
+          "title": "Document AI car behavior, placement logic, and standings internals",
+          "description": "Identify the routines and data that govern AI speed, lane choice, placement score, sort order, and post-race standings updates. This is one of the largest remaining gameplay-understanding gaps.",
+          "files": [
+            "src/ai.asm",
+            "src/race.asm",
+            "notes.txt"
+          ],
+          "priority": "high",
+          "effort": "large",
+          "depends_on": "ARCH-003",
+          "status": "todo"
+        },
+        {
+          "id": "DOC-007",
+          "title": "Annotate remaining major data tables and asset lists entry-by-entry",
+          "description": "Add per-entry labels/comments for team data, driver data, portraits, HUD assets, standings tables, championship data, sprite-frame tables, and other large named data regions so they become safely editable without debugger context.",
+          "files": [
+            "src/",
+            "notes.txt"
+          ],
+          "priority": "medium",
+          "effort": "large",
+          "depends_on": [
+            "ARCH-003",
+            "ARCH-004"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "PTR-001",
+          "title": "Build a hidden-pointer scanner for data blocks",
+          "description": "Create a tool that scans listing output and assembly data blocks for values that resolve inside the ROM, RAM, or structured tables but are not yet labeled as pointers. This is the explicit next step after the src split.",
+          "files": [
+            "tools/report_hidden_pointers.py",
+            "smgp.lst",
+            "src/"
+          ],
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "ARCH-003",
+            "ARCH-004",
+            "TOOL-002"
+          ],
+          "status": "done",
+          "progress_notes": "Added `tools/report_hidden_pointers.py` and generated `tools/index/hidden_pointer_candidates.json`. The scan was refined repeatedly: from an initial 270 noisy `dc.l`/`dc.w` hits, to 22 candidates / 11 strong `dc.l` candidates, to 4 reviewed candidates, and finally to 0 remaining candidates after auditing and suppressing known false-positive classes. The tool now also has first-pass support for hidden addresses encoded across tuple-style `dc.b` and `dc.w` data, but the naive tuple sweep produced overwhelming bitmap/layout noise, so the current tuple heuristic is intentionally constrained and conservative. Insight: real hidden RAM-pointer tables were found in result/podium data and symbolized; broader tuple-pointer discovery will need domain-specific structure heuristics rather than blind sliding-window matching."
+        },
+        {
+          "id": "PTR-002",
+          "title": "Audit candidate hidden pointers and convert confirmed ones to labeled tables",
+          "description": "Review PTR-001 output, confirm which candidates are real pointers or dispatch tables, and rewrite those regions as named dc.l/dc.w tables or mixed-format structures with comments.",
+          "files": [
+            "src/",
+            "notes.txt",
+            "docs/refactor_log.md"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": "PTR-001",
+          "status": "in_progress",
+          "progress_notes": "Confirmed and converted two real hidden pointer tables in `src/gameplay.asm`: `Race_finish_lap_time_ptrs` / `Arcade_car_spec_stat_ptrs` now use `Lap_time_table_ptr+4`, `Lap_time_table_ptr+8`, and `Rival_race_time_bcd`; `Race_finish_buffer_ptr_table` now uses symbolic `Tilemap_work_buf` offsets instead of raw RAM addresses. Follow-up audit cleared the remaining direct-number scanner hits as false positives: `Boot_init_data` is intentional boot metadata, `Vdp_init_register_table` and `Track_data` contain scalar/control values, and the `Speed_to_distance_table` match is numeric coincidence inside a monotonic fixed-point table. New insight: tuple-encoded pointers definitely remain plausible in `dc.b`/`dc.w` structures, but extracting them reliably will require label-specific and format-specific heuristics under PTR-003 rather than a generic sliding-window scan."
+        },
+        {
+          "id": "PTR-003",
+          "title": "Identify mixed code/data and implicit dispatch structures revealed by the split",
+          "description": "Use module boundaries plus pointer-candidate results to find code-in-data blobs, inline command streams, and address-like records that still need disassembly or structure comments.",
+          "files": [
+            "src/",
+            "notes.txt"
+          ],
+          "priority": "high",
+          "effort": "large",
+          "depends_on": [
+            "ARCH-004",
+            "PTR-001"
+          ],
+          "status": "in_progress",
+          "progress_notes": "Five focused `smgp.lst`-guided mixed-structure audits have landed. First, `Credits_car_frame_table` in `src/gameplay.asm` was confirmed to be a 3-entry hidden pointer table encoded as raw longwords targeting six embedded sprite-record starts inside the blob immediately before `Credits_tiles`; those targets are now labeled `Credits_car_frame_a` through `Credits_car_frame_f`, the table now uses symbolic `dc.l` entries, and the dynamic frame swaps in `Credits_car_obj_update` use labels instead of raw ROM addresses. Second, `Arcade_car_spec_car_positions` was confirmed to be a 4-record mixed structure of `y.w, x.w, sprite_frame_ptr.l`, with the raw longword pointers targeting four embedded sprite records inside `Arcade_car_spec_palette_stream`; those records are now labeled `Arcade_car_spec_car_frame_a` through `Arcade_car_spec_car_frame_d`. Third, the AI car init records in `src/objects.asm` were audited against `Init_ai_car_fields` and `smgp.lst`: they are confirmed 20-byte mixed records whose third long is not a direct sprite-data pointer but a pointer into `Car_sprite_ptr_table`, while the surrounding longs/words are scalar setup fields. Fourth, `Endgame_car_anim_tile_table` was checked against its consumer and `smgp.lst`: the apparent `$87xx` 'pointers' are just tile IDs copied straight to a VDP tilemap buffer, and the old `Update_tire_wear_counter_Arcade-1` expression was only being used to materialize literal tile word `$87DD`, not to reference executable code. Fifth, the crash RPM/sync gauge tables were confirmed to be 8-byte mixed records indexed by gauge state: 3 threshold/state bytes followed by a pointer to a palette-write stream consumed by `Write_3_palette_vdp_bytes`, while the pointed-to streams themselves are sprite/tile tuple data rather than code or dispatch tables. Key insight: listing-guided, consumer-first audits are just as valuable for ruling out false pointer interpretations as they are for confirming real embedded dispatch/frame structures."
+        },
+        {
+          "id": "DATA-001",
+          "title": "Identify and name stable artwork/blob boundaries for future extraction",
+          "description": "Catalog which graphics, palette, and sound-adjacent blobs are clearly bounded and understood well enough to label or eventually move behind incbin without risking hidden internal pointers.",
+          "files": [
+            "src/",
+            "data/",
+            "notes.txt"
           ],
           "priority": "medium",
           "effort": "large",
           "depends_on": [
             "ARCH-004",
-            "DATA-003",
-            "AUDIO-005"
+            "PTR-002"
           ],
           "status": "todo"
         }
       ]
     },
-    "macro_refactors": {
-      "description": "Introduce macros and record helpers only after the underlying patterns are understood well enough to prove byte-identical expansion.",
+    "audio_and_tooling": {
+      "description": "Vermilion's maturity comes partly from project tooling and partly from isolating tricky subsystems like sound. smgp needs both.",
       "tasks": [
         {
-          "id": "MACRO-001",
-          "title": "Add VDP command and row-advance helper macros",
-          "description": "Identify repeated VDP control longwords and address-step patterns in rendering code, then wrap them in macros that assemble identically. This should follow the same careful macro discipline vermilion used for DMA and VDP helpers.",
+          "id": "AUDIO-001",
+          "title": "Document the 68K-to-Z80 sound interface and command flow",
+          "description": "Map the command queue, bus handoff, sound-driver RAM window, and known music/SFX command semantics so the audio boundary is readable even before a full Z80 disassembly exists.",
           "files": [
-            "macros.asm",
-            "smgp.asm"
+            "src/audio_interface.asm",
+            "sound_constants.asm",
+            "notes.txt"
           ],
-          "priority": "medium",
-          "effort": "medium",
-          "depends_on": "DOC-004",
+          "priority": "high",
+          "effort": "large",
+          "depends_on": "ARCH-003",
           "status": "todo"
         },
         {
-          "id": "MACRO-002",
-          "title": "Add Z80 bus control helper macros",
-          "description": "After AUDIO-002 documents the handshake, create small macros for request, release, and wait patterns around Z80 access to reduce duplicated low-level sequences without changing bytes.",
+          "id": "AUDIO-002",
+          "title": "Isolate and name Z80 driver tables and opaque sound data blocks",
+          "description": "After the sound interface is documented, identify driver-local tables, command streams, and stable data boundaries so the audio region can be split and prepared for later disassembly or extraction.",
           "files": [
-            "macros.asm",
-            "smgp.asm"
+            "src/sound.asm",
+            "data/sound/",
+            "notes.txt"
           ],
           "priority": "medium",
-          "effort": "medium",
-          "depends_on": "AUDIO-002",
+          "effort": "very_large",
+          "depends_on": [
+            "ARCH-004",
+            "AUDIO-001",
+            "PTR-002"
+          ],
           "status": "todo"
         },
         {
-          "id": "MACRO-003",
-          "title": "Create record macros for track and team data",
-          "description": "Once Track_data and team-related tables are fully decoded, define readable macros for their entry formats so data edits become less error-prone and easier to review.",
+          "id": "TOOL-002",
+          "title": "Export a machine-readable symbol map from smgp.lst",
+          "description": "Create a tool that emits label-to-ROM-address data for every symbol in the build. This should become the backbone for address comparisons, pointer scans, editor tooling, and future docs.",
           "files": [
-            "macros.asm",
-            "smgp.asm"
+            "tools/index/symbol_map.py",
+            "smgp.lst"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "status": "done",
+          "progress_notes": "Added `tools/index/symbol_map.py`. It parses `smgp.lst` and emits `tools/index/symbol_map.json` with 4221 labels mapped to ROM addresses. This now serves as the baseline for split-safety checks and future pointer-audit tooling."
+        },
+        {
+          "id": "TOOL-003",
+          "title": "Add a run_checks aggregator plus core structural linters",
+          "description": "Create tools/run_checks.py and supporting linters for raw-address regressions, reintroduced loc_ labels, include-order drift, and other hygiene checks that matter once the build is split across many files.",
+          "files": [
+            "tools/run_checks.py",
+            "tools/"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "TOOL-002",
+            "ARCH-001"
+          ],
+          "status": "done",
+          "progress_notes": "Added `tools/run_checks.py`. It currently verifies top-level include order, validates `tools/index/symbol_map.json`, rejects new `loc_` label definitions, runs the split-address checker, and performs a raw-address sweep with an explicit per-file allowlist for known unresolved literals and intentional magic values. Current result: all structural checks pass on the split tree."
+        },
+        {
+          "id": "TOOL-004",
+          "title": "Add comment-density and function-header coverage reporting",
+          "description": "Mirror vermilion's documentation-driven cleanup by generating per-file comment-density and header-coverage reports after the source is split into modules.",
+          "files": [
+            "tools/comment_density.py",
+            "src/"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "ARCH-003",
+          "status": "todo"
+        },
+        {
+          "id": "TOOL-005",
+          "title": "Add a split-safety checker that compares symbol addresses before and after moves",
+          "description": "Before and during module extraction, compare the pre-split and post-split listing outputs to prove that labels stay at the same ROM addresses and that no include ordering mistake changed bytes.",
+          "files": [
+            "tools/check_split_addresses.py",
+            "smgp.lst",
+            "src/"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "ARCH-001",
+            "TOOL-002"
+          ],
+          "status": "done",
+          "progress_notes": "Added `tools/check_split_addresses.py`. It compares the current `smgp.lst` against the baseline symbol map and reports missing, moved, or extra labels. Current result after the first split: all 4221 baseline symbols still match their original addresses exactly."
+        },
+        {
+          "id": "TOOL-006",
+          "title": "Create machine-readable extraction and injection foundations for named data",
+          "description": "Build the same kind of tooling foundation vermilion uses for randomizer/editor work: export named track, team, text, standings, and related data to structured files and support round-tripping back to assembly safely.",
+          "files": [
+            "tools/extract/",
+            "tools/inject/",
+            "src/"
           ],
           "priority": "medium",
           "effort": "large",
           "depends_on": [
-            "TRACK-001",
-            "DATA-001"
+            "ARCH-004",
+            "PTR-002",
+            "TOOL-002"
           ],
-          "status": "todo"
-        },
-        {
-          "id": "MACRO-004",
-          "title": "Annotate duplicated patterns that must not yet be deduplicated",
-          "description": "Some repeated instruction or data patterns may look macro-worthy but encode subtle layout or branch-range constraints. Document these cases explicitly so future cleanup efforts do not accidentally break the match.",
-          "files": [
-            "smgp.asm",
-            "AGENTS.md"
-          ],
-          "priority": "low",
-          "effort": "medium",
-          "status": "todo"
-        }
-      ]
-    },
-    "tooling_and_quality": {
-      "description": "Build the exploration, lint, extraction, and visualization tools that a mature disassembly needs for sustained progress and safe editing.",
-      "tasks": [
-        {
-          "id": "TOOL-001",
-          "title": "Create label coverage and call graph reporter",
-          "description": "Write a Python tool that parses smgp.lst or smgp.asm and reports named call targets, remaining loc_ labels, high-reference unnamed labels, and suggested rename batches. This should become the backbone for LABEL-001 progress tracking.",
-          "file": "tools/label_coverage.py",
-          "priority": "high",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "TOOL-009",
-          "title": "Create a safe exact-block matcher for ASM macro and rename work",
-          "description": "Build a token-aware helper that can locate exact instruction blocks in smgp.asm even when formatting changes, then emit candidate replacements and verification batches. This would reduce the risk of raw regex edits and make future macro extraction and label cleanup more systematic.",
-          "files": [
-            "tools/asm_block_matcher.py",
-            "smgp.asm"
-          ],
-          "priority": "medium",
-          "effort": "medium",
-          "status": "todo"
-        },
-        {
-          "id": "LABEL-010",
-          "title": "Name horizontal blank handler stub and frame callback pointers",
-          "description": "Follow LABEL-006 by naming the copied hblank stub at $FFFFFFD2 and the RAM callback pointers used via $FFFFFF10 and $FFFFFF0C, so top-level scheduling becomes more self-describing.",
-          "files": [
-            "smgp.asm",
-            "constants.asm"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "depends_on": "LABEL-006",
-          "status": "done",
-          "progress_notes": "Added Hblank_handler_stub = $FFFFFFD2 to constants.asm. Renamed loc_406 -> Hblank_handler_stub_src with ;loc_406 comment preserved. Replaced dc.l $FFFFFFD2 in vector table with Hblank_handler_stub. Replaced LEA $FFFFFFD2.w in Install_hblank_handler with Hblank_handler_stub.w. Replaced $FFFFFF10.w and $FFFFFF0C.w in main loop dispatch, VBI dispatch, and startup initialization with Frame_callback.w and Vblank_callback.w. Build verified bit-perfect."
-        },
-        {
-          "id": "TOOL-010",
-          "title": "Create a JSON updater for todos progress metadata",
-          "description": "Automate updates to roadmap metadata such as remaining loc_ count, label progress text, and completed macro batches so todos.json stays aligned with actual reverse-engineering progress.",
-          "file": "tools/update_todos.py",
-          "priority": "low",
-          "effort": "small",
           "status": "todo"
         }
       ]
     },
     "modding_foundation": {
-      "description": "Use the mature disassembly and extraction work to support real editor-style tooling tailored to a racing game instead of an RPG randomizer stack.",
+      "description": "Longer-term parity with vermilion means the disassembly should support real editing/randomization tools once the split and pointer audit are solid.",
       "tasks": [
         {
           "id": "EDIT-001",
-          "title": "Write a modding architecture document",
-          "description": "Define how extracted JSON or structured data maps back to assembly, which assets are safe to edit automatically, where checksum patching fits, and how verify.bat remains the ultimate correctness gate.",
+          "title": "Write a modding and data-roundtrip architecture document",
+          "description": "Define which extracted formats map back to assembly, where checksum/update steps fit, how verify.bat remains the final gate, and which data classes are safe to edit automatically.",
           "file": "docs/modding_architecture.md",
           "priority": "medium",
           "effort": "small",
-          "depends_on": "TOOL-008",
+          "depends_on": "TOOL-006",
           "status": "todo"
         },
         {
           "id": "EDIT-002",
           "title": "Build a track editor CLI",
-          "description": "Create a tool that can edit structured track records, slope data, sign placement, and associated asset references, then write the results back to assembly safely. This is the most valuable modding tool unique to Super Monaco GP.",
+          "description": "Create a tool that edits structured track records, slope data, sign placement, and related references, then writes the results back safely through the extraction/injection layer.",
           "file": "tools/editor/track_editor.py",
           "priority": "high",
           "effort": "large",
           "depends_on": [
-            "TRACK-001",
-            "TRACK-002",
-            "TRACK-003",
-            "TOOL-008"
+            "PTR-002",
+            "TOOL-006"
           ],
           "status": "todo"
         },
         {
           "id": "EDIT-003",
-          "title": "Build a team, driver, and car stats editor CLI",
-          "description": "Create an editor for team order, driver mappings, portraits, car characteristics, engine tables, acceleration tables, and points-related data. This should support common gameplay hacks without direct assembly editing.",
+          "title": "Build a team, driver, and car-stats editor CLI",
+          "description": "Create an editor for team ordering, driver mappings, portraits, engine tables, acceleration tables, and team-specific characteristics once those modules and tables are stable.",
           "file": "tools/editor/team_editor.py",
           "priority": "medium",
           "effort": "medium",
           "depends_on": [
-            "DATA-001",
-            "TOOL-008"
+            "DOC-007",
+            "TOOL-006"
           ],
           "status": "todo"
         },
         {
           "id": "EDIT-004",
-          "title": "Build a text and sign message editor CLI",
-          "description": "Create an editor for text tables, team messages, sign text assets if any, and language-dependent strings, validating encoding against the txt macro and any format-specific constraints.",
+          "title": "Build a text and sign-message editor CLI",
+          "description": "Create an editor for text tables, team messages, sign content, and language-dependent strings using the split text/data modules and any format constraints documented during the pointer/data audit.",
           "file": "tools/editor/text_editor.py",
           "priority": "medium",
           "effort": "medium",
           "depends_on": [
-            "DATA-002",
-            "TOOL-008"
+            "DOC-007",
+            "TOOL-006"
           ],
           "status": "todo"
         },
         {
           "id": "EDIT-005",
-          "title": "Build a championship and progression data editor CLI",
-          "description": "Create an editor for standings, points awards, race order, practice and warm-up flags, and other championship progression data once those structures are fully named and documented.",
+          "title": "Build a championship and progression editor CLI",
+          "description": "Create an editor for standings, points awards, race order, progression flags, and championship flow once AI/placement and progression tables are fully documented.",
           "file": "tools/editor/championship_editor.py",
           "priority": "low",
           "effort": "medium",
           "depends_on": [
-            "CONST-005",
-            "DATA-001",
-            "TOOL-008"
+            "DOC-006",
+            "TOOL-006"
           ],
           "status": "todo"
         }
       ]
     },
     "regression_and_notes": {
-      "description": "Prevent regressions and turn scattered notes into a maintained project knowledge base instead of a scratchpad.",
+      "description": "Keep the project trustworthy while the architecture changes and convert notes into a maintained index rather than a scratchpad.",
       "tasks": [
         {
           "id": "REGR-001",
-          "title": "Create a run_checks aggregator script",
-          "description": "Add a script that runs verify.bat plus the project's coverage, comment-density, and raw-literal linters in one place. This becomes the standard pre-commit quality gate once tooling exists.",
-          "file": "tools/run_checks.py",
-          "priority": "high",
-          "effort": "medium",
-          "depends_on": [
-            "TOOL-001",
-            "TOOL-006",
-            "TOOL-007"
-          ],
-          "status": "todo"
-        },
-        {
-          "id": "REGR-002",
           "title": "Add pre-commit hook scripts for Windows and Bash",
-          "description": "Provide simple hook installers that run the check aggregator and verify.bat automatically. This mirrors vermilion's later regression-prevention work and makes bit-perfect discipline easier to maintain.",
+          "description": "Provide simple hook installers that run verify.bat and tools/run_checks.py automatically, mirroring vermilion's later regression-prevention work.",
           "files": [
             "tools/pre-commit.cmd",
             "tools/pre-commit.sh"
           ],
           "priority": "medium",
           "effort": "small",
-          "depends_on": "REGR-001",
+          "depends_on": "TOOL-003",
           "status": "todo"
         },
         {
-          "id": "REGR-003",
-          "title": "Add targeted lints for raw loc_ labels and raw RAM references",
-          "description": "After label and constant coverage improves, add lints that flag newly introduced raw loc_ references in cleaned regions and any reintroduced raw RAM or I/O literals that should use constants instead.",
-          "file": "tools/run_checks.py",
+          "id": "REGR-002",
+          "title": "Add targeted lints for hidden-pointer regressions and raw-symbol backsliding",
+          "description": "Flag newly introduced raw RAM/I/O literals, any accidental reintroduction of loc_-style labels, and pointer-like values added to cleaned data regions without documentation.",
+          "files": [
+            "tools/run_checks.py",
+            "tools/"
+          ],
           "priority": "medium",
           "effort": "small",
           "depends_on": [
-            "LABEL-001",
-            "CONST-001",
-            "REGR-001"
+            "PTR-001",
+            "TOOL-003"
           ],
           "status": "todo"
         },
         {
           "id": "NOTES-001",
-          "title": "Modernize notes.txt into a maintained reverse-engineering index",
-          "description": "Update notes.txt so solved items point to canonical labels and comments in source, RAM locations use symbolic names, and remaining unknowns are clearly separated from already-understood subsystems.",
+          "title": "Keep notes.txt as a live open-problems index mapped to split modules",
+          "description": "After the split, rewrite notes.txt so unresolved topics point at module paths and named labels instead of monolithic line-of-thought notes.",
           "file": "notes.txt",
           "priority": "medium",
-          "effort": "medium",
-          "status": "done",
-          "progress_notes": "Complete rewrite of notes.txt. Removed stale TODO entries for solved topics (slope data, signs data). Split into OPEN PROBLEMS (artwork ID, Z80 disasm, music IDs, AI behavior, $A980 struct) and SOLVED PROBLEMS (slope, signs, track data, curve data, player struct, AI array, label coverage) sections. LOCATIONS section fully replaced with symbolic constant names from constants.asm. Team intro sprite labels now use Intro_sprite_data_* names matching smgp.asm. Curve data and slope data decompressed format documentation preserved with updated symbolic references. Build verified bit-perfect."
+          "effort": "small",
+          "depends_on": "ARCH-003",
+          "status": "todo"
         },
         {
           "id": "NOTES-002",
-          "title": "Maintain an explicit open-problems index for unresolved subsystems",
-          "description": "Keep a short list of still-unsolved topics such as slope edge cases, signs edge cases, artwork identification, Z80 audio gaps, and music IDs, with pointers to the relevant routines and tools. This prevents TODOs from disappearing into commit history.",
-          "files": [
-            "notes.txt",
-            "AGENTS.md"
-          ],
+          "title": "Maintain docs/refactor_log.md as module and pointer work lands",
+          "description": "Record major label, module, macro, and pointer-audit milestones in a human-readable log so the path from monolith to mature layout stays searchable outside commit history.",
+          "file": "docs/refactor_log.md",
           "priority": "low",
           "effort": "small",
-          "status": "done",
-          "progress_notes": "Addressed as part of NOTES-001 rewrite. notes.txt now has a clear OPEN PROBLEMS section listing: artwork/tileset identification, Z80 driver disassembly, music ID enumeration, AI behavior, and $A980 struct. Each points to the relevant area of smgp.asm or constants.asm."
+          "depends_on": "ARCH-006",
+          "status": "todo"
         }
       ]
     }
   },
   "priority_order": [
-    "--- Phase 1A: Core readability and control flow ---",
-    "LABEL-001",
-    "LABEL-006",
-    "CONST-001",
-    "CONST-003",
-    "CONST-004",
-    "DOC-002",
-    "--- Phase 1B: Core subsystem understanding ---",
-    "DOC-003",
-    "DOC-004",
-    "DOC-005",
-    "TRACK-001",
-    "TRACK-002",
-    "TRACK-003",
-    "AUDIO-001",
-    "AUDIO-002",
-    "--- Phase 1C: Monolith to modules ---",
+    "--- Immediate parity work: make the build look like vermilion structurally ---",
     "ARCH-001",
+    "TOOL-002",
+    "TOOL-005",
     "ARCH-002",
     "ARCH-003",
+    "ARCH-005",
+    "ARCH-007",
     "ARCH-004",
-    "--- Phase 1D: Remaining formats and assets ---",
-    "TRACK-004",
-    "TRACK-005",
+    "--- Next: audit opaque data for hidden pointers and mixed structures ---",
+    "PTR-001",
+    "PTR-002",
+    "PTR-003",
     "DATA-001",
-    "DATA-002",
-    "DATA-003",
-    "AUDIO-003",
-    "AUDIO-004",
-    "--- Phase 1E: Tooling and regression protection ---",
-    "TOOL-001",
-    "TOOL-002",
+    "--- Then: fill the biggest remaining understanding gaps ---",
+    "DOC-006",
+    "DOC-007",
+    "AUDIO-001",
+    "AUDIO-002",
+    "--- Then: harden the project with vermilion-style tooling/docs ---",
     "TOOL-003",
+    "TOOL-004",
     "TOOL-006",
+    "ARCH-006",
     "REGR-001",
     "REGR-002",
-    "--- Phase 1F: Mature modding workflow ---",
-    "TOOL-008",
+    "NOTES-001",
+    "NOTES-002",
+    "--- Later: editor and modding workflow ---",
     "EDIT-001",
     "EDIT-002",
     "EDIT-003",

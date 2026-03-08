@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "source": "assembly data definitions + symbol map + split constants",
+    "candidate_count": 0,
+    "strong_candidate_count": 0,
+    "by_kind": {},
+    "by_file": {},
+    "by_directive": {},
+    "notes": [
+      "Numeric dc.l/dc.w operands are scanned directly.",
+      "Contiguous numeric dc.b tuples are scanned as 4-byte big-endian addresses.",
+      "Contiguous numeric dc.w tuples are scanned as 2-word big-endian addresses.",
+      "Existing symbolic references are excluded.",
+      "dc.w values are checked both raw and sign-extended to $FFFFxxxx.",
+      "dc.w values below 0x0800 are ignored as likely scalar data/noise.",
+      "This is a conservative first-pass report meant to seed PTR-002, not a proof that every candidate is a real pointer."
+    ]
+  },
+  "strong_candidates": [],
+  "candidates": []
+}
