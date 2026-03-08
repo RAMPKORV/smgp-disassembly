@@ -233,7 +233,7 @@ Return_from_exception:
 ;       handle the >$10000 iteration count: D0.high holds the outer loop count,
 ;       D2.low the inner.  Compare result against the stored checksum word at
 ;       loc_18E ($018E in ROM).  If mismatch → jump to bad-ROM handler at
-;       loc_376 (fills plane A with tile $000E, then infinite-loops = red/dark
+;       Bad_rom_handler (fills plane A with tile $000E, then infinite-loops = red/dark
 ;       screen, emulator refuses to boot).
 ;
 ;  4. First-boot-only initialization ($2C0-$2EE):
@@ -270,11 +270,13 @@ Return_from_exception:
 ;       Loop forever.
 EntryPoint:
 	TST.l	Io_port_settle_l    ; check I/O settle area — non-zero = warm reboot already done
-loc_214:
-	BNE.w	loc_2EE             ; warm reboot: skip to full RAM init (Boot_init_sentinel check)
+;loc_214
+EntryPoint_Settle_loop:
+	BNE.w	EntryPoint_Warm_boot             ; warm reboot: skip to full RAM init (Boot_init_sentinel check)
 	TST.w	Io_port_settle_w    ; second half of settle area (debounce complete)
-	BNE.b	loc_214
-loc_220:
+	BNE.b	EntryPoint_Settle_loop
+;loc_220
+EntryPoint_Cold_boot:
 	; ---- Cold-boot: load register-init table and perform pre-boot hardware setup ----
 	LEA	loc_4B4(PC), A5         ; A5 = register init data table (VDP init bytes follow)
 	MOVEM.l	(A5)+, D5-D7/A0-A4  ; load D5-D7 and A0-A4 from table; A5 advances past them
@@ -283,57 +285,65 @@ loc_220:
 	;   A2=Z80_reset($A11200), A3=VDP_data_port($C00000), A4=VDP_control_port($C00004)
 	MOVE.w	-$1100(A1), D0      ; read $A00000 (Z80 RAM[0]) — non-zero indicates TMSS present
 	ANDI.w	#$0F00, D0          ; isolate TMSS detect bits
-	BEQ.b	loc_23A             ; TMSS not present → skip unlock
+	BEQ.b	EntryPoint_Tmss_done             ; TMSS not present → skip unlock
 	MOVE.l	#$53454741, $2F00(A1) ; write "SEGA" to TMSS register ($A14000) to unlock VDP
-loc_23A:
+;loc_23A
+EntryPoint_Tmss_done:
 	MOVE.w	(A4), D0            ; dummy read of VDP control port (status register)
 	MOVEQ	#0, D0              ; D0 = 0 (also zeroes address for USP)
 	MOVEA.l	D0, A6              ; A6 = $00000000 (used as pre-decrement base for RAM clear)
 	MOVE.l	A6, USP             ; USP = 0
 	MOVEQ	#$00000017, D1      ; D1 = 23 (24-1 VDP init bytes)
-loc_244:
+;loc_244
+EntryPoint_Vdp_init_loop:
 	; Write 24 VDP register init values from A5 (loc_4B4 data) to VDP_control_port.
 	; Each byte is written as a word after adding D7=$0100 (register address prefix).
 	MOVE.b	(A5)+, D5           ; read next init byte
 	MOVE.w	D5, (A4)            ; write to VDP control port
 	ADD.w	D7, D5              ; advance register index by 1 (D7=$0100 = reg base)
-	DBF	D1, loc_244
+	DBF	D1, EntryPoint_Vdp_init_loop
 	MOVE.l	#$40000080, (A4)    ; set VDP VRAM write address to $0080
 	; ---- Z80 bus: assert reset and wait for grant, then copy 40 bytes to Z80 RAM ----
 	MOVE.w	D0, (A3)            ; D0=0 → write 0 to VDP_data_port (clear VRAM at $0080)
 	MOVE.w	D7, (A1)            ; Z80_bus_request = $0100 → 68K requests Z80 bus
 	MOVE.w	D7, (A2)            ; Z80_reset = $0100 → deassert Z80 reset
-loc_25A:
+;loc_25A
+EntryPoint_Z80_grant_wait:
 	BTST.b	D0, (A1)            ; D0=0: test bit 0 of Z80_bus_request — 0 = bus granted
-	BNE.b	loc_25A             ; wait until Z80 grants the bus
+	BNE.b	EntryPoint_Z80_grant_wait             ; wait until Z80 grants the bus
 	MOVEQ	#$00000027, D2      ; D2 = 39 (40-1 bytes to copy)
-loc_260:
+;loc_260
+EntryPoint_Z80_copy_loop:
 	MOVE.b	(A5)+, (A0)+        ; copy Z80 init bytes from A5 → Z80 RAM at A0
-	DBF	D2, loc_260
+	DBF	D2, EntryPoint_Z80_copy_loop
 	MOVE.w	D0, (A2)            ; Z80_reset = 0 → assert Z80 reset
 	MOVE.w	D0, (A1)            ; Z80_bus_request = 0 → release bus (Z80 can run)
 	MOVE.w	D7, (A2)            ; Z80_reset = $0100 → deassert reset (Z80 starts)
-loc_26C:
+;loc_26C
+EntryPoint_Ram_clear_loop:
 	; Zero entire work RAM ($10000 bytes) by pushing D0=0 via pre-decrement from A6=0.
 	; 68K address space wraps: first write goes to $FFFFFFFC, then $FFFFFFF8, etc.,
 	; filling all $10000 bytes of work RAM ($FFFF0000-$FFFFFFFF) with zero.
 	MOVE.l	D0, -(A6)           ; D0=0, A6 pre-decremented; wraps through all work RAM
-	DBF	D6, loc_26C             ; D6=$3FFF → 16384 iterations = $10000 bytes cleared
+	DBF	D6, EntryPoint_Ram_clear_loop             ; D6=$3FFF → 16384 iterations = $10000 bytes cleared
 	MOVE.l	#$81048F02, (A4)    ; VDP: mode reg $01=$04 (display on), mode reg $0F=$02
 	MOVE.l	#$C0000000, (A4)    ; VDP VRAM write mode at address $0000 (start of VRAM)
 	MOVEQ	#$0000001F, D3      ; D3 = 31 (32-1 longwords)
-loc_280:
+;loc_280
+EntryPoint_Vram_clear_loop:
 	MOVE.l	D0, (A3)            ; write 0 to VDP_data_port — clears $80 bytes of VRAM
-	DBF	D3, loc_280
+	DBF	D3, EntryPoint_Vram_clear_loop
 	MOVE.l	#$40000010, (A4)    ; VDP VRAM write address = $0010 (sprite attr table base)
 	MOVEQ	#$00000013, D4      ; D4 = 19 (20-1 longwords)
-loc_28E:
+;loc_28E
+EntryPoint_Spr_clear_loop:
 	MOVE.l	D0, (A3)            ; write 0 to VDP_data_port — clears $50 bytes at $0010
-	DBF	D4, loc_28E
+	DBF	D4, EntryPoint_Spr_clear_loop
 	MOVEQ	#3, D5              ; D5 = 3 (4-1 bytes)
-loc_296:
+;loc_296
+EntryPoint_Vreg_copy_loop:
 	MOVE.b	(A5)+, $10(A3)      ; copy 4 bytes from A5 to VDP_data_port+$10 (write reg)
-	DBF	D5, loc_296
+	DBF	D5, EntryPoint_Vreg_copy_loop
 	MOVE.w	D0, (A2)            ; Z80_reset = 0
 	MOVEM.l	(A6), D0-D7/A0-A6  ; restore D0-D7/A0-A6 from USP area (all zero at this point)
 	; ---- ROM checksum verification ----
@@ -348,27 +358,30 @@ loc_296:
 	SUBQ.w	#1, D2              ; adjust for DBF (first iteration is 'free')
 	SWAP	D0                  ; D0.h = 0, D0.l = high word (outer loop count for DBF)
 	MOVEQ	#0, D1              ; D1 = running checksum accumulator
-loc_2C0:
+;loc_2C0
+EntryPoint_Checksum_loop:
 	ADD.w	(A0)+, D1           ; sum each ROM word into D1 (16-bit, discards carry)
-	DBF	D2, loc_2C0         ; inner loop: $10000 words max per outer iteration
-	DBF	D0, loc_2C0         ; outer loop: handles ROMs larger than $10000 words
+	DBF	D2, EntryPoint_Checksum_loop         ; inner loop: $10000 words max per outer iteration
+	DBF	D0, EntryPoint_Checksum_loop         ; outer loop: handles ROMs larger than $10000 words
 	CMP.w	loc_18E.w, D1       ; compare checksum with stored value at ROM header $018E
-	BNE.w	loc_376             ; mismatch → bad ROM handler (blue screen, infinite loop)
+	BNE.w	Bad_rom_handler             ; mismatch → bad ROM handler (blue screen, infinite loop)
 	; ---- First-boot only: init default lap times, detect language, set sentinel ----
 	JSR	Initialize_default_lap_times ; copy ROM default BCD lap records to RAM
 	MOVE.b	Version_register, D0 ; read hardware version register
 	BTST.l	#7, D0              ; bit 7: 1 = overseas/NTSC cartridge
 	SNE	$FFFFFF27.w         ; English_flag.l = $FFFF (English) or $0000 (Japanese)
 	MOVE.l	#$696E6974, Boot_init_sentinel.w ; write "init" — skip cold-boot on next reset
-loc_2EE:
+;loc_2EE
+EntryPoint_Warm_boot:
 	; ---- Warm-reboot entry / full hardware + RAM init ----
 	CMPI.l	#$696E6974, Boot_init_sentinel.w ; check sentinel ("init")
-	BNE.w	loc_220             ; not set yet → loop back to cold-boot pre-init
+	BNE.w	EntryPoint_Cold_boot             ; not set yet → loop back to cold-boot pre-init
 	LEA	Work_ram_start.w, A0
 	MOVE.w	#$1F3F, D0          ; $1F40 longwords = $7D00 bytes (full 32 KB work RAM)
-loc_302:
+;loc_302
+EntryPoint_Ram_init_loop:
 	CLR.l	(A0)+               ; zero 4 bytes
-	DBF	D0, loc_302         ; repeat $1F40 times — clears all work RAM
+	DBF	D0, EntryPoint_Ram_init_loop         ; repeat $1F40 times — clears all work RAM
 	MOVEQ	#$00000040, D0      ; $40 = I/O dir register value (all outputs)
 	LEA	Io_ctrl_port_1_dir, A0
 	MOVE.b	D0, $0(A0)          ; I/O port 1 direction = all outputs
@@ -389,13 +402,15 @@ loc_302:
 	MOVE.l	#$000003D8, Vblank_callback.w ; VBI handler = Default_vblank_handler
 	MOVE.w	#1, Vblank_enable.w ; allow VBI handler to fire
 	ANDI	#$F8FF, SR          ; unmask CPU interrupts (IPL → 0)
-loc_36A:
+;loc_36A
+EntryPoint_Main_loop:
 	; ---- Main game loop (runs forever, ~50/60 Hz via VBI) ----
 	ADDQ.b	#1, Frame_counter.w ; increment per-frame counter (wraps at 256)
 	MOVEA.l	Frame_callback.w, A0 ; load current screen handler pointer
 	JSR	(A0)                ; call it — each screen updates its own Frame_callback
-	BRA.b	loc_36A             ; loop unconditionally
-loc_376:
+	BRA.b	EntryPoint_Main_loop             ; loop unconditionally
+;loc_376
+Bad_rom_handler:
 	; ---- Bad-ROM handler: checksum mismatch ----
 	; Initializes VDP, writes tile $000E (dark colour) to all 64 plane-A cells,
 	; then halts in an infinite loop.  Emulators detect the blank dark screen as
@@ -403,11 +418,13 @@ loc_376:
 	JSR	Initialize_vdp
 	MOVE.l	#$C0000000, VDP_control_port ; VRAM write at address $0000
 	MOVEQ	#$0000003F, D7      ; 64-1 words
-loc_388:
+;loc_388
+EntryPoint_Bad_rom_fill:
 	MOVE.w	#$000E, VDP_data_port ; write tile index $000E (dark palette entry)
-	DBF	D7, loc_388
-loc_394:
-	BRA.b	loc_394             ; infinite loop — CPU halted
+	DBF	D7, EntryPoint_Bad_rom_fill
+;loc_394
+EntryPoint_Bad_rom_halt:
+	BRA.b	EntryPoint_Bad_rom_halt             ; infinite loop — CPU halted
 
 ;loc_396:
 Wait_for_vblank:
@@ -416,9 +433,10 @@ Wait_for_vblank:
 ; This produces one full frame of latency and is used before palette/VDP
 ; operations that must complete outside the active display period.
 	CLR.w	Vblank_counter.w
-loc_39A:
+;loc_39A
+Wait_for_vblank_loop:
 	TST.w	Vblank_counter.w
-	BEQ.b	loc_39A
+	BEQ.b	Wait_for_vblank_loop
 	RTS
 
 ;loc_3A2:
@@ -432,10 +450,11 @@ Wait_for_practice_vblank_cycle:
 Vertical_blank_interrupt:
 	MOVEM.l	D0-D7/A0-A6, -(A7)
 	TST.w	Vblank_enable.w
-	BEQ.b	loc_3C4
+	BEQ.b	Vblank_interrupt_tail
 	MOVEA.l	Vblank_callback.w, A0
 	JSR	(A0) ; =Practice_mode_vblank_handler in practice mode
-loc_3C4:
+;loc_3C4
+Vblank_interrupt_tail:
 	ANDI	#$F8FF, SR
 	JSR	Update_audio_engine
 	ADDQ.w	#1, Vblank_counter.w
@@ -553,7 +572,7 @@ loc_4B4:
 ;   $FD $E1 $ED $47 $ED $4F $08 $D9 $F1 $C1 $D1 $E1 $08 $D9 $F1 $D1
 ;   $E1 $F9 $F3 $ED $56 $36 $E9 $E9
 ;
-; Trailing 4 bytes written to VDP_data_port+$10 at loc_296: $9F $BF $DF $FF
+; Trailing 4 bytes written to VDP_data_port+$10 at EntryPoint_Vreg_copy_loop: $9F $BF $DF $FF
 	dc.l	$00008000	;D5 = TMSS check / VDP reg scratch
 	dc.l	$00003FFF	;D6 = RAM clear loop count
 	dc.l	$00000100	;D7 = Z80 bus request / VDP register address step
@@ -593,13 +612,14 @@ Decompress_asset_list_to_vdp:
 ; Inputs:
 ;  A1 = pointer to asset list (consumed)
 	MOVE.w	(A1)+, D0
-loc_530:
+;loc_530
+Decompress_asset_list_loop:
 	MOVE.w	(A1)+, D7
 	JSR	Tile_index_to_vdp_command(PC)
 	MOVE.l	D7, VDP_control_port
 	MOVEA.l	(A1)+, A0
 	JSR	Decompress_to_vdp(PC)
-	DBF	D0, loc_530
+	DBF	D0, Decompress_asset_list_loop
 	RTS
 	dc.b	$30, $19, $49, $F9, $00, $00, $07, $70, $60, $12
 ;loc_552:
@@ -610,7 +630,7 @@ Draw_tilemap_list_to_vdp_64_cell_rows:
 ;       tile-index word, width byte (tiles-1), height byte (rows-1), source ptr
 	MOVE.w	(A1)+, D0
 	LEA	Draw_tilemap_buffer_to_vdp_64_cell_rows, A4
-	BRA.b	loc_564
+	BRA.b	Draw_tilemap_list_loop
 
 ;loc_55C:
 Draw_tilemap_list_to_vdp_32_cell_rows:
@@ -618,7 +638,8 @@ Draw_tilemap_list_to_vdp_32_cell_rows:
 ; Used for the normal H40/H32 background plane width (32 or 40 tiles wide).
 	MOVE.w	(A1)+, D0
 	LEA	Draw_tilemap_buffer_to_vdp_32_cell_rows, A4
-loc_564:
+;loc_564
+Draw_tilemap_list_loop:
 	MOVE.w	(A1)+, D7
 	JSR	Tile_index_to_vdp_command(PC)
 	MOVEQ	#0, D6
@@ -627,10 +648,11 @@ loc_564:
 	MOVE.b	(A1)+, D5
 	MOVEA.l	(A1)+, A6
 	JSR	(A4)
-	DBF	D0, loc_564
+	DBF	D0, Draw_tilemap_list_loop
 	RTS
 
-loc_57C:
+;loc_57C
+Prng:
 ; Pseudo-random number generator (LCG-style).
 ;
 ; Maintains a 32-bit state in Saved_vdp_state.  On each call, advances the
@@ -645,9 +667,10 @@ loc_57C:
 ;       Default seed $2A6D365B used if state is currently zero.
 	MOVE.l	Saved_vdp_state.w, D1
 	TST.w	D1
-	BNE.b	loc_58A
+	BNE.b	Prng_nonzero_seed
 	MOVE.l	#$2A6D365B, D1
-loc_58A:
+;loc_58A
+Prng_nonzero_seed:
 	MOVE.l	D1, D0
 	ADD.l	D1, D1
 	ADD.l	D1, D1
@@ -709,19 +732,21 @@ Read_controller_input:
 
 ;loc_604:
 Initialize_vdp:
-; Write the 19-entry VDP register initialisation table at loc_D36 to the
+; Write the 19-entry VDP register initialisation table at Vdp_init_register_table to the
 ; VDP control port one word at a time, then clear 64 words of VRAM at address
 ; $C0000000 (VRAM write mode).  Called once at boot from EntryPoint.
-	LEA	loc_D36(PC), A0
+	LEA	Vdp_init_register_table(PC), A0
 	MOVEQ	#$00000012, D0
-loc_60A:
+;loc_60A
+Initialize_vdp_reg_loop:
 	MOVE.w	(A0)+, VDP_control_port
-	DBF	D0, loc_60A
+	DBF	D0, Initialize_vdp_reg_loop
 	MOVE.l	#$C0000000, VDP_control_port
 	MOVEQ	#$0000003F, D7
-loc_620:
+;loc_620
+Initialize_vdp_vram_loop:
 	MOVE.w	#0, VDP_data_port
-	DBF	D7, loc_620
+	DBF	D7, Initialize_vdp_vram_loop
 	RTS
 
 ;loc_62E:
@@ -738,7 +763,7 @@ Initialize_h40_vdp_state:
 	MOVE.w	#$0050, Vdp_plane_row_bytes.w
 	MOVE.w	#$01C0, Vdp_plane_tile_count.w
 	MOVE.l	#$943793FF, D6
-	BRA.b	loc_67C
+	BRA.b	Initialize_vdp_dma_common
 
 ;loc_656:
 Initialize_h32_vdp_state:
@@ -753,7 +778,8 @@ Initialize_h32_vdp_state:
 	MOVE.w	#$0040, Vdp_plane_row_bytes.w
 	MOVE.w	#$0180, Vdp_plane_tile_count.w
 	MOVE.l	#$942D93FF, D6
-loc_67C:
+;loc_67C
+Initialize_vdp_dma_common:
 	MOVE.l	#$40000083, D7
 	JMP	Start_vdp_dma_fill(PC)
 
@@ -1622,7 +1648,8 @@ loc_D22:
 loc_D2C:
 	dc.w	$0002
 	dc.b	$00, $00, $00, $05, $C9, $CA, $70, $80
-loc_D36:
+;loc_D36
+Vdp_init_register_table:
 	dc.w	$8004, $8134, $8238, $8338, $8406
 	dc.b	$85, $7A, $86, $00, $87, $30, $88, $00, $89, $00, $8A, $FF, $8B, $03, $8C, $81, $8D, $3C, $8E, $00, $8F, $02, $90, $11, $91, $00, $92, $80
 
@@ -3197,11 +3224,11 @@ loc_1E50:
 	dc.b	$4D, $00
 	dc.l	loc_54020
 	dc.b	$7A, $00
-	dc.l	loc_53F50
+	dc.l	Car_sprite_data_53F50
 	dc.b	$7F, $80
-	dc.l	loc_53DBA
+	dc.l	Car_sprite_data_53DBA
 	dc.b	$83, $40
-	dc.l	loc_53C28
+	dc.l	Car_sprite_data_53C28
 	dc.b	$86, $40
 	dc.l	loc_56D3A
 	dc.b	$90, $A0
@@ -10881,7 +10908,7 @@ loc_7F0C:
 	RTS
 loc_7F26:
 	MOVE.l	#loc_7F3A, (A0)
-	LEA	loc_12A61, A1
+	LEA	Car_sprite_ptr_table, A1
 	LEA	$FFFFFCF0.w, A2
 	JSR	Write_3_palette_vdp_bytes(PC)
 loc_7F3A:
@@ -13414,7 +13441,7 @@ Update_engine_and_tire_sounds:
 ; This routine writes to the 68K-side audio engine state struct at
 ; Audio_engine_state ($FF5AC0) to update engine pitch and road-surface SFX.
 ; The actual Z80 writes happen separately in Update_audio_engine (called from
-; the VBI handler, loc_3C4) after the state has been updated here.
+; the VBI handler, Vblank_interrupt_tail) after the state has been updated here.
 ;
 ; Outputs written to audio engine struct (via absolute addresses):
 ;   Audio_engine_speed ($FF5AC4):  scaled Player_rpm for engine pitch calculation
@@ -20988,10 +21015,10 @@ loc_10598:
 	dc.l	loc_10FDC
 	dc.l	loc_10FEA
 loc_105B0:
-	dc.l	loc_112F2
-	dc.l	loc_112F2
-	dc.l	loc_112F2
-	dc.l	loc_112F2
+	dc.l	Sprite_frame_data_112F2
+	dc.l	Sprite_frame_data_112F2
+	dc.l	Sprite_frame_data_112F2
+	dc.l	Sprite_frame_data_112F2
 	dc.l	loc_112FA
 	dc.l	loc_11308
 	dc.l	loc_11316
@@ -20999,28 +21026,28 @@ loc_105B0:
 	dc.l	loc_1133E
 	dc.l	loc_11364
 	dc.l	loc_1136C
-	dc.l	loc_11374
-	dc.l	loc_1137C
-	dc.l	loc_11384
-	dc.l	loc_11392
-	dc.l	loc_113A0
-	dc.l	loc_113A8
+	dc.l	Sprite_frame_data_11374
+	dc.l	Sprite_frame_data_1137C
+	dc.l	Sprite_frame_data_11384
+	dc.l	Sprite_frame_data_11392
+	dc.l	Sprite_frame_data_113A0
+	dc.l	Sprite_frame_data_113A8
 	dc.l	loc_113C2
 	dc.l	loc_1136C
-	dc.l	loc_11374
-	dc.l	loc_1137C
-	dc.l	loc_11384
-	dc.l	loc_11392
-	dc.l	loc_113A0
-	dc.l	loc_113A8
+	dc.l	Sprite_frame_data_11374
+	dc.l	Sprite_frame_data_1137C
+	dc.l	Sprite_frame_data_11384
+	dc.l	Sprite_frame_data_11392
+	dc.l	Sprite_frame_data_113A0
+	dc.l	Sprite_frame_data_113A8
 	dc.l	loc_113C2
 	dc.l	loc_113C2
-	dc.l	loc_11374
-	dc.l	loc_1137C
-	dc.l	loc_11384
-	dc.l	loc_11392
-	dc.l	loc_113A0
-	dc.l	loc_113A8
+	dc.l	Sprite_frame_data_11374
+	dc.l	Sprite_frame_data_1137C
+	dc.l	Sprite_frame_data_11384
+	dc.l	Sprite_frame_data_11392
+	dc.l	Sprite_frame_data_113A0
+	dc.l	Sprite_frame_data_113A8
 	dc.l	loc_113C2
 	dc.l	loc_113C2
 	dc.l	loc_113C2
@@ -21288,29 +21315,29 @@ loc_10944:
 	dc.l	loc_12614
 	dc.l	0
 	dc.l	0
-	dc.l	loc_12986
-	dc.l	loc_12986
-	dc.l	loc_12986
-	dc.l	loc_1298E
-	dc.l	loc_12996
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_1298E
+	dc.l	Sprite_frame_data_12996
 	dc.l	loc_1299E
 	dc.l	loc_1299E
 	dc.l	0
 	dc.l	0
-	dc.l	loc_12986
-	dc.l	loc_12986
-	dc.l	loc_12986
-	dc.l	loc_1298E
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_1298E
 	dc.l	loc_1299E
 	dc.l	loc_1299E
 	dc.l	loc_1299E
 	dc.l	0
 	dc.l	0
-	dc.l	loc_12986
-	dc.l	loc_12986
-	dc.l	loc_12986
-	dc.l	loc_129A6
-	dc.l	loc_12996
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_12986
+	dc.l	Sprite_frame_data_129A6
+	dc.l	Sprite_frame_data_12996
 	dc.l	loc_1299E
 	dc.l	loc_1299E
 loc_10AAC:
@@ -21616,7 +21643,8 @@ loc_112B4:
 	dc.b	$0B, $36, $00, $00, $B0, $0A, $0B, $3E, $00, $28, $B0, $0A, $0B, $47
 	dc.b	$00, $10, $B0, $06, $04, $32, $00, $00, $C8, $0E, $0B, $50, $00, $20
 	dc.b	$C8, $0E, $04, $32, $00, $00
-loc_112F2:
+;loc_112F2
+Sprite_frame_data_112F2:
 	dc.b	$00, $00, $F8, $00, $03, $FB, $FF, $FC
 loc_112FA:
 	dc.b	$00, $01, $F0, $01, $03, $F9, $FF, $F8, $F0, $01, $0B, $F9, $00, $00
@@ -21635,17 +21663,23 @@ loc_11364:
 	dc.b	$00, $00, $FC, $00, $04, $19, $FF, $FC
 loc_1136C:
 	dc.b	$00, $00, $FC, $00, $04, $18, $FF, $FC
-loc_11374:
+;loc_11374
+Sprite_frame_data_11374:
 	dc.b	$00, $00, $FC, $00, $04, $17, $FF, $FC
-loc_1137C:
+;loc_1137C
+Sprite_frame_data_1137C:
 	dc.b	$00, $00, $FC, $00, $04, $16, $FF, $FC
-loc_11384:
+;loc_11384
+Sprite_frame_data_11384:
 	dc.b	$00, $01, $F8, $01, $04, $14, $FF, $F8, $F8, $01, $0C, $14, $00, $00
-loc_11392:
+;loc_11392
+Sprite_frame_data_11392:
 	dc.b	$00, $01, $F8, $01, $04, $12, $FF, $F8, $F8, $01, $0C, $12, $00, $00
-loc_113A0:
+;loc_113A0
+Sprite_frame_data_113A0:
 	dc.b	$00, $00, $F4, $0A, $04, $09, $FF, $F4
-loc_113A8:
+;loc_113A8
+Sprite_frame_data_113A8:
 	dc.b	$00, $03, $EF, $05, $04, $05, $FF, $F0, $EF, $05, $0C, $05, $00, $00
 	dc.b	$FF, $05, $14, $05, $FF, $F0, $FF, $05, $1C, $05, $00, $00
 loc_113C2:
@@ -22347,15 +22381,19 @@ loc_12912:
 	dc.b	$00, $48, $60, $03, $E0, $1D, $00, $68, $80, $03, $E0, $21, $00, $68
 	dc.b	$A0, $03, $E0, $25, $00, $68, $C0, $03, $E0, $22, $00, $68, $E0, $03
 	dc.b	$E0, $29, $00, $68
-loc_12986
+;loc_12986
+Sprite_frame_data_12986:
 	dc.b	$00, $00, $FC, $00, $00, $00, $FF, $FC
-loc_1298E:
+;loc_1298E
+Sprite_frame_data_1298E:
 	dc.b	$00, $00, $F8, $05, $00, $00, $FF, $F8
-loc_12996:
+;loc_12996
+Sprite_frame_data_12996:
 	dc.b	$00, $00, $F4, $06, $00, $00, $FF, $F8
 loc_1299E:
 	dc.b	$00, $00, $F4, $0A, $00, $00, $FF, $F4
-loc_129A6:
+;loc_129A6
+Sprite_frame_data_129A6:
 	dc.b	$00, $00, $F8, $01, $00, $00, $FF, $FC
 loc_129AE:
 	dc.b	$00, $05, $E8, $0E, $04, $6D
@@ -22415,108 +22453,109 @@ loc_12A41:
 	dc.b	$00, $02, $26
 	dc.b	$54
 	dc.b	$00
-loc_12A61:
+;loc_12A61
+Car_sprite_ptr_table:
 	dc.b	$02, $27
 	dc.b	$E4
-	dc.l	loc_51B08
-	dc.l	loc_51B08
-	dc.l	loc_51B08
-	dc.l	loc_51AE8
-	dc.l	loc_51AC8
-	dc.l	loc_51A48
-	dc.l	loc_51988
-	dc.l	loc_51868
-	dc.l	loc_51868
-	dc.l	loc_51DC8
-	dc.l	loc_51DC8
-	dc.l	loc_51DC8
-	dc.l	loc_51DA8
-	dc.l	loc_51D88
-	dc.l	loc_51D08
-	dc.l	loc_51C48
-	dc.l	loc_51B28
-	dc.l	loc_51B28
-	dc.l	loc_520E8
-	dc.l	loc_520E8
-	dc.l	loc_520E8
-	dc.l	loc_520C8
-	dc.l	loc_520A8
-	dc.l	loc_52028
-	dc.l	loc_51F08
-	dc.l	loc_51DE8
-	dc.l	loc_51DE8
-	dc.l	loc_523A8
-	dc.l	loc_523A8
-	dc.l	loc_523A8
-	dc.l	loc_52388
-	dc.l	loc_52368
-	dc.l	loc_522E8
-	dc.l	loc_52228
-	dc.l	loc_52108
-	dc.l	loc_52108
-	dc.l	loc_52668
-	dc.l	loc_52668
-	dc.l	loc_52668
-	dc.l	loc_52648
-	dc.l	loc_52628
-	dc.l	loc_525A8
-	dc.l	loc_524E8
-	dc.l	loc_523C8
-	dc.l	loc_523C8
-	dc.l	loc_52988
-	dc.l	loc_52988
-	dc.l	loc_52988
-	dc.l	loc_52968
-	dc.l	loc_52948
-	dc.l	loc_528C8
-	dc.l	loc_527A8
-	dc.l	loc_52688
-	dc.l	loc_52688
-	dc.l	loc_52C48
-	dc.l	loc_52C48
-	dc.l	loc_52C48
-	dc.l	loc_52C28
-	dc.l	loc_52C08
-	dc.l	loc_52B88
-	dc.l	loc_52AC8
-	dc.l	loc_529A8
-	dc.l	loc_529A8
-	dc.l	loc_531C8
-	dc.l	loc_531C8
-	dc.l	loc_531C8
-	dc.l	loc_531A8
-	dc.l	loc_53188
-	dc.l	loc_53108
-	dc.l	loc_53048
-	dc.l	loc_52F28
-	dc.l	loc_52F28
-	dc.l	loc_52F08
-	dc.l	loc_52F08
-	dc.l	loc_52F08
-	dc.l	loc_52EE8
-	dc.l	loc_52EC8
-	dc.l	loc_52E48
-	dc.l	loc_52D88
-	dc.l	loc_52C68
-	dc.l	loc_52C68
-	dc.l	loc_53488
-	dc.l	loc_53488
-	dc.l	loc_53488
-	dc.l	loc_53468
-	dc.l	loc_53448
-	dc.l	loc_533C8
-	dc.l	loc_53308
-	dc.l	loc_531E8
-	dc.l	loc_531E8
-	dc.l	loc_53708
-	dc.l	loc_53708
-	dc.l	loc_53708
-	dc.l	loc_536E8
-	dc.l	loc_536C8
-	dc.l	loc_53688
-	dc.l	loc_535C8
-	dc.l	loc_534A8
-	dc.l	loc_534A8
+	dc.l	Car_sprite_data_51B08
+	dc.l	Car_sprite_data_51B08
+	dc.l	Car_sprite_data_51B08
+	dc.l	Car_sprite_data_51AE8
+	dc.l	Car_sprite_data_51AC8
+	dc.l	Car_sprite_data_51A48
+	dc.l	Car_sprite_data_51988
+	dc.l	Car_sprite_data_51868
+	dc.l	Car_sprite_data_51868
+	dc.l	Car_sprite_data_51DC8
+	dc.l	Car_sprite_data_51DC8
+	dc.l	Car_sprite_data_51DC8
+	dc.l	Car_sprite_data_51DA8
+	dc.l	Car_sprite_data_51D88
+	dc.l	Car_sprite_data_51D08
+	dc.l	Car_sprite_data_51C48
+	dc.l	Car_sprite_data_51B28
+	dc.l	Car_sprite_data_51B28
+	dc.l	Car_sprite_data_520E8
+	dc.l	Car_sprite_data_520E8
+	dc.l	Car_sprite_data_520E8
+	dc.l	Car_sprite_data_520C8
+	dc.l	Car_sprite_data_520A8
+	dc.l	Car_sprite_data_52028
+	dc.l	Car_sprite_data_51F08
+	dc.l	Car_sprite_data_51DE8
+	dc.l	Car_sprite_data_51DE8
+	dc.l	Car_sprite_data_523A8
+	dc.l	Car_sprite_data_523A8
+	dc.l	Car_sprite_data_523A8
+	dc.l	Car_sprite_data_52388
+	dc.l	Car_sprite_data_52368
+	dc.l	Car_sprite_data_522E8
+	dc.l	Car_sprite_data_52228
+	dc.l	Car_sprite_data_52108
+	dc.l	Car_sprite_data_52108
+	dc.l	Car_sprite_data_52668
+	dc.l	Car_sprite_data_52668
+	dc.l	Car_sprite_data_52668
+	dc.l	Car_sprite_data_52648
+	dc.l	Car_sprite_data_52628
+	dc.l	Car_sprite_data_525A8
+	dc.l	Car_sprite_data_524E8
+	dc.l	Car_sprite_data_523C8
+	dc.l	Car_sprite_data_523C8
+	dc.l	Car_sprite_data_52988
+	dc.l	Car_sprite_data_52988
+	dc.l	Car_sprite_data_52988
+	dc.l	Car_sprite_data_52968
+	dc.l	Car_sprite_data_52948
+	dc.l	Car_sprite_data_528C8
+	dc.l	Car_sprite_data_527A8
+	dc.l	Car_sprite_data_52688
+	dc.l	Car_sprite_data_52688
+	dc.l	Car_sprite_data_52C48
+	dc.l	Car_sprite_data_52C48
+	dc.l	Car_sprite_data_52C48
+	dc.l	Car_sprite_data_52C28
+	dc.l	Car_sprite_data_52C08
+	dc.l	Car_sprite_data_52B88
+	dc.l	Car_sprite_data_52AC8
+	dc.l	Car_sprite_data_529A8
+	dc.l	Car_sprite_data_529A8
+	dc.l	Car_sprite_data_531C8
+	dc.l	Car_sprite_data_531C8
+	dc.l	Car_sprite_data_531C8
+	dc.l	Car_sprite_data_531A8
+	dc.l	Car_sprite_data_53188
+	dc.l	Car_sprite_data_53108
+	dc.l	Car_sprite_data_53048
+	dc.l	Car_sprite_data_52F28
+	dc.l	Car_sprite_data_52F28
+	dc.l	Car_sprite_data_52F08
+	dc.l	Car_sprite_data_52F08
+	dc.l	Car_sprite_data_52F08
+	dc.l	Car_sprite_data_52EE8
+	dc.l	Car_sprite_data_52EC8
+	dc.l	Car_sprite_data_52E48
+	dc.l	Car_sprite_data_52D88
+	dc.l	Car_sprite_data_52C68
+	dc.l	Car_sprite_data_52C68
+	dc.l	Car_sprite_data_53488
+	dc.l	Car_sprite_data_53488
+	dc.l	Car_sprite_data_53488
+	dc.l	Car_sprite_data_53468
+	dc.l	Car_sprite_data_53448
+	dc.l	Car_sprite_data_533C8
+	dc.l	Car_sprite_data_53308
+	dc.l	Car_sprite_data_531E8
+	dc.l	Car_sprite_data_531E8
+	dc.l	Car_sprite_data_53708
+	dc.l	Car_sprite_data_53708
+	dc.l	Car_sprite_data_53708
+	dc.l	Car_sprite_data_536E8
+	dc.l	Car_sprite_data_536C8
+	dc.l	Car_sprite_data_53688
+	dc.l	Car_sprite_data_535C8
+	dc.l	Car_sprite_data_534A8
+	dc.l	Car_sprite_data_534A8
 	dc.b	$00
 loc_12BF1:
 	dc.b	$02, $9B
@@ -22731,7 +22770,7 @@ loc_12E6A:
 	LEA	$FFFF905E.w, A6
 	MOVE.w	#$000F, D7
 loc_12E7A:
-	JSR	loc_57C
+	JSR	Prng
 	MOVE.b	D0, D1
 	ANDI.l	#7, D1
 	CLR.l	D2
@@ -34460,7 +34499,8 @@ loc_40001:
 	dc.b	$FF, $FF, $FF, $FF, $FF, $FF, $FF, $00, $00, $00, $00, $FF, $FF, $FF, $F0, $FF, $FF, $FF, $F0, $FF, $44, $FF, $F0, $FF, $44, $FF, $F0, $FF, $44, $FF, $F0, $FF
 	dc.b	$44, $FF, $F0, $FF, $44, $FF, $F0, $4F, $44, $FF, $F0, $4F, $44, $FF, $F0, $4F, $44, $FF, $F0, $FF, $44, $FF, $F0, $4F, $44, $FF, $F0, $FF, $44, $FF, $F0, $FF
 	dc.b	$FF, $FF, $F0, $FF, $FF, $FF, $F0
-loc_51868:
+;loc_51868
+Car_sprite_data_51868:
 	dc.l	$0000000F	;D0
 	dc.l	$00000FFF	;D1
 	dc.l	$0000FFFF	;D2
@@ -34533,7 +34573,8 @@ loc_51868:
 	dc.l	$44444100	;A4
 	dc.l	$44444100	;A5
 	dc.l	$11111100	;A6
-loc_51988:
+;loc_51988
+Car_sprite_data_51988:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -34582,7 +34623,8 @@ loc_51988:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_51A48:
+;loc_51A48
+Car_sprite_data_51A48:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$0000FFFF	;D2
@@ -34615,7 +34657,8 @@ loc_51A48:
 	dc.l	$11111000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_51AC8:
+;loc_51AC8
+Car_sprite_data_51AC8:
 	dc.l	$FFFFF440	;D0
 	dc.l	$F5411110	;D1
 	dc.l	$F4FFF000	;D2
@@ -34624,7 +34667,8 @@ loc_51AC8:
 	dc.l	$FFFFF440	;D5
 	dc.l	$0FFFF440	;D6
 	dc.l	$00011110	;D7
-loc_51AE8:
+;loc_51AE8
+Car_sprite_data_51AE8:
 	dc.l	$00000000	;A3
 	dc.l	$0FFF4100	;A4
 	dc.l	$0F400000	;A5
@@ -34633,7 +34677,8 @@ loc_51AE8:
 	dc.l	$0FFF4100	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_51B08:
+;loc_51B08
+Car_sprite_data_51B08:
 	dc.l	$00000000	;D4
 	dc.l	$00000000	;D5
 	dc.l	$00FF0000	;D6
@@ -34642,7 +34687,8 @@ loc_51B08:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_51B28:
+;loc_51B28
+Car_sprite_data_51B28:
 	dc.l	$0000000F	;D0
 	dc.l	$0000000F	;D1
 	dc.l	$000000FF	;D2
@@ -34715,7 +34761,8 @@ loc_51B28:
 	dc.l	$04444410	;A4
 	dc.l	$00444410	;A5
 	dc.l	$00011110	;A6
-loc_51C48:
+;loc_51C48
+Car_sprite_data_51C48:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -34764,7 +34811,8 @@ loc_51C48:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_51D08:
+;loc_51D08
+Car_sprite_data_51D08:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000FFF	;D2
@@ -34797,7 +34845,8 @@ loc_51D08:
 	dc.l	$00011000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_51D88:
+;loc_51D88
+Car_sprite_data_51D88:
 	dc.l	$00FF4000	;D0
 	dc.l	$0FFFF100	;D1
 	dc.l	$0F44F400	;D2
@@ -34806,7 +34855,8 @@ loc_51D88:
 	dc.l	$F4111F50	;D5
 	dc.l	$F4100FF0	;D6
 	dc.l	$01000010	;D7
-loc_51DA8:
+;loc_51DA8
+Car_sprite_data_51DA8:
 	dc.l	$00000000	;D0
 	dc.l	$00FF0000	;D1
 	dc.l	$0F4F1000	;D2
@@ -34815,7 +34865,8 @@ loc_51DA8:
 	dc.l	$0F10F500	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_51DC8:
+;loc_51DC8
+Car_sprite_data_51DC8:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$004F0000	;A5
@@ -34824,7 +34875,8 @@ loc_51DC8:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_51DE8:
+;loc_51DE8
+Car_sprite_data_51DE8:
 	dc.l	$0FFFF000	;D4
 	dc.l	$0FFFFF00	;D5
 	dc.l	$0FFFFF50	;D6
@@ -34897,7 +34949,8 @@ loc_51DE8:
 	dc.l	$00444441	;A4
 	dc.l	$00044441	;A5
 	dc.l	$00001111	;A6
-loc_51F08:
+;loc_51F08
+Car_sprite_data_51F08:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -34970,7 +35023,8 @@ loc_51F08:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_52028:
+;loc_52028
+Car_sprite_data_52028:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00FF5000	;D2
@@ -35003,7 +35057,8 @@ loc_52028:
 	dc.l	$00001100	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_520A8:
+;loc_520A8
+Car_sprite_data_520A8:
 	dc.l	$FF000FF1	;D0
 	dc.l	$FF40FFF1	;D1
 	dc.l	$FFFFFFF1	;D2
@@ -35012,7 +35067,8 @@ loc_520A8:
 	dc.l	$F4011FF1	;D5
 	dc.l	$F4000FF1	;D6
 	dc.l	$01000001	;D7
-loc_520C8:
+;loc_520C8
+Car_sprite_data_520C8:
 	dc.l	$00000000	;D0
 	dc.l	$0F4FFF00	;D1
 	dc.l	$0FFFFF00	;D2
@@ -35021,7 +35077,8 @@ loc_520C8:
 	dc.l	$0400FF00	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_520E8:
+;loc_520E8
+Car_sprite_data_520E8:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00FFF000	;A5
@@ -35030,7 +35087,8 @@ loc_520E8:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_52108:
+;loc_52108
+Car_sprite_data_52108:
 	dc.l	$000FFFFF	;D4
 	dc.l	$000FFFFF	;D5
 	dc.l	$000FFFFF	;D6
@@ -35103,7 +35161,8 @@ loc_52108:
 	dc.l	$44441000	;A4
 	dc.l	$44441000	;A5
 	dc.l	$11111000	;A6
-loc_52228:
+;loc_52228
+Car_sprite_data_52228:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -35152,7 +35211,8 @@ loc_52228:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_522E8:
+;loc_522E8
+Car_sprite_data_522E8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$000FFFFF	;D2
@@ -35185,7 +35245,8 @@ loc_522E8:
 	dc.l	$11110000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52368:
+;loc_52368
+Car_sprite_data_52368:
 	dc.l	$0FFFFF10	;D0
 	dc.l	$0F444440	;D1
 	dc.l	$0F411100	;D2
@@ -35194,7 +35255,8 @@ loc_52368:
 	dc.l	$0F411100	;D5
 	dc.l	$0FFFFF40	;D6
 	dc.l	$00111110	;D7
-loc_52388:
+;loc_52388
+Car_sprite_data_52388:
 	dc.l	$00000000	;D0
 	dc.l	$00FFF400	;D1
 	dc.l	$00F11000	;D2
@@ -35203,7 +35265,8 @@ loc_52388:
 	dc.l	$00FFF400	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_523A8:
+;loc_523A8
+Car_sprite_data_523A8:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00F50000	;A5
@@ -35212,7 +35275,8 @@ loc_523A8:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_523C8:
+;loc_523C8
+Car_sprite_data_523C8:
 	dc.l	$00000000	;D4
 	dc.l	$00000000	;D5
 	dc.l	$0000000F	;D6
@@ -35285,7 +35349,8 @@ loc_523C8:
 	dc.l	$40000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_524E8:
+;loc_524E8
+Car_sprite_data_524E8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -35334,7 +35399,8 @@ loc_524E8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_525A8:
+;loc_525A8
+Car_sprite_data_525A8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000FFF	;D2
@@ -35367,7 +35433,8 @@ loc_525A8:
 	dc.l	$10000000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52628:
+;loc_52628
+Car_sprite_data_52628:
 	dc.l	$00FFFF00	;D0
 	dc.l	$0F514FF0	;D1
 	dc.l	$5F0005F0	;D2
@@ -35376,7 +35443,8 @@ loc_52628:
 	dc.l	$45FFFFF0	;D5
 	dc.l	$445FF500	;D6
 	dc.l	$01111000	;D7
-loc_52648:
+;loc_52648
+Car_sprite_data_52648:
 	dc.l	$00000000	;D0
 	dc.l	$00FFF000	;D1
 	dc.l	$0F505F00	;D2
@@ -35385,7 +35453,8 @@ loc_52648:
 	dc.l	$04FFF000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52668:
+;loc_52668
+Car_sprite_data_52668:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$0000F000	;A5
@@ -35394,7 +35463,8 @@ loc_52668:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_52688:
+;loc_52688
+Car_sprite_data_52688:
 	dc.l	$00000FFF	;D4
 	dc.l	$00005FFF	;D5
 	dc.l	$000455FF	;D6
@@ -35467,7 +35537,8 @@ loc_52688:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_527A8:
+;loc_527A8
+Car_sprite_data_527A8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -35540,7 +35611,8 @@ loc_527A8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_528C8:
+;loc_528C8
+Car_sprite_data_528C8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$0005FF00	;D2
@@ -35573,7 +35645,8 @@ loc_528C8:
 	dc.l	$10000000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52948:
+;loc_52948
+Car_sprite_data_52948:
 	dc.l	$4FF00FF0	;D0
 	dc.l	$45F04FF0	;D1
 	dc.l	$15FF4F00	;D2
@@ -35582,7 +35655,8 @@ loc_52948:
 	dc.l	$014FF000	;D5
 	dc.l	$004FF000	;D6
 	dc.l	$00111000	;D7
-loc_52968:
+;loc_52968
+Car_sprite_data_52968:
 	dc.l	$00000000	;D0
 	dc.l	$0FF0FF00	;D1
 	dc.l	$04F4FF00	;D2
@@ -35591,7 +35665,8 @@ loc_52968:
 	dc.l	$001F0000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52988:
+;loc_52988
+Car_sprite_data_52988:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00F0F000	;A5
@@ -35600,7 +35675,8 @@ loc_52988:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_529A8:
+;loc_529A8
+Car_sprite_data_529A8:
 	dc.l	$0000000F	;D4
 	dc.l	$0000005F	;D5
 	dc.l	$0000045F	;D6
@@ -35673,7 +35749,8 @@ loc_529A8:
 	dc.l	$44400000	;A4
 	dc.l	$44000000	;A5
 	dc.l	$10000000	;A6
-loc_52AC8:
+;loc_52AC8
+Car_sprite_data_52AC8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -35722,7 +35799,8 @@ loc_52AC8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_52B88:
+;loc_52B88
+Car_sprite_data_52B88:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00005FFF	;D2
@@ -35755,7 +35833,8 @@ loc_52B88:
 	dc.l	$11000000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52C08:
+;loc_52C08
+Car_sprite_data_52C08:
 	dc.l	$05FFFFF0	;D0
 	dc.l	$05F44400	;D1
 	dc.l	$05F11100	;D2
@@ -35764,7 +35843,8 @@ loc_52C08:
 	dc.l	$05F11100	;D5
 	dc.l	$05FFFFF0	;D6
 	dc.l	$01111100	;D7
-loc_52C28:
+;loc_52C28
+Car_sprite_data_52C28:
 	dc.l	$00000000	;D0
 	dc.l	$00FFFF00	;D1
 	dc.l	$00F11000	;D2
@@ -35773,7 +35853,8 @@ loc_52C28:
 	dc.l	$00FFFF00	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52C48:
+;loc_52C48
+Car_sprite_data_52C48:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00FF0000	;A5
@@ -35782,7 +35863,8 @@ loc_52C48:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_52C68:
+;loc_52C68
+Car_sprite_data_52C68:
 	dc.l	$00FFFFFF	;D4
 	dc.l	$00FFFFFF	;D5
 	dc.l	$00FFFFFF	;D6
@@ -35855,7 +35937,8 @@ loc_52C68:
 	dc.l	$44410000	;A4
 	dc.l	$44440000	;A5
 	dc.l	$01111000	;A6
-loc_52D88:
+;loc_52D88
+Car_sprite_data_52D88:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -35904,7 +35987,8 @@ loc_52D88:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_52E48:
+;loc_52E48
+Car_sprite_data_52E48:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$000FFFFF	;D2
@@ -35937,7 +36021,8 @@ loc_52E48:
 	dc.l	$00011000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_52EC8:
+;loc_52EC8
+Car_sprite_data_52EC8:
 	dc.l	$FFFFF400	;D0
 	dc.l	$F511FF40	;D1
 	dc.l	$F511FF40	;D2
@@ -35946,7 +36031,8 @@ loc_52EC8:
 	dc.l	$F51FF400	;D5
 	dc.l	$F510FF40	;D6
 	dc.l	$01100110	;D7
-loc_52EE8:
+;loc_52EE8
+Car_sprite_data_52EE8:
 	dc.l	$00000000	;A3
 	dc.l	$00FFF440	;A4
 	dc.l	$00F44F40	;A5
@@ -35955,7 +36041,8 @@ loc_52EE8:
 	dc.l	$00F10F40	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_52F08:
+;loc_52F08
+Car_sprite_data_52F08:
 	dc.l	$00000000	;D4
 	dc.l	$00000000	;D5
 	dc.l	$00FF4000	;D6
@@ -35964,7 +36051,8 @@ loc_52F08:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_52F28:
+;loc_52F28
+Car_sprite_data_52F28:
 	dc.l	$00000FFF	;D0
 	dc.l	$00005FFF	;D1
 	dc.l	$00045FFF	;D2
@@ -36037,7 +36125,8 @@ loc_52F28:
 	dc.l	$44000000	;A4
 	dc.l	$40000000	;A5
 	dc.l	$00000000	;A6
-loc_53048:
+;loc_53048
+Car_sprite_data_53048:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -36086,7 +36175,8 @@ loc_53048:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_53108:
+;loc_53108
+Car_sprite_data_53108:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00005FFF	;D2
@@ -36119,7 +36209,8 @@ loc_53108:
 	dc.l	$11000000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_53188:
+;loc_53188
+Car_sprite_data_53188:
 	dc.l	$5FFFFF00	;D0
 	dc.l	$5F144FF0	;D1
 	dc.l	$5F144FF0	;D2
@@ -36128,7 +36219,8 @@ loc_53188:
 	dc.l	$5F144F00	;D5
 	dc.l	$5F044FF0	;D6
 	dc.l	$10011000	;D7
-loc_531A8:
+;loc_531A8
+Car_sprite_data_531A8:
 	dc.l	$00000000	;D0
 	dc.l	$00FFFF00	;D1
 	dc.l	$00F14FF0	;D2
@@ -36137,7 +36229,8 @@ loc_531A8:
 	dc.l	$00F04FF0	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_531C8:
+;loc_531C8
+Car_sprite_data_531C8:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$00FFF000	;A5
@@ -36146,7 +36239,8 @@ loc_531C8:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_531E8:
+;loc_531E8
+Car_sprite_data_531E8:
 	dc.l	$00FFFFFF	;D4
 	dc.l	$00FFFFFF	;D5
 	dc.l	$00FFFFFF	;D6
@@ -36219,7 +36313,8 @@ loc_531E8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_53308:
+;loc_53308
+Car_sprite_data_53308:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -36268,7 +36363,8 @@ loc_53308:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_533C8:
+;loc_533C8
+Car_sprite_data_533C8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$000FFFFF	;D2
@@ -36301,7 +36397,8 @@ loc_533C8:
 	dc.l	$11000000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_53448:
+;loc_53448
+Car_sprite_data_53448:
 	dc.l	$FFFFFF40	;D0
 	dc.l	$01F44110	;D1
 	dc.l	$00F44000	;D2
@@ -36310,7 +36407,8 @@ loc_53448:
 	dc.l	$00F44000	;D5
 	dc.l	$00F44000	;D6
 	dc.l	$00011000	;D7
-loc_53468:
+;loc_53468
+Car_sprite_data_53468:
 	dc.l	$00000000	;D0
 	dc.l	$00FFFF40	;D1
 	dc.l	$000F4000	;D2
@@ -36319,7 +36417,8 @@ loc_53468:
 	dc.l	$000F4000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_53488:
+;loc_53488
+Car_sprite_data_53488:
 	dc.l	$00000000	;A3
 	dc.l	$00FFF000	;A4
 	dc.l	$000F4000	;A5
@@ -36328,7 +36427,8 @@ loc_53488:
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_534A8:
+;loc_534A8
+Car_sprite_data_534A8:
 	dc.l	$00000000	;D4
 	dc.l	$00000000	;D5
 	dc.l	$00000004	;D6
@@ -36401,7 +36501,8 @@ loc_534A8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_535C8:
+;loc_535C8
+Car_sprite_data_535C8:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$00000000	;D2
@@ -36450,7 +36551,8 @@ loc_535C8:
 	dc.l	$00000000	;A4
 	dc.l	$00000000	;A5
 	dc.l	$00000000	;A6
-loc_53688:
+;loc_53688
+Car_sprite_data_53688:
 	dc.l	$00000000	;D0
 	dc.l	$00000000	;D1
 	dc.l	$005FFFF0	;D2
@@ -36467,7 +36569,8 @@ loc_53688:
 	dc.l	$01111000	;D1
 	dc.l	$00000000	;D2
 	dc.l	$00000000	;D3
-loc_536C8:
+;loc_536C8
+Car_sprite_data_536C8:
 	dc.l	$004FFF00	;D0
 	dc.l	$0014F400	;D1
 	dc.l	$0004F000	;D2
@@ -36476,7 +36579,8 @@ loc_536C8:
 	dc.l	$0004F000	;D5
 	dc.l	$004FFF00	;D6
 	dc.l	$00111000	;D7
-loc_536E8:
+;loc_536E8
+Car_sprite_data_536E8:
 	dc.l	$00000000	;D0
 	dc.l	$000FF000	;D1
 	dc.l	$0004F000	;D2
@@ -36485,7 +36589,8 @@ loc_536E8:
 	dc.l	$000FF000	;D5
 	dc.l	$00000000	;D6
 	dc.l	$00000000	;D7
-loc_53708:
+;loc_53708
+Car_sprite_data_53708:
 	dc.l	$00000000	;A3
 	dc.l	$00000000	;A4
 	dc.l	$004F0000	;A5
@@ -36583,7 +36688,8 @@ loc_53708:
 	dc.b	$0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $EE, $EE, $01, $11, $11, $11
 	dc.b	$00, $0E, $EE, $11, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $00, $0E, $EE, $10, $E1, $0E, $EE, $EE, $11, $01, $11, $11
 	dc.b	$11, $11, $10, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $EE, $EE, $10, $00, $11, $11, $10, $00
-loc_53C28:
+;loc_53C28
+Car_sprite_data_53C28:
 	dc.b	$80, $18, $80, $03, $00, $14, $06, $25, $13, $37, $79, $46, $33, $56, $37, $76, $38, $81, $04, $07, $84, $07, $77, $85, $06, $39, $87, $06, $32, $75, $15, $88
 	dc.b	$03, $01, $15, $1A, $25, $12, $35, $17, $44, $08, $55, $14, $67, $76, $75, $18, $89, $03, $02, $16, $36, $38, $FA, $8C, $07, $78, $8D, $07, $7A, $17, $7B, $8E
 	dc.b	$06, $3A, $28, $F9, $8F, $05, $16, $18, $F8, $FF, $E7, $D7, $3E, $B9, $F5, $CF, $AC, $76, $7A, $38, $A0, $50, $9A, $02, $11, $38, $9C, $4E, $02, $10, $ED, $40
@@ -36597,7 +36703,8 @@ loc_53C28:
 	dc.b	$82, $2C, $77, $CA, $DF, $E0, $CB, $32, $C5, $88, $AD, $72, $B8, $D6, $42, $4C, $5A, $4C, $5A, $4C, $5A, $5E, $6E, $08, $AD, $74, $2E, $0C, $F4, $C6, $7A, $99
 	dc.b	$69, $0B, $1D, $F2, $20, $F9, $AD, $6E, $08, $23, $5B, $EB, $72, $0C, $CB, $58, $CF, $43, $22, $08, $35, $AC, $87, $66, $A3, $44, $E2, $74, $17, $AD, $45, $F3
 	dc.b	$96, $72, $F3, $2C, $E5, $9D, $E7, $5F, $F3, $8F, $7C, $71, $C7, $1B, $FB, $DF, $FC, $E0
-loc_53DBA:
+;loc_53DBA
+Car_sprite_data_53DBA:
 	dc.b	$00, $1E, $80, $03, $03, $14, $0A, $25, $1A, $36, $3D, $46, $3C, $58, $F8, $74, $0C, $82, $03, $04, $15, $17, $25, $1C, $38, $F9, $76, $3A, $83, $02, $00, $13
 	dc.b	$02, $25, $16, $35, $1B, $46, $3B, $FF, $CC, $CC, $CC, $F0, $CF, $85, $E2, $F8, $5F, $06, $52, $F2, $DE, $EF, $DB, $7B, $66, $50, $C6, $52, $63, $4D, $32, $26
 	dc.b	$31, $C4, $C6, $4B, $68, $76, $A1, $EF, $33, $33, $1A, $6B, $43, $1A, $66, $93, $28, $69, $8E, $CF, $BD, $76, $D5, $CA, $5F, $D2, $22, $E6, $F9, $DD, $D5, $F7
@@ -36611,7 +36718,8 @@ loc_53DBA:
 	dc.b	$2E, $6F, $E6, $DF, $D2, $22, $E3, $DF, $14, $5C, $1A, $85, $D8, $F7, $06, $9D, $A8, $7B, $F2, $D9, $9E, $0C, $D7, $7A, $1C, $25, $11, $42, $88, $72, $97, $CD
 	dc.b	$10, $E6, $97, $29, $42, $1A, $1D, $B4, $9A, $F2, $D9, $94, $35, $4A, $5A, $57, $CD, $A1, $FC, $2B, $7C, $8C, $67, $13, $52, $DA, $28, $CF, $53, $34, $A2, $9A
 	dc.b	$E2, $A5, $CD, $7F, $4F, $49, $99, $99, $E2, $F0, $B9, $E9, $73, $C5, $99, $99, $9F, $10, $F8, $59, $99, $A0
-loc_53F50:
+;loc_53F50
+Car_sprite_data_53F50:
 	dc.b	$00, $2C, $80, $04, $0E, $14, $0C, $25, $1B, $35, $1A, $45, $1E, $57, $7C, $71, $00, $82, $07, $7D, $8F, $02, $02, $FF, $80, $0D, $40, $F9, $00, $F9, $00, $6E
 	dc.b	$02, $0F, $48, $3D, $00, $40, $11, $B8, $00, $77, $D0, $6A, $00, $DC, $06, $A3, $21, $D6, $AD, $C1, $91, $E8, $0D, $C1, $D6, $A7, $46, $46, $4D, $48, $E8, $6B
 	dc.b	$EE, $4F, $97, $A6, $A7, $4E, $B2, $D4, $D5, $AB, $77, $A6, $AF, $59, $65, $EF, $BB, $B2, $EB, $76, $5D, $67, $E7, $F3, $EF, $5B, $BE, $C0, $3E, $4C, $83, $20
