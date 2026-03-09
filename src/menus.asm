@@ -1,4 +1,15 @@
 Race_preview_screen_init:
+; Screen-init handler for the attract sequence (pre-title logo animation).
+; Called on first boot and each time the attract loop cycles back.
+; Fades palette to black, resets the VDP to H40 mode, clears the object pool,
+; then decompresses the attract logo tiles to VRAM, the background tilemap to
+; VRAM (64-cell stride), and the overlay tilemap to Tilemap_work_buf.  Loads
+; the attract palette stream, sets Screen_timer = $95 (attract display duration),
+; starts the streamed decompressor, arms the object slot at Main_object_pool with
+; $1032, sets Frame_callback = Attract_screen_logo_frame,
+; Vblank_callback = Attract_screen_logo_vblank_handler ($2440), enables display
+; and interrupts, then returns.
+; Outputs: Frame_callback, Vblank_callback, Vblank_enable, VDP mode active.
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	JSR	Clear_main_object_pool
@@ -146,6 +157,18 @@ Attract_screen_frame_Done:
 	dc.b	$D0, $C0, $32, $D8, $51, $C9, $FF, $FC, $4E, $75
 ;Startup_screen_init
 Startup_screen_init:
+; Screen-init handler for the Sega logo / boot startup screen.
+; Halts the audio engine, fades to black, initialises H40 VDP.  Writes VDP
+; register $8238 (name table B at $E000), $8B03 (H-int timing), $9011 (sprite
+; table at $0880), $9280 (window nametable at $A000).  Decompresses startup
+; screen tiles to RAM work buffer, then uploads 2 rows of 12 tile indices
+; ($0001–$0018) directly to VRAM at $6xxx addresses.  Sets up a flat palette
+; ($EEE × 4 entries at Palette_buffer).  Initialises the Decomp_code_table
+; animation descriptor (1 active cell, cells 1–31 cleared to $FFFF),
+; Screen_scroll = $000D, clears Track_index and Title_menu_flags/state.
+; Sets Frame_callback = Attract_screen_frame, Vblank_callback = $03D8,
+; enables interrupts and display, waits two VBLs, then returns.
+; Outputs: Frame_callback, Vblank_callback, Vblank_enable, VDP mode active.
 	JSR	Halt_audio_sequence
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
@@ -216,6 +239,11 @@ Startup_screen_init_Code_loop:
 
 ;Upload_words_to_vram
 Upload_words_to_vram:
+; Bulk-upload a 784-word ($030F + 1) region from A0 to VRAM at address $0000.
+; Hardcodes the VRAM destination to $40000000 (VRAM write, address $0000).
+; Designed to flush Attract_anim_tile_buf or Tilemap_work_buf to the plane.
+; Inputs:  A0 = source word array (784 words = 1568 bytes).
+; Modifies: A0 (advanced past source), A1 (VDP_data_port ptr), D1 (loop counter).
 	MOVEA.l	#VDP_data_port, A1
 	MOVE.w	#$030F, D1
 	MOVE.l	#$40000000, $4(A1)
@@ -224,6 +252,18 @@ Upload_words_to_vram_Loop:
 	DBF	D1, Upload_words_to_vram_Loop
 	RTS
 Attract_anim_cell_update:
+; Advance one attract-logo animation cell descriptor and apply its tile flip.
+; Each descriptor (8 bytes) in Decomp_code_table tracks a moving highlight cell:
+;   word 0: column (0–7), word 1: row (0–7), word 2: pixel offset within row,
+;   word 3/nibble: direction phase (0–$E step-2; drives Attract_anim_cell_dispatch).
+; On each call the cell advances one step using the dispatch table; if the new
+; tile position matches Tilemap_work_buf but not Attract_anim_tile_buf it is set,
+; the old cell is saved to Attract_anim_restore_buf, and may queue a new cell
+; in Attract_anim_queue_buf.  When the restore flag fires, the saved cell is
+; written back and the descriptor is cleared (Attract_anim_cell_count-1).
+; Inputs:  A6 = pointer to the 8-byte Decomp_code_table descriptor.
+; Modifies: Attract_anim_tile_buf, Attract_anim_restore_buf, Attract_anim_queue_buf,
+;           Attract_anim_cell_count, D0-D7 (all scratch).
 	CLR.b	Attract_anim_restore_flag.w
 	MOVE.w	$6(A6), D5
 	ADDQ.w	#4, D5
@@ -345,6 +385,9 @@ Attract_anim_cell_row_prev_rts:
 	RTS
 ;Menu_cursor_col_next
 Menu_cursor_col_next:
+; Advance animation cell column by 1, wrapping 0–7 and incrementing the
+; tile-buffer offset (D4) by $0020 (one 8-pixel cell column) on wrap.
+; Inputs/Outputs: D2.w = column (0–7), D4.w = tile buffer offset.
 	ADDQ.w	#1, D2
 	CMPI.w	#8, D2
 	BCS.b	Menu_cursor_col_next_Rts
@@ -353,6 +396,9 @@ Menu_cursor_col_next:
 Menu_cursor_col_next_Rts:
 	RTS
 Menu_cursor_row_next:
+; Advance animation cell row by 1, wrapping 0–7 and incrementing the
+; tile-buffer offset (D4) by $0180 (one 8-pixel cell row) on wrap.
+; Inputs/Outputs: D3.w = row (0–7), D4.w = tile buffer offset.
 	ADDQ.w	#1, D3
 	CMPI.w	#8, D3
 	BCS.b	Menu_cursor_row_next_Rts
@@ -362,6 +408,9 @@ Menu_cursor_row_next_Rts:
 	RTS
 ;Menu_cursor_col_prev
 Menu_cursor_col_prev:
+; Retreat animation cell column by 1, wrapping 0→7 and decrementing the
+; tile-buffer offset (D4) by $0020 (one 8-pixel cell column) on wrap.
+; Inputs/Outputs: D2.w = column (0–7), D4.w = tile buffer offset.
 	SUBQ.w	#1, D2
 	BCC.b	Menu_cursor_col_prev_Rts
 	MOVEQ	#7, D2
@@ -374,14 +423,18 @@ Attract_car_segment_data: ; Suspected main menu loop
 	dc.b	$0E, $60, $0C, $40, $06, $20, $0E, $80, $0A, $40, $08, $00, $0E, $A0, $0C, $60, $08, $40, $0E, $C8, $0C, $80, $0A, $40, $0E, $EE, $0E, $A4, $0C, $62, $0E, $C8
 	dc.b	$0C, $80, $0A, $40, $0E, $A0, $0C, $60, $08, $00, $0E, $80, $0A, $40, $08, $20
 ;$00002818
-; Title_anim_frame — per-frame handler for the animated title screen.
-; Updates sprite objects and processes player input.
-; If bit 0 of Title_menu_flags is set (attract-cycle state) and the animation sequence
-;   ends, transitions back to Race_preview_screen_init to loop the attract sequence.
-; A secondary attract-cycle timer also fires back to Race_preview_screen_init.
-; On START press: plays team-select music (Music_team_select), begins cursor processing,
-;   and arms the appropriate title sub-menu handler based on Title_menu_state.
 Title_anim_frame:
+; Per-frame handler for the animated title screen.
+; Waits for VBlank, updates the sprite object pool, then dispatches:
+;   - If bit 0 of Title_menu_flags is clear and START pressed: plays
+;     Music_team_select, clears cursor/aux pools, sets bit 0, and arms
+;     the title sub-menu via Update_title_menu_state.
+;   - If bit 3 of Title_menu_flags set (returning from menu): goes to
+;     Title_anim_frame_Menu_entry (same cursor init, no music replay).
+;   - Otherwise: draws the cursor, then dispatches on Screen_scroll:
+;       0 = Title_anim_car_seq_tick (car parade sequence tick),
+;       4 = Title_anim_attract_loop (loop back to attract sequence).
+; Outputs: Frame_callback (may be updated), Audio_music_cmd, cursor state.
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	BTST.b	#0, Title_menu_flags.w
@@ -475,6 +528,17 @@ Title_anim_frame_Menu_entry:
 ; Sets "player-pressed START" bit (bit 3 of Title_menu_flags) then falls through to
 ; Title_menu_Init_screen which fades to black, inits H40 VDP, decompresses the full title screen
 Title_menu:
+; Entry point reached when the player presses START on the title / attract screen.
+; Sets bit 3 of Title_menu_flags (marks a "real" entry, not an attract-cycle re-entry),
+; then falls through to Title_menu_Init_screen.
+; Also reached as Title_menu_attract_cycle ($00002944) when attract timer expires,
+; which first resets Selection_count=6, clears Title_menu_flags and Title_menu_state.
+; Title_menu_Init_screen: fades to black, initialises H40 VDP, loads and decompresses
+; all title screen art (tiles, tilemaps, palette), optionally loads track-preview art
+; when Title_menu_state==2, arms cursor and background tilemap DMA, sets
+; Frame_callback=Title_anim_frame, plays title music (Selection_count encodes song ID),
+; enables display, then returns.
+; Outputs: Frame_callback, Audio_music_cmd, Vblank_callback, Vblank_enable, VDP mode.
 	BSET.b	#3, Title_menu_flags.w
 	BRA.b	Title_menu_Init_screen
 ;$00002944
@@ -580,6 +644,11 @@ Title_menu_attract_Halt_skip:
 	RTS
 
 Clear_driver_points:
+; Zero all 16 championship driver-points bytes in Driver_points_by_team.
+; Called at the start of a new championship season to wipe standings.
+; Inputs:  none.
+; Outputs: Driver_points_by_team[0..15] = 0.
+; Modifies: A1, D0.
 	LEA	Driver_points_by_team.w, A1
 	MOVE.w	#$000F, D0
 Clear_driver_points_Loop:
@@ -739,6 +808,13 @@ Title_anim_draw_cursor_Active:
 	BEQ.b	Title_anim_draw_track_cursor
 ;Render_title_car_indicator_tile
 Render_title_car_indicator_tile:
+; Draw the blinking cursor indicator tile for the current title-menu car slot.
+; Computes the VDP destination address from Title_menu_vdp_command and
+; Menu_cursor (each cursor step adds $01000000 to the base address).
+; Writes tile $834D (filled) on even bit-2 frames, $834F (blank) on odd,
+; producing a 4-frame blink cycle via Screen_subcounter bit 2.
+; Inputs:  Title_menu_vdp_command, Menu_cursor, Screen_subcounter.
+; Modifies: D0-D2, VDP_control_port, VDP_data_port, Screen_subcounter.
 	MOVE.l	Title_menu_vdp_command.w, D7
 	CLR.w	D0
 	MOVE.b	Menu_cursor.w, D0
@@ -882,6 +958,25 @@ Title_menu_write_items_Loop:
 	DBF	D1, Title_menu_write_items
 	RTS
 Update_title_menu_state:
+; Dispatch a menu-selection action and then refresh the on-screen menu layout.
+; Called with D0 = 0 (confirm selection) or D0 = $FF (cancel / re-layout only).
+;
+; When D0 == 0 (confirm):
+;   Indexes Title_menu_state_handlers by Title_menu_state * 8 + Menu_cursor * 2
+;   and JSRs to the selected handler (Title_menu_sel_*).
+;
+; After the handler (or when D0 != 0):
+;   Reads Title_menu_selection_layouts[Title_menu_state * 10]:
+;     byte 0 = row_count  → Title_menu_row_count
+;     byte 1 = item_count → Title_menu_item_count
+;     long 2 = item_table → Title_menu_item_table_ptr
+;     long 6 = VDP cmd   → Title_menu_vdp_command
+;   Clears Title_menu_cursor_row, sets bit 1 of Title_menu_flags (trigger redraw).
+;
+; Inputs:  D0 (0=confirm, else re-layout only), Title_menu_state, Menu_cursor.
+; Outputs: Title_menu_row_count, Title_menu_item_count, Title_menu_item_table_ptr,
+;          Title_menu_vdp_command, Title_menu_cursor_row, Title_menu_flags bit 1.
+; Modifies: A1, A2, D0-D4.
 	TST.b	D0
 	BNE.b	Update_title_menu_state_Layout
 	CLR.l	D1
@@ -1018,13 +1113,21 @@ Title_menu_items_options:
 Title_menu_items_laps:
 	txt "LAPS  "
 ;$000031FE
-; Options_setup_frame — per-frame handler for the WARM UP / RACE / MACHINE / TRANSMISSION
-; options screen.  Fires cursor-move SFX (Sfx_menu_cursor) from Options_cursor_update, then
-; counts down the Screen_scroll transition timer.  When a valid selection is committed
-; (scroll reaches 0) saves Shift_type to Saved_shift_type_2 and restores the frame
-; callback that launched the options screen (via Saved_frame_callback), returning to
-; either the arcade or championship path.
 Options_setup_frame:
+; Per-frame handler for the WARM UP / RACE / MACHINE / TRANSMISSION options screen.
+; Fires cursor-move SFX (Sfx_menu_cursor = 2) from the Options_cursor_update flag, then
+; handles two states:
+;   Scrolling (Screen_scroll > 0): counts down Screen_scroll each frame; when it reaches 0
+;     falls through to commit.
+;   Idle (Screen_scroll == 0): if not championship mode (Anim_delay == 0), ticks a BCD
+;     lap-count display timer (Screen_tick) and renders the current lap digit to VDP via
+;     Digit_tilemap_buf.  Polls d-pad input; a left/right press redraws the "SELECTED"
+;     text for the current shift type and arms Screen_scroll = $002D (commit countdown).
+; Commit: saves Shift_type → Saved_shift_type and Saved_shift_type_2, then restores
+;   Frame_callback from Saved_frame_callback (returns to arcade or championship path).
+; Inputs:  Options_cursor_update, Shift_type, Screen_scroll, Screen_tick, Screen_digit,
+;          Anim_delay, Input_click_bitset.
+; Outputs: Audio_sfx_cmd, Saved_shift_type, Saved_shift_type_2, Frame_callback.
 	JSR	Wait_for_vblank
 	JSR	Update_objects_and_build_sprite_buffer
 	MOVE.w	Options_cursor_update.w, D0
@@ -1090,22 +1193,36 @@ Options_setup_frame_Commit:
 	MOVE.l	Saved_frame_callback.w, Frame_callback.w
 	RTS
 ;$000032E0
-; Options_screen_arcade_init — arcade-path entry for the options screen.
-; Restores Saved_shift_type → Shift_type, sets Anim_delay=1, then falls through to
-; Options_screen_init.
 Options_screen_arcade_init:
+; Arcade-path entry for the options screen.
+; Restores Saved_shift_type → Shift_type, sets Anim_delay = 1 (marks arcade mode
+; so the lap-count display uses the arcade lap list), then falls through to
+; Options_screen_init_Body (bypassing the second fade/VDP-init).
+; Inputs:  Saved_shift_type.
+; Outputs: Shift_type, Anim_delay; then all outputs of Options_screen_init_Body.
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 	MOVE.w	Saved_shift_type.w, Shift_type.w
 	MOVE.w	#1, Anim_delay.w
 	BRA.b	Options_screen_init_Body
 ;Options_screen_init
-; Options_screen_init — initialise the options setup screen (shared between arcade and
-; championship paths).  Fades to black, inits H40 VDP, decompresses the options tileset
-; and four tilemaps (WARM UP / RACE / MACHINE / TRANSMISSION selector panels), draws
-; lap-count and control-type graphics, arms the options cursor object, and installs
-; Options_setup_frame as the per-frame callback.
 Options_screen_init:
+; Championship-path entry for the options screen.
+; Fades to black, initialises H40 VDP, then falls through to Options_screen_init_Body.
+;
+; Options_screen_init_Body (shared with arcade path):
+;   Clears object pool, decompresses options tilesets (Options_asset_list),
+;   background tilemap ($6580 base), main tilemap to buffer, and draws selector panel
+;   tilemaps (Options_tilemap_list).  Selects lap-count list based on Anim_delay
+;   (0 = championship, 1 = arcade).  Decompresses shift-type tilemap, selects and
+;   draws the correct control-type display table (Options_shift_display_table).
+;   Writes shift-indicator tilemap rows to VDP.  Decompresses shift-type tilemap B
+;   and loads palette stream.  Allocates Options_cursor_obj at Main_object_pool,
+;   sets Frame_callback = Options_setup_frame, Vblank_callback = $03D8,
+;   plays music from Selection_count, enables display, then returns.
+; Inputs:  Anim_delay (0=championship, 1=arcade), Shift_type, Control_type,
+;          Selection_count (music selector).
+; Outputs: Frame_callback, Vblank_callback, Vblank_enable, VDP mode active.
 	JSR	Fade_palette_to_black
 	JSR	Initialize_h40_vdp_state
 Options_screen_init_Body:

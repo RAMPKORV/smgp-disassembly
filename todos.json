@@ -1,30 +1,43 @@
 {
   "_meta": {
     "project": "Super Monaco GP Disassembly",
-    "description": "Roadmap refreshed after reviewing the more mature ../vermilion project structure and full commit history. The old phase of RAM-address naming and loc_ cleanup is effectively complete; the remaining gap to vermilion is architectural maturity: split modules under src/, split constant files, stronger docs/tooling, and a systematic audit for hidden pointers inside data blocks.",
+    "description": "Phase 3 roadmap: architecture split and pointer audit are complete. Focus shifts to vermilion-style data extraction plus a full migration away from Python/Jupyter tooling: move bounded binary data out of brittle ASM dc.* blobs into a top-level data/ tree with appropriate subfolders, then build Node.js-based JSON extraction/injection tooling, editor CLIs, and ultimately a JavaScript track randomizer capable of generating playable random levels.",
     "created": "2026-03-07",
-    "updated": "2026-03-08",
-    "phase": 2,
-    "source_project_reviewed": "../vermilion (structure, docs, todos.json, roadmap/refactor docs, and full git commit subjects)",
-    "label_progress": "0 active loc_ label definitions remain in the build. Remaining naming work is consistency/audit of opaque data blocks, not routine/branch label cleanup.",
-    "ram_progress": "All known work RAM, I/O, and core hardware addresses are now symbolized. Remaining constant work is architectural reorganization, not broad raw-address cleanup.",
+    "updated": "2026-03-09",
+    "last_completed": "DOC-011",
+    "phase": 3,
+    "source_project_reviewed": "../vermilion (full toolchain: top-level data/ binary asset tree + tools/data JSON layer, extract/inject pipeline, 12 randomizer modules, 5 editors, 19 docs, 7 linters, progression validator, map generation, hack workspace system)",
+    "label_progress": "0 active loc_ label definitions remain. All 4221 symbols named and mapped.",
+    "ram_progress": "All known work RAM, I/O, and hardware addresses symbolized across 4 split constants files.",
+    "track_data_progress": "All 19 tracks have labeled curve_data, slope_data, phys_slope_data, sign_data, sign_tileset, and minimap_pos. Track_data table (19×$48) fully decoded with all 18 pointer + scalar fields named. RLE encoding for curves and slopes fully documented.",
     "current_state": [
-      "Single active source file: smgp.asm still contains the whole ROM in build order",
-      "Bit-perfect verification exists and is the required correctness gate via verify.bat",
-      "Startup, race loop, driving model, rendering/HUD, race flow, Track_data, slope data, and sign data are already documented",
-      "Major helper macros already exist for VDP/control-flow patterns; future macro work is selective cleanup, not first-wave adoption",
-      "The largest parity gaps versus vermilion are include-based source splitting, split constants files, symbol/index tooling, module-level docs, and a hidden-pointer audit of opaque data blocks",
-      "Open reverse-engineering focus areas now center on AI/placement internals, Z80/audio internals, artwork/blob identification, and pointer-like values still buried in data"
+      "Build is fully split: smgp.asm is a 15-line include hub, 11 code modules + ~20 data modules under src/",
+      "Bit-perfect verification via verify.bat is the required correctness gate",
+      "All loc_ labels eliminated, all RAM/IO addresses symbolized, all Track_data fields named",
+      "Track data formats (curve RLE, slope RLE, sign records, minimap) fully decoded in notes.txt",
+      "AI behavior, placement scoring, tire wear, collision all documented",
+      "Hidden pointer audit complete (0 remaining candidates)",
+      "Core gaps remaining: Z80 audio internals, artwork/blob cataloging, full vermilion-style data/ extraction coverage, and Node.js replacements for the current Python/Jupyter tooling stack",
+      "The next tooling step is to make binary/blob data live in top-level data/ subfolders and reference it from ASM, so agents operate on stable extracted files instead of parsing dc.b/dc.w/dc.l text",
+      "Existing Python tooling is now considered transitional proof-of-format work and must either be replaced with Node.js scripts or removed entirely",
+      "No new Python or Jupyter tooling should be added; all new automation, editors, randomizers, and tests must target Node.js/JavaScript",
+      "The primary new goal is building toward a Node.js-based track randomizer and game editor"
     ],
     "completed_milestones": [
-      "Bit-perfect Windows-first build/verify workflow is in place",
-      "All known loc_ label definitions have been renamed",
-      "All known RAM/I/O address references have symbolic names",
-      "Track_data, slope-data encoding, and sign-data format have been decoded",
-      "Core gameplay, rendering, and race-flow routines have headers/comments"
-    ]
+      "Bit-perfect Windows-first build/verify workflow",
+      "All loc_ label definitions renamed (0 remaining, 3099 preservation comments)",
+      "All RAM/IO addresses symbolized (700+ entries in ram_addresses.asm)",
+      "Source split into 30+ modules (code + data) with include-based build",
+      "Constants split into hw/ram/sound/game files",
+      "Track_data, curve RLE, slope RLE, sign format, minimap format all decoded",
+      "AI car behavior, placement, tire wear, collision fully documented",
+      "Hidden pointer scan and audit complete (PTR-001 through PTR-003)",
+      "Symbol map, split-safety checker, and structural linter tools in place",
+      "Extract/inject pipeline, editors, and randomizer behavior proven out and ready for Node.js migration"
+    ],
+    "end_goal": "A Node.js-based randomizer and game editor for Super Monaco GP, with the ability to generate random playable tracks (curve layouts, slope profiles, sign placement, background art assignment) and modify team/car/championship data, producing valid reassembled ROMs without any Python tooling remaining in the project."
   },
-  "schema_version": 2,
+  "schema_version": 3,
   "task_defaults": {
     "verify_steps": [
       "cmd //c verify.bat"
@@ -32,445 +45,842 @@
     "acceptance": [
       "Bit-perfect build: cmd //c verify.bat exits 0",
       "No code or data move changes ROM bytes or label addresses unless the result still verifies bit-perfect",
-      "New labels follow repo conventions and preserve original ROM address comments when renaming legacy symbols",
-      "New constants live in the appropriate split constants file once ARCH-005 is complete"
+      "New labels follow repo conventions and preserve original ROM address comments",
+      "New constants live in the appropriate split constants file",
+      "New tools use Node.js/JavaScript (prefer the Node standard library and only add small, justified dependencies); do not add Python tooling",
+      "Binary/blob workflows use extracted files under top-level data/ plus small manifests/wrappers; avoid brittle parsing of large dc.b/dc.w/dc.l ASM regions"
     ],
     "editing_rules": [
       "Prefer symbolic constants over raw RAM, I/O, and hardware literals",
       "Prefer existing proven macros over repeating exact instruction sequences",
-      "Preserve ROM order exactly while splitting the monolith into include files",
-      "Use Python 3 standard library for automation unless a stronger repo-local convention emerges"
+      "Preserve ROM order exactly in assembly source",
+      "Use Node.js/JavaScript for automation; do not add new Python scripts or Jupyter notebooks",
+      "For binary and blob data, establish top-level data/ files and incbin-backed source before building higher-level editors/randomizers",
+      "Do not build tooling that manipulates binary payloads by parsing large ASM dc.b/dc.w/dc.l blocks when the data can be extracted to files under data/",
+      "Structured extraction tools emit JSON from extracted data/ assets or small manifests; injection tools update data/ files and only rewrite ASM wrappers/manifests when necessary",
+      "All randomizer modules use seeded PRNG for reproducibility"
     ]
   },
   "quality_gates": {
     "always": [
       "Run cmd //c verify.bat after every code or data change",
       "If verify fails, isolate the exact cause rather than reverting unrelated work",
-      "When splitting files, compare listing addresses before and after each extraction step"
+      "Run the checks aggregator after structural changes (transition from tools/run_checks.py to tools/run_checks.js as the Node migration lands)"
     ],
     "before_refactors": [
       "Add or preserve routine headers and invariants before moving code into a new module",
       "Confirm all dc.b/dc.w/dc.l blocks remain byte-identical after formatting or symbolization",
-      "Preserve original ROM-offset comments for renamed legacy symbols and pointer blocks",
-      "Keep a referenceable monolithic source or generated address map while the split is in progress"
+      "Preserve original ROM-offset comments for renamed legacy symbols and pointer blocks"
+    ],
+    "for_editors_and_randomizer": [
+      "Every data/ extract→inject round-trip must preserve the original bytes exactly before higher-level JSON tooling depends on it",
+      "Every extract→inject round-trip must produce bit-identical ASM/ROM output (no-op test)",
+      "Randomizer output must pass track validation before reassembly",
+      "verify.bat must pass on every randomized ROM",
+      "Randomized ROMs must be tested in Exodus emulator for at least one lap on each generated track"
     ]
   },
   "categories": {
     "architecture_and_split": {
-      "description": "Primary parity gap with vermilion. The next major milestone is to turn the monolithic build into a thin top-level file plus ordered src/ modules without changing ROM output.",
+      "description": "COMPLETE. The monolith has been split into 30+ include modules. Remaining architecture work is documentation only.",
       "tasks": [
         {
           "id": "ARCH-001",
           "title": "Split smgp.asm into a thin top-level include file",
-          "description": "Make smgp.asm behave like vermilion.asm: a short file that includes macros/constants plus ordered modules under src/. This is the immediate next step and the biggest maintainability win still missing.",
-          "files": [
-            "smgp.asm",
-            "src/"
-          ],
-          "priority": "critical",
-          "effort": "very_large",
           "status": "done",
-          "progress_notes": "Initial split complete and bit-perfect verified. `smgp.asm` is now a 5-line top-level include file loading `macros.asm`, `constants.asm`, `header.asm`, `init.asm`, and `src/core.asm`. This establishes the include-based build shape needed for further module extraction without changing ROM output."
+          "priority": "critical",
+          "effort": "very_large"
         },
         {
           "id": "ARCH-002",
           "title": "Extract header, vectors, error traps, and startup into dedicated files",
-          "description": "Create low-risk first modules similar to vermilion's header.asm and init.asm so top-of-ROM structures stop living inside the gameplay monolith.",
-          "files": [
-            "smgp.asm",
-            "header.asm",
-            "init.asm",
-            "src/"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": "ARCH-001",
           "status": "done",
-          "progress_notes": "First low-risk extraction step complete and bit-perfect verified. Top-of-ROM structures now live in `header.asm` (vectors, ROM header, error traps) and `init.asm` (EntryPoint, VBlank/HBlank setup, boot helpers, startup graphics/Z80 loader, Boot_init_data, Initialize_vdp)."
+          "priority": "high",
+          "effort": "large"
         },
         {
           "id": "ARCH-003",
           "title": "Split gameplay code into thematic src modules",
-          "description": "Break the remaining code region into modules such as core, race flow, driving model, rendering/HUD, menus, AI, and audio interface, preserving exact ROM order and using the existing documentation as boundaries.",
-          "files": [
-            "smgp.asm",
-            "src/"
-          ],
+          "status": "done",
           "priority": "critical",
-          "effort": "very_large",
-          "depends_on": [
-            "ARCH-001",
-            "ARCH-002"
-          ],
-          "status": "in_progress",
-          "progress_notes": "Eleventh extraction step complete and bit-perfect verified. The late-game/result path now has its own `src/endgame.asm`, pulling the results-screen setup, credits/car-spec endgame flow, and closely-related late-game data away from the residual `src/gameplay.asm` tail. `src/gameplay.asm` now starts at `Draw_track_name_and_championship_standings`, so the remaining module is mostly championship/race-summary glue plus shared late-game helpers. New insight: the source split is now mature enough that additional architecture work should focus on stable data-region extraction (`ARCH-004`) rather than more tiny code-only splits."
+          "effort": "very_large"
         },
         {
           "id": "ARCH-004",
           "title": "Split major data tables and asset regions into dedicated modules",
-          "description": "Move track/team/text/graphics/sound regions into ordered src/*.asm or data-oriented include files once the code split is stable. This prepares the project for pointer auditing and later extraction tooling.",
-          "files": [
-            "smgp.asm",
-            "src/",
-            "data/"
-          ],
+          "status": "done",
           "priority": "high",
-          "effort": "very_large",
-          "depends_on": [
-            "ARCH-001",
-            "ARCH-003",
-            "TOOL-005"
-          ],
-          "status": "in_progress",
-          "progress_notes": "All major data region extractions from `src/gameplay.asm` are now complete and bit-perfect verified. Over the full run, 20+ extraction steps have landed. Data modules extracted this session: `src/team_messages_data.asm` (1,564 lines: all JP/EN team message pointer tables and strings), `src/crash_gauge_data.asm` (329 lines: `Race_hud_tiles_g` + crash RPM/sync/collision gauge palette tables and streams), `src/car_sprite_blobs.asm` (4,801 lines: `Startup_tileset_data` through `Car_sprite_data_53F50`), `src/hud_and_minimap_data.asm` (426 lines: `Race_hud_car_tiles` through per-track minimap tiles/maps), `src/screen_art_data.asm` (1,911 lines: `Hud_tiles_normal` through `Championship_final_tiles`), `src/track_bg_data.asm` (1,719 lines: all 19 `Track_bg_tilemap_*` and `Track_bg_tiles_*` families), `src/road_and_track_data.asm` (2,980 lines: `Ai_screen_y_table`, `Road_scanline_descriptor_table`, `Road_displacement_*`, `Sign_lookup_table`/sequences, and all per-track `*_curve_data`, `*_slope_data`, `*_phys_slope_data`, `*_minimap_pos`, `*_sign_data`, `*_sign_tileset` for all 19 tracks), `src/audio_engine.asm` (1,848 lines: `Halt_audio_sequence` through `Z80_data` — the full 68K audio engine and Z80 ROM payload). `src/gameplay.asm` now contains only the core gameplay code (9,638 lines) with all data regions extracted as include files. Previously extracted in prior sessions: `src/track_config_data.asm`, `src/sprite_frame_data.asm`, and 10+ endgame/result/portrait data modules. The monolith split is effectively complete; remaining work under ARCH-004 would be further granularity within the existing data modules (e.g. splitting `car_sprite_blobs.asm` or `screen_art_data.asm` by asset family), which is lower priority than the documentation and tooling tasks."
+          "effort": "very_large"
         },
         {
           "id": "ARCH-005",
           "title": "Split constants.asm into hardware, RAM, game, and sound constant files",
-          "description": "Match vermilion's mature layout by separating constants into focused files such as hw_constants.asm, ram_addresses.asm, game_constants.asm, and sound_constants.asm, then wire them into the new top-level build.",
-          "files": [
-            "constants.asm",
-            "hw_constants.asm",
-            "ram_addresses.asm",
-            "game_constants.asm",
-            "sound_constants.asm"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": [
-            "ARCH-001",
-            "ARCH-002"
-          ],
           "status": "done",
-          "progress_notes": "Initial constants split complete and bit-perfect verified. `constants.asm` is now a thin include file that pulls in `hw_constants.asm`, `ram_addresses.asm`, `sound_constants.asm`, and `game_constants.asm`. `tools/split_constants.py` was added to regenerate the split files from the monolithic baseline while the architecture migration continues."
+          "priority": "high",
+          "effort": "large"
         },
         {
           "id": "ARCH-006",
           "title": "Create module-boundary and refactor-log docs for the split build",
-          "description": "Add docs/module_boundaries.md and docs/refactor_log.md so future contributors can see ownership, call boundaries, known misplacements, and why each extraction step was safe. This is a major part of vermilion's mature shape.",
+          "description": "Add docs/module_boundaries.md and docs/refactor_log.md so contributors can see module ownership, call boundaries, and extraction rationale. Modeled after vermilion's docs/module_boundaries.md.",
           "files": [
             "docs/module_boundaries.md",
-            "docs/refactor_log.md",
-            "src/"
+            "docs/refactor_log.md"
           ],
           "priority": "medium",
           "effort": "medium",
-          "depends_on": [
-            "ARCH-003",
-            "ARCH-004",
-            "ARCH-005"
-          ],
-          "status": "todo"
-        },
-        {
-          "id": "ARCH-007",
-          "title": "Preserve a reference-only monolithic source during the split",
-          "description": "Keep one reference file or generated address map that represents the pre-split monolith so line/address comparisons remain easy while modules are being extracted.",
-          "files": [
-            "smgp.asm",
-            "smgp_full.asm"
-          ],
-          "priority": "medium",
-          "effort": "small",
-          "depends_on": "ARCH-001",
-          "status": "done",
-          "progress_notes": "Added `smgp_full.asm` as a generated reference-only monolithic snapshot composed from the current include tree. It is not part of the build, but it preserves a single-file view for line-based inspection during the ongoing split."
-        }
-      ]
-    },
-    "documentation_and_data_audit": {
-      "description": "Once the split exists, the next parity step is the same one vermilion went through: module-level docs plus systematic auditing of opaque data and embedded pointers.",
-      "tasks": [
-        {
-          "id": "DOC-006",
-          "title": "Document AI car behavior, placement logic, and standings internals",
-          "description": "Identify the routines and data that govern AI speed, lane choice, placement score, sort order, and post-race standings updates. This is one of the largest remaining gameplay-understanding gaps.",
-          "files": [
-            "src/ai.asm",
-            "src/race.asm",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": "ARCH-003",
-          "status": "todo"
-        },
-        {
-          "id": "DOC-007",
-          "title": "Annotate remaining major data tables and asset lists entry-by-entry",
-          "description": "Add per-entry labels/comments for team data, driver data, portraits, HUD assets, standings tables, championship data, sprite-frame tables, and other large named data regions so they become safely editable without debugger context.",
-          "files": [
-            "src/",
-            "notes.txt"
-          ],
-          "priority": "medium",
-          "effort": "large",
           "depends_on": [
             "ARCH-003",
             "ARCH-004"
           ],
-          "status": "todo"
-        },
-        {
-          "id": "PTR-001",
-          "title": "Build a hidden-pointer scanner for data blocks",
-          "description": "Create a tool that scans listing output and assembly data blocks for values that resolve inside the ROM, RAM, or structured tables but are not yet labeled as pointers. This is the explicit next step after the src split.",
-          "files": [
-            "tools/report_hidden_pointers.py",
-            "smgp.lst",
-            "src/"
-          ],
-          "priority": "critical",
-          "effort": "medium",
-          "depends_on": [
-            "ARCH-003",
-            "ARCH-004",
-            "TOOL-002"
-          ],
           "status": "done",
-          "progress_notes": "Added `tools/report_hidden_pointers.py` and generated `tools/index/hidden_pointer_candidates.json`. The scan was refined repeatedly: from an initial 270 noisy `dc.l`/`dc.w` hits, to 22 candidates / 11 strong `dc.l` candidates, to 4 reviewed candidates, and finally to 0 remaining candidates after auditing and suppressing known false-positive classes. The tool now also has first-pass support for hidden addresses encoded across tuple-style `dc.b` and `dc.w` data, but the naive tuple sweep produced overwhelming bitmap/layout noise, so the current tuple heuristic is intentionally constrained and conservative. Insight: real hidden RAM-pointer tables were found in result/podium data and symbolized; broader tuple-pointer discovery will need domain-specific structure heuristics rather than blind sliding-window matching."
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Created docs/module_boundaries.md (~270 lines) and docs/refactor_log.md (~230 lines). module_boundaries.md covers: full include tree, top-level file descriptions, per-code-module ROM ranges and key exported labels, all 22 data modules with ROM ranges, constants files, inter-module call graph (full cross-module JSR analysis), data flow summary, and ownership rules. refactor_log.md covers: all Phase 1-3B completed work in chronological order, extraction rationale, bug fixes applied, test suite summary, current state, and known remaining gaps. Build verified bit-perfect."
         },
         {
-          "id": "PTR-002",
-          "title": "Audit candidate hidden pointers and convert confirmed ones to labeled tables",
-          "description": "Review PTR-001 output, confirm which candidates are real pointers or dispatch tables, and rewrite those regions as named dc.l/dc.w tables or mixed-format structures with comments.",
+          "id": "DATA-002",
+          "title": "Document the tile compression format used by track backgrounds and sprites",
+          "description": "Reverse-engineer the Huffman/custom compression used for tile data in track_bg_data.asm, car_sprite_blobs.asm, and screen_art_data.asm. Determine if the decompression is in ROM or in the init code. If we want to generate truly new track visuals (not just shuffle existing ones), we need a compressor tool.",
           "files": [
-            "src/",
-            "notes.txt",
-            "docs/refactor_log.md"
-          ],
-          "priority": "critical",
-          "effort": "large",
-          "depends_on": "PTR-001",
-          "status": "in_progress",
-          "progress_notes": "Confirmed and converted two real hidden pointer tables in `src/gameplay.asm`: `Race_finish_lap_time_ptrs` / `Arcade_car_spec_stat_ptrs` now use `Lap_time_table_ptr+4`, `Lap_time_table_ptr+8`, and `Rival_race_time_bcd`; `Race_finish_buffer_ptr_table` now uses symbolic `Tilemap_work_buf` offsets instead of raw RAM addresses. Follow-up audit cleared the remaining direct-number scanner hits as false positives: `Boot_init_data` is intentional boot metadata, `Vdp_init_register_table` and `Track_data` contain scalar/control values, and the `Speed_to_distance_table` match is numeric coincidence inside a monotonic fixed-point table. New insight: tuple-encoded pointers definitely remain plausible in `dc.b`/`dc.w` structures, but extracting them reliably will require label-specific and format-specific heuristics under PTR-003 rather than a generic sliding-window scan."
-        },
-        {
-          "id": "PTR-003",
-          "title": "Identify mixed code/data and implicit dispatch structures revealed by the split",
-          "description": "Use module boundaries plus pointer-candidate results to find code-in-data blobs, inline command streams, and address-like records that still need disassembly or structure comments.",
-          "files": [
-            "src/",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": [
-            "ARCH-004",
-            "PTR-001"
-          ],
-          "status": "done",
-          "progress_notes": "Five focused `smgp.lst`-guided mixed-structure audits have landed. First, `Credits_car_frame_table` in `src/gameplay.asm` was confirmed to be a 3-entry hidden pointer table encoded as raw longwords targeting six embedded sprite-record starts inside the blob immediately before `Credits_tiles`; those targets are now labeled `Credits_car_frame_a` through `Credits_car_frame_f`, the table now uses symbolic `dc.l` entries, and the dynamic frame swaps in `Credits_car_obj_update` use labels instead of raw ROM addresses. Second, `Arcade_car_spec_car_positions` was confirmed to be a 4-record mixed structure of `y.w, x.w, sprite_frame_ptr.l`, with the raw longword pointers targeting four embedded sprite records inside `Arcade_car_spec_palette_stream`; those records are now labeled `Arcade_car_spec_car_frame_a` through `Arcade_car_spec_car_frame_d`. Third, the AI car init records in `src/objects.asm` were audited against `Init_ai_car_fields` and `smgp.lst`: they are confirmed 20-byte mixed records whose third long is not a direct sprite-data pointer but a pointer into `Car_sprite_ptr_table`, while the surrounding longs/words are scalar setup fields. Fourth, `Endgame_car_anim_tile_table` was checked against its consumer and `smgp.lst`: the apparent `$87xx` 'pointers' are just tile IDs copied straight to a VDP tilemap buffer, and the old `Update_tire_wear_counter_Arcade-1` expression was only being used to materialize literal tile word `$87DD`, not to reference executable code. Fifth, the crash RPM/sync gauge tables were confirmed to be 8-byte mixed records indexed by gauge state: 3 threshold/state bytes followed by a pointer to a palette-write stream consumed by `Write_3_palette_vdp_bytes`, while the pointed-to streams themselves are sprite/tile tuple data rather than code or dispatch tables. Key insight: listing-guided, consumer-first audits are just as valuable for ruling out false pointer interpretations as they are for confirming real embedded dispatch/frame structures. Sixth and final: all remaining raw ROM pointer literals in src/objects.asm were replaced with symbolic labels: #$00010920 -> #Crash_car_spin_behind_sprite_frames, #$0006E894 -> #Ai_angle_table, #$00003800 -> #Arcade_race_init, #$0000D6E2 -> #Championship_standings_init (2 sites), #$0000D2B0 -> #Team_select_screen_init; plus two pre-existing bugs were fixed (missing instructions in Crash_car_obj2_init and Championship_next_race_init). Also fixed: missing dc.l Sprite_frame_data_12086 entry in Crash_depth_sprite_frames table (src/sprite_frame_data.asm). Build is bit-perfect."
-        },
-        {
-          "id": "DATA-001",
-          "title": "Identify and name stable artwork/blob boundaries for future extraction",
-          "description": "Catalog which graphics, palette, and sound-adjacent blobs are clearly bounded and understood well enough to label or eventually move behind incbin without risking hidden internal pointers.",
-          "files": [
-            "src/",
-            "data/",
+            "src/track_bg_data.asm",
+            "src/rendering.asm",
+            "init.asm",
             "notes.txt"
           ],
           "priority": "medium",
           "effort": "large",
-          "depends_on": [
-            "ARCH-004",
-            "PTR-002"
-          ],
           "status": "todo"
         }
       ]
     },
-    "audio_and_tooling": {
-      "description": "Vermilion's maturity comes partly from project tooling and partly from isolating tricky subsystems like sound. smgp needs both.",
+    "index_and_tooling": {
+      "description": "Project tooling, index generators, and linters. Vermilion has 15 index files, 7 linters, and a comprehensive tools dashboard. smgp needs to close this gap with Node.js implementations, especially for the indexes that feed the extraction pipeline.",
       "tasks": [
-        {
-          "id": "AUDIO-001",
-          "title": "Document the 68K-to-Z80 sound interface and command flow",
-          "description": "Map the command queue, bus handoff, sound-driver RAM window, and known music/SFX command semantics so the audio boundary is readable even before a full Z80 disassembly exists.",
-          "files": [
-            "src/audio_interface.asm",
-            "sound_constants.asm",
-            "notes.txt"
-          ],
-          "priority": "high",
-          "effort": "large",
-          "depends_on": "ARCH-003",
-          "status": "todo"
-        },
-        {
-          "id": "AUDIO-002",
-          "title": "Isolate and name Z80 driver tables and opaque sound data blocks",
-          "description": "After the sound interface is documented, identify driver-local tables, command streams, and stable data boundaries so the audio region can be split and prepared for later disassembly or extraction.",
-          "files": [
-            "src/sound.asm",
-            "data/sound/",
-            "notes.txt"
-          ],
-          "priority": "medium",
-          "effort": "very_large",
-          "depends_on": [
-            "ARCH-004",
-            "AUDIO-001",
-            "PTR-002"
-          ],
-          "status": "todo"
-        },
         {
           "id": "TOOL-002",
           "title": "Export a machine-readable symbol map from smgp.lst",
-          "description": "Create a tool that emits label-to-ROM-address data for every symbol in the build. This should become the backbone for address comparisons, pointer scans, editor tooling, and future docs.",
-          "files": [
-            "tools/index/symbol_map.py",
-            "smgp.lst"
-          ],
-          "priority": "high",
-          "effort": "medium",
           "status": "done",
-          "progress_notes": "Added `tools/index/symbol_map.py`. It parses `smgp.lst` and emits `tools/index/symbol_map.json` with 4221 labels mapped to ROM addresses. This now serves as the baseline for split-safety checks and future pointer-audit tooling."
+          "priority": "high",
+          "effort": "medium"
         },
         {
           "id": "TOOL-003",
           "title": "Add a run_checks aggregator plus core structural linters",
-          "description": "Create tools/run_checks.py and supporting linters for raw-address regressions, reintroduced loc_ labels, include-order drift, and other hygiene checks that matter once the build is split across many files.",
-          "files": [
-            "tools/run_checks.py",
-            "tools/"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "depends_on": [
-            "TOOL-002",
-            "ARCH-001"
-          ],
           "status": "done",
-          "progress_notes": "Added `tools/run_checks.py`. It currently verifies top-level include order, validates `tools/index/symbol_map.json`, rejects new `loc_` label definitions, runs the split-address checker, and performs a raw-address sweep with an explicit per-file allowlist for known unresolved literals and intentional magic values. Current result: all structural checks pass on the split tree."
+          "priority": "high",
+          "effort": "medium"
         },
         {
           "id": "TOOL-004",
           "title": "Add comment-density and function-header coverage reporting",
-          "description": "Mirror vermilion's documentation-driven cleanup by generating per-file comment-density and header-coverage reports after the source is split into modules.",
+          "description": "Generate per-file comment-density and header-coverage reports. Vermilion used this to systematically drive all modules to 15%+ comment density. Identifies which data modules still need annotation work.",
           "files": [
-            "tools/comment_density.py",
+            "tools/comment_density.js",
             "src/"
           ],
           "priority": "medium",
           "effort": "small",
-          "depends_on": "ARCH-003",
           "status": "todo"
         },
         {
           "id": "TOOL-005",
           "title": "Add a split-safety checker that compares symbol addresses before and after moves",
-          "description": "Before and during module extraction, compare the pre-split and post-split listing outputs to prove that labels stay at the same ROM addresses and that no include ordering mistake changed bytes.",
-          "files": [
-            "tools/check_split_addresses.py",
-            "smgp.lst",
-            "src/"
-          ],
-          "priority": "high",
-          "effort": "medium",
-          "depends_on": [
-            "ARCH-001",
-            "TOOL-002"
-          ],
           "status": "done",
-          "progress_notes": "Added `tools/check_split_addresses.py`. It compares the current `smgp.lst` against the baseline symbol map and reports missing, moved, or extra labels. Current result after the first split: all 4221 baseline symbols still match their original addresses exactly."
+          "priority": "high",
+          "effort": "medium"
         },
         {
-          "id": "TOOL-006",
-          "title": "Create machine-readable extraction and injection foundations for named data",
-          "description": "Build the same kind of tooling foundation vermilion uses for randomizer/editor work: export named track, team, text, standings, and related data to structured files and support round-tripping back to assembly safely.",
+          "id": "TOOL-007",
+          "title": "Build a functions index generator",
+          "description": "Parse smgp.lst and source files to emit tools/index/functions.json listing every named routine with its ROM address, size estimate, source file, and whether it has a header comment. Vermilion's equivalent feeds editors and documentation tools.",
           "files": [
-            "tools/extract/",
-            "tools/inject/",
-            "src/"
+            "tools/index/functions.js",
+            "tools/index/functions.json"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "TOOL-002",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/index/functions.js (~330 lines): parses smgp.lst tracking include markers to attribute each label to its source file. Classifies every symbol as: 'routine' (top-level label in a code module), 'sublabel' (shares an underscore-prefix with a previously seen top-level label, using both exact-prefix and shared-prefix-depth-2 heuristics), 'data' (label in a data-only module), or 'constant' (EQU-style at address 0x000000). Each entry includes: name, rom_addr (0xXXXXXX hex), size_estimate (bytes to next label), source_file, kind, has_header (boolean — whether the line immediately after the label definition starts with a ';' comment, excluding ;loc_ preservation comments). Output: tools/index/functions.json with _meta summary (total=4266, routines=376, sublabels=1874, data=2013, constants=3, header_coverage=73/376 (19%)). Added 'functions' npm script to package.json. Known limitation: labels with inline comments (e.g. 'Binary_to_decimal: ; comment') are not captured by LABEL_RE — pre-existing gap inherited from symbol_map.js. tools/tests/test_functions_index.js: 61 tests across 5 sections (A: isSublabel unit tests, B: hasHeaderComment unit tests, C: JSON structure invariants, D: per-entry field invariants, E: classification spot-checks). Full suite: 3798/3798 passed. Build verified bit-perfect."
+        },
+        {
+          "id": "TOOL-008",
+          "title": "Build a callsites/cross-reference index",
+          "description": "Emit tools/index/callsites.json mapping each label to its call/reference sites. Essential for understanding which routines consume which data tables — critical when deciding if a data table can be safely modified by an editor.",
+          "files": [
+            "tools/index/callsites.js",
+            "tools/index/callsites.json"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": "TOOL-002",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/index/callsites.js (~540 lines): scans all 42 .asm source files and emits tools/index/callsites.json mapping each of the 4265 symbols to its reference sites. Each site records: file (relative path), line (1-based), kind (call/branch/lea/data_ptr/data_word/other), context (trimmed source line), in_function (containing top-level label or null). Fixed extractLabelFromToken to handle Label(PC) form by stripping index-register suffix before general processing. Output: 5655 total refs, 3292 labels referenced, 973 unreferenced (explainable: exception vectors, hardware entry points, pure constants). Kind breakdown: call=1186, branch=2161, lea=433, data_ptr=1865, data_word=10. Top referenced: Wait_for_vblank(94), Decompress_to_vdp(44), Decompress_tilemap_to_vdp_64_cell_rows(32). Added 'callsites' npm script to package.json. tools/tests/test_callsites.js: 62 tests across 5 sections (A: extractLabelFromToken unit tests, B: extractRefs unit tests, C: callsites.json structure invariants, D: per-entry field invariants, E: known reference spot-checks). Full suite: 3860/3860 passed. Build verified bit-perfect."
+        },
+        {
+          "id": "TOOL-009",
+          "title": "Build an include-graph generator",
+          "description": "Parse smgp.asm include tree and emit tools/index/include_graph.json showing file dependencies and include order. Useful for understanding module boundaries and build order constraints.",
+          "files": [
+            "tools/index/include_graph.js",
+            "tools/index/include_graph.json"
+          ],
+          "priority": "low",
+          "effort": "small",
+          "status": "todo"
+        },
+        {
+          "id": "TOOL-010",
+          "title": "Build a strings index",
+          "description": "Extract all text strings (team messages, menu text, sign text, driver names, track names) into tools/index/strings.json with their ROM addresses and source locations. Feeds the text editor.",
+          "files": [
+            "tools/index/strings.js",
+            "tools/index/strings.json"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "TOOL-002",
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "Completed as part of NODE-003. tools/index/strings.js (744 lines) extracts all 11 string categories from the ROM: team_names (16), track_names (16), car_spec_text (16x3), driver_info (17), pre_race_rival_messages (145), pre_race_track_tips (17), team_intro_messages (64), post_race_messages (160 JP + 160 EN), race_quotes (15), championship_intro (6), menu_items. Total: 859 string entries. Outputs tools/index/strings.json."
+        },
+        {
+          "id": "TOOL-011",
+          "title": "Add dedicated linters matching vermilion's lint suite",
+          "description": "Create standalone linters for: raw RAM addresses in code (lint_raw_ram.js), raw VDP commands (lint_raw_vdp.js), duplicate constants (lint_dup_constants.js), magic numbers in code (audit_magic_numbers.js). Integrate into run_checks.js. Vermilion has 7 hard checks + 2 warnings.",
+          "files": [
+            "tools/lint_raw_ram.js",
+            "tools/lint_raw_vdp.js",
+            "tools/lint_dup_constants.js",
+            "tools/audit_magic_numbers.js",
+            "tools/run_checks.js"
+          ],
+          "priority": "low",
+          "effort": "medium",
+          "depends_on": "TOOL-003",
+          "status": "todo"
+        },
+        {
+          "id": "TOOL-009",
+          "title": "Build an include-graph generator",
+          "description": "Parse smgp.asm include tree and emit tools/index/include_graph.json showing file dependencies and include order. Useful for understanding module boundaries and build order constraints.",
+          "files": [
+            "tools/index/include_graph.js",
+            "tools/index/include_graph.json"
+          ],
+          "priority": "low",
+          "effort": "small",
+          "status": "todo"
+        },
+        {
+          "id": "TOOL-012",
+          "title": "Build a hotspot / dead-code analysis report from callsites index",
+          "description": "Use tools/index/callsites.json to identify: (1) unreferenced routine labels that may be dead code or hardware entry points, (2) routines called from only one site (candidates for inlining), (3) routines called from more than 10 sites (high-impact targets for documentation). Emit tools/index/hotspots.json and print a human-readable summary. This feeds documentation prioritization and code-coverage work.",
+          "files": [
+            "tools/index/hotspots.js",
+            "tools/index/hotspots.json"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "TOOL-008",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/index/hotspots.js (~200 lines): analyzes callsites.json + functions.json to produce 3 categories: unreferenced_routines (59), single_site_routines (159), hotspots with >=10 refs (14). Exports getRefStats() and buildHotspots() for tests. Outputs tools/index/hotspots.json. Added 'hotspots' npm script. Top hotspots: Wait_for_vblank(94), Decompress_to_vdp(44), Tile_index_to_vdp_command(30). tools/tests/test_hotspots.js: 60 tests across 5 sections (A: getRefStats unit tests, B: buildHotspots logic, C: hotspots.json structure, D: per-entry field invariants, E: known spot-checks). All 60 passing."
+        },
+        {
+          "id": "TOOL-013",
+          "title": "Add comment density and function-header coverage reporter",
+          "description": "Generate per-file comment-density (comment lines / total lines) and header-coverage (routines with header comment / total routines) reports. Output as tools/index/coverage_report.json and a console table. Identifies which code modules need more annotation work. Uses functions.json output.",
+          "files": [
+            "tools/index/coverage_report.js",
+            "tools/index/coverage_report.json"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "TOOL-007",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/index/coverage_report.js: per-file comment density (comment_lines/total_lines) and header coverage (has_header routines/total routines) for all 42 source files. Exports analyseFile(), pct(), buildReport() for tests. Added 'coverage-report' npm script. Key finding: src/gameplay.asm has lowest comment density of code files (2.9%), src/menus.asm has 0% header coverage (21 routines, none documented). Project-wide: 6.0% overall comment density, 73/376 routines (19.4%) have headers. tools/tests/test_coverage_report.js: 55 tests across 5 sections. All 55 passing."
+        }
+      ]
+    },
+    "documentation_and_analysis": {
+      "description": "Deeper reverse-engineering documentation for the remaining undocumented subsystems. The callsites index and functions index now enable systematic documentation work — we can identify which routines need headers and what they call.",
+      "tasks": [
+        {
+          "id": "DOC-011",
+          "title": "Document the rendering pipeline: road, sprite, and scanline systems",
+          "description": "Annotate src/rendering.asm with function headers for all major routines: road scanline generation, sprite sorting, VDP DMA upload, palette cycling, and the H-blank handler. Use the callsites index to trace data flow. Document the scanline table format referenced by slope/curve rendering.",
+          "files": [
+            "src/rendering.asm",
+            "notes.txt"
+          ],
+          "priority": "high",
+          "effort": "large",
+          "depends_on": "TOOL-008",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Added function headers to all 7 undocumented routines in src/rendering.asm: Advance_player_distance (28-line header covering speed-factor multiply, lap wrap, arcade zone detection, I/O contract), Interpolate_curveslope_segment (26-line header: segment-count table protocol, sentinel handling, linear interpolation algorithm, full register contract), Scale_curveslope_entry (17-line header: perspective-scale multiply, sign preservation, clamping, register contract), Flush_vdp_mode_and_signs (12-line header: VDP H32 mode switch, scroll-register DMA, tail-call to Send_sign_tileset_to_VDP), Upload_tilemap_rows_to_vdp (14-line header: 7-slot queue format, 4-strip per-slot DMA write, VDP_data_port direct write), Fill_table_stride_loop (8-line header: inputs D0/D2/D3/D4/D5/A0, guard-rail tile painter). Also annotated all 7 inline data tables with descriptive comments: Road_tile_offset_table, Slope_scale_factors, Curve_interp_segment_counts, Bg_interp_segment_counts, Arcade_bg_scroll_row_data, Default_bg_scroll_row_data, Blank_bg_scroll_row_data, Arcade_placement_seq_v1/v2. Build verified bit-perfect."
+        },
+        {
+          "id": "DOC-012",
+          "title": "Document the objects system and sprite pool management",
+          "description": "Annotate src/objects.asm with headers for the object pool allocator, per-frame update dispatch, sprite attribute buffer builder, and object state machine structure. The callsites index shows 476 refs from this file — understanding it is key to editing AI car and trackside object behavior.",
+          "files": [
+            "src/objects.asm",
+            "notes.txt"
+          ],
+          "priority": "high",
+          "effort": "large",
+          "depends_on": "TOOL-008",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09"
+        },
+        {
+          "id": "DOC-013",
+          "title": "Write a comprehensive notes.txt modernization pass",
+          "description": "Rewrite notes.txt so every unresolved topic points at module paths and named labels (not monolith line numbers). Add entries for: rendering scanline table format, object system state machine layout, menu/state machine dispatch, audio command queue, sign tileset sharing constraint, known Z80 interface boundaries. Remove stale or now-resolved notes. This is the live open-problems index.",
+          "files": [
+            "notes.txt"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "status": "todo"
+        },
+        {
+          "id": "DOC-014",
+          "title": "Document the menu and game state machine",
+          "description": "Annotate src/menus.asm and src/core.asm state dispatch with headers for each screen handler, the Frame_callback function-pointer mechanism, and how screen transitions work. Map the full game state flow from title screen through championship results. 257 refs from menus.asm.",
+          "files": [
+            "src/menus.asm",
+            "src/core.asm",
+            "notes.txt"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": "TOOL-008",
+          "status": "in_progress",
+          "started": "2026-03-09"
+        },
+        {
+          "id": "DOC-015",
+          "title": "Document the race loop and lap/checkpoint mechanics",
+          "description": "Annotate src/race.asm with full function headers for the race setup, per-frame race loop, lap counter, checkpoint logic, position tracking, and finish detection. 569 refs from race.asm — second-most active code file. Critical for understanding how track_length and lap count interact.",
+          "files": [
+            "src/race.asm",
+            "notes.txt"
           ],
           "priority": "medium",
           "effort": "large",
-          "depends_on": [
-            "ARCH-004",
-            "PTR-002",
-            "TOOL-002"
-          ],
+          "depends_on": "TOOL-008",
           "status": "todo"
         }
       ]
     },
-    "modding_foundation": {
-      "description": "Longer-term parity with vermilion means the disassembly should support real editing/randomization tools once the split and pointer audit are solid.",
+    "audio": {
+      "description": "Sound subsystem documentation. Not on the critical path for track randomization, but needed for a complete game editor.",
+      "tasks": [
+        {
+          "id": "AUDIO-001",
+          "title": "Document the 68K-to-Z80 sound interface and command flow",
+          "description": "Map the command queue, bus handoff, sound-driver RAM window, and known music/SFX command semantics. Needed before audio can be edited or before the randomizer can safely assign music tracks.",
+          "files": [
+            "src/audio_effects.asm",
+            "src/audio_engine.asm",
+            "sound_constants.asm",
+            "notes.txt"
+          ],
+          "priority": "medium",
+          "effort": "large",
+          "status": "todo"
+        },
+        {
+          "id": "AUDIO-002",
+          "title": "Isolate and name Z80 driver tables and opaque sound data blocks",
+          "description": "Identify driver-local tables, command streams, and stable data boundaries in the Z80 ROM payload so the audio region can be prepared for later disassembly or extraction.",
+          "files": [
+            "src/audio_engine.asm",
+            "notes.txt"
+          ],
+          "priority": "low",
+          "effort": "very_large",
+          "depends_on": "AUDIO-001",
+          "status": "todo"
+        }
+      ]
+    },
+    "data_extraction_pipeline": {
+      "description": "The vermilion-style data/→JSON→inject→reassemble pipeline. This is THE critical infrastructure for both editors and randomizer. As in vermilion, bounded binary/blob payloads should first live in top-level data/ subfolders; tools/data/*.json then becomes the structured edit layer on top of those extracted assets/manifests. smgp needs this for tracks, teams, text, championship, and car physics, and the final maintained implementation should be Node.js rather than Python.",
+      "tasks": [
+        {
+          "id": "EXTR-000",
+          "title": "Extract track and gameplay blobs into top-level data/ with thin ASM wrappers",
+          "description": "Before building higher-level JSON tooling, move the bounded binary payloads currently embedded as dc.b/dc.w/dc.l track/gameplay blobs into top-level data/ subfolders (starting with track-related data) and reference them from source via incbin or equivalent thin wrapper structure. The goal is that future tools operate on stable extracted files, not by reparsing brittle ASM text.",
+          "files": [
+            "data/tracks/",
+            "src/road_and_track_data.asm",
+            "src/track_config_data.asm",
+            "data/README.md"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "DOC-008",
+            "DATA-003"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Extracted all 19 tracks x 6 sections (114 sections + 1 post_sign_tileset_blob = 115 binary files, 18204 bytes) from orig.bin into data/tracks/. Replaced lines 1405-2980 of src/road_and_track_data.asm with incbin directives. Added Monaco_arcade_post_sign_tileset_blob label for the unlabeled 7745-byte blob at ROM 0x73E09-0x75C4A. Fixed monaco_arcade sign_tileset end address bug (was 0x75C4A, corrected to 0x73E09). Build verified bit-perfect."
+        },
+        {
+          "id": "EXTR-001",
+          "title": "Build track data extractor (data/ binaries/manifests → JSON)",
+          "description": "Create tools/extract_track_data.py that reads extracted track binaries/manifests from top-level data/ (not ASM text parsing) and emits tools/data/tracks.json containing all 19 tracks with: curve_data (decoded RLE), slope_data (decoded RLE), phys_slope_data (decoded RLE), sign_data (decoded records), minimap_pos, and all Track_data scalar fields (laps, bg_art_id, road_style, sideline_style, etc.). This is the single most important extraction tool for the randomizer.",
+          "files": [
+            "tools/extract_track_data.py",
+            "tools/data/tracks.json",
+            "data/tracks/",
+            "src/road_and_track_data.asm",
+            "src/track_config_data.asm"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "EXTR-000"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/extract_track_data.py decodes all 19 tracks from data/tracks/ binaries to tools/data/tracks.json. Decoders verified empirically: curve RLE (third byte == 0x00 -> 3-byte straight, else 5-byte curve; length = (len_hi<<8)|len_lo; terminator = 0xFF 0x00); visual slope RLE (same 3/4-byte rule; terminator = 0xFF); physical slope RLE (b0>=0x80 = terminator record, not expanded). All 19 tracks decode to track_length/4 compressed steps. No ASM or ROM changes; verify.bat not needed."
+        },
+        {
+          "id": "EXTR-002",
+          "title": "Build track data injector (JSON → data/ binaries + thin ASM wrappers)",
+          "description": "Create tools/inject_track_data.py that reads tools/data/tracks.json (or a modified/randomized variant), rewrites the extracted binary/manifests under data/tracks/, and updates src/road_and_track_data.asm and src/track_config_data.asm only as thin wrappers/manifests when necessary. Must produce byte-identical output when fed unmodified extracted data (no-op round-trip test). Must re-encode curves/slopes to RLE, regenerate sign records, and keep pointer/layout metadata synchronized.",
+          "files": [
+            "tools/inject_track_data.py",
+            "data/tracks/",
+            "src/road_and_track_data.asm",
+            "src/track_config_data.asm"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": "EXTR-001",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/inject_track_data.py re-encodes all 19 tracks from tools/data/tracks.json back to data/tracks/ binaries. Fixed 6 round-trip fidelity bugs in extract_track_data.py (curve/slope terminator _raw, phys_slope <3-byte trailing, minimap odd-length padding, sign_tileset off-by-one loop condition, monaco_arcade sign_tileset trailing 0x00). All encoders use _raw fields for exact byte reproduction. No-op dry-run verified (0 files changed). Build verified bit-perfect (SHA256 matches)."
+        },
+        {
+          "id": "EXTR-003",
+          "title": "Build team/car data extractor (data/ binaries/manifests → JSON)",
+          "description": "Extract team names, driver names, car stats (acceleration tables, top speed, engine data), portrait assignments, and team message assignments into tools/data/teams.json from extracted data/ payloads and small manifests, not from brittle ASM parsing. Vermilion extracts 85 enemies and 16 shops; smgp has ~16 teams with associated data spread across track_config_data, gameplay, and team_messages_data modules.",
+          "files": [
+            "tools/extract_team_data.py",
+            "data/teams/",
+            "tools/data/teams.json"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": "DOC-007",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/extract_team_data.py reads 19 data tables directly from orig.bin at known ROM addresses (no data/ binary layer needed — tables are small and structured). Extracts: engine_data (6 variants), post_race_driver_target_points (16 teams), points_awarded_per_placement, ai_performance_factor (16), ai_performance_table (16×8), initial_drivers_and_team_map, second_year_drivers_and_team_map, team_engine_multiplier (16), team_car_characteristics (16×5 bytes), acceleration_modifiers (4 signed words), engine_data_offset_table (6), car_spec_text_table (16), driver_info_table (18), team_machine_screen_stats (16+sentinel), driver_portrait_palette_streams (18), driver_portrait_tile_mappings (18), driver_portrait_tiles (18), team_palette_data (16×56 bytes), team_name_tilemap_table (16). Produces tools/data/teams.json. No ROM changes."
+        },
+        {
+          "id": "EXTR-004",
+          "title": "Build team/car data injector (JSON → data/ binaries + ASM wrappers)",
+          "description": "Inject modified team data back into extracted data/ payloads and only update ASM wrappers/manifests as needed. Must handle: team name strings, driver name strings, car stat tables, portrait pointer updates. Round-trip no-op test required.",
+          "files": [
+            "tools/inject_team_data.py",
+            "data/teams/"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": "EXTR-003",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/inject_team_data.py patches out.bin in-place at 19 known ROM addresses. No ASM rewriting needed — all tables are fixed-size at stable addresses. No-op dry-run confirms 0 bytes changed across all 19 tables. Real inject + verify.bat confirms bit-perfect ROM (SHA256 match). tools/tests/test_team_data.py: 2056 tests across 4 sections (structure, range checks, no-op round-trip, mutation round-trip). All 2056 pass. player_team and driver_team_map bytes have flag bits in upper nibble/bit-6 (e.g. $1B = team 11 / Minarae year-1, $50 = team 0 / Madonna year-2 flag); test Section B range checks use raw 0-255 bounds with comment explaining bit layout."
+        },
+        {
+          "id": "EXTR-005",
+          "title": "Build text/string extractor and injector",
+          "description": "Extract all game text (team messages JP/EN, menu strings, sign text, driver names, track names) into tools/data/strings.json from extracted data/text payloads or small manifests, then support injection back into that layer. Implement this as Node.js scripts; avoid making ASM parsing the primary editing surface even if the current text module is split.",
+          "files": [
+            "tools/extract_strings.js",
+            "tools/inject_strings.js",
+            "data/text/",
+            "tools/data/strings.json"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": "TOOL-010",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/extract_strings.js (~690 lines): extracts 4 mutable EN string categories (team_names 16, team_intro_messages 32, pre_race_rival_messages 145, post_race_messages 160) + 5 read-only reference categories into tools/data/strings.json. Each mutable entry has: rom_addr, prefix_raw, en, raw_bytes, capacity. Capacity computed as min(gap_to_next_addr, own_encoded_len + MAX_SLACK=4) to prevent cross-region bleed. tools/inject_strings.js (~275 lines): patches out.bin in-place for the 4 mutable categories; supports --dry-run, --verbose, --rom, --input. Fixed two bugs: (1) false-positive change detection comparing padded vs raw_bytes length; (2) injector was padding strings to capacity with 0xFF bytes, overwriting legitimate 0x00 bytes in ROM — fix: write only the natural payload (prefix + chars + 0xFF), no padding beyond the terminator. Dry-run on orig.bin: 0 changes (no-op). Real inject + verify.bat: bit-perfect. tools/tests/test_strings.js: 65 tests across 7 sections (A: encodeEN/CHAR_TO_TILE, B: strings.json structure, C: mutable category invariants, D: dry-run no-op, E: mutation+encode/decode round-trip, F: capacity overflow rejection, G: shared-address deduplication). Full suite: 3737/3737 passed."
+        },
+        {
+          "id": "EXTR-006",
+          "title": "Build championship/progression data extractor and injector",
+          "description": "Extract championship structure: race order, points tables, AI placement data, rival parameters, qualification thresholds into tools/data/championship.json from extracted data/ payloads and manifests. Injection rewrites that extracted layer and updates ASM wrappers/tables only where required.",
+          "files": [
+            "tools/extract_championship_data.py",
+            "tools/inject_championship_data.py",
+            "data/championship/",
+            "tools/data/championship.json"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": "DOC-009",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/extract_championship_data.py reads all 13 championship tables from orig.bin at known ROM addresses and emits tools/data/championship.json (1011 lines). tables: PointsAwardedPerPlacement, Post_race_driver_target_points, Ai_performance_factor_by_team, Ai_performance_table, InitialDriversAndTeamMap, SecondYearDriversAndTeamsMap, Rival_grid_base_table, Rival_grid_delta_table, Ai_placement_data (15 cars+sentinel), Ai_placement_data_easy (header+15 cars+sentinel), Ai_placement_data_champ (16 records+48 trailing_words_raw), Ai_placement_champ_offsets (32 signed pairs), Pre_race_lap_time_offset_table (32 raw bytes). tools/inject_championship_data.py patches out.bin in-place at all 13 known ROM addresses. No ASM rewriting. No-op dry-run: 0 bytes changed across all 13 tables. verify.bat: bit-perfect. Key findings: Ai_placement_data_champ trailing 48 bytes stored raw for fidelity; Post_race_driver_target_points partner_threshold > promote_threshold in all 16 teams (partner slot requires more points than promotion). tools/tests/test_championship_data.py: 723 tests across 4 sections (structure, ranges, no-op round-trip, mutation round-trip). All 723 pass."
+        },
+        {
+          "id": "EXTR-007",
+          "title": "Build unified extract/inject CLI with --all and per-category flags",
+          "description": "Create tools/extract_game_data.js and tools/inject_game_data.js as unified entry points that call the individual extractors/injectors. Support --tracks, --teams, --strings, --championship, --all, --dry-run flags. These should treat top-level data/ as the binary source-of-truth layer and tools/data/*.json as the structured edit layer. Modeled after vermilion's extract_game_data.js / inject_game_data.js.",
+          "files": [
+            "tools/extract_game_data.js",
+            "tools/inject_game_data.js"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": [
+            "EXTR-001",
+            "EXTR-003",
+            "EXTR-005",
+            "EXTR-006"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Implemented as part of NODE-004. extract_game_data.js: unified CLI with --tracks/--teams/--championship/--all/--dry-run/--rom/-v flags; calls extractAllTracks, extractTeamData, extractChampionshipData. inject_game_data.js: same flags; calls injectTrack per track, injectTeamData, injectChampionshipData. Default (no flag) runs all three. --strings deferred to EXTR-005."
+        }
+      ]
+    },
+    "editors": {
+      "description": "CLI editors that modify extracted JSON data and reinject it. Each editor validates constraints before writing. The intended stack is data/ binaries -> tools/data JSON -> editor -> injector, not direct mutation of ASM blobs. Vermilion has 5 editors (enemy, shop, stats, text, map); smgp needs track, team, text, and championship editors, and the final shipped editors should all be JavaScript/Node.js CLIs.",
       "tasks": [
         {
           "id": "EDIT-001",
           "title": "Write a modding and data-roundtrip architecture document",
-          "description": "Define which extracted formats map back to assembly, where checksum/update steps fit, how verify.bat remains the final gate, and which data classes are safe to edit automatically.",
-          "file": "docs/modding_architecture.md",
-          "priority": "medium",
+          "description": "Define which extracted binary formats live under top-level data/, which structured formats live under tools/data/, how they map back to assembly wrappers, where checksum/update steps fit, how verify.bat remains the final gate, which data classes are safe to edit, and the seed format for the randomizer. Modeled after vermilion's docs/randomizer_architecture.md and docs/editor_architecture.md.",
+          "files": [
+            "docs/modding_architecture.md",
+            "docs/editor_architecture.md"
+          ],
+          "priority": "high",
           "effort": "small",
-          "depends_on": "TOOL-006",
-          "status": "todo"
+          "depends_on": [
+            "EXTR-001"
+          ],
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "Created docs/modding_architecture.md (415 lines). Covers: three-layer data model (JSON → binary → ASM), file ownership map per category, what is safe to edit, standard editing workflow, randomizer workflow, ASM wrapper conventions, checksum/verify.bat gate table, round-trip correctness guarantee, hack workspace system, seed format quick reference, full CLI quick reference, instructions for adding a new data category, known limitations (shared sign tilesets, shared lap targets, opaque art blobs, Z80 audio), and complete file layout. Also corrected data/README.md stale statement about incbin not being in use yet (EXTR-000 is done). Build verified bit-perfect."
         },
         {
           "id": "EDIT-002",
           "title": "Build a track editor CLI",
-          "description": "Create a tool that edits structured track records, slope data, sign placement, and related references, then writes the results back safely through the extraction/injection layer.",
-          "file": "tools/editor/track_editor.py",
+          "description": "Interactive or argument-driven CLI that edits track data in JSON: modify curve sequences, slope profiles, sign placement, physics parameters, art assignments. Validates constraints before saving. Uses the extract/inject pipeline.",
+          "files": [
+            "tools/editor/track_editor.py",
+            "tools/tests/test_track_editor.py"
+          ],
           "priority": "high",
           "effort": "large",
           "depends_on": [
-            "PTR-002",
-            "TOOL-006"
+            "EXTR-001",
+            "EXTR-002",
+            "DOC-008"
           ],
-          "status": "todo"
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/editor/track_editor.py (~580 lines). Subcommands: list, show, set-field, set-curve, add-curve, del-curve, set-slope, add-slope, del-slope, set-sign, add-sign, del-sign, validate, inject. TRACK argument resolves by index (0-18), name substring, or slug. All mutation commands validate after edit and refuse to save on failure. inject subcommand validates then calls inject_track_data.inject_track(). Flags: --dry-run, --no-validate. tools/tests/test_track_editor.py: 81 tests (8 sections: track resolution, scalar field editing, curve editing, slope editing, sign editing, validation integration, CLI round-trip, CLI arg parsing errors). All 81 tests pass. Build verified bit-perfect (Python-only, no ROM changes)."
         },
         {
           "id": "EDIT-003",
           "title": "Build a team, driver, and car-stats editor CLI",
-          "description": "Create an editor for team ordering, driver mappings, portraits, engine tables, acceleration tables, and team-specific characteristics once those modules and tables are stable.",
-          "file": "tools/editor/team_editor.py",
+          "description": "Edit team ordering, driver names, car performance tables (acceleration, top speed, engine data), portrait assignments. Validates that stat changes stay within known-good ranges.",
+          "files": [
+            "tools/editor/team_editor.py"
+          ],
           "priority": "medium",
           "effort": "medium",
           "depends_on": [
-            "DOC-007",
-            "TOOL-006"
+            "EXTR-003",
+            "EXTR-004"
           ],
-          "status": "todo"
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/editor/team_editor.py (~580 lines). Subcommands: list-teams, list-drivers, show (--section car|ai|stats|all), show-engine, show-points, show-accel, set-ai-factor, set-ai-table, set-car (--accel-index, --engine-index, --steering, --steering-b, --braking), set-engine (--auto, --four, --seven), set-tire-wear, set-stats (--eng/tm/sus/tire/bra/tire-delta), set-thresholds (--promote/partner), set-points, set-accel-mod, validate, inject (--dry-run). TEAM resolves by index, name substring, or slug. All mutation commands validate after edit and refuse to save on failure. inject validates then calls inject_team_data.inject_team_data(). tools/tests/test_team_editor.py: 86 tests across 5 sections (resolution, validation, mutation commands, CLI parsing, inject dry-run). All 86 pass."
         },
         {
           "id": "EDIT-004",
           "title": "Build a text and sign-message editor CLI",
-          "description": "Create an editor for text tables, team messages, sign content, and language-dependent strings using the split text/data modules and any format constraints documented during the pointer/data audit.",
-          "file": "tools/editor/text_editor.py",
+          "description": "Edit text tables, team messages (JP/EN), sign content, and driver/track names. Validates string length limits and encoding constraints.",
+          "files": [
+            "tools/editor/text_editor.js"
+          ],
           "priority": "medium",
           "effort": "medium",
           "depends_on": [
-            "DOC-007",
-            "TOOL-006"
+            "EXTR-005"
           ],
-          "status": "todo"
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/editor/text_editor.js (~290 lines). Subcommands: list (all categories with entry counts and mutable status), show CATEGORY [INDEX] (all entries or single entry with capacity info), set CATEGORY INDEX TEXT (edit with validation: unmappable chars, capacity overflow, read-only category guard, shared-address propagation), validate (checks all 4 mutable categories), inject [--dry-run] (validates then calls injectStrings), charset (encoding reference table). CATEGORY resolves by full name or unique prefix. TEXT arg supports \\n for newlines; remaining argv tokens are joined so unquoted spaces work in some shells. No-op inject dry-run: 0 changes. Bit-perfect build verified. All 3737 JS tests pass."
         },
         {
           "id": "EDIT-005",
           "title": "Build a championship and progression editor CLI",
-          "description": "Create an editor for standings, points awards, race order, progression flags, and championship flow once AI/placement and progression tables are fully documented.",
-          "file": "tools/editor/championship_editor.py",
+          "description": "Edit race order, points tables, AI difficulty curves, rival parameters, qualification thresholds. Validates that the championship remains completable.",
+          "files": [
+            "tools/editor/championship_editor.py"
+          ],
           "priority": "low",
           "effort": "medium",
           "depends_on": [
-            "DOC-006",
-            "TOOL-006"
+            "EXTR-006"
           ],
-          "status": "todo"
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/editor/championship_editor.py (~650 lines). Subcommands: show-order, show-points, show-thresholds, show-rivals, show-lap-times, show-ai-factor, show-ai-table, show-ai-placement [standard|easy|champ], set-order INDEX TRACK_NAME (swaps if track already present), move-track FROM TO, set-points INDEX VALUE, set-threshold TEAM --promote/--partner, set-rival-base INDEX VALUE, set-rival-delta INDEX VALUE, set-ai-factor TEAM VALUE, set-ai-table TEAM INDEX VALUE, validate, inject [--dry-run]. TEAM resolves by index/name substring/slug; TRACK_NAME resolves by exact/case-insensitive/slug/substring. All mutation commands validate after edit and refuse to save on failure. inject calls inject_championship_data.inject_championship_data(). tools/tests/test_championship_editor.py: 102 tests across 5 sections (A: resolution, B: validation valid/invalid/boundary, C: mutation in-memory, D: CLI parsing, E: inject dry-run). All 102 pass. Grand total 1279 tests across 13 suites, all passing. Build verified bit-perfect."
+        }
+      ]
+    },
+    "randomizer": {
+      "description": "The track randomizer and related randomization modules. This is the end-goal: generate random playable levels. Vermilion's randomizer has 6 sub-modules (enemy, shop, chest, encounter, stats, map) plus a full overworld generator (1084 lines) with seeded PRNG, progression validation, and a seed-sharing format. smgp's randomizer focuses on track generation as the primary deliverable, should operate through the data/ + tools/data pipeline rather than ASM text parsing, and must ship as a JavaScript/Node.js toolchain rather than Python.",
+      "tasks": [
+        {
+          "id": "RAND-001",
+          "title": "Write randomizer architecture document",
+          "description": "Define the randomizer's architecture: seed format (e.g. SMGP-1-<flags_hex>-<seed_decimal>), flag bits for what to randomize (tracks, teams, championship, AI, signs), PRNG choice (seeded xorshift32 like vermilion), sub-seed derivation, output workflow (data/→JSON edits→inject→reassemble→verify), and how the hack workspace system works.",
+          "files": [
+            "docs/randomizer_architecture.md"
+          ],
+          "priority": "high",
+          "effort": "small",
+          "depends_on": [
+            "EXTR-001"
+          ],
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "Created docs/randomizer_architecture.md (358 lines). Covers: seed format (SMGP-<v>-<flags_hex>-<decimal>), 8 flag bits (RAND_TRACKS/CONFIG/TEAMS/AI/CHAMPIONSHIP/SIGNS), xorshift32 PRNG with per-module sub-seed derivation (8 module IDs), full pipeline diagram (extract→randomize→validate→inject→build→verify), track generation strategy (curve/slope/sign/minimap/art-config algorithms), all track validity checks, hack workspace system design, unified CLI reference, known limitations, and complete file layout. Build verified bit-perfect."
+        },
+        {
+          "id": "RAND-002",
+          "title": "Build the track randomizer — curve generation",
+          "description": "Core track randomizer module: generate random curve sequences that produce interesting, driveable tracks. Must respect: total track length constraints, curve sharpness ranges by difficulty, mandatory straight sections, RLE encoding validity, wrap-point placement. Use analysis of all 19 existing tracks to derive statistical constraints. This is the heart of random level generation.",
+          "files": [
+            "tools/randomizer/track_randomizer.py"
+          ],
+          "priority": "critical",
+          "effort": "very_large",
+          "depends_on": [
+            "EXTR-001",
+            "EXTR-002",
+            "DOC-008"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Implemented in tools/randomizer/track_randomizer.py. generate_curve_rle() produces valid RLE segments with mandatory post-curve straights, weighted sharpness, correct curve_byte encoding (0x01-0x2F left, 0x41-0x6F right), and a single lap-wrap terminator. Statistical basis derived from all 19 ROM tracks."
+        },
+        {
+          "id": "RAND-003",
+          "title": "Build the track randomizer — slope generation",
+          "description": "Generate random slope profiles (visual and physical) that complement the generated curve data. Must respect: delta encoding ranges, slope length patterns, relationship between visual and physical slope streams, compatibility with the rendering engine's scanline table.",
+          "files": [
+            "tools/randomizer/track_randomizer.py"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": "RAND-002",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Implemented in tools/randomizer/track_randomizer.py. generate_slope_rle() produces visual slope segments (89.6% flat, bg_vert_disp from {-32, +112}). generate_phys_slope_rle() derives physical slope (-1/0/+1 only) from visual slope structure with correct high-bit terminator."
+        },
+        {
+          "id": "RAND-004",
+          "title": "Build the track randomizer — sign placement",
+          "description": "Generate sign placement records for randomized tracks. Signs must appear at appropriate distances (not overlapping, not too sparse), use valid sign IDs from the sign lookup table, and have compatible sign tilesets assigned.",
+          "files": [
+            "tools/randomizer/track_randomizer.py"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": "RAND-002",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Implemented in tools/randomizer/track_randomizer.py. generate_sign_data() places sign records using empirically-derived sign_id pool (39 distinct values, IDs 0-50), spacing 100-500 units, initial gap 200-600. generate_sign_tileset() generates tileset change records at ~1500-unit intervals using offsets 0,8,...,88."
+        },
+        {
+          "id": "RAND-005",
+          "title": "Build the track randomizer — minimap generation",
+          "description": "Generate minimap position data from the generated curve data. The minimap is a top-down representation of the track shape, so it must be derived from the curve sequence rather than generated independently.",
+          "files": [
+            "tools/randomizer/track_randomizer.py"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": "RAND-002",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Implemented in tools/randomizer/track_randomizer.py. generate_minimap() integrates curve bytes to simulate top-down path, samples every 64 steps, normalizes to signed-byte range 5-80. Pair count = track_length >> 6 (verified formula). Notes.txt >>5+1 formula is wrong — corrected here."
+        },
+        {
+          "id": "RAND-006",
+          "title": "Build the track randomizer — art and config assignment",
+          "description": "Assign background art, road styles, sideline styles, finish line styles, and palettes to generated tracks. Can shuffle existing art assignments or assign based on difficulty tier / geographic theme. Must ensure Track_data pointer fields point to valid art assets.",
+          "files": [
+            "tools/randomizer/track_randomizer.py"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "RAND-002",
+            "DATA-001"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "Implemented in tools/randomizer/track_randomizer.py: CHAMPIONSHIP_ART_SETS (16 art-set dicts with all label names, horizon flags, steering), CHAMPIONSHIP_TRACK_NAMES, randomize_art_config() (Fisher-Yates shuffle of 16 art sets using MOD_TRACK_CONFIG sub-seed), build_track_config_asm() (reads track_config_data.asm, detects 16 championship blocks by '; <Name>' comment, rebuilds each block with shuffled art labels while preserving data/config labels, 20 lines per block), inject_art_config() (writes rebuilt ASM to disk), _shuffle_list(), _steering_comment(). Integrated into tools/randomize.py as RAND_CONFIG (0x02) section. Backup/restore of track_config_data.orig.asm supported. 250-test suite in tools/tests/test_art_config.py: all pass. tools/restore_tracks.py updated to also restore track_config_data.orig.asm. Fixed duplicate-body bug in tools/randomize.py (file had two full main() definitions). Build verified bit-perfect."
+        },
+        {
+          "id": "RAND-007",
+          "title": "Build track validation module",
+          "description": "Validate that generated track data produces a playable track: curve data is well-formed RLE with correct sentinel, slope data has valid deltas, sign data doesn't exceed engine limits, Track_data record is internally consistent, total data size doesn't exceed original allocation. Modeled after vermilion's progression_validator.js (590 lines) which verifies game completability after randomization.",
+          "files": [
+            "tools/randomizer/track_validator.py"
+          ],
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "RAND-002",
+            "DOC-008"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/randomizer/track_validator.py: validate_track() and validate_tracks() public API. Checks: track_length (positive, multiple of 64, 64-8192); curve RLE (valid curve_byte ranges, exactly one terminator at end, length sum==track_length//4); slope RLE (slope_byte ranges, flat bg_vert_disp==0, length sum); phys slope (phys_byte in {-1,0,+1}, terminator _raw high-bit); sign_data (ascending distances, bounds, positive count); sign_tileset (non-decreasing distances, offset multiple of 8 in 0-88); minimap (count==track_length>>6, signed-byte coords). All 19 ROM tracks pass. Discovered and fixed track_length constraint: multiples of 64, not 128 as previously noted. Also fixed same error in track_randomizer.py TRACK_LENGTH_STEP constant."
+        },
+        {
+          "id": "RAND-008",
+          "title": "Build team/AI randomizer",
+          "description": "Randomize team stats (acceleration, top speed, engine curves) within constrained ranges, shuffle team order, optionally randomize AI difficulty parameters and placement data. Must preserve game balance (not all teams equally fast or equally slow).",
+          "files": [
+            "tools/randomizer/team_randomizer.py",
+            "tools/tests/test_team_randomizer.py"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": [
+            "EXTR-003",
+            "DOC-010"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/randomizer/team_randomizer.py (~557 lines): randomize_teams() shuffles accel_index/engine_index pools (Fisher-Yates, preserves exact multiset), perturbs steering/braking indices (±2 even steps, 40% chance), shuffles tire_wear_multiplier pool, re-derives machine_screen_stats bars from shuffled characteristics. randomize_ai() shuffles ai_performance_factor values and ai_performance_table rows (Fisher-Yates), lightly perturbs post_race_driver_target_points thresholds with partner_threshold >= promote+2 constraint enforced. validate_teams() checks all field ranges, counts, pool membership, threshold constraint, and stat bar ranges. Integrated into tools/randomize.py as FLAG_TEAMS (0x04) and FLAG_AI (0x08). tools/tests/test_team_randomizer.py: 59 tests across 6 sections (A: original ROM data validates clean, B: randomize_teams() valid output, C: randomize_ai() valid output, D: no-op identity, E: reproducibility with same/different seeds, F: Fisher-Yates pool preservation). All 59 pass. Grand total: 1170/1170 tests across 11 suites. Build verified bit-perfect."
+        },
+        {
+          "id": "RAND-009",
+          "title": "Build championship randomizer",
+          "description": "Randomize race order in championship mode, optionally shuffle which tracks appear, adjust points tables and qualification thresholds. Must ensure the championship is completable (all tracks reachable, rival encounters properly triggered).",
+          "files": [
+            "tools/randomizer/championship_randomizer.py"
+          ],
+          "priority": "medium",
+          "effort": "medium",
+          "depends_on": [
+            "EXTR-006",
+            "DOC-009"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/randomizer/championship_randomizer.py (~320 lines): randomize_championship() shuffles race slots 0-14 (Monaco slot 15 fixed), shuffles rival_grid_base_table pool (Fisher-Yates), perturbs rival_grid_delta_table entries (±1, clamped to [-3,+2]), shuffles inner 14 pairs of pre_race_lap_time_offset_table. validate_championship() checks track order (permutation, Monaco fixed, no dups), rival_base range [0,15], rival_delta range [-3,+2], lap_time byte ranges and terminator, points strictly descending, partner_threshold >= promote+2. Standalone CLI (--seed, --input, --output, --dry-run, --verbose). Wired FLAG_CHAMPIONSHIP (0x10) into tools/randomize.py. tools/tests/test_championship_randomizer.py: 87 tests across 6 sections (A: ROM validation, B: randomized output validity, C: Monaco preservation, D: identity, E: reproducibility, F: pool preservation). Grand total 1177 tests across 12 suites, all passing. Build verified bit-perfect."
+        },
+        {
+          "id": "RAND-010",
+          "title": "Build unified randomizer CLI with seed and flag support",
+          "description": "Create tools/randomize.py as the unified entry point. Accepts a seed string, parses flag bits, derives sub-seeds, runs selected randomizer modules against the JSON/data pipeline, injects results, reassembles, and verifies. Modeled after vermilion's tools/randomizer/randomize.js.",
+          "files": [
+            "tools/randomize.py",
+            "tools/restore_tracks.py",
+            "tools/randomizer/"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "RAND-002",
+            "RAND-007",
+            "EXTR-007"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/randomize.py: full pipeline — parse seed, randomize tracks in-memory, validate, back up tracks.orig.json, write tracks.json, inject data/tracks/ binaries, run build.bat (assembler-only check). tools/restore_tracks.py: restores from tracks.orig.json, re-injects, optional --verify. Key finding: verify.bat checks original SHA256 so is not used for randomized ROM verification; build.bat (assembler exit 0 + 0 error(s) check) is the correct gate. Also corrected track_length constraint from multiples-of-128 to multiples-of-64 in both track_randomizer.py and track_validator.py."
+        },
+        {
+          "id": "RAND-011",
+          "title": "Build hack workspace system for safe randomized builds",
+          "description": "Create tools/hack_workdir.py that copies the project to a temporary directory, runs the randomizer there, builds and verifies the randomized ROM, and returns the ROM binary without modifying the original source. Modeled after vermilion's tools/hack_workdir.js.",
+          "files": [
+            "tools/hack_workdir.py"
+          ],
+          "priority": "high",
+          "effort": "small",
+          "depends_on": "RAND-010",
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "tools/hack_workdir.py: full isolated build pipeline — validate seed, create build/workspaces/<seed>/, copy 203 files (ASM sources, src/, data/, tools/, asm68k.exe, build.bat), run randomize.py in workspace, assemble via build.bat, copy out.bin to --output (default out_<seed>.bin). Flags: --keep, --force (overwrite existing workspace), --dry-run, --verbose, --list (show all workspaces), --workspace (override path). Writes randomizer.log per run. Workspace cleaned on success unless --keep. All code changes isolated to workspace -- original source tree untouched. Build verified bit-perfect."
+        },
+        {
+          "id": "RAND-012",
+          "title": "Write randomizer user guide",
+          "description": "Create docs/randomizer_guide.md with CLI reference, seed format explanation, flag descriptions, examples, seed sharing instructions, known limitations, and FAQ. Modeled after vermilion's docs/randomizer_guide.md.",
+          "files": [
+            "docs/randomizer_guide.md"
+          ],
+          "priority": "low",
+          "effort": "small",
+          "depends_on": "RAND-010",
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "docs/randomizer_guide.md already written as a 405-line document covering: seed format (SMGP-<v>-<flags_hex>-<decimal>), 8 flag bits, quick-start examples, CLI reference for randomize.py/restore_tracks.py/hack_workdir.py, seed sharing instructions, known limitations (art-tile compression, shared tilesets, Z80 audio), and FAQ."
         }
       ]
     },
     "regression_and_notes": {
-      "description": "Keep the project trustworthy while the architecture changes and convert notes into a maintained index rather than a scratchpad.",
+      "description": "Keep the project trustworthy, Node migration-safe, and notes current.",
       "tasks": [
         {
           "id": "REGR-001",
           "title": "Add pre-commit hook scripts for Windows and Bash",
-          "description": "Provide simple hook installers that run verify.bat and tools/run_checks.py automatically, mirroring vermilion's later regression-prevention work.",
+          "description": "Simple hook installers that run verify.bat and tools/run_checks.js automatically before each commit. During migration, they may temporarily fall back to tools/run_checks.py until the Node replacement lands.",
           "files": [
             "tools/pre-commit.cmd",
             "tools/pre-commit.sh"
@@ -478,81 +888,272 @@
           "priority": "medium",
           "effort": "small",
           "depends_on": "TOOL-003",
-          "status": "todo"
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/pre-commit.cmd: Windows .cmd installer writes POSIX sh hook to .git/hooks/pre-commit running verify.bat + node tools/run_checks.js. tools/pre-commit.sh: Bash installer auto-detects Windows (Git Bash/MSYS) vs non-Windows, writes appropriate verify command. Key fix: installer must NOT use EnableDelayedExpansion because ! in #!/bin/sh gets consumed by the delayed expansion processor. Hook installed and verified functional."
         },
         {
           "id": "REGR-002",
           "title": "Add targeted lints for hidden-pointer regressions and raw-symbol backsliding",
-          "description": "Flag newly introduced raw RAM/I/O literals, any accidental reintroduction of loc_-style labels, and pointer-like values added to cleaned data regions without documentation.",
+          "description": "Flag newly introduced raw RAM/I/O literals and pointer-like values in cleaned data regions.",
           "files": [
-            "tools/run_checks.py",
-            "tools/"
+            "tools/lint_backslide.js",
+            "tools/tests/test_lint_backslide.js",
+            "tools/run_checks.js"
           ],
           "priority": "medium",
           "effort": "small",
-          "depends_on": [
-            "PTR-001",
-            "TOOL-003"
+          "depends_on": "TOOL-003",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/lint_backslide.js (~322 lines): detects RAW_ADDR (raw RAM/IO literals in instruction lines) and RAW_PTR (raw ROM pointer values in dc.l/dc.w lines) in code modules. Frozen allowlist of 29 known exceptions (all Z80 audio window addresses, pending AUDIO-001). Exports lintFile(), RAW_ADDR_ALLOWLIST, EXEMPT_FILES, DATA_MODULES. Integrated into tools/run_checks.js as check 6 (checkBackslide). Also fixed run_checks.js to add audio_engine.asm to RAW_ADDR_ALLOW_FILES (Z80 data module, not a code module). tools/tests/test_lint_backslide.js: 70 tests across 8 sections (A: config invariants, B: clean files, C: RAW_ADDR detection, D: allowlist suppression, E: RAW_PTR detection, F: immune lines, G: frozen count, H: real source files 0 new findings). All 70 passing. Full suite: 4045/4045."
+        },
+        {
+          "id": "REGR-003",
+          "title": "Update .gitignore to exclude workspace outputs and randomized ROMs",
+          "description": "Add entries to .gitignore for: build/workspaces/ (hack workspace temp dirs), out_SMGP-*.bin (per-seed output ROMs from hack_workdir.py), tools/data/tracks.orig.json (backup created by randomize.py during randomization). These are all transient build artifacts that should never be committed.",
+          "files": [
+            ".gitignore"
           ],
-          "status": "todo"
+          "priority": "high",
+          "effort": "tiny",
+          "depends_on": "RAND-011",
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "Fixed overly broad *.bin rule (was hiding data/tracks/*.bin incbin assets from git). New rules: /*.bin (ignores all root-level ROM images: out.bin, orig.bin, baseline.bin, comparison artifacts), *.lst (assembler listings), build/ (workspace temp dirs), **/__pycache__/ + *.pyc/*.pyo (Python cache), tools/data/tracks.orig.json (randomizer backup). data/tracks/*.bin and data/**/*.bin are now correctly trackable. Added .iml IDE ignore. Removed legacy sega_genesis_checksum_utility.py-only entry (kept, it's harmless)."
         },
         {
           "id": "NOTES-001",
           "title": "Keep notes.txt as a live open-problems index mapped to split modules",
-          "description": "After the split, rewrite notes.txt so unresolved topics point at module paths and named labels instead of monolithic line-of-thought notes.",
-          "file": "notes.txt",
+          "description": "Rewrite notes.txt so unresolved topics point at module paths and named labels instead of monolithic line-of-thought notes.",
+          "files": [
+            "notes.txt"
+          ],
           "priority": "medium",
           "effort": "small",
-          "depends_on": "ARCH-003",
           "status": "todo"
         },
         {
           "id": "NOTES-002",
           "title": "Maintain docs/refactor_log.md as module and pointer work lands",
-          "description": "Record major label, module, macro, and pointer-audit milestones in a human-readable log so the path from monolith to mature layout stays searchable outside commit history.",
-          "file": "docs/refactor_log.md",
+          "description": "Record major milestones in a human-readable log.",
+          "files": [
+            "docs/refactor_log.md"
+          ],
           "priority": "low",
           "effort": "small",
           "depends_on": "ARCH-006",
           "status": "todo"
         }
       ]
+    },
+    "testing": {
+      "description": "Automated tests for critical tools. Vermilion has tests for checksums, map utils, overworld generation, hack workspace, and map graph. smgp needs test coverage for the data/ extraction/injection round-trip and track validation, and the final maintained harness should be Node.js rather than Python.",
+      "tasks": [
+        {
+          "id": "TEST-001",
+          "title": "Add round-trip tests for extract→inject pipeline",
+          "description": "For each extractor/injector pair, verify that extracting data and injecting it unmodified produces byte-identical data/ payloads and byte-identical ASM/ROM output. This is the foundational correctness test for the entire editor/randomizer stack.",
+          "files": [
+            "tools/tests/test_roundtrip.py"
+          ],
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "EXTR-001",
+            "EXTR-002"
+          ],
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/test_roundtrip.py: 518 tests covering (1) per-track encode/decode round-trips for all 6 binary types x 19 tracks, (2) decompressed-length invariants (track_length/4) for curves/slopes/phys_slope x 19 tracks, (3) sign_data 0xFFFF terminator check x 19 tracks, (4) tracks.json structure validation, (5) full inject no-op test via temp dir. All 518 tests pass. Build verified bit-perfect."
+        },
+        {
+          "id": "TEST-002",
+          "title": "Add tests for track validation logic",
+          "description": "Test the track validator against all 19 known-good tracks (should all pass) and against intentionally malformed track data (should all fail with appropriate error messages).",
+          "files": [
+            "tools/tests/test_track_validator.py"
+          ],
+          "priority": "high",
+          "effort": "small",
+          "depends_on": "RAND-007",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/test_track_validator.py: 59 tests. Section A: all 19 ROM tracks pass (19 tests). Section B: 24 intentionally malformed tracks — missing/invalid track_length, curve/slope/phys_slope length mismatches, invalid byte values, missing terminators, double terminators, sign distance bounds/ordering, tileset offset range, minimap count/coordinate range. Section C: aggregate validate_tracks() behaviour (3 tests). Section D: valid edge cases including min/max track_length, empty sign data, extreme curve/slope/phys bytes, extreme initial_bg_disp, extreme tileset_offset (13 tests). All 59 pass."
+        },
+        {
+          "id": "TEST-003",
+          "title": "Add tests for RLE encode/decode round-trip",
+          "description": "Verify that RLE encoding and decoding of curve and slope data is lossless for all 19 existing tracks.",
+          "files": [
+            "tools/tests/test_rle.py"
+          ],
+          "priority": "high",
+          "effort": "small",
+          "depends_on": "EXTR-001",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/test_rle.py: 213 tests. Section A: 33 synthetic curve RLE tests (straight-only, curve-only, mixed, multi-byte lengths, signed bg_disp, trailing terminator bytes, decompress content/length). Section B: 37 synthetic visual slope tests (flat-only, slope-only, mixed, signed initial_bg_disp, signed bg_vert_disp, multi-byte lengths, terminator variants, decompress). Section C: 27 synthetic physical slope tests (normal/all-flat/negative/positive phys_byte, multi-byte length, high-bit terminator invariant, single-byte trailing terminator, decompress). Section D: 114 ROM-track round-trip + decompressed-length tests (encode(decode(original))==original and len==track_length/4) for all 19 tracks x 3 RLE types x 2 assertions = 114 tests. All 213 pass. Build verified bit-perfect."
+        },
+        {
+          "id": "TEST-004",
+          "title": "Add a test runner script",
+          "description": "Create tools/tests/run.js that discovers and runs all test files, reports pass/fail counts, and exits non-zero on failure. Modeled after vermilion's tools/tests/run.js.",
+          "files": [
+            "tools/tests/run.js"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "status": "done",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/run_tests.py: discovers all test_*.py in the tests/ directory, runs each as a subprocess, captures output and streams it to terminal, parses Results/Tests-run-passed-failed/All-passed summary lines, reports grand total across all suites, exits non-zero on any failure. Flags: -v (pass-through), --no-build (pass-through to smoke test), --filter PATTERN. Runs 849 tests across 4 suites: all pass. Build verified bit-perfect."
+        },
+        {
+          "id": "TEST-005",
+          "title": "Add tests for hack_workdir workspace system",
+          "description": "Test tools/hack_workdir.py: seed validation (valid and invalid formats), dry-run produces no files, --force overwrites existing workspace, workspace directory structure matches expected layout, --list output format. Use a tiny synthetic seed that only exercises the pipeline wiring (--no-build flag or mock). Ensures the workspace system stays correct as the codebase evolves.",
+          "files": [
+            "tools/tests/test_hack_workdir.py"
+          ],
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": "RAND-011",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/test_hack_workdir.py: 66 tests across 6 sections. Section A: seed validation — 8 valid seeds (version/flags/seed_int extraction) + 12 invalid seeds (wrong format, case, segments, spacing, non-hex, non-integer) + 4 boundary checks = 24 tests. Section B: --dry-run produces no workspace directory or files under WORKSPACES (5 tests). Section C: _copy_build_files() creates src/, data/tracks/, tools/ (randomize.py + inject_track_data.py), asm68k.exe, build.bat, required .asm files; no __pycache__ or .pyc (14 tests). Section D: --force behavior tested via direct shutil logic + --dry-run CLI gate (5 tests). Section E: _list_workspaces() with no-dir, empty dir, one entry with log+ROM, two entries (7 tests). Section F: CLI arg parsing — no args exits non-zero, invalid seed exits 1 with error, --list exits 0, --dry-run valid exits 0, shows seed in output, --dry-run invalid exits 1, path determinism checks (11 tests). Grand total 1165 tests across 6 suites, all passing. Build verified bit-perfect."
+        },
+        {
+          "id": "TEST-006",
+          "title": "Add randomizer smoke test — end-to-end single-track generation",
+          "description": "Add tools/tests/test_randomizer_smoke.py: generate a single randomized track for each of the 19 slots using a fixed seed, validate all generated tracks with track_validator.py, inject to a temp data/ copy, assemble with build.bat, check assembler exit 0. This gives fast automated confidence that the randomizer + injector + assembler pipeline is intact. Does not run verify.bat (randomized ROM hash will differ).",
+          "files": [
+            "tools/tests/test_randomizer_smoke.py"
+          ],
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "RAND-007",
+            "RAND-010"
+          ],
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/test_randomizer_smoke.py: 65 tests across 3 sections. Section A: generate + validate all 19 tracks (38 per-track + 1 aggregate = 39 tests). Section B: inject randomized binaries into isolated temp data/tracks/ copy (20 tests). Section C: assemble ROM in isolated temp workspace — copy_sources, copy_data, assembler exit 0, '0 error(s)' in output, out.bin present and non-empty (6 tests). All 65 tests pass. --no-build flag allows running just A+B for fast feedback (59 tests). Real source tree (data/tracks/, smgp.asm) never modified. Build verified bit-perfect after test run."
+        },
+        {
+          "id": "TEST-007",
+          "title": "Add art config tests (RAND-006)",
+          "description": "Test the RAND-006 art/config shuffle subsystem: randomize_art_config() produces a valid permutation; build_track_config_asm() rebuilds the ASM correctly with art labels shuffled and data labels preserved; inject_art_config() dry-run, real write, idempotency, and identity round-trip.",
+          "files": [
+            "tools/tests/test_art_config.py"
+          ],
+          "priority": "high",
+          "effort": "small",
+          "depends_on": "RAND-006",
+          "status": "done",
+          "started": "2026-03-09",
+          "completed": "2026-03-09",
+          "notes": "tools/tests/test_art_config.py: 250 tests across 3 sections. Section A: randomize_art_config() — length (1), keys per slot (16), is-permutation (1), reproducibility (1), different-seeds (1), horizon_bool (16), steering_valid (16), set_size (1), track_names_size (1), Italy special label (2) = 56 tests. Section B: build_track_config_asm() — asm_present (1), no_exception (1), line_count (1), track_comments (16), identity label presence (128), shuffle_no_exception (1), shuffle_line_count (1), slot0_comment (1), slot0_art_label (1), data_label_stays (3), track_data_label (1) = 155 tests. Section C: inject_art_config() — dryrun (2), write (3), idempotent (1), restored_labels (32), missing_asm_raises (1) = 39 tests. All 250 pass. Grand total 1105 tests across 5 suites, all passing."
+        }
+      ]
     }
   },
   "priority_order": [
-    "--- Immediate parity work: make the build look like vermilion structurally ---",
-    "ARCH-001",
-    "TOOL-002",
-    "TOOL-005",
-    "ARCH-002",
-    "ARCH-003",
-    "ARCH-005",
-    "ARCH-007",
-    "ARCH-004",
-    "--- Next: audit opaque data for hidden pointers and mixed structures ---",
-    "PTR-001",
-    "PTR-002",
-    "PTR-003",
-    "DATA-001",
-    "--- Then: fill the biggest remaining understanding gaps ---",
-    "DOC-006",
-    "DOC-007",
-    "AUDIO-001",
-    "AUDIO-002",
-    "--- Then: harden the project with vermilion-style tooling/docs ---",
-    "TOOL-003",
-    "TOOL-004",
-    "TOOL-006",
-    "ARCH-006",
-    "REGR-001",
-    "REGR-002",
-    "NOTES-001",
-    "NOTES-002",
-    "--- Later: editor and modding workflow ---",
-    "EDIT-001",
-    "EDIT-002",
-    "EDIT-003",
-    "EDIT-004",
-    "EDIT-005"
+    "=== PHASE 1-2 COMPLETE: Architecture, labels, pointer audit ===",
+    "ARCH-001 (done)",
+    "ARCH-002 (done)",
+    "ARCH-003 (done)",
+    "ARCH-004 (done)",
+    "ARCH-005 (done)",
+    "ARCH-007 (done)",
+    "DOC-006 (done)",
+    "PTR-001 (done)",
+    "PTR-002 (done)",
+    "PTR-003 (done)",
+    "TOOL-002 (done)",
+    "TOOL-003 (done)",
+    "TOOL-005 (done)",
+    "=== PHASE 3A: Critical path to track randomizer ===",
+    "DOC-008 (done) — Document track data constraints and validity rules",
+    "DATA-003 (done) — data/ tree and binary format specs",
+    "EXTR-000 (done) — Extract track/gameplay blobs to data/",
+    "EXTR-001 (done) — Extract track data from data/ to JSON",
+    "EXTR-002 (done) — Inject track data from JSON to data/ + ASM wrappers",
+    "TEST-001 (done) — Round-trip test for extract/inject",
+    "TEST-003 (done) — RLE encode/decode round-trip test",
+    "RAND-001 (done) — Randomizer architecture document",
+    "RAND-002 (done) — Track randomizer: curve generation",
+    "RAND-003 (done) — Track randomizer: slope generation",
+    "RAND-004 (done) — Track randomizer: sign placement",
+    "RAND-005 (done) — Track randomizer: minimap generation",
+    "RAND-007 (done) — Track validation module",
+    "TEST-002 (done) — Track validation tests",
+    "RAND-010 (done) — Unified randomizer CLI",
+    "RAND-011 (done) — Hack workspace system",
+    "=== PHASE 3B: Complete the randomizer ===",
+    "REGR-003 (done) — Update .gitignore for workspace outputs and randomized ROMs",
+    "EDIT-001 (done) — Modding architecture document",
+    "TEST-006 (done) — Randomizer smoke test (end-to-end)",
+    "DATA-001 (done) — Catalog artwork blob boundaries",
+    "RAND-006 (done) — Track randomizer: art and config assignment",
+    "TEST-007 (done) — Art config tests",
+    "TEST-005 (done) — Tests for hack_workdir workspace system",
+    "EDIT-002 (done) — Track editor CLI",
+    "=== PHASE 3C: Eliminate Python and migrate tooling to Node.js ===",
+    "NODE-001 (done) — Inventory Python/Jupyter usage and freeze new Python work",
+    "NODE-002 (done) — Create the shared Node.js tooling foundation",
+    "NODE-003 (done) — Replace active checks and indexes with Node.js",
+    "NODE-004 (done) — Replace the extract/inject pipeline with Node.js",
+    "NODE-005 (done) — Replace all editor CLIs with Node.js",
+    "NODE-006 (done) — Replace the randomizer and workspace stack with Node.js",
+    "NODE-007 (done) — Replace the active test suite with Node.js",
+    "NODE-008 (done) — Delete unused legacy Python scripts and notebooks",
+    "NODE-009 (done) — Remove the final Python remnants after JS parity",
+    "=== PHASE 3D: Team/championship editing and randomization ===",
+    "DOC-007 (done) — Annotate remaining data tables entry-by-entry",
+    "DOC-009 (done) — Document championship progression",
+    "DOC-010  — Document car physics parameters",
+    "EXTR-003 (done) — Extract team/car data",
+    "EXTR-004 (done) — Inject team/car data",
+    "EXTR-005 — Extract/inject text strings (Node.js)",
+    "EXTR-006 (done) — Extract/inject championship data",
+    "EXTR-007 (done) — Unified extract/inject CLI (Node.js)",
+    "RAND-008 (done) — Team/AI randomizer",
+    "RAND-009 (done) — Championship randomizer",
+    "EDIT-003 (done) — Team editor CLI",
+    "EDIT-004 — Text editor CLI (Node.js)",
+    "EDIT-005 (done) — Championship editor CLI",
+    "=== PHASE 3E: Polish, docs, tooling hardening ===",
+    "RAND-012 (done) — Randomizer user guide",
+    "ARCH-006 (done) — Module boundary docs",
+    "TOOL-004 — Comment density reporter",
+    "TOOL-007 (done) — Functions index",
+    "TOOL-008 (done) — Callsites/cross-reference index",
+    "TOOL-009 — Include graph",
+    "TOOL-010 (done) — Strings index",
+    "TOOL-011 — Dedicated linters",
+    "TOOL-012 (done) — Hotspot/dead-code analysis report",
+    "TOOL-013 (done) — Comment density/header coverage reporter",
+    "TEST-004 (done) — Test runner script",
+    "TEST-005 (done) — Tests for hack_workdir workspace system",
+    "REGR-001 (done) — Pre-commit hooks",
+    "REGR-002 (done) — Regression lints",
+    "NOTES-001 — Modernize notes.txt",
+    "NOTES-002 — Maintain refactor log",
+    "=== PHASE 4: Deep documentation pass ===",
+    "DOC-011 (done) — Document rendering pipeline (road, sprite, scanline)",
+    "DOC-012 — Document objects system and sprite pool management",
+    "DOC-013 — notes.txt modernization pass",
+    "DOC-014 — Document menu and game state machine",
+    "DOC-015 — Document race loop and lap/checkpoint mechanics",
+    "=== NOT ON CRITICAL PATH (nice to have) ===",
+    "DATA-002 — Document tile compression format",
+    "AUDIO-001 — Document 68K-to-Z80 sound interface",
+    "AUDIO-002 — Isolate Z80 driver tables"
   ]
 }

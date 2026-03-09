@@ -1,9 +1,9 @@
 OPEN PROBLEMS (unsolved / partially solved)
 ===============================================================================
-- Identify artwork / tileset layout (which compressed blob maps to which track/car)
+- ~~Identify artwork / tileset layout~~ RESOLVED — see ART ASSET CATALOG below
+- ~~Document championship progression~~ RESOLVED — see CHAMPIONSHIP PROGRESSION below
 - Disassemble Z80 sound driver (currently an opaque dc.b blob at Audio_engine_state)
 - Identify music track IDs exhaustively (partial coverage in constants.asm Music_* constants)
-- AI car behavior: full placement logic, lane movement, collision, points accumulation
 - $A980 struct: unknown struct type; ;loc_A980 in smgp.asm; fields not yet named
 
 
@@ -29,6 +29,61 @@ SOLVED PROBLEMS (kept for reference — canonical docs are in smgp.asm source co
 
 - AI car array at Ai_car_array ($FFFFB080): 16×$40-byte entries.
   Entry 0 = Rival_car_obj. Same Car_obj_* field offsets apply.
+
+- AI car behavior: fully documented in src/ai.asm routine headers.
+  Placement scoring: Update_race_position compares Player_place_score against
+  15×Rival_car_place_score entries ($40 apart from $FFFFB09E); rank = count of
+  entries with score > player's. Update_race_position_Rival handles the rival car
+  separately in championship + rival mode.
+  Points: Award_race_position_points adds Race_placement_bonus_table[grid_pos]
+  (BCD: $14 for 1st down to $02 for 13th) to Race_time_bcd via Bcd_add_loop.
+  Tire wear: Update_tire_wear_counter degrades steering/engine/accel indices
+  each frame; each channel has a rate, accumulator, and durability word.
+  Speed params (Init_rival_ai_car): Ai_placement_data_champ 5-byte records
+  give (max_speed.w, accel.w, scale_idx.b) adjusted by shift-type bonus and
+  Ai_placement_champ_offsets (player-vs-rival team pair offsets).
+  Lane movement: sinusoidal oscillation ($11/$14/$15 fields), approach avoidance
+  steer (checks $38/$3A target ptrs), curve look-ahead speed/lateral control.
+  Collision: Check_ai_collision_with_player detects ±$40 X overlap; sets
+  Overtake_flag, Ai_x_delta, Ai_speed_delta; triggers oscillation + smoke.
+  Depth sort: Compute_ai_position_and_depth_sort maintains a 15-entry insertion-
+  sorted Depth_sort_buf; tracks leader and second-place pointers for HUD.
+
+  AI car object slot field offsets ($40 bytes):
+    $00 .l  frame handler pointer
+    $04 .l  anim/sprite frame pointer
+    $08 .l  sprite data base pointer (into Car_sprite_ptr_table)
+    $0C .w  sprite attribute word ($2000 = hidden/no-flip; $4000 = rival flip)
+    $0E .w  row index / depth sort row word ($FFFF = off-screen)
+    $10 .b  oscillation count (0 = not oscillating; set on collision)
+    $11 .b  oscillation phase (current lateral phase, 0–$10)
+    $12 .w  lateral X position (signed; $0000 = centre, ±$B8 = road edge)
+    $14 .b  oscillation step (signed; negated at phase extremes)
+    $15 .b  oscillation timer (decremented per frame; reset to 1)
+    $16 .w  screen Y position
+    $18 .w  screen X position
+    $1A .w  track distance hi-word (integer steps from lap start)
+    $1C .w  (upper word of $1A/$1E long: track distance fractional carry)
+    $1E .w  place-score / track distance lo-word
+    $22 .w  lap count ($FFFF = not yet started; 0 on first lap wrap)
+    $24 .b  render type (3 = normal road car)
+    $25 .b  sign-pass active flag ($FF = car is overtaking via sign pass)
+    $26 .w  current speed
+    $28 .w  speed fraction (cleared when speed hits max)
+    $2A .b  sprite depth frame index (written by Assign_ai_sprite_depth_frame)
+    $2B .b  speed scale index → Bg_ai_car_speed_scale_table ($8000/$AA80/$D500)
+    $2D .b  previous physical slope byte (for slope-change smoke)
+    $2F .b  previous curve byte (for curve-change smoke)
+    $30 .w  max speed
+    $32 .w  max speed × 128 (fixed-point integration ceiling)
+    $34 .w  acceleration
+    $36 .w  lane target X (initial lateral X; AI steers toward this)
+    $38 .w  approach target ptr A (0 = use player; $FFFF = use player direct)
+    $3A .w  approach target ptr B
+    $3C .b  rival flag ($FF = this slot is the rival car; 0 = background)
+    $3D .b  nudge inhibit flag ($FF = too close behind, skip approach steer)
+    $3E .b  obstacle flag ($FF = car has finished its lap limit; drifts off)
+    $3F .b  obstacle done flag ($FF = drift animation complete; slot recycled)
 
 - All loc_ label definitions eliminated (0 loc_ definitions remain in smgp.asm).
   ~3099 loc_XXXX preservation comments remain as cross-reference anchors.
@@ -219,3 +274,501 @@ Byte encoding identical to curve data:
 ROM encoding: 3/4-byte RLE records (initial displacement byte + per-record count + delta).
 Physical slope uses simpler 3-byte RLE. Both terminated by high-byte bit 7 set.
 Track_phys_slope_value is used by Update_rpm: negative = uphill drag on engine.
+
+
+TRACK DATA VALIDITY CONSTRAINTS (DOC-008)
+================================================================================
+These rules govern what constitutes a valid track in Super Monaco GP.
+Violating them causes crashes, visual glitches, or wrong gameplay.
+Source: driving.asm, rendering.asm, race_support.asm, ai.asm, road_and_track_data.asm,
+        track_config_data.asm.
+
+--- Track_data record ($48 bytes, 19 entries) ---
+  Entries 0–15 : championship tracks in race order
+  Entries 16–18: arcade Monaco variants (prelim, main, wet)
+  Track_index is not bounds-checked; out-of-range reads garbage.
+
+--- Track length (+$22 .w) ---
+  Min: 329  (renderer computes length-169 and length-329; underflow is undefined)
+  Max safe: 8188  (decompressed arrays are 2048 bytes; indexed by distance>>2)
+  Hard absolute max: 65415  (sign arithmetic wraps at 65536; must stay positive)
+  All 19 ROM tracks are in the range 3392–7744 (recommend staying ≤ 8000).
+  Minimap position map must cover at least (track_length >> 5) + 1 x/y byte pairs.
+
+  Track lengths by name (all ROM tracks):
+    Australia  6080   Monaco (champ)  6144   France        6144
+    Brazil     6976   Canada          6720   Hungary       6464
+    Portugal   6592   Spain           6784   Mexico        6848
+    Gt Britain 6912   USA             7168   San Marino    7040
+    Japan      7552   W. Germany      7488   Italy         7616
+    Belgium    7744   Monaco prelim   3392   Monaco main   7616   Monaco wet  7616
+
+--- Decompressed curve byte values ---
+  $00        = straight
+  $01–$2F    = left turn; $01 = extreme, $2F = softest (47 valid left values)
+  $41–$6F    = right turn; $41 = softest, $6F = extreme (47 valid right values)
+  $30–$3F    = INVALID — lower 6 bits ≥ 48 index past Road_displacement_table
+  $70–$7F    = INVALID — same reason; game freezes / reads garbage pointer
+  $80–$FF    = lap-wrap sentinel; game resets read pointer to track start (BPL branch)
+  Road_displacement_table has one guard entry (index 0 = $FFA00000) and 47 real
+  sub-arrays (indices 1–47). The sharpness index = byte & $3F; must be 0 or 1–47.
+
+--- Curve RLE ROM encoding (in road_and_track_data.asm) ---
+  Straight segment (3 bytes): $00, <length_lo>, $00
+  Curve segment   (5 bytes): <length_hi>, <length_lo>, <curve_byte>, <bg_disp_hi>, <bg_disp_lo>
+    length_hi can be non-zero (e.g. $02 = 512 steps added to lo-byte for 16-bit length)
+  Terminator: $FF, $00
+  bg_disp is a 16-bit signed background horizontal scroll delta applied per step.
+
+--- Decompressed visual slope byte values ---
+  Same encoding as curve bytes:
+  $00        = flat
+  $01–$2F    = downslope (extreme → soft)
+  $41–$6F    = upslope (soft → extreme)
+  $30–$3F, $70–$7F = INVALID (same table-index overflow risk as curves)
+  $80+       = sentinel / lap-wrap
+
+--- Decompressed physical slope byte values ---
+  Signed byte, range –128 to +127; stored verbatim.
+  Negative = downhill (reduces RPM drag via EXT.w / Update_rpm).
+  Positive = uphill (increases RPM drag).
+  ROM tracks use only $FF (downhill), $00 (flat), $01 (uphill).
+
+--- Visual slope RLE ROM encoding ---
+  Header: 1 byte of initial vertical background displacement (before first record).
+  Flat segment    (3 bytes): <len_hi>, <len_lo>, $00
+  Slope segment   (4 bytes): <len_hi>, <len_lo>, <slope_byte>, <bg_vert_disp_byte>
+  Terminator: $FF
+
+--- Physical slope RLE ROM encoding ---
+  No header byte.
+  Segment (3 bytes): <len_hi>, <len_lo>, <phys_slope_byte>
+  Terminator: $FF (quirk: the terminator byte acts as the high byte of the final
+  length, so 2 more bytes are consumed after it — last real entry must account
+  for this; match the pattern used in existing tracks exactly).
+
+--- Decompressed buffer sizes (RAM) ---
+  Curve_data                         $00FF5B00  2048 bytes  (max 2047 steps + $FF)
+  Background_horizontal_displacement $00FF6300  2048 bytes  (1024 word entries)
+  Visual_slope_data                  $00FF7300  2048 bytes
+  Physical_slope_data                $00FF8300  ≥2048 bytes (same index range)
+
+--- Road renderer budget ---
+  40 entries read ahead per frame for curve/slope look-ahead.
+  96 interpolated display entries computed for road scanlines.
+  224 scanlines in the tile-blit loop.
+  Background displacement modulo: ANDI.w #$03FF (wraps at 1024 entries).
+
+--- Sign data record format (RAM stream) ---
+  4 bytes per record: distance.w, count.b, sign_id.b
+  Terminated by $FFFF distance word (bit 15 set = end sentinel).
+  Spawn trigger: sign spawns when (sign_distance − player_distance) < $0078 (120 units).
+  Multiple signs in a group are spaced 16 distance units apart.
+  Valid sign_id: 0–$14 for road signs (20-entry dispatch table in ai.asm).
+  Finish line blocks all sign spawns when (track_length − player_distance) < 120.
+
+--- Sign tileset stream format ---
+  4 bytes per entry: distance.w, tileset_byte_offset.w
+  Terminated by $FFFF.
+
+--- Steering divisors (+$44 .l) ---
+  Packed long: high word = Steering_divisor_straight, low word = Steering_divisor_curve.
+  Must be non-zero (DIVS crash if zero).
+  All championship tracks: $002B002B (43/43).
+  Wet Monaco: $002F0038 (47/56).
+  Adjusted by Steering_curve_divisors additive table (5 signed entries, default index 2 = 0,0).
+
+--- Minimap position map ---
+  Flat array of (x, y) signed byte pairs; no explicit length field.
+  Must contain at least (track_length >> 5) + 1 pairs.
+  Example: San Marino length 7040 → need ≥ 221 pairs (442 bytes minimum).
+
+--- Lap targets format (15 × 3-byte BCD per track) ---
+  14 real entries of <min_BCD>, <sec_BCD>, <centisec_BCD>.
+  Entry 15: $99, $00, $00 sentinel.
+  1 trailing $00 pad byte after sentinel.
+  Total: 46 bytes per track.
+
+--- General constraints summary ---
+  1. track_length must be in range 329–8188.
+  2. All decompressed curve/slope bytes must be in {$00} ∪ [$01–$2F] ∪ [$41–$6F]; never $30–$7F.
+  3. Lap-wrap sentinels ($80+) must appear exactly once at the logical end of each stream.
+  4. Both RLE streams (curve and slope) must fit in their 2048-byte decompressed buffers.
+  5. Steering divisors must be non-zero.
+  6. Sign records must be terminated by $FFFF and use only valid sign IDs (0–$14).
+  7. Minimap must have ≥ (track_length >> 5) + 1 entries.
+  8. Lap targets must end with $99,$00,$00 sentinel + one $00 pad byte.
+
+
+===============================================================================
+ART ASSET CATALOG (DATA-001)
+===============================================================================
+Source: src/track_bg_data.asm, src/hud_and_minimap_data.asm, src/track_config_data.asm
+Completed: 2026-03-09
+
+--- Background tile graphics (Track_bg_tiles_*) ---
+  16 unique compressed bg tile sets for the 16 championship tracks.
+  Plus 1 shared set for all 3 Monaco arcade variants.
+  Total: 17 unique bg tile blobs.  Sizes: 1450–2522 bytes each.
+  Source: src/track_bg_data.asm
+
+  Label                           Tracks using it
+  Track_bg_tiles_San_Marino       San Marino (championship)
+  Track_bg_tiles_Brazil           Brazil
+  Track_bg_tiles_France           France
+  Track_bg_tiles_Hungary          Hungary
+  Track_bg_tiles_West_Germany     West Germany
+  Track_bg_tiles_Usa              USA
+  Track_bg_tiles_Canada           Canada
+  Track_bg_tiles_Great_Britain    Great Britain
+  Track_bg_tiles_Italy            Italy
+  Track_bg_tiles_Portugal         Portugal
+  Track_bg_tiles_Spain            Spain
+  Track_bg_tiles_Mexico           Mexico
+  Track_bg_tiles_Japan            Japan
+  Track_bg_tiles_Belgium          Belgium
+  Track_bg_tiles_Australia        Australia
+  Track_bg_tiles_Monaco           Monaco (championship)
+  Track_bg_tiles_Monaco_arcade    Monaco prelim + Monaco arcade + Monaco arcade wet (SHARED)
+
+--- Background tilemaps (Track_bg_tilemap_*) ---
+  17 unique tilemaps.  Sizes: 222–730 bytes each.
+  Source: src/track_bg_data.asm
+
+  Label                               Tracks using it
+  Track_bg_tilemap_San_Marino         San Marino
+  Track_bg_tilemap_Brazil             Brazil
+  Track_bg_tilemap_France             France
+  Track_bg_tilemap_Hungary            Hungary
+  Track_bg_tilemap_West_Germany       West Germany
+  Track_bg_tilemap_Usa                USA
+  Track_bg_tilemap_Canada             Canada
+  Track_bg_tilemap_Great_Britain      Great Britain
+  Track_bg_tilemap_Italy              Italy
+  Track_bg_tilemap_Portugal           Portugal
+  Track_bg_tilemap_Spain              Spain
+  Track_bg_tilemap_Mexico             Mexico
+  Track_bg_tilemap_Japan              Japan
+  Track_bg_tilemap_Belgium            Belgium
+  Track_bg_tilemap_Australia          Australia
+  Track_bg_tilemap_Monaco             Monaco (championship)
+  Track_bg_tilemap_Monaco_arcade      Monaco prelim + Monaco arcade main (SHARED)
+  Track_bg_tilemap_Monaco_arcade_wet  Monaco arcade wet (unique tilemap for wet variant)
+
+--- Minimap tile graphics (Minimap_tiles_*) ---
+  18 unique minimap tile blobs.  Sizes: 270–488 bytes each.
+  Source: src/hud_and_minimap_data.asm
+
+  Label                           Tracks using it
+  Minimap_tiles_San_Marino        San Marino
+  Minimap_tiles_Brazil            Brazil
+  Minimap_tiles_France            France
+  Minimap_tiles_Hungary           Hungary
+  Minimap_tiles_West_Germany      West Germany
+  Minimap_tiles_USA               USA
+  Minimap_tiles_Canada            Canada
+  Minimap_tiles_Great_Britain     Great Britain
+  Minimap_tiles_Italy             Italy
+  Minimap_tiles_Portugal          Portugal
+  Minimap_tiles_Spain             Spain
+  Minimap_tiles_Mexico            Mexico
+  Minimap_tiles_Japan             Japan
+  Minimap_tiles_Belgium           Belgium
+  Minimap_tiles_Australia         Australia
+  Minimap_tiles_Monaco            Monaco (championship)
+  Minimap_tiles_Monaco_prelim     Monaco arcade preliminary (unique)
+  Minimap_tiles_Monaco_arcade     Monaco arcade main + Monaco arcade wet (SHARED)
+
+--- Minimap tile mappings (Minimap_map_*) ---
+  18 unique minimap maps.  Sizes: 24–46 bytes each.
+  Source: src/hud_and_minimap_data.asm
+
+  Label                     Tracks using it
+  Minimap_map_San_Marino    San Marino
+  Minimap_map_Brazil        Brazil
+  Minimap_map_France        France
+  Minimap_map_Hungary       Hungary
+  Minimap_map_West_Germany  West Germany
+  Minimap_map_USA           USA
+  Minimap_map_Canada        Canada
+  Minimap_map_Great_Britain Great Britain
+  Minimap_map_Italy         Italy
+  Minimap_map_Portugal      Portugal
+  Minimap_map_Spain         Spain
+  Minimap_map_Mexico        Mexico
+  Minimap_map_Japan         Japan
+  Minimap_map_Belgium       Belgium
+  Minimap_map_Australia     Australia
+  Minimap_map_Monaco        Monaco (championship)
+  Minimap_map_Monaco_prelim Monaco arcade preliminary (unique)
+  Minimap_map_Monaco_arcade Monaco arcade main + Monaco arcade wet (SHARED)
+
+--- Per-track inline style data (src/track_config_data.asm) ---
+  Each of the 16 championship tracks + 4 Monaco variants has these labels:
+    <Track>_bg_palette       11 words (22 bytes) — background sky/horizon colors
+    <Track>_sideline_style   5 words (10 bytes)  — roadside curb/grass colors
+    <Track>_road_style       5 words (10 bytes)  — road surface colors
+    <Track>_finish_line_style 5 words (10 bytes) — finish line checker colors
+
+  Special cases:
+    Italy_bg_palette       uses offset -2 in dc.l pointer (Italy_bg_palette-2)
+    Monaco_arcade_sideline_style uses offset -2 in dc.l pointer
+    Canada_bg_palette      is 10 words + 1 dc.l (slightly different encoding than others)
+    Italy/Brazil/Monaco_arcade_bg_palette use mixed dc.b/dc.w/dc.l encodings
+
+  Art assignment is via ASM label pointers in Track_data table.
+  The randomizer (RAND-006) shuffles art by rewriting pointer labels in
+  src/track_config_data.asm — no binary data needs to move.
+
+--- Art set groupings (for randomizer compatibility) ---
+  An "art set" is one of the 16 named championship-track art groups.
+  Each art set consists of:
+    Track_bg_tiles_<X>
+    Track_bg_tilemap_<X>
+    Minimap_tiles_<X>
+    Minimap_map_<X>
+    <X>_bg_palette
+    <X>_sideline_style
+    <X>_road_style
+    <X>_finish_line_style
+    horizon_override flag (0 for 13 tracks; 1 for West_Germany, Italy, Belgium)
+    steering divisors (43/43 for all championship; Hungary: 44/46 special)
+
+  The 3 Monaco arcade tracks (prelim, main, wet) are NOT randomized:
+    - They share Track_bg_tiles_Monaco_arcade and have special pointer offsets
+      (Italy_bg_palette-2, Monaco_arcade_sideline_style-2) that would break
+      if the art were mixed with championship tracks.
+    - They use unique minimap labels (Monaco_prelim, Monaco_arcade) that should
+      stay fixed.
+
+  Safe to randomize: all 16 championship track slots (indices 0–15).
+  Not safe to randomize: Monaco prelim (index 16), Monaco arcade (17), Monaco wet (18).
+
+--- Other art blobs (not directly part of track art randomization) ---
+  Startup_tileset_data      $03CEB0  7676 bytes   src/car_sprite_blobs.asm
+  Race_hud_tiles_f          $03ECAC  76732 bytes  src/car_sprite_blobs.asm
+  Car_sprite_data_XXXXX     68 blobs $051868–$053F50  32–1312 bytes each
+  Driver_portrait_tiles_*   17 blobs $019A7C–$01E004+ 880–1278 bytes each
+  Driver_portrait_tilemap_* 17 blobs                  14–28 bytes each
+  Screen art (attract/title/options/results/podium) in src/screen_art_data.asm
+
+
+===============================================================================
+CHAMPIONSHIP PROGRESSION AND RACE-ORDER DATA STRUCTURES (DOC-009)
+===============================================================================
+Sources: src/race.asm, src/menus.asm, src/gameplay.asm, src/objects.asm,
+         src/race_support.asm, src/track_config_data.asm
+Completed: 2026-03-09
+
+--- Championship Track Order ---
+  Track_data table in src/track_config_data.asm has 19 entries × $48 bytes.
+  Championship indices 0–15 (the 16-race World Championship season):
+    0  San Marino      6  Canada         11  Mexico
+    1  Brazil          7  Great Britain  12  Japan
+    2  France          8  Italy          13  Belgium
+    3  Hungary         9  Portugal       14  Australia
+    4  West Germany   10  Spain          15  Monaco  ← championship final
+    5  USA
+  Arcade-only indices (Track_index_arcade_mode, offset +$0480 from Track_data base):
+    16  Monaco Preliminary  (len 3392 — short qualifying race)
+    17  Monaco Arcade Main  (len 7616)
+    18  Monaco Arcade Wet   (len 7616, wet tyre steering $002F/$0038)
+
+  Track_index ($FFFF9144 .w) counts 0–15 for championship races.
+  Track_index == 16 ($0010) signals the championship is complete.
+  Track_index_b ($FFFF9145 .b) is the low byte alias; used only by the password
+  save serialiser (Save_player_state_to_buffer / Load_player_state_from_buffer).
+
+  Use_world_championship_tracks ($FFFF9140): 0 = arcade mode, 1 = championship mode.
+  When 0, Load_track_data uses Track_index_arcade_mode instead of Track_index,
+  and applies the +$0480 offset to reach the three Monaco arcade entries.
+
+--- Mode Selection (menus.asm) ---
+  Title_menu_state ($FFFF9000) state machine:
+    0 = main menu
+    1 = new game / password sub-menu
+    2 = options screen
+    3 = track preview
+  Relevant cursor dispatch targets:
+    cursor 1 → Title_menu_sel_New_game → sets Use_world_championship_tracks=1,
+               clears Track_index, sets Practice_flag=1, calls Initialize_drivers_and_teams,
+               sets Frame_callback = Championship_mode_init ($509C)
+    cursor 2 → Title_menu_sel_Arcade → sets Selection_count=$000E, Frame_callback=$5690
+    cursor 3 → Title_menu_sel_Password → Frame_callback = $ED90 (password entry screen)
+
+--- Championship Flow Summary ---
+  Championship_mode_init ($509C) — installs team-select screen
+    ↓
+  Team_select_screen_init / Team_select_frame — player picks team
+    ↓ (on commit, if bit 7 of Player_team clear, first race)
+  Championship_race_init ($375E) — calls Reset_race_state, Load_track_data,
+    Initialize_race_objects, Initialize_road_graphics_state, installs Race_loop
+    ↓
+  Race_loop — main race per-frame handler
+    ↓ (on finish line or elimination)
+  Race_finish_results_init ($42F8) — "PRELIMINARY RACE RESULTS" screen,
+    accumulates BCD lap-time penalty from Pre_race_lap_time_offset_table,
+    Screen_timer = $021C (~8.5s), plays Music_race_results
+    ↓
+  Race_results_frame ($429E) — waits for timer or button press
+    ↓ (if Use_world_championship_tracks != 0)
+  Championship_next_race_init ($BD56) — two sub-paths:
+    If Track_index_arcade_mode == 0 (first-race / post-season podium):
+      Initialize_results_screen, Assign_initial_rival_team,
+      set up podium car objects, Frame_callback = Race_result_frame_2
+    If Track_index_arcade_mode != 0 (between races):
+      Initialize_results_screen, Update_player_grid_position,
+      update Rival_team flags in Drivers_and_teams_map,
+      Frame_callback = Race_result_frame_3,
+      Initialize_standings_order_buffer (PRNG-scored sort),
+      Initialize_minimap_display_buffers, Draw_track_name_and_championship_standings
+    ↓ (music plays, standings shown)
+  Driver_standings_init ($CCE0) / Driver_standings_frame — scrolling standings
+    ↓
+  Pre_race_screen_championship_init — pre-race screen / countdown
+    ↓
+  Championship_race_init (next Track_index) → repeat until Track_index == 16
+
+  When Track_index reaches 16 (post-Monaco):
+    Championship_standings_input_Accept sets Saved_frame_callback = $4FDC
+    Championship_standings_init performs player↔rival slot swaps in
+      Drivers_and_teams_map and Driver_points_by_team
+    Endgame credits/podium sequence plays
+
+--- Points System ---
+  PointsAwardedPerPlacement (src/gameplay.asm):
+    Placement:  1st  2nd  3rd  4th  5th  6th  7th+
+    Points:      9    6    4    3    2    1    0
+
+  Points are distributed by Accumulate_race_points, which reads placement
+  order from Standings_team_order ($FFFF906E) and writes to Driver_points_by_team
+  ($FFFF9030, 16 bytes — one byte per team).
+
+  Sort_championship_standings: bubble-sorts 16 drivers by Driver_points_by_team.
+  Sets Player_eliminated = $FFFF if player's score byte has MSB set (negative).
+
+  Post_race_driver_target_points (src/gameplay.asm):
+    16 teams × 2 bytes: [promote_threshold, partner_threshold]
+    Example: top teams (Madonna/Rigel) require placement ≤ 2 to get a good rival;
+    lower teams (e.g. Minarae, team 11) only need ≤ 8.
+    Used by Championship_next_race_init to select music (Song 2 vs Song 3)
+    based on whether player is on target.
+
+--- Standings Order Buffer ---
+  Initialize_standings_order_buffer builds Standings_team_order ($FFFF906E):
+    1. PRNG-score each of 16 AI teams using Ai_performance_factor_by_team
+       and Ai_performance_table (base scores + noise).
+    2. Bubble-sort by score descending.
+    3. Bias player slot to position 0 and rival slot to position 0 (lowest).
+    4. Rotate buffer to actual finishing positions.
+    5. Call Accumulate_race_points to distribute PointsAwardedPerPlacement.
+
+  Ai_performance_factor_by_team (src/gameplay.asm): 16 bytes, multipliers 1–15.
+    Team 12 (Rigel) has anomalously high factor — wild-card behaviour.
+  Ai_performance_table (src/gameplay.asm): 16×8 bytes of base scores.
+
+--- Elimination Logic ---
+  Player_eliminated ($FFFFFCAC): 0=racing, 1=eliminated, $FFFF=not entered.
+  Build_minimap_standings_row_buffer sets Player_eliminated = $FFFF if the
+  player's team byte in Score_scratch_buf has MSB set (negative score).
+  Sort_championship_standings also sets Player_eliminated on negative score.
+  No explicit "must finish top N" rule is hard-coded per race — elimination is
+  purely points-based (going negative in accumulated score).
+
+--- Rival System ---
+  Rival_team ($FFFF9042 .b), Player_team ($FFFF9043 .b) bit encoding:
+    Player_team bits:
+      [3:0] team index (0–15)
+      [4]   "in team" / previous promotion flag
+      [5]   rival race active
+      [6]   year-2 championship leader flag (also livery swap trigger)
+      [7]   player is champion (set by Championship_podium_check_champion)
+    Rival_team bits:
+      [3:0] rival team index
+      [4]   rival pre-placed flag
+      [5]   same-team variant flag
+      [6]   rival promoted once
+      [7]   rival promoted twice / new partner state
+
+  Rival race triggers: Championship_next_race_init checks BTST #5, Player_team.
+    Bit 5 set → rival race mode, uses rival-specific music + grid logic.
+  Has_rival_flag ($FFFF914C?): set to 1 when rival race is active.
+
+  Rival assignment (Assign_initial_rival_team, src/gameplay.asm):
+    3 paths based on Player_team:
+      1. Pre-assigned (team 8 Bullets): rival is next team above 8.
+      2. No team yet: finds highest-scoring AI team from Driver_points_by_team.
+      3. Has team: scans up to 4 slots above current rival team, skips slots
+         already in Promoted_teams_bitfield ($FFFF9040 .w, 16-bit bitmask).
+
+  Advance_rival_promotion_state: advances rival one tier per race if player
+  is on target; uses stack-pop trampoline if all slots above are taken.
+
+  Rival_grid_position computed by Init_race_player_state using:
+    Rival_grid_base_table (16 bytes, base grid pos per team) +
+    Rival_grid_delta_table (11 bytes: $FD $FE $00 $FF $FE $01 $01 $02 $01 $01 $00)
+
+--- Driver/Team Maps ---
+  InitialDriversAndTeamMap (src/gameplay.asm): 18 bytes, year-1 assignments.
+    Player starts at Minarae (team 11); slot 11 holds Madonna as natural first rival.
+  SecondYearDriversAndTeamsMap (src/gameplay.asm): 18 bytes, year-2 assignments.
+    Player gets Madonna (team 0) with bit 6 set (year-2 flag); full roster reshuffle.
+  Drivers_and_teams_map ($FFFF9044, 17 bytes): active driver→team mapping in RAM.
+
+--- Password / Save System ---
+  The "password" is a 64-character on-screen code displayed at Save_name_entry_init
+  ($F288). The player writes it down and re-enters it via the password entry screen
+  ($ED90). There is no hardware save; all state is encoded into these 64 characters.
+
+  State serialised by Save_player_state_to_buffer (gameplay.asm ~$4283):
+    Buffer: Player_state_save_buf ($FFFFFF80, 64 bytes)
+    Bytes 0–36  (37 bytes): low 5 bits of Player_state_flags + Driver_points_by_team
+                            [0..15] + Promoted_teams_bitfield + Rival_team +
+                            Player_team + Drivers_and_teams_map[0..16]
+    Bytes 37–55 (19 bytes): high bits (bits 5-7) of each byte pair from above,
+                            packed as ((A>>5)&7) | ((B>>2)&$38)
+    Byte 56: Track_index_b (which race is next, 0–15)
+    Byte 57: mode discriminator:
+               1 = resume at Championship_standings_init ($D6E2)
+               2 = resume at Title_menu
+               3 = resume at Championship_mode_init ($509C)
+               4/else = null
+
+  Checksum: Compute_save_data_checksum iterates buf[0..57] in 29 two-byte pairs,
+    running EOR/rotate (ROXR) accumulation with $88/$10 XOR on carry.
+    Result → 4 nibbles stored at Save_checksum_nibble_0..3 ($FFFFFFBC–$FFFFFFBF).
+    Mismatch on restore → Demo_screen_transition (force title screen).
+
+--- Key ROM Addresses ---
+  Championship_race_init        $375E   race.asm
+  Arcade_race_init              $3800   race.asm
+  Race_results_frame            $429E   race.asm
+  Race_finish_results_init      $42F8   race.asm
+  Init_race_player_state        (race.asm — computes rival grid position)
+  Championship_mode_init        $509C   race.asm
+  Driver_standings_init         $CCE0   gameplay.asm
+  Driver_standings_frame        (gameplay.asm)
+  Championship_standings_init   $D6E2   gameplay.asm
+  Championship_driver_select_init $E600 gameplay.asm
+  Championship_podium_frame     $E77A   gameplay.asm
+  Championship_standings_2_init $E94C   gameplay.asm
+  Save_name_entry_init          $F288   gameplay.asm
+  Save_player_state_to_buffer   ~$4283  gameplay.asm
+  Load_player_state_from_buffer ~$4341  gameplay.asm
+  Compute_save_data_checksum    ~$4389  gameplay.asm
+  Championship_next_race_init   $BD56   objects.asm
+  Championship_podium_load_or_fade      objects.asm
+
+--- Notes for Championship Randomizer (RAND-009) ---
+  - The 16-race order is fixed by Track_data table indices 0–15; changing race order
+    requires reordering entries in Track_data (track_config_data.asm) or patching
+    Load_track_data to use an indirection table.
+  - Points system (9/6/4/3/2/1) is in PointsAwardedPerPlacement; safe to modify.
+  - Post_race_driver_target_points controls rival-assignment and music; must remain
+    consistent with actual game balance if teams are reshuffled.
+  - Promoted_teams_bitfield uses bit positions matching team indices; if teams are
+    renumbered by a randomizer, this bitmask logic must be updated accordingly.
+  - The password save system encodes team indices directly; randomized team orders
+    will break existing passwords (acceptable — document this limitation).
+  - Player_eliminated is score-based only; no per-race minimum placement requirement
+    means a player can theoretically survive by accumulating 1-pt finishes.
