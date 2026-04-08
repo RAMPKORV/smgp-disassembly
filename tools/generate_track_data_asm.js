@@ -42,6 +42,57 @@ const TRACK_LAYOUT = [
 
 const GENERATED_MINIMAP_DATA_FILE = 'data/tracks/generated_minimap_data.asm';
 
+function countDcBBytes(line) {
+	const match = line.split(';')[0].match(/^\s*dc\.b\s+(.*)$/i);
+	if (!match) return null;
+	return match[1]
+		.split(',')
+		.map(token => token.trim())
+		.filter(Boolean)
+		.length;
+}
+
+function scanAsmDataLayout(text, baseDir, state) {
+	for (const line of text.split(/\r?\n/)) {
+		if (/^\s*Monaco_arcade_post_sign_tileset_blob:/i.test(line) && state.blobStart === null) {
+			state.blobStart = state.total;
+			continue;
+		}
+
+		const include = line.match(/^\s*include\s+"([^"]+)"/i);
+		if (include) {
+			const includePath = path.resolve(baseDir, include[1]);
+			if (fs.existsSync(includePath)) {
+				scanAsmDataLayout(fs.readFileSync(includePath, 'utf8'), path.dirname(includePath), state);
+			}
+			continue;
+		}
+
+		const incbin = line.match(/^\s*incbin\s+"([^"]+)"/i);
+		if (incbin) {
+			const filePath = path.resolve(baseDir, incbin[1]);
+			if (fs.existsSync(filePath)) state.total += fs.statSync(filePath).size;
+			continue;
+		}
+
+		const dcb = line.match(/^\s*dcb\.b\s+(\d+)\s*,/i);
+		if (dcb) {
+			state.total += parseInt(dcb[1], 10);
+			continue;
+		}
+
+		const dcBCount = countDcBBytes(line);
+		if (dcBCount !== null) {
+			state.total += dcBCount;
+		}
+	}
+	return state;
+}
+
+function measureAsmDataLayout(text, baseDir) {
+	return scanAsmDataLayout(text, baseDir, { total: 0, blobStart: null });
+}
+
 function buildGeneratedMinimapIncludeBlock() {
 	return [
 		'Generated_minimap_preview_data:',
@@ -62,6 +113,9 @@ function buildGeneratedTrackBlock(options = {}) {
 	const padBytes = options.padBytes || 0;
 	const preBlobPadBytes = options.preBlobPadBytes || 0;
 	const includeGeneratedMinimapData = options.includeGeneratedMinimapData === true;
+	const inlineBlobPadBytes = options.keepInlineBlobPadding === false
+		? 0
+		: Math.max(0, options.inlineBlobPadBytes ?? MONACO_ARCADE_TRAILING_PAD_BYTES);
   const lines = [];
 
 	for (const track of TRACK_LAYOUT) {
@@ -79,8 +133,10 @@ function buildGeneratedTrackBlock(options = {}) {
 	if (preBlobPadBytes > 0) {
 		lines.push(`\tdcb.b\t${preBlobPadBytes}, $00`);
 	}
+	if (inlineBlobPadBytes > 0) {
+		lines.push(`\tdcb.b\t${inlineBlobPadBytes}, $00`);
+	}
 	lines.push('Monaco_arcade_post_sign_tileset_blob:');
-	lines.push(`\tdcb.b\t${MONACO_ARCADE_TRAILING_PAD_BYTES}, $00`);
 	lines.push('\tincbin\t"data/tracks/monaco_arcade/post_sign_tileset_blob.bin"');
 	if (padBytes > 0) {
 		lines.push(`\tdcb.b\t${padBytes}, $00`);
@@ -119,4 +175,5 @@ module.exports = {
   MONACO_ARCADE_TRAILING_PAD_BYTES,
   buildGeneratedMinimapIncludeBlock,
   buildGeneratedTrackBlock,
+  measureAsmDataLayout,
 };

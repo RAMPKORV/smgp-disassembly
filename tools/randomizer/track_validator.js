@@ -21,7 +21,17 @@
 'use strict';
 
 const path = require('path');
-const { decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope } = require('./track_randomizer');
+const {
+	getCurveOpeningStraightSteps,
+	getCurveClosingStraightSteps,
+	getFirstCurveSegment,
+	curveHasSafeRaceStart,
+	curveBgLoopAligns,
+	decodeVisualSlopeBgDisplacement,
+	visualSlopeOffsetsWithinSafeEnvelope,
+	visualSlopeHasSafeRaceStart,
+	getVisualSlopeOpeningFlatSteps,
+} = require('./track_randomizer');
 
 const CURVE_RAM_LIMIT = 0x800;
 const VISUAL_SLOPE_RAM_LIMIT = 0x1000;
@@ -177,6 +187,23 @@ function _validateCurveRle(track, errors) {
     _err(errors, name, 'curve_rle_segments',
       `decompressed curve stream ${expectedSteps} bytes exceeds RAM budget ${CURVE_RAM_LIMIT}`);
   }
+
+	if (track._runtime_safe_randomized === true && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveHasSafeRaceStart(segs)) {
+		const opening = getCurveOpeningStraightSteps(segs);
+		const firstCurve = getFirstCurveSegment(segs);
+		const length = firstCurve?.length || 0;
+		const bgDisp = firstCurve?.bg_disp || 0;
+		const startupRate = length > 0 ? (bgDisp / length).toFixed(2) : 'n/a';
+		_err(errors, name, 'curve_rle_segments',
+			`race-start curve must begin with at least 48 straight steps and a gentle first background displacement (got opening=${opening}, first_curve_len=${length}, first_curve_bg_disp=${bgDisp}, first_curve_rate=${startupRate})`);
+	}
+
+	if (track._runtime_safe_randomized === true && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveBgLoopAligns(segs, tl)) {
+		const opening = getCurveOpeningStraightSteps(segs);
+		const closing = getCurveClosingStraightSteps(segs);
+		_err(errors, name, 'curve_rle_segments',
+			`background loop must align at race start/end (got opening_straight=${opening}, closing_straight=${closing}, decoded_loop_aligned=false)`);
+	}
 }
 
 function _validateSlopeRle(track, errors) {
@@ -263,6 +290,11 @@ function _validateSlopeRle(track, errors) {
   }
 
 	if (Array.isArray(segs) && segs.some(seg => seg.type === 'slope') && _signedByteOk(init)) {
+		if (!visualSlopeHasSafeRaceStart(init, segs)) {
+			const openingFlat = getVisualSlopeOpeningFlatSteps(segs);
+			_err(errors, name, 'slope_rle_segments',
+				`race-start visual slope must begin from initial_bg_disp=0 with at least 128 flat steps before first slope (got init=${init}, opening_flat=${openingFlat})`);
+		}
 		const decodedOffsets = decodeVisualSlopeBgDisplacement(init, segs);
 		if (!visualSlopeOffsetsWithinSafeEnvelope(decodedOffsets)) {
 			let globalMin = Infinity;
@@ -436,8 +468,19 @@ function _validateSignCompatibility(track, errors) {
 	const signTileset = track.sign_tileset;
 	const isArcadeWet = Number.isInteger(track.index) && track.index === 18;
 	const preserveOriginalSignCadence = track._preserve_original_sign_cadence !== false;
+	const assignedHorizon = Number.isInteger(track._assigned_horizon_override)
+		? track._assigned_horizon_override
+		: (Number.isInteger(track.horizon_override) ? track.horizon_override : 0);
 
 	if (!Array.isArray(signData) || !Array.isArray(signTileset) || signTileset.length === 0) return;
+
+	for (let i = 0; i < signTileset.length; i++) {
+		const rec = signTileset[i];
+		if (assignedHorizon === 0 && rec.tileset_offset === 80) {
+			_err(errors, name, 'sign_tileset',
+				`record ${i}: tileset_offset=80 is reserved for horizon-style art families and is not valid for this track assignment`);
+		}
+	}
 
 	let tilesetIndex = 0;
 	for (let i = 0; i < signData.length; i++) {
@@ -468,6 +511,27 @@ function _validateSignCompatibility(track, errors) {
 		if (gap < 1500) {
 			_err(errors, name, 'sign_tileset',
 				`records ${i-1}/${i}: tileset changes only ${gap} units apart (< 1500 DMA safety target)`);
+		}
+	}
+	if (track._runtime_safe_randomized === true && signTileset.length > 1) {
+		const wrapGap = signTileset[0].distance + (track.track_length || 0) - signTileset[signTileset.length - 1].distance;
+		if (wrapGap < 1500) {
+			_err(errors, name, 'sign_tileset',
+				`wraparound tileset gap is only ${wrapGap} units (< 1500 DMA safety target)`);
+		}
+	}
+
+	if (track._runtime_safe_randomized === true) {
+		for (let i = 0; i < signData.length; i++) {
+			const rec = signData[i];
+			for (let j = 1; j < signTileset.length; j++) {
+				const tilesetRec = signTileset[j];
+				if (Math.abs(tilesetRec.distance - rec.distance) < 256) {
+					_err(errors, name, 'sign_data',
+						`record ${i}: distance=${rec.distance} is too close to tileset transition at ${tilesetRec.distance} (< 256)`);
+					break;
+				}
+			}
 		}
 	}
 }

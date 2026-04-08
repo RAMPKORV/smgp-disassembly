@@ -541,7 +541,7 @@ function buildGeneratedMinimapPreview(track) {
 	if (!track) throw new Error('buildGeneratedMinimapPreview requires a track object');
 	const previewSlug = resolvePreviewSlug(track);
 	const preview = getMinimapPreview(previewSlug);
-	const canonicalPoints = dedupeAdjacentPairs(track.minimap_pos || []);
+	const canonicalPoints = dedupeAdjacentPairs(track._original_minimap_pos || track.minimap_pos || []);
 	const canonicalPolyline = densifyPolyline(canonicalPoints);
 	const previewPoints = getPreviewOccupiedPoints(preview);
 	const derivedPath = buildDerivedPath(track);

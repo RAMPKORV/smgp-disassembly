@@ -66,6 +66,7 @@ const { injectChampionshipData } = require('./inject_championship_data');
 const { buildSyncedTrackConfig, TRACK_NAMES } = require('./sync_track_config');
 const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE } = require('./generate_track_data_asm');
 const { buildGeneratedMinimapAssetsAsm } = require('./lib/generated_minimap_assets');
+const { buildAsm: buildGeneratedMinimapMapAsm } = require('./write_generated_minimap_assets');
 
 const {
   parseSeed,
@@ -189,8 +190,7 @@ function writeGeneratedTrackBlockPreservingBaseline(options = {}) {
 function writeGeneratedMinimapAssetsFile(tracks) {
 	const outputPath = path.join(REPO_ROOT, GENERATED_MINIMAP_DATA_FILE);
 	fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-	const generated = buildGeneratedMinimapAssetsAsm(tracks);
-	fs.writeFileSync(outputPath, generated.content, 'utf8');
+	fs.writeFileSync(outputPath, buildGeneratedMinimapMapAsm(tracks), 'utf8');
 	return outputPath;
 }
 
@@ -620,7 +620,7 @@ function main() {
         console.log(`  Header checksum ${checksum.changed ? 'patched' : 'verified'}: $${checksum.oldChecksum.toString(16).toUpperCase().padStart(4, '0')} -> $${checksum.newChecksum.toString(16).toUpperCase().padStart(4, '0')}`);
 	        if (flags & FLAG_TRACKS) {
 	          console.log('\n[MINIMAP] Applying generated minimap ROM patches ...');
-	          console.log('  NOTE: Generated minimap tiles and raw-map helpers are being patched together again after fixing the tile indexing mismatch.');
+	          console.log('  NOTE: Generated minimap assets are now appended/relocated for randomized ROM builds; ROM size may grow beyond 512 KiB.');
 	          const minimapPatch = patchGeneratedMinimapRom(romPath, inputPath);
 	          for (const step of minimapPatch.steps) {
 	            console.log(`  ${step.label}: ${step.ok ? 'OK' : 'FAILED'}`);

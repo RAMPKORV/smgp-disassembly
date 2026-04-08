@@ -28,6 +28,7 @@ const TILEMAP_WORK_BUF_ADDR = 0x00FFEA00;
 const MAP_WIDTH = 7;
 const MAP_HEIGHT = 11;
 const MAP_WORD_COUNT = MAP_WIDTH * MAP_HEIGHT;
+const DEFAULT_BASE_ADDR = 0x00013DBE;
 
 function writeWordBE(buffer, offset, value) {
 	buffer.writeUInt16BE(value & 0xFFFF, offset);
@@ -217,9 +218,25 @@ function patchRomEnd(buffer) {
 	buffer.writeUInt32BE(buffer.length - 1, 0x01A4);
 }
 
+function findFreeRegion(rom, length, preferredStart = DEFAULT_BASE_ADDR) {
+	const required = alignEven(length);
+	for (let start = alignEven(preferredStart); start + required <= rom.length; start += 2) {
+		let ok = true;
+		for (let i = 0; i < required; i++) {
+			if (rom[start + i] !== 0xFF) {
+				ok = false;
+				break;
+			}
+		}
+		if (ok) return start;
+	}
+	return -1;
+}
+
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
-		options: ['--rom', '--input'],
+		flags: ['--reuse-free-space'],
+		options: ['--rom', '--input', '--base-addr'],
 	});
 
 	const romPath = path.resolve(args.options['--rom'] || 'out.bin');
@@ -233,10 +250,24 @@ function main() {
 	if (tracks.length === 0) die('no tracks found');
 
 	const sourceRom = fs.readFileSync(romPath);
-	let cursor = sourceRom.length;
-	const chunks = [sourceRom];
+	const reuseFreeSpace = args.flags['--reuse-free-space'];
+	const baseAddr = args.options['--base-addr'] ? parseInt(String(args.options['--base-addr']).replace(/^0x/i, ''), 16) : DEFAULT_BASE_ADDR;
+	let cursor = reuseFreeSpace ? alignEven(baseAddr) : sourceRom.length;
+	const chunks = [Buffer.from(sourceRom)];
 	const previewRawMapPtrs = [];
 	const hudRawMapPtrs = [];
+	let totalPayloadBytes = 0;
+	for (const track of tracks) totalPayloadBytes += alignEven(buildPreviewRawMap(track).length);
+	for (const track of tracks) totalPayloadBytes += alignEven(buildHudRawMap(track).length);
+	const compressedMapPtrs = tracks.map(track => readTrackCompressedMapPointer(sourceRom, track.index));
+	const helperAsmProbe = buildHelperAsm(compressedMapPtrs, new Array(tracks.length).fill(0), new Array(tracks.length).fill(0));
+	const { codeBytes } = assembleHelperBlock(helperAsmProbe, asm68kPath);
+	totalPayloadBytes += alignEven(codeBytes.length);
+	if (reuseFreeSpace) {
+		const freeStart = findFreeRegion(sourceRom, totalPayloadBytes, baseAddr);
+		if (freeStart < 0) die(`no free ROM region of ${totalPayloadBytes} bytes found at or after 0x${baseAddr.toString(16).toUpperCase()}`);
+		cursor = freeStart;
+	}
 
 	for (const track of tracks) {
 		const block = appendBlock(chunks, cursor, buildPreviewRawMap(track));
@@ -250,24 +281,25 @@ function main() {
 		hudRawMapPtrs[track.index] = block.start;
 	}
 
-	const compressedMapPtrs = tracks.map(track => readTrackCompressedMapPointer(sourceRom, track.index));
 	const helperAsm = buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs);
-	const { codeBytes, helperOffsets } = assembleHelperBlock(helperAsm, asm68kPath);
+	const assembled = assembleHelperBlock(helperAsm, asm68kPath);
+	const { helperOffsets } = assembled;
+	const helperCodeBytes = assembled.codeBytes;
 	if (helperOffsets.preview === undefined || helperOffsets.hud === undefined || helperOffsets.finish === undefined) {
 		throw new Error('failed to resolve helper labels from assembled minimap raw-map block');
 	}
 
-	const codeBlock = appendBlock(chunks, cursor, codeBytes);
+	const codeBlock = appendBlock(chunks, cursor, helperCodeBytes);
 	const previewHelperAddr = codeBlock.start + helperOffsets.preview;
 	const hudHelperAddr = codeBlock.start + helperOffsets.hud;
 	const finishHelperAddr = codeBlock.start + helperOffsets.finish;
 	cursor = codeBlock.end;
 
-	const rom = Buffer.concat(chunks, cursor);
+	const rom = reuseFreeSpace ? chunks[0] : Buffer.concat(chunks, cursor);
 	encodeJsrAbsoluteLong(previewHelperAddr).copy(rom, PREVIEW_MAP_JSR_ADDR);
 	encodeJsrAbsoluteLong(hudHelperAddr).copy(rom, HUD_MAP_JSR_ADDR);
 	encodeJsrAbsoluteLong(finishHelperAddr).copy(rom, FINISH_MAP_JSR_ADDR);
-	patchRomEnd(rom);
+	if (!reuseFreeSpace) patchRomEnd(rom);
 
 	fs.writeFileSync(romPath, rom);
 	const checksum = patchRomChecksum(romPath);

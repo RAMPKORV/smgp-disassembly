@@ -32,7 +32,7 @@ const { injectTeamData }         = require('./inject_team_data');
 const { injectChampionshipData } = require('./inject_championship_data');
 const { buildSyncedTrackConfig } = require('./sync_track_config');
 const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE } = require('./generate_track_data_asm');
-const { buildGeneratedMinimapAssetsAsm } = require('./lib/generated_minimap_assets');
+const { buildAsm: buildGeneratedMinimapMapAsm } = require('./write_generated_minimap_assets');
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -89,7 +89,7 @@ function main() {
 
 	const generatedMinimapAsm = path.join(REPO_ROOT, GENERATED_MINIMAP_DATA_FILE);
 	fs.mkdirSync(path.dirname(generatedMinimapAsm), { recursive: true });
-	fs.writeFileSync(generatedMinimapAsm, buildGeneratedMinimapAssetsAsm(tracksData.tracks).content, 'utf8');
+	fs.writeFileSync(generatedMinimapAsm, buildGeneratedMinimapMapAsm(tracksData.tracks), 'utf8');
 	console.log(`Regenerated: ${path.relative(REPO_ROOT, generatedMinimapAsm)}`);
 
   // Step 3: restore track_config_data.asm from backup

@@ -4,6 +4,8 @@
 // Sync selected Track_data fields in src/track_config_data.asm from tools/data/tracks.json.
 //
 // Currently updates per-track:
+//   - +$00 minimap tiles pointer (normalized to stock labels)
+//   - +$0C minimap tilemap pointer (normalized to stock labels)
 //   - +$22 track length
 //
 // This keeps runtime Track_data metadata aligned with randomized / edited track JSON.
@@ -19,6 +21,28 @@ const { REPO_ROOT } = require('./lib/rom');
 const ASM_PATH = path.join(REPO_ROOT, 'src', 'track_config_data.asm');
 const JSON_PATH = path.join(REPO_ROOT, 'tools', 'data', 'tracks.json');
 const LINES_PER_BLOCK = 20;
+
+const STOCK_MINIMAP_LABELS = [
+	{ tiles: 'Minimap_tiles_San_Marino', map: 'Minimap_map_San_Marino' },
+	{ tiles: 'Minimap_tiles_Brazil', map: 'Minimap_map_Brazil' },
+	{ tiles: 'Minimap_tiles_France', map: 'Minimap_map_France' },
+	{ tiles: 'Minimap_tiles_Hungary', map: 'Minimap_map_Hungary' },
+	{ tiles: 'Minimap_tiles_West_Germany', map: 'Minimap_map_West_Germany' },
+	{ tiles: 'Minimap_tiles_USA', map: 'Minimap_map_USA' },
+	{ tiles: 'Minimap_tiles_Canada', map: 'Minimap_map_Canada' },
+	{ tiles: 'Minimap_tiles_Great_Britain', map: 'Minimap_map_Great_Britain' },
+	{ tiles: 'Minimap_tiles_Italy', map: 'Minimap_map_Italy' },
+	{ tiles: 'Minimap_tiles_Portugal', map: 'Minimap_map_Portugal' },
+	{ tiles: 'Minimap_tiles_Spain', map: 'Minimap_map_Spain' },
+	{ tiles: 'Minimap_tiles_Mexico', map: 'Minimap_map_Mexico' },
+	{ tiles: 'Minimap_tiles_Japan', map: 'Minimap_map_Japan' },
+	{ tiles: 'Minimap_tiles_Belgium', map: 'Minimap_map_Belgium' },
+	{ tiles: 'Minimap_tiles_Australia', map: 'Minimap_map_Australia' },
+	{ tiles: 'Minimap_tiles_Monaco', map: 'Minimap_map_Monaco' },
+	{ tiles: 'Minimap_tiles_Monaco_prelim', map: 'Minimap_map_Monaco_prelim' },
+	{ tiles: 'Minimap_tiles_Monaco_arcade', map: 'Minimap_map_Monaco_arcade' },
+	{ tiles: 'Minimap_tiles_Monaco_arcade', map: 'Minimap_map_Monaco_arcade' },
+];
 
 const TRACK_NAMES = [
   'San Marino',
@@ -44,6 +68,14 @@ const TRACK_NAMES = [
 
 function formatTrackLengthComment(trackName, length) {
   return `\tdc.w\t${length} ; track length`;
+}
+
+function formatMinimapMapComment(trackName, label) {
+  return `\tdc.l\t${label} ; ${trackName} tile mapping for minimap`;
+}
+
+function formatMinimapTilesComment(trackName, label) {
+	return `\tdc.l\t${label} ; ${trackName} tiles used for minimap`;
 }
 
 function findTrackBlocks(lines) {
@@ -72,10 +104,23 @@ function buildSyncedTrackConfig(lines, tracksJson) {
   const newLines = lines.slice();
   let changed = 0;
 
-  for (let index = 0; index < TRACK_NAMES.length; index++) {
-    const trackName = TRACK_NAMES[index];
-    const track = tracksJson.tracks[index];
-    const blockStart = blockStarts[trackName];
+	for (let index = 0; index < TRACK_NAMES.length; index++) {
+		const trackName = TRACK_NAMES[index];
+		const blockStart = blockStarts[trackName];
+		const track = tracksJson.tracks[index];
+		const stockLabels = STOCK_MINIMAP_LABELS[index];
+		const tilesLineIndex = blockStart + 1;
+		const normalizedTilesLine = formatMinimapTilesComment(trackName, stockLabels.tiles) + '\n';
+		if (newLines[tilesLineIndex] !== normalizedTilesLine) {
+			newLines[tilesLineIndex] = normalizedTilesLine;
+			changed++;
+		}
+		const mapLineIndex = blockStart + 4;
+		const normalizedMapLine = formatMinimapMapComment(trackName, stockLabels.map) + '\n';
+		if (newLines[mapLineIndex] !== normalizedMapLine) {
+			newLines[mapLineIndex] = normalizedMapLine;
+			changed++;
+		}
     const lengthLineIndex = blockStart + 10;
     const newLine = formatTrackLengthComment(trackName, track.track_length) + '\n';
     if (newLines[lengthLineIndex] !== newLine) {

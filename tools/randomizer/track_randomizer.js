@@ -124,14 +124,24 @@ const CURVE_LEN_MAX    = 120;
 
 const BG_DISP_MIN = 30;
 const BG_DISP_MAX = 300;
+const CURVE_SAFE_OPENING_STRAIGHT_STEPS = 48;
+const CURVE_SAFE_CLOSING_STRAIGHT_STEPS = 16;
+const CURVE_SAFE_FIRST_CURVE_MIN_LENGTH = 12;
+const CURVE_SAFE_FIRST_CURVE_MAX_BG_DISP = 192;
+const CURVE_SAFE_FIRST_CURVE_MAX_RATE = 8;
+const CURVE_RUNTIME_START_OFFSET = 6;
 
-const BG_VERT_DISP_VALUES = [-32, 112];
+const BG_VERT_DISP_SOFT = 30;
+const BG_VERT_DISP_STRONG = 112;
+const BG_VERT_DISP_VALUES = [BG_VERT_DISP_SOFT, BG_VERT_DISP_STRONG];
 
 const VISUAL_SLOPE_SAFE_GLOBAL_MIN = -30;
 const VISUAL_SLOPE_SAFE_GLOBAL_MAX = 23;
 const VISUAL_SLOPE_SAFE_START_WINDOW_STEPS = 128;
 const VISUAL_SLOPE_SAFE_START_MIN = -24;
 const VISUAL_SLOPE_SAFE_START_MAX = 5;
+const VISUAL_SLOPE_SAFE_OPENING_FLAT_STEPS = 128;
+const VISUAL_SLOPE_MAX_EVENTS = 1;
 
 const PHYS_FLAT =  0;
 const PHYS_DOWN = -1;
@@ -144,6 +154,8 @@ const SIGN_ID_POOL = [
 ];
 
 const SIGN_TILESET_OFFSETS = Array.from({ length: 12 }, (_, i) => i * 8);  // 0,8,...,88
+const STANDARD_SIGN_TILESET_OFFSETS = SIGN_TILESET_OFFSETS.filter(offset => offset !== 80 && offset !== 88);
+const HORIZON_SIGN_TILESET_OFFSETS = SIGN_TILESET_OFFSETS.filter(offset => offset !== 88);
 const SIGN_TILESET_MIN_SPACING = 1500;
 
 const SIGN_COUNT_VALUES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 24];
@@ -166,6 +178,7 @@ const TILESET_SIGN_ID_MAP = new Map([
 const SAFE_SIGN_COUNT_VALUES = [1, 2, 3, 4];
 const SAFE_SIGN_SPACING_MIN = 160;
 const SAFE_SIGN_SPACING_MAX = 420;
+const SAFE_SIGN_TILESET_GUARD_DISTANCE = 256;
 
 const LEFT_SIGN_IDS = new Set([4, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48]);
 const RIGHT_SIGN_IDS = new Set([5, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]);
@@ -175,8 +188,8 @@ const SIGN_SPACING_MIN  = 100;
 const SIGN_SPACING_MAX  = 500;
 const SIGN_FINISH_ZONE  = 120;
 
-const CHICANE_MIN_STRAIGHT = 72;
-const SHARP_COMPLEX_MIN_STRAIGHT = 84;
+const CHICANE_MIN_STRAIGHT = 112;
+const SHARP_COMPLEX_MIN_STRAIGHT = 128;
 const TUNNEL_TILESET_OFFSET = 88;
 const TUNNEL_ENTRY_SIGN_ID = 49;
 const TUNNEL_INTERIOR_SIGN_ID = 2;
@@ -202,10 +215,68 @@ function clamp(value, lo, hi) {
 	return Math.max(lo, Math.min(hi, value));
 }
 
+function computeCurveBgDispBounds(segLen = 0, sharpness = SHARPNESS_MIN, options = {}) {
+	const clampedLength = Math.max(4, segLen | 0);
+	const clampedSharpness = clamp(sharpness, SHARPNESS_MIN, SHARPNESS_MAX);
+	let minRate;
+	if (clampedSharpness <= 8) minRate = 0.45;
+	else if (clampedSharpness <= 16) minRate = 0.5;
+	else if (clampedSharpness <= 24) minRate = 0.55;
+	else if (clampedSharpness <= 32) minRate = 0.65;
+	else minRate = 0.8;
+	if (clampedLength >= 96) minRate -= 0.45;
+	else if (clampedLength >= 64) minRate -= 0.3;
+	else if (clampedLength >= 40) minRate -= 0.15;
+	else if (clampedLength <= 12) minRate += 0.05;
+
+	let maxRate;
+	if (clampedSharpness <= 8) maxRate = 3.4;
+	else if (clampedSharpness <= 16) maxRate = 4.2;
+	else if (clampedSharpness <= 24) maxRate = 5.0;
+	else if (clampedSharpness <= 32) maxRate = 5.8;
+	else maxRate = 6.6;
+	if (clampedLength <= 8) maxRate += 1.0;
+	else if (clampedLength <= 12) maxRate += 0.8;
+	else if (clampedLength <= 16) maxRate += 0.6;
+	else if (clampedLength <= 24) maxRate += 0.4;
+	else if (clampedLength <= 40) maxRate += 0.2;
+	else if (clampedLength >= 112) maxRate -= 1.8;
+	else if (clampedLength >= 80) maxRate -= 1.4;
+	else if (clampedLength >= 64) maxRate -= 1.0;
+	else if (clampedLength >= 48) maxRate -= 0.4;
+	if (options.startupCurve === true) {
+		maxRate = Math.min(maxRate, CURVE_SAFE_FIRST_CURVE_MAX_RATE);
+	}
+	minRate = clamp(minRate, 0.25, 7.0);
+	maxRate = clamp(maxRate, 1.6, 7.5);
+	if (minRate > maxRate) minRate = maxRate;
+	const minBgDisp = clamp(Math.ceil(clampedLength * minRate), BG_DISP_MIN, BG_DISP_MAX);
+	const maxBgDisp = clamp(Math.floor(clampedLength * maxRate), minBgDisp, BG_DISP_MAX);
+	return {
+		minRate,
+		maxRate,
+		minBgDisp,
+		maxBgDisp,
+	};
+}
+
 function _pickBgDisp(rng, direction, segLen = 0, sharpness = SHARPNESS_MIN) {
-	const base = 24 + (segLen * 2) + (sharpness * 3);
-	const jitter = rng.randInt(-24, 24);
-	return clamp(base + jitter, BG_DISP_MIN, BG_DISP_MAX);
+	const clampedLength = Math.max(4, segLen | 0);
+	const clampedSharpness = clamp(sharpness, SHARPNESS_MIN, SHARPNESS_MAX);
+	const bounds = computeCurveBgDispBounds(clampedLength, clampedSharpness);
+	let targetRate;
+	if (clampedSharpness <= 8) targetRate = 2.2;
+	else if (clampedSharpness <= 16) targetRate = 2.8;
+	else if (clampedSharpness <= 24) targetRate = 3.4;
+	else if (clampedSharpness <= 32) targetRate = 4.2;
+	else targetRate = 5.1;
+	if (clampedLength <= 12) targetRate += clampedSharpness >= 25 ? 0.2 : -0.2;
+	else if (clampedLength >= 80) targetRate -= 0.6;
+	else if (clampedLength >= 48) targetRate -= 0.2;
+	const jitter = rng.randInt(-8, 8) / 10;
+	const rate = clamp(targetRate + jitter, bounds.minRate, bounds.maxRate);
+	const base = Math.round(clampedLength * rate);
+	return clamp(base, bounds.minBgDisp, bounds.maxBgDisp);
 }
 
 function encodeDirectedByte(direction, sharpness) {
@@ -223,6 +294,13 @@ function getCurveDirection(curveByte) {
 function getCurveSharpness(curveByte) {
 	return curveByte & 0x3F;
 }
+
+function getCurveBgRuntimeDirection(curveByte) {
+	if (curveByte >= CURVE_LEFT_MIN && curveByte <= CURVE_LEFT_MAX) return 1;
+	if (curveByte >= CURVE_RIGHT_MIN && curveByte <= CURVE_RIGHT_MAX) return -1;
+	return 0;
+}
+
 
 function cloneSegments(segments) {
 	return JSON.parse(JSON.stringify(segments || []));
@@ -341,12 +419,14 @@ function buildCurveTargets(profile, targetSteps) {
 	const directionChanges = profile.directionChanges || 4;
 	const chicaneCount = profile.chicaneCount || 0;
 	const ultraSharpCount = profile.ultraSharpCount || 0;
+	const sharpTurnCount = profile.sharpTurnCount || 0;
+	const strongCurveCount = profile.strongCurveCount || 0;
 	return {
-		maxStraightLength: clamp(Math.round((profile.averageStraightLength || 96) * 0.82), 56, 180),
-		minChicanes: clamp(Math.max(1, chicaneCount + (directionChanges >= 6 ? 1 : 0)), 1, 6),
-		minSharpTurns: clamp(Math.max(2, ultraSharpCount + 1), 2, 5),
-		minCurveSegments: clamp(Math.max(12, Math.round(curveCount * 1.15)), 12, Math.max(16, Math.floor(targetSteps / 18))),
-		preferTechnicalRuns: directionChanges >= Math.max(4, Math.floor(curveCount / 3)),
+		maxStraightLength: clamp(Math.round((profile.averageStraightLength || 96) * 0.58), 40, 120),
+		minChicanes: clamp(Math.max(1, chicaneCount > 0 ? 2 : (directionChanges >= 4 ? 2 : 1)), 1, 3),
+		minSharpTurns: clamp(Math.max(1, sharpTurnCount > 0 ? 2 : (strongCurveCount >= 4 || ultraSharpCount > 0 ? 2 : 1)), 1, 3),
+		minCurveSegments: clamp(Math.max(16, Math.round(curveCount * 1.5)), 16, Math.max(22, Math.floor(targetSteps / 12))),
+		preferTechnicalRuns: true,
 	};
 }
 
@@ -363,20 +443,20 @@ function getNeighborCurveDirection(sequence, index, fallbackDirection) {
 function buildChicaneReplacement(rng, straightLength, fallbackDirection) {
 	if (straightLength < CHICANE_MIN_STRAIGHT) return null;
 	const direction = fallbackDirection || rng.choice([-1, 1]);
-	const entry = clamp(rng.randInt(10, 24), 8, Math.max(8, straightLength - 44));
-	const exit = clamp(rng.randInt(10, 24), 8, Math.max(8, straightLength - entry - 36));
+	const entry = clamp(rng.randInt(20, 40), 16, Math.max(16, straightLength - 72));
+	const exit = clamp(rng.randInt(20, 40), 16, Math.max(16, straightLength - entry - 52));
 	const usable = straightLength - entry - exit;
-	if (usable < 28) return null;
-	const bridge = clamp(rng.randInt(4, 14), 4, Math.max(4, usable - 20));
+	if (usable < 40) return null;
+	const bridge = clamp(rng.randInt(12, 28), 10, Math.max(10, usable - 24));
 	const curveBudget = usable - bridge;
-	if (curveBudget < 20) return null;
+	if (curveBudget < 24) return null;
 	const firstLen = clamp(Math.round(curveBudget * 0.5) + rng.randInt(-4, 4), 10, curveBudget - 10);
 	const secondLen = curveBudget - firstLen;
 	return [
 		{ type: 'straight', length: entry, curve_byte: 0 },
-		{ type: 'curve', length: firstLen, curve_byte: encodeDirectedByte(direction, rng.randInt(1, 4)), bg_disp: _pickBgDisp(rng, direction, firstLen, 1) },
+		{ type: 'curve', length: firstLen, curve_byte: encodeDirectedByte(direction, rng.randInt(6, 12)), bg_disp: _pickBgDisp(rng, direction, firstLen, 7) },
 		{ type: 'straight', length: bridge, curve_byte: 0 },
-		{ type: 'curve', length: secondLen, curve_byte: encodeDirectedByte(-direction, rng.randInt(1, 8)), bg_disp: _pickBgDisp(rng, -direction, secondLen, 2) },
+		{ type: 'curve', length: secondLen, curve_byte: encodeDirectedByte(-direction, rng.randInt(6, 12)), bg_disp: _pickBgDisp(rng, -direction, secondLen, 7) },
 		{ type: 'straight', length: exit, curve_byte: 0 },
 	];
 }
@@ -384,18 +464,119 @@ function buildChicaneReplacement(rng, straightLength, fallbackDirection) {
 function buildSharpTurnReplacement(rng, straightLength, fallbackDirection) {
 	if (straightLength < SHARP_COMPLEX_MIN_STRAIGHT) return null;
 	const direction = fallbackDirection || rng.choice([-1, 1]);
-	const entry = clamp(rng.randInt(12, 28), 10, Math.max(10, straightLength - 52));
-	const exit = clamp(rng.randInt(12, 34), 10, Math.max(10, straightLength - entry - 36));
+	const entry = clamp(rng.randInt(24, 48), 18, Math.max(18, straightLength - 72));
+	const exit = clamp(rng.randInt(24, 52), 18, Math.max(18, straightLength - entry - 44));
 	const curveBudget = straightLength - entry - exit;
-	if (curveBudget < 32) return null;
+	if (curveBudget < 36) return null;
 	const firstLen = clamp(Math.round(curveBudget * 0.38) + rng.randInt(-3, 3), 12, curveBudget - 18);
 	const secondLen = curveBudget - firstLen;
 	return [
 		{ type: 'straight', length: entry, curve_byte: 0 },
-		{ type: 'curve', length: firstLen, curve_byte: encodeDirectedByte(direction, rng.randInt(1, 3)), bg_disp: _pickBgDisp(rng, direction, firstLen, 1) },
-		{ type: 'curve', length: secondLen, curve_byte: encodeDirectedByte(direction, rng.randInt(8, 20)), bg_disp: _pickBgDisp(rng, direction, secondLen, 8) },
+		{ type: 'curve', length: firstLen, curve_byte: encodeDirectedByte(direction, rng.randInt(16, 28)), bg_disp: _pickBgDisp(rng, direction, firstLen, 16) },
+		{ type: 'curve', length: secondLen, curve_byte: encodeDirectedByte(direction, rng.randInt(6, 12)), bg_disp: _pickBgDisp(rng, direction, secondLen, 8) },
 		{ type: 'straight', length: exit, curve_byte: 0 },
 	];
+}
+
+function buildEssesReplacement(rng, straightLength, fallbackDirection) {
+	if (straightLength < 88) return null;
+	const direction = fallbackDirection || rng.choice([-1, 1]);
+	const entry = clamp(rng.randInt(16, 30), 12, Math.max(12, straightLength - 64));
+	const exit = clamp(rng.randInt(14, 28), 12, Math.max(12, straightLength - entry - 40));
+	const usable = straightLength - entry - exit;
+	if (usable < 40) return null;
+	const bridge = clamp(rng.randInt(8, 16), 6, Math.max(6, usable - 24));
+	const curveBudget = usable - bridge;
+	if (curveBudget < 24) return null;
+	const firstLen = clamp(Math.round(curveBudget * 0.52) + rng.randInt(-3, 3), 10, curveBudget - 10);
+	const secondLen = curveBudget - firstLen;
+	return [
+		{ type: 'straight', length: entry, curve_byte: 0 },
+		{ type: 'curve', length: firstLen, curve_byte: encodeDirectedByte(direction, rng.randInt(10, 18)), bg_disp: _pickBgDisp(rng, direction, firstLen, 12) },
+		{ type: 'straight', length: bridge, curve_byte: 0 },
+		{ type: 'curve', length: secondLen, curve_byte: encodeDirectedByte(-direction, rng.randInt(9, 16)), bg_disp: _pickBgDisp(rng, -direction, secondLen, 11) },
+		{ type: 'straight', length: exit, curve_byte: 0 },
+	];
+}
+
+function buildMediumBendReplacement(rng, straightLength, fallbackDirection) {
+	if (straightLength < 72) return null;
+	const direction = fallbackDirection || rng.choice([-1, 1]);
+	const entry = clamp(rng.randInt(14, 28), 10, Math.max(10, straightLength - 52));
+	const exit = clamp(rng.randInt(14, 28), 10, Math.max(10, straightLength - entry - 28));
+	const curveBudget = straightLength - entry - exit;
+	if (curveBudget < 20) return null;
+	const firstLen = clamp(Math.round(curveBudget * 0.42) + rng.randInt(-3, 3), 8, curveBudget - 8);
+	const secondLen = curveBudget - firstLen;
+	return [
+		{ type: 'straight', length: entry, curve_byte: 0 },
+		{ type: 'curve', length: firstLen, curve_byte: encodeDirectedByte(direction, rng.randInt(12, 22)), bg_disp: _pickBgDisp(rng, direction, firstLen, 14) },
+		{ type: 'curve', length: secondLen, curve_byte: encodeDirectedByte(direction, rng.randInt(7, 13)), bg_disp: _pickBgDisp(rng, direction, secondLen, 9) },
+		{ type: 'straight', length: exit, curve_byte: 0 },
+	];
+}
+
+function softenUndrivableTransitions(segments) {
+	const adjusted = buildCurveBodySegments(segments);
+
+	function softenCurveAt(index, minimumSharpness) {
+		const seg = adjusted[index];
+		if (!seg || seg.type !== 'curve') return;
+		const direction = getCurveDirection(seg.curve_byte);
+		const sharpness = getCurveSharpness(seg.curve_byte);
+		if (sharpness >= minimumSharpness) return;
+		const nextSharpness = clamp(minimumSharpness, SHARPNESS_MIN, SHARPNESS_MAX);
+		seg.curve_byte = encodeDirectedByte(direction, nextSharpness);
+		const maxBgDisp = clamp(24 + (seg.length * 2) + (nextSharpness * 3) + 12, BG_DISP_MIN, BG_DISP_MAX);
+		seg.bg_disp = clamp(seg.bg_disp || BG_DISP_MIN, BG_DISP_MIN, maxBgDisp);
+	}
+
+	let ultraSharpCount = 0;
+	for (let i = 0; i < adjusted.length; i++) {
+		const seg = adjusted[i];
+		if (!seg || seg.type !== 'curve') continue;
+		const prev = adjusted[i - 1];
+		const next = adjusted[i + 1];
+		const sharpness = getCurveSharpness(seg.curve_byte);
+		const leadStraight = prev && prev.type === 'straight' ? prev.length : 0;
+		if (sharpness <= 4) {
+			ultraSharpCount += 1;
+			if (leadStraight < 24) softenCurveAt(i, 8);
+		}
+		if (sharpness <= 8 && leadStraight < 12) softenCurveAt(i, 10);
+		if (next && next.type === 'curve' && getCurveDirection(next.curve_byte) === getCurveDirection(seg.curve_byte) && sharpness <= 4) {
+			softenCurveAt(i, 12);
+		}
+		if (prev && prev.type === 'curve' && getCurveDirection(prev.curve_byte) === getCurveDirection(seg.curve_byte) && getCurveSharpness(prev.curve_byte) <= 4) {
+			softenCurveAt(i, 8);
+		}
+	}
+
+	for (let i = 0; i < adjusted.length - 2; i++) {
+		const a = adjusted[i];
+		const bridge = adjusted[i + 1];
+		const b = adjusted[i + 2];
+		if (!a || !b || a.type !== 'curve' || b.type !== 'curve' || !bridge || bridge.type !== 'straight') continue;
+		if (getCurveDirection(a.curve_byte) === getCurveDirection(b.curve_byte)) continue;
+		if (bridge.length < 20) {
+			softenCurveAt(i, bridge.length < 12 ? 10 : 8);
+			softenCurveAt(i + 2, bridge.length < 12 ? 10 : 8);
+		}
+	}
+
+	if (ultraSharpCount > 2) {
+		let remaining = ultraSharpCount - 2;
+		for (let i = adjusted.length - 1; i >= 0 && remaining > 0; i--) {
+			const seg = adjusted[i];
+			if (!seg || seg.type !== 'curve') continue;
+			if (getCurveSharpness(seg.curve_byte) <= 4) {
+				softenCurveAt(i, 8);
+				remaining -= 1;
+			}
+		}
+	}
+
+	return adjusted;
 }
 
 function expandCurveComplexity(rng, segments, targets) {
@@ -405,6 +586,17 @@ function expandCurveComplexity(rng, segments, targets) {
 	let working = base;
 	let chicanesAdded = 0;
 	let sharpTurnsAdded = 0;
+
+	function countCurveSegments(sequence) {
+		return sequence.filter(seg => seg.type === 'curve').length;
+	}
+
+	function getLongestStraight(sequence) {
+		return sequence
+			.map((seg, index) => ({ seg, index }))
+			.filter(({ seg }) => seg.type === 'straight')
+			.sort((a, b) => b.seg.length - a.seg.length)[0] || null;
+	}
 
 	function replaceStraightAt(index, replacement) {
 		working.splice(index, 1, ...replacement);
@@ -433,6 +625,33 @@ function expandCurveComplexity(rng, segments, targets) {
 		if (!replacement) continue;
 		replaceStraightAt(candidate.index, replacement);
 		sharpTurnsAdded += 1;
+	}
+
+	for (let guard = 0; guard < 32; guard++) {
+		const curveCount = countCurveSegments(working);
+		const longestStraight = getLongestStraight(working);
+		const needsMoreCurves = curveCount < targets.minCurveSegments;
+		const hasLongStraight = !!(longestStraight && longestStraight.seg.length > targets.maxStraightLength);
+		if (!needsMoreCurves && !hasLongStraight) break;
+
+		const minCandidateLength = hasLongStraight ? Math.max(72, targets.maxStraightLength + 8) : 72;
+		const candidates = candidateStraights(minCandidateLength);
+		let replaced = false;
+		for (const candidate of candidates) {
+			const fallbackDirection = getNeighborCurveDirection(working, candidate.index, rng.choice([-1, 1]));
+			let replacement = null;
+			if (candidate.seg.length >= 88 && (needsMoreCurves || targets.preferTechnicalRuns)) {
+				replacement = buildEssesReplacement(rng, candidate.seg.length, fallbackDirection);
+			}
+			if (!replacement) {
+				replacement = buildMediumBendReplacement(rng, candidate.seg.length, fallbackDirection);
+			}
+			if (!replacement) continue;
+			replaceStraightAt(candidate.index, replacement);
+			replaced = true;
+			break;
+		}
+		if (!replaced) break;
 	}
 
 	return working;
@@ -540,6 +759,17 @@ function getActiveTilesetOffset(records, distance) {
 	return active;
 }
 
+function isNearTilesetTransition(tilesetRecords, distance, guardDistance = SAFE_SIGN_TILESET_GUARD_DISTANCE) {
+	if (!Array.isArray(tilesetRecords) || tilesetRecords.length === 0) return false;
+	return tilesetRecords.some(record => Math.abs(record.distance - distance) < guardDistance);
+}
+
+function getWrapTilesetGap(trackLength, records) {
+	if (!Number.isInteger(trackLength) || trackLength <= 0) return Infinity;
+	if (!Array.isArray(records) || records.length < 2) return Infinity;
+	return records[0].distance + trackLength - records[records.length - 1].distance;
+}
+
 function applySpecialRoadTilesetRecords(records, features) {
 	if (!Array.isArray(features) || features.length === 0) return records.slice();
 	let working = records.slice();
@@ -563,16 +793,40 @@ function applySpecialRoadTilesetRecords(records, features) {
 	return working;
 }
 
+function enforceWrapSafeTilesetRecords(trackLength, records) {
+	if (!Array.isArray(records)) return [];
+	const working = records
+		.filter(record => record && Number.isInteger(record.distance) && Number.isInteger(record.tileset_offset))
+		.sort((a, b) => a.distance - b.distance)
+		.map(record => ({ ...record }));
+	while (working.length > 1 && getWrapTilesetGap(trackLength, working) < SIGN_TILESET_MIN_SPACING) {
+		if (working.length <= 2) {
+			working[0].tileset_offset = working[working.length - 1].tileset_offset;
+			working.splice(1);
+			break;
+		}
+		if (working[working.length - 1].distance >= (trackLength >> 1)) working.pop();
+		else working.shift();
+	}
+	return working;
+}
+
 function applySpecialRoadSignRecords(records, features) {
 	if (!Array.isArray(features) || features.length === 0) return records.slice();
 	let working = records.slice();
 	for (const feature of features) {
 		if (feature.type !== 'tunnel') continue;
 		if (!feature._applied) continue;
-		working = working.filter(record => record.distance < feature.entrySignDistance - 32 || record.distance >= feature.restoreDistance);
-		working.push({ distance: feature.entrySignDistance, count: 1, sign_id: TUNNEL_ENTRY_SIGN_ID });
-		working.push({ distance: feature.interiorDistance, count: 4, sign_id: TUNNEL_INTERIOR_SIGN_ID });
-		working.push({ distance: feature.exitSignDistance, count: 1, sign_id: TUNNEL_EXIT_SIGN_ID });
+		const transitionDistances = [feature.tilesetDistance, feature.restoreDistance];
+		working = working.filter(record => transitionDistances.every(distance => Math.abs(record.distance - distance) >= SAFE_SIGN_TILESET_GUARD_DISTANCE));
+		for (const record of [
+			{ distance: feature.entrySignDistance, count: 1, sign_id: TUNNEL_ENTRY_SIGN_ID },
+			{ distance: feature.interiorDistance, count: 4, sign_id: TUNNEL_INTERIOR_SIGN_ID },
+			{ distance: feature.exitSignDistance, count: 1, sign_id: TUNNEL_EXIT_SIGN_ID },
+		]) {
+			if (transitionDistances.some(distance => Math.abs(distance - record.distance) < SAFE_SIGN_TILESET_GUARD_DISTANCE)) continue;
+			working.push(record);
+		}
 	}
 	return working.sort((a, b) => a.distance - b.distance);
 }
@@ -581,25 +835,360 @@ function computeNetBgDisp(segments) {
 	let sum = 0;
 	for (const seg of segments) {
 		if (seg.type !== 'curve') continue;
-		const dir = getCurveDirection(seg.curve_byte);
+		const dir = getCurveBgRuntimeDirection(seg.curve_byte);
 		sum += dir * (seg.bg_disp || 0);
 	}
 	return sum;
 }
 
-function normalizeCurveBgDisplacement(curveSegments) {
+function getCurveRuntimeSampleIndex(playerDistance, trackLength, decodedLength) {
+	if (!Number.isInteger(decodedLength) || decodedLength <= 0) return 0;
+	if (!Number.isInteger(trackLength) || trackLength <= 0) return 0;
+	let wrappedDistance = playerDistance % trackLength;
+	if (wrappedDistance < 0) wrappedDistance += trackLength;
+	return Math.min(decodedLength - 1, Math.floor(wrappedDistance / 4));
+}
+
+function getCurveRuntimeTargetAtDistance(decoded, playerDistance, trackLength) {
+	if (!Array.isArray(decoded) || decoded.length === 0) return 0;
+	return decoded[getCurveRuntimeSampleIndex(playerDistance, trackLength, decoded.length)] & 0x03FF;
+}
+
+function simulateCurveRuntimeParallax(decoded, trackLength, startDistance = trackLength - CURVE_RUNTIME_START_OFFSET, frameCount = CURVE_RUNTIME_START_OFFSET + 8) {
+	if (!Array.isArray(decoded) || decoded.length === 0 || !Number.isInteger(trackLength) || trackLength <= 0) return [];
+	let accumulator = (getCurveRuntimeTargetAtDistance(decoded, startDistance, trackLength) << 16) | 0;
+	const states = [];
+	for (let frame = 0; frame <= frameCount; frame++) {
+		const distance = startDistance + frame;
+		const target = getCurveRuntimeTargetAtDistance(decoded, distance, trackLength);
+		const targetFixed = (target << 16) | 0;
+		accumulator = (accumulator + ((targetFixed - accumulator) >> 2)) | 0;
+		states.push({
+			playerDistance: ((distance % trackLength) + trackLength) % trackLength,
+			target,
+			display: accumulator >> 16,
+			accumulator,
+		});
+	}
+	return states;
+}
+
+function getCurveRuntimeSeamMetrics(curveSegments, trackLength) {
+	const body = buildCurveBodySegments(curveSegments);
+	if (body.length === 0 || !Number.isInteger(trackLength) || trackLength <= 0) return null;
+	const decoded = decodeCurveBgDisplacement(body);
+	if (decoded.length === 0) return null;
+	const states = simulateCurveRuntimeParallax(decoded, trackLength);
+	const preLineDistance = Math.max(0, trackLength - 1);
+	const preLineState = states.find(state => state.playerDistance === preLineDistance) || states[states.length - 1] || null;
+	const postLineState = states.find(state => state.playerDistance === 0) || null;
+	if (!preLineState || !postLineState) return null;
+	return {
+		decoded,
+		states,
+		seedState: states[0] || null,
+		preLineState,
+		postLineState,
+		targetJump: postLineState.target - preLineState.target,
+		displayJump: postLineState.display - preLineState.display,
+		sampleJump: decoded[0] - decoded[decoded.length - 1],
+		netBgDisp: computeNetBgDisp(body),
+	};
+}
+
+function compareCurveRuntimeSeamScores(a, b) {
+	const keys = ['displayJumpAbs', 'targetJumpAbs', 'sampleJumpAbs', 'netBgDispAbs', 'adjustCost'];
+	for (const key of keys) {
+		if (a[key] !== b[key]) return a[key] - b[key];
+	}
+	return 0;
+}
+
+function buildCurveRuntimeSeamScore(curveSegments, trackLength, adjustCost = 0) {
+	const metrics = getCurveRuntimeSeamMetrics(curveSegments, trackLength);
+	if (!metrics) {
+		return {
+			metrics,
+			displayJumpAbs: 0,
+			targetJumpAbs: 0,
+			sampleJumpAbs: 0,
+			netBgDispAbs: 0,
+			adjustCost,
+		};
+	}
+	return {
+		metrics,
+		displayJumpAbs: Math.abs(metrics.displayJump),
+		targetJumpAbs: Math.abs(metrics.targetJump),
+		sampleJumpAbs: Math.abs(metrics.sampleJump),
+		netBgDispAbs: Math.abs(metrics.netBgDisp),
+		adjustCost,
+	};
+}
+
+function getCurveRuntimeStartIndex(trackLength, decodedLength) {
+	if (!Number.isInteger(decodedLength) || decodedLength <= 0) return 0;
+	if (!Number.isInteger(trackLength) || trackLength <= 0) return 0;
+	const playerDistance = Math.max(0, trackLength - CURVE_RUNTIME_START_OFFSET);
+	return getCurveRuntimeSampleIndex(playerDistance, trackLength, decodedLength);
+}
+
+function getCurveClosingStraightSteps(curveSegments) {
+	let closing = 0;
+	for (let i = (curveSegments || []).length - 1; i >= 0; i--) {
+		const seg = curveSegments[i];
+		if (!seg || seg.type === 'terminator') continue;
+		if (seg.type === 'straight') {
+			closing += seg.length;
+			continue;
+		}
+		if (seg.type === 'curve') break;
+	}
+	return closing;
+}
+
+function getCurveOpeningStraightSteps(curveSegments) {
+	let opening = 0;
+	for (const seg of curveSegments || []) {
+		if (!seg || seg.type === 'terminator') break;
+		if (seg.type === 'straight') {
+			opening += seg.length;
+			continue;
+		}
+		if (seg.type === 'curve') break;
+	}
+	return opening;
+}
+
+function getFirstCurveSegment(curveSegments) {
+	for (const seg of curveSegments || []) {
+		if (!seg || seg.type === 'terminator') break;
+		if (seg.type === 'curve') return seg;
+	}
+	return null;
+}
+
+function computeSafeStartupCurveBgDisp(length) {
+	const bounds = computeCurveBgDispBounds(length, SHARPNESS_MIN, { startupCurve: true });
+	return clamp(
+		Math.min(CURVE_SAFE_FIRST_CURVE_MAX_BG_DISP, bounds.maxBgDisp, Math.max(BG_DISP_MIN, length * CURVE_SAFE_FIRST_CURVE_MAX_RATE)),
+		BG_DISP_MIN,
+		BG_DISP_MAX
+	);
+}
+
+function curveHasSafeRaceStart(curveSegments) {
+	const firstCurve = getFirstCurveSegment(curveSegments);
+	if (!firstCurve) return true;
+	return getCurveOpeningStraightSteps(curveSegments) >= CURVE_SAFE_OPENING_STRAIGHT_STEPS
+		&& firstCurve.length >= CURVE_SAFE_FIRST_CURVE_MIN_LENGTH
+		&& (firstCurve.bg_disp || BG_DISP_MIN) <= computeSafeStartupCurveBgDisp(firstCurve.length);
+}
+
+function enforceSafeCurveRaceStart(curveSegments, targetSteps) {
+	const working = buildCurveBodySegments(curveSegments);
+
+	for (let guard = 0; guard < 16; guard++) {
+		let opening = 0;
+		let firstCurveIndex = -1;
+		for (let i = 0; i < working.length; i++) {
+			const seg = working[i];
+			if (seg.type === 'straight') {
+				opening += seg.length;
+				continue;
+			}
+			if (seg.type === 'curve') {
+				firstCurveIndex = i;
+				break;
+			}
+		}
+
+		if (firstCurveIndex < 0) break;
+
+		const firstCurve = working[firstCurveIndex];
+		if (opening < CURVE_SAFE_OPENING_STRAIGHT_STEPS) {
+			const needed = CURVE_SAFE_OPENING_STRAIGHT_STEPS - opening;
+			const spare = Math.max(0, firstCurve.length - CURVE_SAFE_FIRST_CURVE_MIN_LENGTH);
+			const transfer = Math.min(needed, spare);
+			if (transfer > 0) {
+				if (firstCurveIndex > 0 && working[firstCurveIndex - 1].type === 'straight') {
+					working[firstCurveIndex - 1].length += transfer;
+				} else {
+					working.splice(firstCurveIndex, 0, { type: 'straight', length: transfer, curve_byte: 0 });
+					firstCurveIndex += 1;
+				}
+				firstCurve.length -= transfer;
+				opening += transfer;
+			}
+		}
+
+		if (opening < CURVE_SAFE_OPENING_STRAIGHT_STEPS || firstCurve.length < CURVE_SAFE_FIRST_CURVE_MIN_LENGTH) {
+			firstCurve.type = 'straight';
+			firstCurve.curve_byte = 0;
+			delete firstCurve.bg_disp;
+			continue;
+		}
+
+		firstCurve.bg_disp = Math.min(firstCurve.bg_disp || BG_DISP_MIN, computeSafeStartupCurveBgDisp(firstCurve.length));
+		break;
+	}
+
+	return finalizeCurveSegments(working, targetSteps);
+}
+
+function enforceSafeCurveLoopClosure(curveSegments, targetSteps) {
+	const working = buildCurveBodySegments(curveSegments);
+
+	for (let guard = 0; guard < 16; guard++) {
+		let closing = 0;
+		let lastCurveIndex = -1;
+		for (let i = working.length - 1; i >= 0; i--) {
+			const seg = working[i];
+			if (seg.type === 'straight') {
+				closing += seg.length;
+				continue;
+			}
+			if (seg.type === 'curve') {
+				lastCurveIndex = i;
+				break;
+			}
+		}
+
+		if (lastCurveIndex < 0) break;
+		if (closing >= CURVE_SAFE_CLOSING_STRAIGHT_STEPS) break;
+
+		const lastCurve = working[lastCurveIndex];
+		const needed = CURVE_SAFE_CLOSING_STRAIGHT_STEPS - closing;
+		const spare = Math.max(0, lastCurve.length - CURVE_LEN_MIN);
+		const transfer = Math.min(needed, spare);
+		if (transfer > 0) {
+			if (lastCurveIndex + 1 < working.length && working[lastCurveIndex + 1].type === 'straight') {
+				working[lastCurveIndex + 1].length += transfer;
+			} else {
+				working.splice(lastCurveIndex + 1, 0, { type: 'straight', length: transfer, curve_byte: 0 });
+			}
+			lastCurve.length -= transfer;
+			continue;
+		}
+
+		lastCurve.type = 'straight';
+		lastCurve.curve_byte = 0;
+		delete lastCurve.bg_disp;
+	}
+
+	return finalizeCurveSegments(working, targetSteps);
+}
+
+function decodeCurveBgDisplacement(curveSegments) {
+	let accumulator = 0;
+	const decoded = [];
+
+	for (const seg of curveSegments || []) {
+		if (!seg || seg.type === 'terminator') break;
+		if (seg.type === 'straight') {
+			for (let i = 0; i < seg.length; i++) decoded.push(accumulator & 0x03FF);
+			continue;
+		}
+
+		const length = Math.max(1, seg.length | 0);
+		const start = accumulator;
+		accumulator += getCurveBgRuntimeDirection(seg.curve_byte) * (seg.bg_disp || 0);
+		const stepDelta = Math.trunc(((seg.bg_disp || 0) * 0x10000) / length) * getCurveBgRuntimeDirection(seg.curve_byte);
+		for (let step = 1; step <= length; step++) {
+			decoded.push(((start * 0x10000) + (step * stepDelta)) >> 16 & 0x03FF);
+		}
+	}
+
+	return decoded;
+}
+
+function curveBgLoopAligns(curveSegments, trackLength = 0) {
+	const body = buildCurveBodySegments(curveSegments);
+	if (body.length === 0) return true;
+	const first = body[0];
+	const last = body[body.length - 1];
+	if (!first || !last || first.type !== 'straight' || last.type !== 'straight') return false;
+	const decoded = decodeCurveBgDisplacement(body);
+	if (decoded.length === 0) return true;
+	if (!(Number.isInteger(trackLength) && trackLength > 0)) {
+		return decoded[0] === decoded[decoded.length - 1];
+	}
+	const metrics = getCurveRuntimeSeamMetrics(body, trackLength);
+	if (!metrics) return true;
+	return metrics.displayJump === 0
+		&& metrics.targetJump === 0
+		&& metrics.sampleJump === 0;
+}
+
+function normalizeCurveBgDisplacement(curveSegments, options = {}) {
 	const adjusted = cloneSegments(curveSegments);
+	const protectStartupCurve = options.protectStartupCurve === true;
+	const trackLength = Number.isInteger(options.trackLength) ? options.trackLength : 0;
+	const protectedCurve = protectStartupCurve ? getFirstCurveSegment(adjusted) : null;
+	for (const seg of adjusted) {
+		if (seg.type !== 'curve') continue;
+		const bounds = computeCurveBgDispBounds(seg.length, getCurveSharpness(seg.curve_byte));
+		let maxBgDisp = bounds.maxBgDisp;
+		if (protectedCurve && seg === protectedCurve) {
+			maxBgDisp = Math.min(maxBgDisp, computeSafeStartupCurveBgDisp(seg.length));
+		}
+		seg.bg_disp = clamp(seg.bg_disp || BG_DISP_MIN, BG_DISP_MIN, maxBgDisp);
+	}
+
 	let delta = -computeNetBgDisp(adjusted);
 	if (delta === 0) return adjusted;
 
 	for (let i = adjusted.length - 1; i >= 0 && delta !== 0; i--) {
 		const seg = adjusted[i];
 		if (seg.type !== 'curve') continue;
-		const dir = getCurveDirection(seg.curve_byte);
-		const current = seg.bg_disp || BG_DISP_MIN;
-		const next = Math.max(BG_DISP_MIN, Math.min(BG_DISP_MAX, current + (delta * dir)));
-		delta -= (next - current) * dir;
+		if (protectedCurve && seg === protectedCurve) continue;
+		const runtimeDir = getCurveBgRuntimeDirection(seg.curve_byte);
+		const sharpness = getCurveSharpness(seg.curve_byte);
+		const bounds = computeCurveBgDispBounds(seg.length, sharpness);
+		const current = clamp(seg.bg_disp || BG_DISP_MIN, bounds.minBgDisp, bounds.maxBgDisp);
+		const next = Math.max(bounds.minBgDisp, Math.min(bounds.maxBgDisp, current + (delta * runtimeDir)));
+		delta -= (next - current) * runtimeDir;
 		seg.bg_disp = next;
+	}
+
+	if (delta !== 0 && protectedCurve) {
+		const sharpness = getCurveSharpness(protectedCurve.curve_byte);
+		const bounds = computeCurveBgDispBounds(protectedCurve.length, sharpness);
+		const current = clamp(protectedCurve.bg_disp || BG_DISP_MIN, bounds.minBgDisp, Math.min(bounds.maxBgDisp, computeSafeStartupCurveBgDisp(protectedCurve.length)));
+		const next = Math.max(bounds.minBgDisp, Math.min(Math.min(bounds.maxBgDisp, computeSafeStartupCurveBgDisp(protectedCurve.length)), current + (delta * getCurveBgRuntimeDirection(protectedCurve.curve_byte))));
+		delta -= (next - current) * getCurveBgRuntimeDirection(protectedCurve.curve_byte);
+		protectedCurve.bg_disp = next;
+	}
+
+	if (trackLength > 0) {
+		let bestSegments = adjusted;
+		let bestScore = buildCurveRuntimeSeamScore(adjusted, trackLength, 0);
+		for (let pass = 0; pass < 4; pass++) {
+			let improved = false;
+			for (let i = bestSegments.length - 1; i >= 0; i--) {
+				const seg = bestSegments[i];
+				if (seg.type !== 'curve') continue;
+				if (protectedCurve && seg === protectedCurve) continue;
+				const sharpness = getCurveSharpness(seg.curve_byte);
+				const bounds = computeCurveBgDispBounds(seg.length, sharpness);
+				const current = clamp(seg.bg_disp || BG_DISP_MIN, bounds.minBgDisp, bounds.maxBgDisp);
+				for (let deltaAdjust = -12; deltaAdjust <= 12; deltaAdjust++) {
+					if (deltaAdjust === 0) continue;
+					const next = clamp(current + deltaAdjust, bounds.minBgDisp, bounds.maxBgDisp);
+					if (next === current) continue;
+					const trial = cloneSegments(bestSegments);
+					trial[i].bg_disp = next;
+					const score = buildCurveRuntimeSeamScore(trial, trackLength, Math.abs(next - current));
+					if (compareCurveRuntimeSeamScores(score, bestScore) < 0) {
+						bestSegments = trial;
+						bestScore = score;
+						improved = true;
+					}
+				}
+			}
+			if (!improved) break;
+		}
+		return bestSegments;
 	}
 
 	return adjusted;
@@ -674,9 +1263,13 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 	const records = [];
 	let lastOffset = null;
 	let lastDistance = -SIGN_TILESET_MIN_SPACING;
+	const strongWindows = windows.filter(window => window.peakSharpness >= 8 || window.curveDistance >= 80);
+	const allowedOffsets = arguments.length > 3 && Array.isArray(arguments[3]) && arguments[3].length > 0
+		? arguments[3].slice()
+		: STANDARD_SIGN_TILESET_OFFSETS;
 
 	function pickOffset(direction) {
-		let choices = SIGN_TILESET_OFFSETS.filter(offset => offset !== 88 && offset !== lastOffset);
+		let choices = allowedOffsets.filter(offset => offset !== lastOffset);
 		if (direction < 0) {
 			const leftChoices = choices.filter(offset => (TILESET_SIGN_ID_MAP.get(offset) || []).some(id => LEFT_SIGN_IDS.has(id)));
 			if (leftChoices.length > 0) choices = leftChoices;
@@ -684,44 +1277,44 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 			const rightChoices = choices.filter(offset => (TILESET_SIGN_ID_MAP.get(offset) || []).some(id => RIGHT_SIGN_IDS.has(id)));
 			if (rightChoices.length > 0) choices = rightChoices;
 		}
-		const selected = rng.choice(choices.length > 0 ? choices : SIGN_TILESET_OFFSETS.filter(offset => offset !== 88));
+		const selected = rng.choice(choices.length > 0 ? choices : allowedOffsets);
 		lastOffset = selected;
 		return selected;
 	}
 
-	records.push({ distance: 0, tileset_offset: pickOffset(0) });
+	const openingDirection = strongWindows[0] ? strongWindows[0].direction : (windows[0] ? windows[0].direction : 0);
+	records.push({ distance: 0, tileset_offset: pickOffset(openingDirection) });
 	lastDistance = 0;
 
-	for (const window of windows) {
+	for (const window of strongWindows) {
 		const desiredDistance = clamp(
 			window.startDistance - window.leadDistance - rng.randInt(32, 96),
 			0,
 			Math.max(0, trackLength - 1)
 		);
-		const strongWindow = window.peakSharpness >= 12 || window.curveDistance >= 128;
-		if (!strongWindow) continue;
 		if ((desiredDistance - lastDistance) < SIGN_TILESET_MIN_SPACING) continue;
 		records.push({ distance: desiredDistance, tileset_offset: pickOffset(window.direction) });
 		lastDistance = desiredDistance;
 	}
 
-	for (let i = 0; i + 1 < windows.length; i++) {
-		const gap = windows[i + 1].startDistance - windows[i].endDistance;
+	for (let i = 0; i + 1 < strongWindows.length; i++) {
+		const gap = strongWindows[i + 1].startDistance - strongWindows[i].endDistance;
 		if (gap < 1800) continue;
 		const midpoint = clamp(
-			Math.round((windows[i].endDistance + windows[i + 1].startDistance) / 2),
+			Math.round((strongWindows[i].endDistance + strongWindows[i + 1].startDistance) / 2),
 			0,
 			Math.max(0, trackLength - 1)
 		);
 		if ((midpoint - lastDistance) < SIGN_TILESET_MIN_SPACING) continue;
-		records.push({ distance: midpoint, tileset_offset: pickOffset(0) });
+		records.push({ distance: midpoint, tileset_offset: pickOffset(strongWindows[i + 1].direction) });
 		lastDistance = midpoint;
 	}
 
 	if ((trackLength - lastDistance) > 1700) {
 		const tailDistance = clamp(lastDistance + rng.randInt(900, 1300), 0, Math.max(0, trackLength - 1));
 		if ((tailDistance - lastDistance) >= SIGN_TILESET_MIN_SPACING && tailDistance < trackLength) {
-			records.push({ distance: tailDistance, tileset_offset: pickOffset(0) });
+			const tailDirection = strongWindows.length > 0 ? strongWindows[strongWindows.length - 1].direction : 0;
+			records.push({ distance: tailDistance, tileset_offset: pickOffset(tailDirection) });
 		}
 	}
 
@@ -732,7 +1325,7 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 		if (prev && (record.distance - prev.distance) < SIGN_TILESET_MIN_SPACING) continue;
 		filtered.push(record);
 	}
-	return filtered;
+	return enforceWrapSafeTilesetRecords(trackLength, filtered);
 }
 
 function buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecords) {
@@ -740,11 +1333,13 @@ function buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecord
 	const records = [];
 	const finishCutoff = trackLength - SIGN_FINISH_ZONE;
 	let lastDistance = -SAFE_SIGN_SPACING_MIN;
+	const transitionDistances = Array.isArray(tilesetRecords) ? tilesetRecords.slice(1).map(record => record.distance) : [];
 
 	function tryAddSign(distance, direction, sharpness, preferredCount) {
 		const clampedDistance = clamp(Math.round(distance), 0, finishCutoff - 1);
 		if (clampedDistance <= lastDistance) return;
-		if ((clampedDistance - lastDistance) < 96) return;
+		if ((clampedDistance - lastDistance) < SAFE_SIGN_SPACING_MIN) return;
+		if (transitionDistances.some(transitionDistance => Math.abs(transitionDistance - clampedDistance) < SAFE_SIGN_TILESET_GUARD_DISTANCE)) return;
 		const activeTileset = getActiveTilesetRecord(tilesetRecords, clampedDistance);
 		const tilesetOffset = activeTileset ? activeTileset.tileset_offset : 8;
 		const count = clamp(preferredCount, 1, 4);
@@ -754,17 +1349,28 @@ function buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecord
 	}
 
 	for (const window of windows) {
-		const approachDistance = window.startDistance - window.leadDistance;
-		const approachCount = clamp(Math.round(window.peakSharpness / 10) + 1, 1, 4);
-		tryAddSign(approachDistance, window.direction, window.peakSharpness, approachCount);
+		const strongWindow = window.peakSharpness >= 8 || window.curveDistance >= 80;
+		const severeWindow = window.peakSharpness >= 18 || window.curveDistance >= 160;
+		if (strongWindow) {
+			const farApproachDistance = window.startDistance - window.leadDistance - rng.randInt(40, 96);
+			const farApproachCount = clamp(Math.round(window.peakSharpness / 12) + 1, 1, 3);
+			tryAddSign(farApproachDistance, window.direction, window.peakSharpness, farApproachCount);
+			const nearLeadDistance = clamp(Math.round(window.leadDistance * 0.45), 88, 176);
+			const nearApproachCount = clamp(Math.round(window.peakSharpness / 9) + 1, 2, 4);
+			tryAddSign(window.startDistance - nearLeadDistance, window.direction, window.peakSharpness, nearApproachCount);
+		} else {
+			const approachDistance = window.startDistance - window.leadDistance;
+			const approachCount = clamp(Math.round(window.peakSharpness / 10) + 1, 1, 4);
+			tryAddSign(approachDistance, window.direction, window.peakSharpness, approachCount);
+		}
 
-		if (window.curveDistance >= 80 || window.peakSharpness >= 18) {
+		if (window.curveDistance >= 96 || window.peakSharpness >= 16) {
 			const apexDistance = window.startDistance + Math.round(window.curveDistance * 0.45);
 			const apexCount = clamp(Math.round(window.peakSharpness / 12) + 1, 1, 4);
 			tryAddSign(apexDistance, window.direction, window.peakSharpness, apexCount);
 		}
 
-		if (window.curveDistance >= 160 && window.peakSharpness >= 22) {
+		if (severeWindow) {
 			const exitDistance = window.endDistance - 96;
 			tryAddSign(exitDistance, window.direction, window.peakSharpness, 2);
 		}
@@ -797,27 +1403,28 @@ function buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecord
 
 function buildCurveDrivenSlopeEvents(rng, trackLength, curveSegments) {
 	const targetSteps = Math.floor(trackLength / 4);
+	const minOpeningFlat = Math.min(VISUAL_SLOPE_SAFE_OPENING_FLAT_STEPS, Math.max(0, targetSteps - 8));
 	const windows = buildCurveWindows(curveSegments);
 	const events = [];
 	let lastEndStep = 0;
 	let elevationBias = 0;
 
 	for (const window of windows) {
-		const shouldSlope = window.peakSharpness >= 8 || window.curveDistance >= 72 || rng.randInt(0, 9) < 3;
+		const shouldSlope = window.peakSharpness >= 6 || window.curveDistance >= 56 || rng.randInt(0, 9) < 4;
 		if (!shouldSlope) continue;
 
 		const startStep = clamp(
 			window.startStep - rng.randInt(8, 28),
-			lastEndStep + 24,
-			Math.max(lastEndStep + 24, targetSteps - 12)
+			Math.max(lastEndStep + 24, minOpeningFlat),
+			Math.max(Math.max(lastEndStep + 24, minOpeningFlat), targetSteps - 12)
 		);
 		if (startStep >= targetSteps - 4) continue;
 
 		const maxLength = Math.max(8, Math.min(80, targetSteps - startStep));
 		const desiredLength = clamp(
 			Math.round((window.totalCurveSteps * 0.8) + (window.peakSharpness * 1.4) + rng.randInt(-6, 12)),
-			12,
-			80
+			16,
+			32
 		);
 		const length = Math.min(desiredLength, maxLength);
 		if (length < 8) continue;
@@ -827,30 +1434,122 @@ function buildCurveDrivenSlopeEvents(rng, trackLength, curveSegments) {
 		else if (elevationBias <= -96) direction = 1;
 		else direction = rng.weightedChoice([-1, 1], [50 + Math.max(0, elevationBias), 50 + Math.max(0, -elevationBias)]);
 
-		const sharpness = clamp(18 + Math.round(window.peakSharpness * 0.55) + rng.randInt(-2, 5), 10, 32);
+		const sharpness = clamp(14 + Math.round(window.peakSharpness * 0.4) + rng.randInt(-2, 4), 10, 24);
+		const bgVertDisp = (sharpness >= 18 || length >= 28) ? BG_VERT_DISP_STRONG : BG_VERT_DISP_SOFT;
 		events.push({
 			startStep,
 			length,
 			direction,
 			sharpness,
-			bgVertDisp: direction > 0 ? 112 : -32,
+			bgVertDisp,
 		});
 		lastEndStep = startStep + length;
 		elevationBias += direction * Math.round(length * (sharpness / 12));
 	}
 
-	if (events.length === 0 && targetSteps >= 160 && rng.randInt(0, 9) < 6) {
-		const startStep = clamp(rng.randInt(32, Math.max(32, targetSteps - 80)), 0, Math.max(0, targetSteps - 32));
+	if (events.length === 0 && targetSteps >= 160 && rng.randInt(0, 9) < 7) {
+		const startStep = clamp(rng.randInt(minOpeningFlat, Math.max(minOpeningFlat, targetSteps - 80)), minOpeningFlat, Math.max(minOpeningFlat, targetSteps - 32));
 		events.push({
 			startStep,
-			length: Math.min(32, targetSteps - startStep),
+			length: Math.min(40, targetSteps - startStep),
 			direction: rng.choice([-1, 1]),
-			sharpness: 12,
-			bgVertDisp: rng.choice(BG_VERT_DISP_VALUES),
+			sharpness: 10,
+			bgVertDisp: BG_VERT_DISP_SOFT,
 		});
 	}
 
-	return events.sort((a, b) => a.startStep - b.startStep);
+	return events
+		.sort((a, b) => ((b.length * b.sharpness) - (a.length * a.sharpness)) || (a.startStep - b.startStep))
+		.slice(0, VISUAL_SLOPE_MAX_EVENTS)
+		.sort((a, b) => a.startStep - b.startStep);
+}
+
+function buildFallbackSlopeEvents(rng, trackLength) {
+	const targetSteps = Math.floor(trackLength / 4);
+	if (targetSteps < 80) return [];
+	const minOpeningFlat = Math.min(VISUAL_SLOPE_SAFE_OPENING_FLAT_STEPS, Math.max(8, targetSteps - 40));
+	const startStep = clamp(rng.randInt(minOpeningFlat, Math.max(minOpeningFlat, targetSteps - 56)), minOpeningFlat, Math.max(minOpeningFlat, targetSteps - 40));
+	const length = clamp(rng.randInt(24, 40), 16, Math.max(16, targetSteps - startStep - 8));
+	return [{
+		startStep,
+		length: Math.min(length, 24),
+		direction: rng.choice([-1, 1]),
+		sharpness: 8,
+		bgVertDisp: BG_VERT_DISP_SOFT,
+	}];
+}
+
+function buildSlopeSegmentsFromEvents(targetSteps, events) {
+	const segments = [];
+	let cursor = 0;
+	for (const event of events || []) {
+		const startStep = clamp(event.startStep, cursor, targetSteps);
+		if (startStep > cursor) {
+			segments.push({ type: 'flat', length: startStep - cursor, slope_byte: 0, bg_vert_disp: 0 });
+			cursor = startStep;
+		}
+		const length = Math.min(event.length, targetSteps - cursor);
+		if (length <= 0) continue;
+		segments.push({
+			type: 'slope',
+			length,
+			slope_byte: encodeDirectedByte(event.direction, clamp(event.sharpness, 1, 47)),
+			bg_vert_disp: event.bgVertDisp,
+		});
+		cursor += length;
+	}
+	if (cursor < targetSteps) {
+		segments.push({ type: 'flat', length: targetSteps - cursor, slope_byte: 0, bg_vert_disp: 0 });
+	}
+	const merged = [];
+	for (const seg of segments) {
+		if (seg.length <= 0) continue;
+		const prev = merged[merged.length - 1];
+		if (prev && prev.type === seg.type && prev.slope_byte === seg.slope_byte && prev.bg_vert_disp === seg.bg_vert_disp) {
+			prev.length += seg.length;
+		} else {
+			merged.push(seg);
+		}
+	}
+	merged.push({ type: 'terminator', length: 0, slope_byte: 0xFF, _raw: [0xFF, 0x00] });
+	return merged;
+}
+
+function normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, events) {
+	const targetSteps = Math.floor(trackLength / 4);
+	const adjusted = (events || []).map(event => ({ ...event }));
+	for (let attempt = 0; attempt < 48; attempt++) {
+		const merged = buildSlopeSegmentsFromEvents(targetSteps, adjusted);
+		const decodedOffsets = decodeVisualSlopeBgDisplacement(initialBgDisp, merged);
+		if (visualSlopeOffsetsWithinSafeEnvelope(decodedOffsets)) {
+			return merged;
+		}
+		if (adjusted.length === 0) break;
+		adjusted.sort((a, b) => ((b.length * b.sharpness) - (a.length * a.sharpness)) || (b.length - a.length));
+		const event = adjusted[0];
+		if (event.sharpness > 12) {
+			event.sharpness = Math.max(10, event.sharpness - 4);
+			continue;
+		}
+		if (event.length > 16) {
+			event.length = Math.max(8, event.length - 4);
+			continue;
+		}
+		adjusted.shift();
+	}
+	return null;
+}
+
+function ensureSlopeEvents(trackLength, initialBgDisp, events, rng) {
+	let normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, events);
+	if (normalized && normalized.some(seg => seg.type === 'slope')) return normalized;
+	const fallback = buildFallbackSlopeEvents(rng, trackLength);
+	if (fallback.length === 0) return normalized;
+	normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, fallback);
+	if (normalized && normalized.some(seg => seg.type === 'slope')) return normalized;
+	const softerFallback = fallback.map(event => ({ ...event, sharpness: 6, length: Math.min(event.length, 16), bgVertDisp: BG_VERT_DISP_SOFT }));
+	normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, softerFallback);
+	return normalized;
 }
 
 function generateCurveRle(rng, trackLength, templateTrack = null) {
@@ -923,7 +1622,10 @@ function generateCurveRle(rng, trackLength, templateTrack = null) {
 	const profile = buildCurveGenerationProfile(templateTrack?.curve_rle_segments || []);
 	const targets = buildCurveTargets(profile, targetSteps);
 	const expandedBody = expandCurveComplexity(rng, segments, targets);
-	return finalizeCurveSegments(expandedBody, targetSteps);
+	const softenedBody = softenUndrivableTransitions(expandedBody);
+	const finalized = finalizeCurveSegments(softenedBody, targetSteps);
+	const startupSafe = enforceSafeCurveRaceStart(finalized, targetSteps);
+	return enforceSafeCurveLoopClosure(startupSafe, targetSteps);
 }
 
 function decompressCurveSegments(segments) {
@@ -944,51 +1646,14 @@ function decompressCurveSegments(segments) {
 
 function generateSlopeRle(rng, trackLength, curveSegments) {
   const targetSteps = Math.floor(trackLength / 4);
-  const initialBgDisp = rng.randInt(-2, 2);
-  const segments = [];
+  const initialBgDisp = 0;
   const events = buildCurveDrivenSlopeEvents(rng, trackLength, curveSegments);
-  let cursor = 0;
-
-	for (const event of events) {
-		const startStep = clamp(event.startStep, cursor, targetSteps);
-		if (startStep > cursor) {
-			segments.push({ type: 'flat', length: startStep - cursor, slope_byte: 0, bg_vert_disp: 0 });
-			cursor = startStep;
-		}
-		const length = Math.min(event.length, targetSteps - cursor);
-		if (length <= 0) continue;
-		segments.push({
-			type: 'slope',
-			length,
-			slope_byte: encodeDirectedByte(event.direction, clamp(event.sharpness, 1, 47)),
-			bg_vert_disp: event.bgVertDisp,
-		});
-		cursor += length;
-	}
-
-	if (cursor < targetSteps) {
-		segments.push({ type: 'flat', length: targetSteps - cursor, slope_byte: 0, bg_vert_disp: 0 });
-	}
-
-	const merged = [];
-	for (const seg of segments) {
-		if (seg.length <= 0) continue;
-		const prev = merged[merged.length - 1];
-		if (prev && prev.type === seg.type && prev.slope_byte === seg.slope_byte && prev.bg_vert_disp === seg.bg_vert_disp) {
-			prev.length += seg.length;
-		} else {
-			merged.push(seg);
-		}
-	}
-
-	merged.push({ type: 'terminator', length: 0, slope_byte: 0xFF, _raw: [0xFF, 0x00] });
-
-	const decodedOffsets = decodeVisualSlopeBgDisplacement(initialBgDisp, merged);
-	if (!visualSlopeOffsetsWithinSafeEnvelope(decodedOffsets)) {
+	const normalized = ensureSlopeEvents(trackLength, initialBgDisp, events, rng);
+	if (!normalized) {
 		return buildFlatSlopeRle(trackLength);
 	}
 
-  return [initialBgDisp, merged];
+	return [initialBgDisp, normalized];
 }
 
 function decodeVisualSlopeBgDisplacement(initialBgDisp, slopeSegments) {
@@ -1040,6 +1705,22 @@ function visualSlopeOffsetsWithinSafeEnvelope(decodedOffsets) {
 		&& startMax <= VISUAL_SLOPE_SAFE_START_MAX;
 }
 
+function getVisualSlopeOpeningFlatSteps(slopeSegments) {
+	for (const seg of slopeSegments || []) {
+		if (!seg || seg.type === 'terminator') break;
+		if (seg.type === 'flat') return seg.length;
+		if (seg.type === 'slope') return 0;
+	}
+	return 0;
+}
+
+function visualSlopeHasSafeRaceStart(initialBgDisp, slopeSegments) {
+	if (initialBgDisp !== 0) return false;
+	const hasSlope = Array.isArray(slopeSegments) && slopeSegments.some(seg => seg && seg.type === 'slope');
+	if (!hasSlope) return true;
+	return getVisualSlopeOpeningFlatSteps(slopeSegments) >= VISUAL_SLOPE_SAFE_OPENING_FLAT_STEPS;
+}
+
 function buildFlatSlopeRle(trackLength) {
 	const targetSteps = Math.floor(trackLength / 4);
 	return [
@@ -1074,6 +1755,15 @@ function generatePhysSlopeRle(rng, trackLength, slopeSegments) {
 		physSegments.push({ type: 'segment', length: core, phys_byte: direction < 0 ? PHYS_DOWN : PHYS_UP });
 		if (shoulder > 0) physSegments.push({ type: 'segment', length: shoulder, phys_byte: PHYS_FLAT });
   }
+
+	for (let i = physSegments.length - 1; i > 0; i--) {
+		const prev = physSegments[i - 1];
+		const seg = physSegments[i];
+		if (prev.type === 'segment' && seg.type === 'segment' && prev.phys_byte === seg.phys_byte) {
+			prev.length += seg.length;
+			physSegments.splice(i, 1);
+		}
+	}
 
   // Pad or trim to exact targetSteps
   let total = physSegments.reduce((s, seg) => s + seg.length, 0);
@@ -1130,8 +1820,15 @@ function generateSignData(rng, trackLength, curveSegments, tilesetRecords) {
   return buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecords);
 }
 
-function generateSignTileset(rng, trackLength, curveSegments = []) {
-  return [buildCurveAwareTilesetPlan(rng, trackLength, curveSegments), []];
+function getAllowedSignTilesetOffsets(track) {
+	const horizonOverride = Number.isInteger(track?._assigned_horizon_override)
+		? track._assigned_horizon_override
+		: (Number.isInteger(track?.horizon_override) ? track.horizon_override : 0);
+	return horizonOverride ? HORIZON_SIGN_TILESET_OFFSETS : STANDARD_SIGN_TILESET_OFFSETS;
+}
+
+function generateSignTileset(rng, trackLength, curveSegments = [], track = null) {
+	return [buildCurveAwareTilesetPlan(rng, trackLength, curveSegments, getAllowedSignTilesetOffsets(track)), []];
 }
 
 // ---------------------------------------------------------------------------
@@ -1139,17 +1836,18 @@ function generateSignTileset(rng, trackLength, curveSegments = []) {
 // ---------------------------------------------------------------------------
 
 function generateMinimap(track) {
-	const { generateMinimapPairsFromTrack } = require('../lib/minimap_analysis');
-	const generated = generateMinimapPairsFromTrack(track);
+	const { buildGeneratedMinimapPosPairs } = require('../lib/generated_minimap_pos');
+	const preview = require('../lib/minimap_render').buildGeneratedMinimapPreview(track);
+	const pairs = buildGeneratedMinimapPosPairs(track);
 	track._generated_minimap_preview = {
-		preview_slug: generated.preview_slug,
-		transform: generated.transform,
-		match_percent: generated.match_percent,
-		preview_match_percent: generated.preview_match_percent,
-		thickness_aware_match_percent: generated.thickness_aware_match_percent,
-		sample_count: generated.sample_count,
+		preview_slug: preview.slug,
+		transform: preview.transform,
+		match_percent: preview.match_percent,
+		preview_match_percent: preview.match_percent,
+		thickness_aware_match_percent: preview.match_percent,
+		sample_count: pairs.length,
 	};
-	return [generated.pairs, track.minimap_pos_trailing || []];
+	return [pairs, track.minimap_pos_trailing || []];
 }
 
 // ---------------------------------------------------------------------------
@@ -1335,10 +2033,12 @@ function buildTrackConfigAsm(artAssignment, originalAsmPath) {
       blockLines.push((newLines[blockStart + j] || '\n').replace(/\r?\n$/, ''));
     }
 
-    const signDataLabel    = extractDcLabel(blockLines[11]);
-    const signTilesetLabel = extractDcLabel(blockLines[12]);
-    const minimapPosLabel  = extractDcLabel(blockLines[13]);
-    const curveDataLabel   = extractDcLabel(blockLines[14]);
+		const signDataLabel    = extractDcLabel(blockLines[11]);
+		const signTilesetLabel = extractDcLabel(blockLines[12]);
+		const minimapPosLabel  = extractDcLabel(blockLines[13]);
+		const minimapTilesLabel = extractDcLabel(blockLines[1]);
+		const minimapMapLabel = extractDcLabel(blockLines[4]);
+		const curveDataLabel   = extractDcLabel(blockLines[14]);
     const slopeDataLabel   = extractDcLabel(blockLines[15]);
     const physSlopeLabel   = extractDcLabel(blockLines[16]);
     const lapTimePtrVal    = extractDcLabel(blockLines[17]);
@@ -1358,12 +2058,13 @@ function buildTrackConfigAsm(artAssignment, originalAsmPath) {
     const horizonFlagStr  = h ? '$0001' : '$0000';
     const horizonComment  = h ? '1 = special sky colour patch applied each frame' : '0 = default sky';
 
-    const newBlock = [
-      `; ${trackName}\n`,
-      `\tdc.l\t${art.minimap_tiles_label} ; ${trackName} tiles used for minimap\n`,
-      `\tdc.l\t${art.bg_tiles_label} ; ${trackName} tiles used for background\n`,
-      `\tdc.l\t${art.bg_tilemap_label} ; ${trackName} background tile mapping\n`,
-      `\tdc.l\t${art.minimap_map_label} ; ${trackName} tile mapping for minimap\n`,
+		const useExistingMinimapLabels = false;
+		const newBlock = [
+		  `; ${trackName}\n`,
+		  `\tdc.l\t${useExistingMinimapLabels ? minimapTilesLabel : art.minimap_tiles_label} ; ${trackName} tiles used for minimap\n`,
+		  `\tdc.l\t${art.bg_tiles_label} ; ${trackName} tiles used for background\n`,
+		  `\tdc.l\t${art.bg_tilemap_label} ; ${trackName} background tile mapping\n`,
+		  `\tdc.l\t${useExistingMinimapLabels ? minimapMapLabel : art.minimap_map_label} ; ${trackName} tile mapping for minimap\n`,
       `\tdc.l\t${art.bg_palette_label} ; ${trackName} background palette\n`,
       `\tdc.l\t${art.sideline_label} ; ${trackName} sideline style\n`,
       `\tdc.l\t${art.road_label} ; ${trackName} road style data\n`,
@@ -1430,11 +2131,18 @@ function randomizeOneTrack(track, masterSeed, verbose = false) {
 	const isPrelim = slug.includes('prelim');
 	const originalLength = track.track_length;
 	track._preserve_original_sign_cadence = false;
+	track._runtime_safe_randomized = true;
+	if (!Array.isArray(track._original_minimap_pos)) {
+		track._original_minimap_pos = JSON.parse(JSON.stringify(track.minimap_pos || []));
+	}
 
   if (verbose) process.stdout.write(`  Randomizing track: ${track.name} (${slug})\n`);
 
-  const trackIdx = track.index || 0;
-  const perTrackSeed = ((masterSeed >>> 0) ^ ((trackIdx * 0x6B5B9C11) >>> 0)) >>> 0;
+	const trackIdx = track.index || 0;
+	if (!Number.isInteger(track._assigned_horizon_override)) {
+		track._assigned_horizon_override = Number.isInteger(track.horizon_override) ? track.horizon_override : 0;
+	}
+	const perTrackSeed = ((masterSeed >>> 0) ^ ((trackIdx * 0x6B5B9C11) >>> 0)) >>> 0;
 
   const rngCurves  = new XorShift32(deriveSubseed(perTrackSeed, MOD_TRACK_CURVES));
   const rngSlopes  = new XorShift32(deriveSubseed(perTrackSeed, MOD_TRACK_SLOPES));
@@ -1448,7 +2156,7 @@ function randomizeOneTrack(track, masterSeed, verbose = false) {
 
 	// Step 2: curves
 	const curveSegs = generateCurveRle(rngCurves, newLength, track);
-	const normalizedCurveSegs = normalizeCurveBgDisplacement(curveSegs);
+	const normalizedCurveSegs = normalizeCurveBgDisplacement(curveSegs, { protectStartupCurve: true, trackLength: newLength });
 	track.curve_rle_segments   = normalizedCurveSegs;
 	track.curve_decompressed   = decompressCurveSegments(normalizedCurveSegs);
 	if (verbose) {
@@ -1493,8 +2201,8 @@ function randomizeOneTrack(track, masterSeed, verbose = false) {
 
   // Step 4: signs
 	const specialRoadFeatures = buildSpecialRoadFeatures(rngSigns, newLength, normalizedCurveSegs);
-	const [baseTilesetRecords, tilesetTrailing] = generateSignTileset(rngSigns, newLength, normalizedCurveSegs);
-	const tilesetRecords = applySpecialRoadTilesetRecords(baseTilesetRecords, specialRoadFeatures);
+	const [baseTilesetRecords, tilesetTrailing] = generateSignTileset(rngSigns, newLength, normalizedCurveSegs, track);
+	const tilesetRecords = enforceWrapSafeTilesetRecords(newLength, applySpecialRoadTilesetRecords(baseTilesetRecords, specialRoadFeatures));
 	const baseSignRecords = generateSignData(rngSigns, newLength, normalizedCurveSegs, tilesetRecords);
 	const signRecords = applySpecialRoadSignRecords(baseSignRecords, specialRoadFeatures);
 	track.sign_data             = signRecords;
@@ -1524,6 +2232,15 @@ function randomizeOneTrack(track, masterSeed, verbose = false) {
 
 function randomizeTracks(tracksData, masterSeed, trackSlugs = null, verbose = false) {
   const tracks = tracksData.tracks;
+	const artAssignment = randomizeArtConfig(masterSeed, false);
+	for (let slotIdx = 0; slotIdx < CHAMPIONSHIP_TRACK_NAMES.length && slotIdx < tracks.length; slotIdx++) {
+		const track = tracks[slotIdx];
+		if (!track) continue;
+		track._assigned_art_name = artAssignment[slotIdx]?.art_name || track.name;
+		track._assigned_horizon_override = Number.isInteger(artAssignment[slotIdx]?.horizon_override)
+			? artAssignment[slotIdx].horizon_override
+			: (Number.isInteger(track.horizon_override) ? track.horizon_override : 0);
+	}
   for (const track of tracks) {
     if (trackSlugs !== null && !trackSlugs.has(track.slug)) continue;
     randomizeOneTrack(track, masterSeed, verbose);
@@ -1664,7 +2381,11 @@ module.exports = {
   CHAMPIONSHIP_ART_SETS, CHAMPIONSHIP_TRACK_NAMES,
   generateCurveRle, decompressCurveSegments,
   generateSlopeRle, generatePhysSlopeRle,
-  decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope,
+  getCurveOpeningStraightSteps, getCurveClosingStraightSteps, getFirstCurveSegment, curveHasSafeRaceStart,
+	decodeCurveBgDisplacement, curveBgLoopAligns,
+	getCurveRuntimeSeamMetrics,
+	decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope,
+  getVisualSlopeOpeningFlatSteps, visualSlopeHasSafeRaceStart,
   generateSignData, generateSignTileset,
   generateMinimap,
   randomizeArtConfig, buildTrackConfigAsm, injectArtConfig,

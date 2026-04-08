@@ -51,5 +51,22 @@ test('buildSyncedTrackConfig rewrites track length line from JSON', () => {
     'expected updated track length line in synced content');
 });
 
+test('buildSyncedTrackConfig keeps stock minimap labels even for randomized workspace tracks', () => {
+	const mutated = JSON.parse(JSON.stringify(tracksJson));
+	mutated.tracks[0]._runtime_safe_randomized = true;
+	const result = buildSyncedTrackConfig(asmLines, mutated);
+	assert.ok(result.content.includes('\tdc.l\tMinimap_map_San_Marino ; San Marino tile mapping for minimap'));
+	assert.ok(result.content.includes('\tdc.l\tMinimap_tiles_San_Marino ; San Marino tiles used for minimap'));
+});
+
+test('buildSyncedTrackConfig preserves shared Monaco arcade stock minimap map label names', () => {
+	const mutated = JSON.parse(JSON.stringify(tracksJson));
+	mutated.tracks[17]._runtime_safe_randomized = true;
+	mutated.tracks[18]._runtime_safe_randomized = true;
+	const result = buildSyncedTrackConfig(asmLines, mutated);
+	assert.ok(result.content.includes('\tdc.l\tMinimap_map_Monaco_arcade ; Monaco (Arcade main) tile mapping for minimap'));
+	assert.ok(result.content.includes('\tdc.l\tMinimap_map_Monaco_arcade ; Monaco (Arcade Wet Condition) tile mapping for minimap'));
+});
+
 console.log(`\nResults: ${passed} passed, ${failed} failed, ${passed + failed} total`);
 if (failed > 0) process.exit(1);

@@ -43,7 +43,9 @@ const { execFileSync, spawnSync } = require('child_process');
 const { parseArgs, die } = require('./lib/cli');
 const { REPO_ROOT, ROM_SIZE }    = require('./lib/rom');
 const { patchRomChecksum } = require('./patch_rom_checksum');
-const { buildGeneratedTrackBlock } = require('./generate_track_data_asm');
+const { buildGeneratedTrackBlock, measureAsmDataLayout } = require('./generate_track_data_asm');
+
+const MONACO_INLINE_BLOB_PAD_BYTES = 2399;
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -120,6 +122,7 @@ function copySelectedToolFiles(repoRoot, wsDir, verbose) {
 		'minimap_map_codec.js',
 		'minimap_validate.js',
 		'write_generated_minimap_pos.js',
+		'write_generated_minimap_assets.js',
 		'workspace_apply_generated_minimap.js',
 	];
 	const toolDirs = [
@@ -283,13 +286,33 @@ function runRandomizer(wsDir, seedStr, verbose, options = {}) {
   return { success, output };
 }
 
+function loadRepoBaselineSymbolMap() {
+	const merged = new Map();
+	const lstPath = path.join(REPO_ROOT, 'smgp.lst');
+	if (fs.existsSync(lstPath)) {
+		for (const [name, value] of parseLstSymbolMapFromText(fs.readFileSync(lstPath, 'utf8')).entries()) {
+			if (!merged.has(name)) merged.set(name, value);
+		}
+	}
+	const jsonPath = path.join(REPO_ROOT, 'tools', 'index', 'symbol_map.json');
+	if (fs.existsSync(jsonPath)) {
+		const json = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+		const symbols = json && typeof json === 'object' ? json.symbols : null;
+		if (symbols && typeof symbols === 'object') {
+			for (const [name, value] of Object.entries(symbols)) {
+				if (typeof value !== 'string' || merged.has(name)) continue;
+				merged.set(name, parseInt(value.replace(/^0x/i, ''), 16));
+			}
+		}
+	}
+	return merged.size > 0 ? merged : null;
+}
+
 function getHeadTrackBlockSize() {
-  const lstPath = path.join(REPO_ROOT, 'smgp.lst');
-  if (!fs.existsSync(lstPath)) return null;
-  const text = fs.readFileSync(lstPath, 'utf8');
-  const symbolMap = parseLstSymbolMapFromText(text);
-  const start = symbolMap.get('San_Marino_curve_data');
-  const end = symbolMap.get('Monaco_arcade_post_sign_tileset_blob');
+	const symbolMap = loadRepoBaselineSymbolMap();
+	if (!symbolMap) return null;
+	const start = symbolMap.get('San_Marino_curve_data');
+	const end = symbolMap.get('Monaco_arcade_post_sign_tileset_blob');
 	if (start === undefined || end === undefined || end < start) return null;
 	const blobPath = path.join(REPO_ROOT, 'data', 'tracks', 'monaco_arcade', 'post_sign_tileset_blob.bin');
 	if (!fs.existsSync(blobPath)) return null;
@@ -298,18 +321,14 @@ function getHeadTrackBlockSize() {
 }
 
 function getHeadTrackBlockStart() {
-	const lstPath = path.join(REPO_ROOT, 'smgp.lst');
-	if (!fs.existsSync(lstPath)) return null;
-	const text = fs.readFileSync(lstPath, 'utf8');
-	const symbolMap = parseLstSymbolMapFromText(text);
+	const symbolMap = loadRepoBaselineSymbolMap();
+	if (!symbolMap) return null;
 	return symbolMap.get('San_Marino_curve_data');
 }
 
 function getHeadMonacoBlobStart() {
-	const lstPath = path.join(REPO_ROOT, 'smgp.lst');
-	if (!fs.existsSync(lstPath)) return null;
-	const text = fs.readFileSync(lstPath, 'utf8');
-	const symbolMap = parseLstSymbolMapFromText(text);
+	const symbolMap = loadRepoBaselineSymbolMap();
+	if (!symbolMap) return null;
 	return symbolMap.get('Monaco_arcade_post_sign_tileset_blob');
 }
 
@@ -317,37 +336,14 @@ function getWorkspaceGeneratedMonacoBlobStart(wsDir) {
 	const generatedPath = path.join(wsDir, 'src', 'road_and_track_data_generated.asm');
 	if (!fs.existsSync(generatedPath)) return null;
 	const text = fs.readFileSync(generatedPath, 'utf8');
-	let total = 0;
-	for (const line of text.split(/\r?\n/)) {
-		if (/^\s*Monaco_arcade_post_sign_tileset_blob:/i.test(line)) return total;
-		const incbin = line.match(/^\s*incbin\s+"([^"]+)"/i);
-		if (incbin) {
-			const binPath = path.join(wsDir, incbin[1]);
-			if (fs.existsSync(binPath)) total += fs.statSync(binPath).size;
-			continue;
-		}
-		const dcb = line.match(/^\s*dcb\.b\s+(\d+)\s*,/i);
-		if (dcb) total += parseInt(dcb[1], 10);
-	}
-	return null;
+	return measureAsmDataLayout(text, wsDir).blobStart;
 }
 
 function getWorkspaceGeneratedTrackBlockSize(wsDir) {
 	const generatedPath = path.join(wsDir, 'src', 'road_and_track_data_generated.asm');
 	if (!fs.existsSync(generatedPath)) return null;
 	const text = fs.readFileSync(generatedPath, 'utf8');
-	let total = 0;
-	for (const line of text.split(/\r?\n/)) {
-		const incbin = line.match(/^\s*incbin\s+"([^"]+)"/i);
-		if (incbin) {
-			const binPath = path.join(wsDir, incbin[1]);
-			if (fs.existsSync(binPath)) total += fs.statSync(binPath).size;
-			continue;
-		}
-		const dcb = line.match(/^\s*dcb\.b\s+(\d+)\s*,/i);
-		if (dcb) total += parseInt(dcb[1], 10);
-	}
-	return total;
+	return measureAsmDataLayout(text, wsDir).total;
 }
 
 function padGeneratedTrackBlockToBaseline(wsDir, options = {}) {
@@ -365,14 +361,18 @@ function padGeneratedTrackBlockToBaseline(wsDir, options = {}) {
 	const baselineBlobRelative = baselineBlobStart !== null && baselineStart !== null
 		? baselineBlobStart - baselineStart
 		: null;
-	const preBlobPadBytes = baselineBlobRelative !== null && currentBlobStart !== null
-		? Math.max(0, baselineBlobRelative - currentBlobStart)
+	const oversize = Math.max(0, currentSize - baselineSize);
+	const inlineBlobPadBytes = Math.max(0, MONACO_INLINE_BLOB_PAD_BYTES - oversize);
+	const adjustedBlobStart = currentBlobStart !== null ? currentBlobStart - oversize : currentBlobStart;
+	const preBlobPadBytes = baselineBlobRelative !== null && adjustedBlobStart !== null
+		? Math.max(0, baselineBlobRelative - adjustedBlobStart)
 		: 0;
-	const padBytes = Math.max(0, baselineSize - currentSize - preBlobPadBytes);
-	if (padBytes <= 0 && preBlobPadBytes <= 0) return 0;
-	fs.writeFileSync(generatedPath, buildGeneratedTrackBlock({ padBytes, preBlobPadBytes, includeGeneratedMinimapData }), 'utf8');
+	const adjustedCurrentSize = currentSize - oversize;
+	const padBytes = Math.max(0, baselineSize - adjustedCurrentSize - preBlobPadBytes);
+	if (padBytes <= 0 && preBlobPadBytes <= 0 && inlineBlobPadBytes === MONACO_INLINE_BLOB_PAD_BYTES) return 0;
+	fs.writeFileSync(generatedPath, buildGeneratedTrackBlock({ padBytes, preBlobPadBytes, includeGeneratedMinimapData, inlineBlobPadBytes }), 'utf8');
 	currentSize = getWorkspaceGeneratedTrackBlockSize(wsDir);
-	return currentSize === null ? 0 : (padBytes + preBlobPadBytes);
+	return currentSize === null ? 0 : (padBytes + preBlobPadBytes + (MONACO_INLINE_BLOB_PAD_BYTES - inlineBlobPadBytes));
 }
 
 function applyWorkspaceHackOverlay(wsDir) {
@@ -428,6 +428,25 @@ function normalizeWorkspaceRom(romPath) {
 	};
 }
 
+function patchWorkspaceRomHeaderEnd(romPath) {
+	const ROM_END_OFFSET = 0x1A4;
+	const rom = fs.readFileSync(romPath);
+	if (rom.length < ROM_END_OFFSET + 4) {
+		throw new Error(`workspace ROM too small to patch ROM end header: ${rom.length}`);
+	}
+	const oldRomEnd = rom.readUInt32BE(ROM_END_OFFSET);
+	const newRomEnd = rom.length - 1;
+	if (oldRomEnd !== newRomEnd) {
+		rom.writeUInt32BE(newRomEnd >>> 0, ROM_END_OFFSET);
+		fs.writeFileSync(romPath, rom);
+	}
+	return {
+		oldRomEnd,
+		newRomEnd,
+		changed: oldRomEnd !== newRomEnd,
+	};
+}
+
 /**
  * Run build.bat in the workspace.
  * Returns { success, output }.
@@ -460,6 +479,7 @@ function patchWorkspaceGeneratedMinimap(wsDir, verbose, options = {}) {
 	const success = result.status === 0;
 	return { success, output };
 }
+
 
 /**
  * Return the size of out.bin in the workspace, or null.
@@ -516,50 +536,63 @@ function parseLstSymbolMap(lstPath) {
   return parseLstSymbolMapFromText(fs.readFileSync(lstPath, 'utf8'));
 }
 
+function normalizeCompatibilitySymbols(baseline, current) {
+	const blobLabel = 'Monaco_arcade_post_sign_tileset_blob';
+	const tilesetLabel = 'Monaco_arcade_sign_tileset';
+	if (!baseline.has(blobLabel)) return;
+	if (current.has(blobLabel)) return;
+	if (!current.has(tilesetLabel) || !baseline.has(tilesetLabel)) return;
+	const delta = baseline.get(blobLabel) - baseline.get(tilesetLabel);
+	current.set(blobLabel, current.get(tilesetLabel) + delta);
+}
+
 function verifyWorkspaceAddressStability(wsDir) {
-  const baselinePath = path.join(wsDir, 'smgp_head.lst');
   const workspacePath = path.join(wsDir, 'smgp.lst');
-  if (!fs.existsSync(baselinePath) || !fs.existsSync(workspacePath)) {
-    return { ok: false, message: 'Missing smgp.lst for address stability check.' };
+  if (!fs.existsSync(workspacePath)) {
+    return { ok: false, message: 'Missing workspace smgp.lst for address stability check.' };
+  }
+  const baseline = loadRepoBaselineSymbolMap();
+  if (!baseline) {
+    return { ok: false, message: 'Missing baseline symbol map for address stability check.' };
   }
 
-  const baseline = parseLstSymbolMap(baselinePath);
-  const workspace = parseLstSymbolMap(workspacePath);
+	const current = parseLstSymbolMap(workspacePath);
+	normalizeCompatibilitySymbols(baseline, current);
+	const trackBlockStart = baseline.get('San_Marino_curve_data');
+	const trackBlockEnd = baseline.get('Monaco_arcade_post_sign_tileset_blob');
+	const moved = [];
+	const missing = [];
 
-	const relocationHazards = [
-		// Add symbols here only when we have confirmed raw/non-relocating references
-		// that still exist in source or opaque data. Current known source-level hazards
-		// were converted to symbolic references, so downstream movement alone is not
-		// treated as a hard failure.
-	];
-
-	const movedHazards = [];
-	for (const name of relocationHazards) {
-		const baseAddr = baseline.get(name);
-		const wsAddr = workspace.get(name);
-		if (baseAddr === undefined || wsAddr === undefined) {
-			return {
-				ok: false,
-				message: `Missing relocation hazard symbol in smgp.lst: ${name}`,
-			};
+	for (const [label, oldAddr] of baseline.entries()) {
+		if (!current.has(label)) {
+			missing.push(label);
+			continue;
 		}
-		if (baseAddr !== wsAddr) {
-			movedHazards.push({ name, baseAddr, wsAddr });
+		const newAddr = current.get(label);
+		if (newAddr === oldAddr) continue;
+		const insideRandomizedTrackPayload = trackBlockStart !== undefined && trackBlockEnd !== undefined
+			&& oldAddr >= trackBlockStart
+			&& oldAddr < trackBlockEnd;
+		if (!insideRandomizedTrackPayload) {
+			moved.push([label, oldAddr, newAddr]);
 		}
 	}
 
-	if (movedHazards.length > 0) {
-		const preview = movedHazards.map(entry =>
-			`${entry.name}: 0x${entry.baseAddr.toString(16).toUpperCase()} -> 0x${entry.wsAddr.toString(16).toUpperCase()}`
-		).join('\n');
-		return {
-			ok: false,
-			moved: movedHazards,
-			message:
-				'Workspace build still moved symbol(s) that are known to have had raw ROM-address references.\n' +
-				'Resolve or explicitly clear these confirmed relocation hazards before trusting the hack build.\n' +
-				preview,
-		};
+	if (missing.length > 0 || moved.length > 0) {
+		const lines = [];
+		if (missing.length > 0) {
+			lines.push(`Missing symbols: ${missing.length}`);
+			for (const label of missing.slice(0, 20)) lines.push(`  MISSING ${label}`);
+			if (missing.length > 20) lines.push(`  ... and ${missing.length - 20} more`);
+		}
+		if (moved.length > 0) {
+			lines.push(`Moved non-track symbols: ${moved.length}`);
+			for (const [label, oldAddr, newAddr] of moved.slice(0, 20)) {
+				lines.push(`  MOVED ${label}: 0x${oldAddr.toString(16).toUpperCase().padStart(6, '0')} -> 0x${newAddr.toString(16).toUpperCase().padStart(6, '0')}`);
+			}
+			if (moved.length > 20) lines.push(`  ... and ${moved.length - 20} more`);
+		}
+		return { ok: false, message: lines.join('\n') };
 	}
 
 	return { ok: true, moved: [] };
@@ -907,9 +940,14 @@ function main() {
 
   console.log(`      Randomizer succeeded (${randElapsed.toFixed(1)}s).`);
 
-	const postRandomizerPadBytes = padGeneratedTrackBlockToBaseline(wsDir, { includeGeneratedMinimapData: false });
+	const includeGeneratedMinimapData = false;
+	const postRandomizerPadBytes = padGeneratedTrackBlockToBaseline(wsDir, { includeGeneratedMinimapData });
 	if (postRandomizerPadBytes > 0) {
 		console.log(`      Re-padded generated track block by ${postRandomizerPadBytes} byte(s) after randomization.`);
+	}
+	const postMinimapPadBytes = padGeneratedTrackBlockToBaseline(wsDir, { includeGeneratedMinimapData });
+	if (postMinimapPadBytes > 0) {
+		console.log(`      Re-padded generated track block by ${postMinimapPadBytes} byte(s) after minimap preparation.`);
 	}
 
   // Build (verification step — randomize.js already calls build.bat internally)
@@ -976,8 +1014,14 @@ function main() {
 			process.exit(1);
 		}
 		if (fs.existsSync(wsRom)) {
+			const sizeAfterMinimapPatch = fs.statSync(wsRom).size;
+			const romEndPatch = patchWorkspaceRomHeaderEnd(wsRom);
+			if (romEndPatch.changed) {
+				console.log(`      ROM end header patched for expanded workspace ROM: $${romEndPatch.oldRomEnd.toString(16).toUpperCase().padStart(8, '0')} -> $${romEndPatch.newRomEnd.toString(16).toUpperCase().padStart(8, '0')}`);
+			}
 			const checksum = patchRomChecksum(wsRom);
 			console.log(`      Header checksum ${checksum.changed ? 'patched' : 'verified'} after minimap patch: $${checksum.oldChecksum.toString(16).toUpperCase().padStart(4, '0')} -> $${checksum.newChecksum.toString(16).toUpperCase().padStart(4, '0')}`);
+			console.log(`      Expanded workspace ROM size: ${sizeAfterMinimapPatch.toLocaleString()} bytes (${Math.floor(sizeAfterMinimapPatch / 1024)} KB)`);
 		}
 	}
 
