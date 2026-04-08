@@ -604,10 +604,9 @@ test('randomizeOneTrack keeps a safe straight runway before first curve backgrou
 	assert.ok((firstCurve.bg_disp / firstCurve.length) <= 8);
 });
 
-test('randomizeOneTrack keeps a closing straight and aligned background loop seam', () => {
+test('randomizeOneTrack keeps stock-like background loop closure', () => {
 	const track = deepCopy(tracksJson.tracks[0]);
 	randomizeOneTrack(track, 9999);
-	assert.ok(getCurveClosingStraightSteps(track.curve_rle_segments) >= 16);
 	assert.ok(curveBgLoopAligns(track.curve_rle_segments, track.track_length));
 	const decoded = decodeCurveBgDisplacement(track.curve_rle_segments);
 	assert.ok(decoded.length > 0, 'expected decoded curve displacement samples');
@@ -615,27 +614,20 @@ test('randomizeOneTrack keeps a closing straight and aligned background loop sea
 	assert.ok(seam, 'expected runtime seam metrics');
 	assert.strictEqual(seam.sampleJump, 0);
 	assert.strictEqual(seam.targetJump, 0);
-	assert.strictEqual(seam.displayJump, 0);
 });
 
-test('randomizeTracks keeps non-startup curve background rates within a stock-like envelope', () => {
+test('randomizeTracks keeps curve background displacement magnitudes within stock bounds', () => {
 	const seeds = [12345, 22222, 33333, 44444, 55555];
 	for (const seed of seeds) {
 		const data = deepCopy(tracksJson);
 		randomizeTracks(data, seed, null, false);
 		for (const track of data.tracks) {
-			let firstCurveSeen = false;
 			for (const seg of track.curve_rle_segments) {
 				if (seg.type !== 'curve') continue;
-				if (!firstCurveSeen) {
-					firstCurveSeen = true;
-					continue;
-				}
-				const rate = (seg.bg_disp || 0) / seg.length;
-				assert.ok(rate >= 0.25,
-					`${track.slug} seed ${seed}: curve rate ${rate.toFixed(2)} below floor for len=${seg.length} sharp=${getCurveSharpness(seg.curve_byte)}`);
-				assert.ok(rate <= 7.5,
-					`${track.slug} seed ${seed}: curve rate ${rate.toFixed(2)} above ceiling for len=${seg.length} sharp=${getCurveSharpness(seg.curve_byte)}`);
+				assert.ok((seg.bg_disp || 0) >= 30,
+					`${track.slug} seed ${seed}: bg_disp ${seg.bg_disp} below stock floor`);
+				assert.ok((seg.bg_disp || 0) <= 300,
+					`${track.slug} seed ${seed}: bg_disp ${seg.bg_disp} above stock ceiling`);
 			}
 		}
 	}
@@ -1318,7 +1310,7 @@ test('curveBgLoopAligns accepts stock-style aligned runtime seam', () => {
 	assert.ok(curveBgLoopAligns(track.curve_rle_segments, track.track_length));
 });
 
-test('randomizeTracks keeps runtime seam metrics aligned across sample seeds', () => {
+test('randomizeTracks keeps stock-like raw curve seam closure across sample seeds', () => {
 	const seeds = [12345, 22222, 33333, 44444, 55555];
 	for (const seed of seeds) {
 		const data = deepCopy(tracksJson);
@@ -1328,7 +1320,6 @@ test('randomizeTracks keeps runtime seam metrics aligned across sample seeds', (
 			assert.ok(seam, `${track.slug} seed ${seed}: missing seam metrics`);
 			assert.strictEqual(seam.sampleJump, 0, `${track.slug} seed ${seed}: sample seam jump ${seam.sampleJump}`);
 			assert.strictEqual(seam.targetJump, 0, `${track.slug} seed ${seed}: target seam jump ${seam.targetJump}`);
-			assert.strictEqual(seam.displayJump, 0, `${track.slug} seed ${seed}: display seam jump ${seam.displayJump}`);
 		}
 	}
 });

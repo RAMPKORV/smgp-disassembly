@@ -218,41 +218,13 @@ function clamp(value, lo, hi) {
 
 function computeCurveBgDispBounds(segLen = 0, sharpness = SHARPNESS_MIN, options = {}) {
 	const clampedLength = Math.max(4, segLen | 0);
-	const clampedSharpness = clamp(sharpness, SHARPNESS_MIN, SHARPNESS_MAX);
-	let minRate;
-	if (clampedSharpness <= 8) minRate = 0.45;
-	else if (clampedSharpness <= 16) minRate = 0.5;
-	else if (clampedSharpness <= 24) minRate = 0.55;
-	else if (clampedSharpness <= 32) minRate = 0.65;
-	else minRate = 0.8;
-	if (clampedLength >= 96) minRate -= 0.45;
-	else if (clampedLength >= 64) minRate -= 0.3;
-	else if (clampedLength >= 40) minRate -= 0.15;
-	else if (clampedLength <= 12) minRate += 0.05;
-
-	let maxRate;
-	if (clampedSharpness <= 8) maxRate = 3.4;
-	else if (clampedSharpness <= 16) maxRate = 4.2;
-	else if (clampedSharpness <= 24) maxRate = 5.0;
-	else if (clampedSharpness <= 32) maxRate = 5.8;
-	else maxRate = 6.6;
-	if (clampedLength <= 8) maxRate += 1.0;
-	else if (clampedLength <= 12) maxRate += 0.8;
-	else if (clampedLength <= 16) maxRate += 0.6;
-	else if (clampedLength <= 24) maxRate += 0.4;
-	else if (clampedLength <= 40) maxRate += 0.2;
-	else if (clampedLength >= 112) maxRate -= 1.8;
-	else if (clampedLength >= 80) maxRate -= 1.4;
-	else if (clampedLength >= 64) maxRate -= 1.0;
-	else if (clampedLength >= 48) maxRate -= 0.4;
+	const minBgDisp = BG_DISP_MIN;
+	let maxBgDisp = BG_DISP_MAX;
 	if (options.startupCurve === true) {
-		maxRate = Math.min(maxRate, CURVE_SAFE_FIRST_CURVE_MAX_RATE);
+		maxBgDisp = Math.min(maxBgDisp, Math.max(BG_DISP_MIN, clampedLength * CURVE_SAFE_FIRST_CURVE_MAX_RATE));
 	}
-	minRate = clamp(minRate, 0.25, 7.0);
-	maxRate = clamp(maxRate, 1.6, 7.5);
-	if (minRate > maxRate) minRate = maxRate;
-	const minBgDisp = clamp(Math.ceil(clampedLength * minRate), BG_DISP_MIN, BG_DISP_MAX);
-	const maxBgDisp = clamp(Math.floor(clampedLength * maxRate), minBgDisp, BG_DISP_MAX);
+	const minRate = minBgDisp / clampedLength;
+	const maxRate = maxBgDisp / clampedLength;
 	return {
 		minRate,
 		maxRate,
@@ -265,19 +237,78 @@ function _pickBgDisp(rng, direction, segLen = 0, sharpness = SHARPNESS_MIN) {
 	const clampedLength = Math.max(4, segLen | 0);
 	const clampedSharpness = clamp(sharpness, SHARPNESS_MIN, SHARPNESS_MAX);
 	const bounds = computeCurveBgDispBounds(clampedLength, clampedSharpness);
-	let targetRate;
-	if (clampedSharpness <= 8) targetRate = 2.2;
-	else if (clampedSharpness <= 16) targetRate = 2.8;
-	else if (clampedSharpness <= 24) targetRate = 3.4;
-	else if (clampedSharpness <= 32) targetRate = 4.2;
-	else targetRate = 5.1;
-	if (clampedLength <= 12) targetRate += clampedSharpness >= 25 ? 0.2 : -0.2;
-	else if (clampedLength >= 80) targetRate -= 0.6;
-	else if (clampedLength >= 48) targetRate -= 0.2;
-	const jitter = rng.randInt(-8, 8) / 10;
-	const rate = clamp(targetRate + jitter, bounds.minRate, bounds.maxRate);
-	const base = Math.round(clampedLength * rate);
+	let base = Math.round(35 + (1.6 * clampedLength) + (3.5 * clampedSharpness) - (0.027 * clampedLength * clampedSharpness));
+	base += rng.randInt(-18, 18);
+	if (base <= 42) return bounds.minBgDisp;
+	if (base >= 286) return bounds.maxBgDisp;
 	return clamp(base, bounds.minBgDisp, bounds.maxBgDisp);
+}
+
+function buildCurveBgContext(curveSegments) {
+	const body = buildCurveBodySegments(curveSegments);
+	const curveEntries = [];
+	let step = 0;
+	let previousCurve = null;
+	for (let index = 0; index < body.length; index++) {
+		const seg = body[index];
+		if (seg.type === 'curve') {
+			const entry = {
+				index,
+				seg,
+				length: seg.length,
+				sharpness: getCurveSharpness(seg.curve_byte),
+				direction: getCurveDirection(seg.curve_byte),
+				startStep: step,
+				endStep: step + seg.length,
+				prev: previousCurve,
+				prevGap: previousCurve ? Math.max(0, step - previousCurve.endStep) : Infinity,
+				next: null,
+				nextGap: Infinity,
+			};
+			if (previousCurve) {
+				previousCurve.next = entry;
+				previousCurve.nextGap = entry.startStep - previousCurve.endStep;
+			}
+			curveEntries.push(entry);
+			previousCurve = entry;
+		}
+		step += seg.length;
+	}
+	return curveEntries;
+}
+
+function estimateStockLikeCurveBgDisp(entry, options = {}) {
+	const length = Math.max(4, entry?.length | 0);
+	const sharpness = clamp(entry?.sharpness || SHARPNESS_MIN, SHARPNESS_MIN, SHARPNESS_MAX);
+	const startupCurve = options.startupCurve === true;
+	const bounds = computeCurveBgDispBounds(length, sharpness, { startupCurve });
+	let base = 35 + (1.6 * length) + (3.5 * sharpness) - (0.027 * length * sharpness);
+	const prev = entry?.prev || null;
+	const next = entry?.next || null;
+	const prevGap = Number.isFinite(entry?.prevGap) ? entry.prevGap : Infinity;
+	const nextGap = Number.isFinite(entry?.nextGap) ? entry.nextGap : Infinity;
+	const prevOpposite = !!prev && prev.direction !== entry.direction && prevGap <= 24;
+	const nextOpposite = !!next && next.direction !== entry.direction && nextGap <= 24;
+	const prevSame = !!prev && prev.direction === entry.direction && prevGap <= 12;
+	const nextSame = !!next && next.direction === entry.direction && nextGap <= 12;
+
+	if (!prev) base += 12;
+	if (prevOpposite) base += 16;
+	if (nextOpposite) base += 16;
+	if (prevSame) base -= prevGap <= 8 ? 45 : 30;
+	if (nextSame) base -= nextGap <= 8 ? 22 : 12;
+
+	let bgDisp = clamp(Math.round(base), bounds.minBgDisp, bounds.maxBgDisp);
+	if (prevSame && prevGap <= 8) {
+		bgDisp = bounds.minBgDisp;
+	} else if (bgDisp <= 42) {
+		bgDisp = bounds.minBgDisp;
+	} else if ((prevOpposite || nextOpposite) && bgDisp >= 250) {
+		bgDisp = bounds.maxBgDisp;
+	} else if (bgDisp >= 286) {
+		bgDisp = bounds.maxBgDisp;
+	}
+	return bgDisp;
 }
 
 function encodeDirectedByte(direction, sharpness) {
@@ -1106,26 +1137,22 @@ function decodeCurveBgDisplacement(curveSegments) {
 function curveBgLoopAligns(curveSegments, trackLength = 0) {
 	const body = buildCurveBodySegments(curveSegments);
 	if (body.length === 0) return true;
-	const first = body[0];
-	const last = body[body.length - 1];
-	if (!first || !last || first.type !== 'straight' || last.type !== 'straight') return false;
 	const decoded = decodeCurveBgDisplacement(body);
 	if (decoded.length === 0) return true;
-	if (!(Number.isInteger(trackLength) && trackLength > 0)) {
-		return decoded[0] === decoded[decoded.length - 1];
-	}
-	const metrics = getCurveRuntimeSeamMetrics(body, trackLength);
-	if (!metrics) return true;
-	return metrics.displayJump === 0
-		&& metrics.targetJump === 0
-		&& metrics.sampleJump === 0;
+	return computeNetBgDisp(body) === 0
+		&& decoded[0] === decoded[decoded.length - 1];
 }
 
 function normalizeCurveBgDisplacement(curveSegments, options = {}) {
 	const adjusted = cloneSegments(curveSegments);
 	const protectStartupCurve = options.protectStartupCurve === true;
-	const trackLength = Number.isInteger(options.trackLength) ? options.trackLength : 0;
 	const protectedCurve = protectStartupCurve ? getFirstCurveSegment(adjusted) : null;
+	const context = buildCurveBgContext(adjusted);
+	for (const entry of context) {
+		const seg = entry.seg;
+		const startupCurve = protectedCurve && seg === protectedCurve;
+		seg.bg_disp = estimateStockLikeCurveBgDisp(entry, { startupCurve });
+	}
 	for (const seg of adjusted) {
 		if (seg.type !== 'curve') continue;
 		const bounds = computeCurveBgDispBounds(seg.length, getCurveSharpness(seg.curve_byte));
@@ -1160,38 +1187,6 @@ function normalizeCurveBgDisplacement(curveSegments, options = {}) {
 		delta -= (next - current) * getCurveBgRuntimeDirection(protectedCurve.curve_byte);
 		protectedCurve.bg_disp = next;
 	}
-
-	if (trackLength > 0) {
-		let bestSegments = adjusted;
-		let bestScore = buildCurveRuntimeSeamScore(adjusted, trackLength, 0);
-		for (let pass = 0; pass < 4; pass++) {
-			let improved = false;
-			for (let i = bestSegments.length - 1; i >= 0; i--) {
-				const seg = bestSegments[i];
-				if (seg.type !== 'curve') continue;
-				if (protectedCurve && seg === protectedCurve) continue;
-				const sharpness = getCurveSharpness(seg.curve_byte);
-				const bounds = computeCurveBgDispBounds(seg.length, sharpness);
-				const current = clamp(seg.bg_disp || BG_DISP_MIN, bounds.minBgDisp, bounds.maxBgDisp);
-				for (let deltaAdjust = -12; deltaAdjust <= 12; deltaAdjust++) {
-					if (deltaAdjust === 0) continue;
-					const next = clamp(current + deltaAdjust, bounds.minBgDisp, bounds.maxBgDisp);
-					if (next === current) continue;
-					const trial = cloneSegments(bestSegments);
-					trial[i].bg_disp = next;
-					const score = buildCurveRuntimeSeamScore(trial, trackLength, Math.abs(next - current));
-					if (compareCurveRuntimeSeamScores(score, bestScore) < 0) {
-						bestSegments = trial;
-						bestScore = score;
-						improved = true;
-					}
-				}
-			}
-			if (!improved) break;
-		}
-		return bestSegments;
-	}
-
 	return adjusted;
 }
 
