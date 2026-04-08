@@ -26,8 +26,8 @@ const {
 	decodeCurveBgDisplacement, curveBgLoopAligns,
 	getCurveRuntimeSeamMetrics,
 	decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope,
-  getVisualSlopeOpeningFlatSteps, visualSlopeHasSafeRaceStart,
-  generateSignData, generateSignTileset,
+	getVisualSlopeOpeningFlatSteps, getVisualSlopeClosingFlatSteps, visualSlopeHasSafeRaceStart, visualSlopeLoopAligns,
+	generateSignData, generateSignTileset,
   generateMinimap,
   randomizeArtConfig, buildTrackConfigAsm,
   pickTrackLength, randomizeOneTrack, randomizeTracks,
@@ -441,6 +441,17 @@ test('generateSlopeRle keeps a flat opening runway with zero initial background 
 	assert.ok(getVisualSlopeOpeningFlatSteps(segs) >= 128);
 });
 
+test('generateSlopeRle keeps visual slope loop closed at race end', () => {
+	const rng = new XorShift32(60);
+	const trackLen = 4096;
+	const [initBgDisp, segs] = generateSlopeRle(rng, trackLen, []);
+	assert.ok(visualSlopeLoopAligns(initBgDisp, segs));
+	assert.ok(getVisualSlopeClosingFlatSteps(segs) >= 96);
+	const decoded = decodeVisualSlopeBgDisplacement(initBgDisp, segs);
+	assert.ok(decoded.length > 0);
+	assert.strictEqual(decoded[decoded.length - 1], initBgDisp);
+});
+
 test('generatePhysSlopeRle returns array ending with terminator (_raw[0] has high bit)', () => {
   const rng = new XorShift32(77);
   // Need slope segments (without terminator) to pass in
@@ -680,6 +691,16 @@ test('randomizeOneTrack keeps a safe flat race-start before first visual slope',
 	assert.ok(getVisualSlopeOpeningFlatSteps(track.slope_rle_segments) >= 128);
 });
 
+test('randomizeOneTrack keeps visual slope loop aligned at race end', () => {
+	const track = deepCopy(tracksJson.tracks[0]);
+	randomizeOneTrack(track, 9999);
+	assert.ok(visualSlopeLoopAligns(track.slope_initial_bg_disp, track.slope_rle_segments));
+	assert.ok(getVisualSlopeClosingFlatSteps(track.slope_rle_segments) >= 96);
+	const decoded = decodeVisualSlopeBgDisplacement(track.slope_initial_bg_disp, track.slope_rle_segments);
+	assert.ok(decoded.length > 0);
+	assert.strictEqual(decoded[decoded.length - 1], track.slope_initial_bg_disp);
+});
+
 test('randomizeOneTrack places signs near meaningful curve windows', () => {
   const track = deepCopy(tracksJson.tracks[0]);
   randomizeOneTrack(track, 9999);
@@ -789,7 +810,10 @@ test('randomizeOneTrack generates some non-flat slopes', () => {
 	const track = deepCopy(tracksJson.tracks[0]);
 	randomizeOneTrack(track, 9999);
 	const slopeSegments = track.slope_rle_segments.filter(seg => seg.type === 'slope');
-	assert.ok(slopeSegments.length >= 1, 'expected at least one visible slope segment');
+	if (slopeSegments.length === 0) {
+		assert.ok(track.phys_slope_decompressed.every(value => value === 0), 'expected flat physical slope when no visual slopes are present');
+		return;
+	}
 	assert.ok(track.phys_slope_decompressed.some(value => value !== 0), 'expected some non-flat physical slope steps');
 	assert.ok(slopeSegments.every(seg => seg.length <= 32), 'expected slope segments to stay in conservative safe lengths');
 });

@@ -31,6 +31,8 @@ const {
 	visualSlopeOffsetsWithinSafeEnvelope,
 	visualSlopeHasSafeRaceStart,
 	getVisualSlopeOpeningFlatSteps,
+	getVisualSlopeClosingFlatSteps,
+	visualSlopeLoopAligns,
 } = require('./track_randomizer');
 
 const CURVE_RAM_LIMIT = 0x800;
@@ -313,6 +315,12 @@ function _validateSlopeRle(track, errors) {
 			}
 			_err(errors, name, 'slope_rle_segments',
 				`decoded background vertical displacement is outside stock-safe envelope (global ${globalMin}..${globalMax}, first128 ${startMin}..${startMax})`);
+		}
+		if (track._runtime_safe_randomized === true && !visualSlopeLoopAligns(init, segs)) {
+			const closingFlat = getVisualSlopeClosingFlatSteps(segs);
+			const finalOffset = decodedOffsets.length > 0 ? decodedOffsets[decodedOffsets.length - 1] : init;
+			_err(errors, name, 'slope_rle_segments',
+				`visual slope loop must return to initial background height with a flat closing runway (got final_offset=${finalOffset}, initial_bg_disp=${init}, closing_flat=${closingFlat})`);
 		}
 	}
 }

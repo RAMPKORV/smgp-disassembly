@@ -141,6 +141,7 @@ const VISUAL_SLOPE_SAFE_START_WINDOW_STEPS = 128;
 const VISUAL_SLOPE_SAFE_START_MIN = -24;
 const VISUAL_SLOPE_SAFE_START_MAX = 5;
 const VISUAL_SLOPE_SAFE_OPENING_FLAT_STEPS = 128;
+const VISUAL_SLOPE_SAFE_CLOSING_FLAT_STEPS = 96;
 const VISUAL_SLOPE_MAX_EVENTS = 1;
 
 const PHYS_FLAT =  0;
@@ -1542,14 +1543,20 @@ function normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, events) {
 
 function ensureSlopeEvents(trackLength, initialBgDisp, events, rng) {
 	let normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, events);
-	if (normalized && normalized.some(seg => seg.type === 'slope')) return normalized;
+	if (normalized && normalized.some(seg => seg.type === 'slope') && visualSlopeLoopAligns(initialBgDisp, normalized)) return normalized;
+	const closure = buildSlopeClosureEvents(trackLength, rng);
+	if (closure.length > 0) {
+		normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, closure);
+		if (normalized && normalized.some(seg => seg.type === 'slope') && visualSlopeLoopAligns(initialBgDisp, normalized)) return normalized;
+	}
 	const fallback = buildFallbackSlopeEvents(rng, trackLength);
 	if (fallback.length === 0) return normalized;
 	normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, fallback);
-	if (normalized && normalized.some(seg => seg.type === 'slope')) return normalized;
+	if (normalized && normalized.some(seg => seg.type === 'slope') && visualSlopeLoopAligns(initialBgDisp, normalized)) return normalized;
 	const softerFallback = fallback.map(event => ({ ...event, sharpness: 6, length: Math.min(event.length, 16), bgVertDisp: BG_VERT_DISP_SOFT }));
 	normalized = normalizeSlopeEventsToEnvelope(trackLength, initialBgDisp, softerFallback);
-	return normalized;
+	if (normalized && normalized.some(seg => seg.type === 'slope') && visualSlopeLoopAligns(initialBgDisp, normalized)) return normalized;
+	return buildFlatSlopeRle(trackLength)[1];
 }
 
 function generateCurveRle(rng, trackLength, templateTrack = null) {
@@ -1712,6 +1719,55 @@ function getVisualSlopeOpeningFlatSteps(slopeSegments) {
 		if (seg.type === 'slope') return 0;
 	}
 	return 0;
+}
+
+function getVisualSlopeClosingFlatSteps(slopeSegments) {
+	for (let i = (slopeSegments || []).length - 1; i >= 0; i--) {
+		const seg = slopeSegments[i];
+		if (!seg || seg.type === 'terminator') continue;
+		if (seg.type === 'flat') return seg.length;
+		if (seg.type === 'slope') return 0;
+	}
+	return 0;
+}
+
+function visualSlopeLoopAligns(initialBgDisp, slopeSegments) {
+	if (!Array.isArray(slopeSegments) || slopeSegments.length === 0) return true;
+	const decoded = decodeVisualSlopeBgDisplacement(initialBgDisp, slopeSegments);
+	if (decoded.length === 0) return true;
+	return decoded[decoded.length - 1] === (initialBgDisp | 0)
+		&& getVisualSlopeClosingFlatSteps(slopeSegments) >= VISUAL_SLOPE_SAFE_CLOSING_FLAT_STEPS;
+}
+
+function buildSlopeClosureEvents(trackLength, rng) {
+	const targetSteps = Math.floor(trackLength / 4);
+	const openingFlat = Math.min(VISUAL_SLOPE_SAFE_OPENING_FLAT_STEPS, Math.max(0, targetSteps - 8));
+	const closingFlat = Math.min(VISUAL_SLOPE_SAFE_CLOSING_FLAT_STEPS, Math.max(0, targetSteps - openingFlat - 8));
+	const usableSteps = targetSteps - openingFlat - closingFlat;
+	if (usableSteps < 64) return [];
+	const firstLength = clamp(rng.randInt(20, 32), 16, Math.max(16, Math.floor((usableSteps - 16) / 2)));
+	const secondLength = clamp(firstLength + rng.randInt(-4, 4), 16, Math.max(16, usableSteps - firstLength - 16));
+	const gap = usableSteps - firstLength - secondLength;
+	if (gap < 16) return [];
+	const direction = rng.choice([-1, 1]);
+	const sharpness = rng.randInt(12, 20);
+	const bgVertDisp = rng.choice(BG_VERT_DISP_VALUES);
+	return [
+		{
+			startStep: openingFlat,
+			length: firstLength,
+			direction,
+			sharpness,
+			bgVertDisp,
+		},
+		{
+			startStep: openingFlat + firstLength + gap,
+			length: secondLength,
+			direction: -direction,
+			sharpness,
+			bgVertDisp,
+		},
+	];
 }
 
 function visualSlopeHasSafeRaceStart(initialBgDisp, slopeSegments) {
@@ -2385,8 +2441,8 @@ module.exports = {
 	decodeCurveBgDisplacement, curveBgLoopAligns,
 	getCurveRuntimeSeamMetrics,
 	decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope,
-  getVisualSlopeOpeningFlatSteps, visualSlopeHasSafeRaceStart,
-  generateSignData, generateSignTileset,
+	getVisualSlopeOpeningFlatSteps, getVisualSlopeClosingFlatSteps, visualSlopeHasSafeRaceStart, visualSlopeLoopAligns,
+	generateSignData, generateSignTileset,
   generateMinimap,
   randomizeArtConfig, buildTrackConfigAsm, injectArtConfig,
   pickTrackLength, randomizeOneTrack, randomizeTracks,
