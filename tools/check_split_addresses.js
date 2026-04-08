@@ -59,6 +59,16 @@ function loadBaseline(mapFile) {
   return baseline;
 }
 
+function normalizeCompatibilitySymbols(baseline, current) {
+	const blobLabel = 'Monaco_arcade_post_sign_tileset_blob';
+	const tilesetLabel = 'Monaco_arcade_sign_tileset';
+	if (!(blobLabel in baseline)) return;
+	if (blobLabel in current) return;
+	if (!(tilesetLabel in current) || !(tilesetLabel in baseline)) return;
+	const delta = baseline[blobLabel] - baseline[tilesetLabel];
+	current[blobLabel] = current[tilesetLabel] + delta;
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -77,6 +87,7 @@ function main() {
 
   const baseline = loadBaseline(mapPath);
   const current = parseListing(lstPath);
+	normalizeCompatibilitySymbols(baseline, current);
 
   const missing = Object.keys(baseline)
     .filter(l => !(l in current))

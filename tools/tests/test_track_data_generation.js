@@ -7,7 +7,7 @@
 
 const assert = require('assert');
 
-const { buildGeneratedTrackBlock, TRACK_LAYOUT, FILE_SPECS } = require('../generate_track_data_asm.js');
+const { buildGeneratedTrackBlock, TRACK_LAYOUT, FILE_SPECS, MONACO_ARCADE_TRAILING_PAD_BYTES } = require('../generate_track_data_asm.js');
 
 let passed = 0;
 let failed = 0;
@@ -37,6 +37,7 @@ test('generated block includes every declared track prefix/file combination', ()
 
 test('generated block preserves Monaco arcade trailing blob', () => {
   assert.ok(content.includes('Monaco_arcade_post_sign_tileset_blob:'), 'missing Monaco arcade trailing blob label');
+  assert.ok(content.includes(`\tdcb.b\t${MONACO_ARCADE_TRAILING_PAD_BYTES}, $00`), 'missing Monaco arcade compatibility pad');
   assert.ok(content.includes('data/tracks/monaco_arcade/post_sign_tileset_blob.bin'), 'missing Monaco arcade trailing blob incbin');
 });
 

@@ -70,7 +70,7 @@ const {
 
 const { buildGeneratedMinimapAssetsAsm } = require('../lib/generated_minimap_assets');
 const { validateAllTracks } = require('../minimap_validate');
-const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE } = require('../generate_track_data_asm');
+const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE, MONACO_ARCADE_TRAILING_PAD_BYTES } = require('../generate_track_data_asm');
 const { writeAlignedBlock } = require('../patch_all_track_minimap_assets_rom');
 const { readJson } = require('../lib/json');
 const { REPO_ROOT } = require('../lib/rom');
@@ -1106,7 +1106,7 @@ test('generated track block preserves canonical track block size using fallback 
   const baselineFullSize = (blob - start) + blobSize;
   const asm = buildGeneratedTrackBlock({
     includeGeneratedMinimapData: false,
-    preBlobPadBytes: 2399,
+    preBlobPadBytes: 0,
     padBytes: 0,
   });
   let total = 0;

@@ -17,6 +17,7 @@ const OUTPUT_ASM = path.join(REPO_ROOT, 'src', 'road_and_track_data_generated.as
 
 const TRACK_BLOCK_START = 'San_Marino_curve_data:';
 const TRACK_BLOCK_END = 'Monaco_arcade_post_sign_tileset_blob:';
+const MONACO_ARCADE_TRAILING_PAD_BYTES = 2399;
 
 const TRACK_LAYOUT = [
   { slug: 'san_marino', prefix: 'San_Marino' },
@@ -79,6 +80,7 @@ function buildGeneratedTrackBlock(options = {}) {
 		lines.push(`\tdcb.b\t${preBlobPadBytes}, $00`);
 	}
 	lines.push('Monaco_arcade_post_sign_tileset_blob:');
+	lines.push(`\tdcb.b\t${MONACO_ARCADE_TRAILING_PAD_BYTES}, $00`);
 	lines.push('\tincbin\t"data/tracks/monaco_arcade/post_sign_tileset_blob.bin"');
 	if (padBytes > 0) {
 		lines.push(`\tdcb.b\t${padBytes}, $00`);
@@ -114,6 +116,7 @@ module.exports = {
   TRACK_LAYOUT,
   FILE_SPECS,
   GENERATED_MINIMAP_DATA_FILE,
+  MONACO_ARCADE_TRAILING_PAD_BYTES,
   buildGeneratedMinimapIncludeBlock,
   buildGeneratedTrackBlock,
 };

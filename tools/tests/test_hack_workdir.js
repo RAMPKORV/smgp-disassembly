@@ -258,6 +258,18 @@ test('copyBuildFiles reports non-zero file count', () => {
   assert.ok(n > 0, `expected >0 files, got ${n}`);
 });
 
+test('master randomize CLI defaults to workspace-safe help path', () => {
+  const result = spawnSync('node', [path.join(REPO_ROOT, 'tools', 'randomize.js'), 'SMGP-1-01-12345', '--dry-run'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8',
+    timeout: 120000,
+  });
+  assert.strictEqual(result.status, 0, `randomize.js exited ${result.status}\n${result.stdout}\n${result.stderr}`);
+  const output = (result.stdout || '') + (result.stderr || '');
+  assert.ok(output.includes('Workspace :'), 'expected workspace-safe output banner');
+  assert.ok(output.includes('DRY RUN'), 'expected dry-run workspace message');
+});
+
 test('workspace contains smgp.asm', () => {
   assert.ok(fs.existsSync(path.join(tmpWs, 'smgp.asm')));
 });
