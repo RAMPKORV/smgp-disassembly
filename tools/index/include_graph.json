@@ -1,0 +1,619 @@
+{
+  "_meta": {
+    "generated": "2026-03-09T14:28:31.232Z",
+    "root": "smgp.asm",
+    "total_files": 43,
+    "total_edges": 42,
+    "kind_counts": {
+      "hub": 2,
+      "support": 1,
+      "constants": 4,
+      "code": 13,
+      "data": 23
+    },
+    "max_depth": 2
+  },
+  "nodes": [
+    {
+      "file": "smgp.asm",
+      "kind": "hub",
+      "depth": 0,
+      "include_order": 0,
+      "included_by": null,
+      "includes": [
+        "macros.asm",
+        "constants.asm",
+        "header.asm",
+        "init.asm",
+        "src/core.asm",
+        "src/menus.asm",
+        "src/race.asm",
+        "src/driving.asm",
+        "src/rendering.asm",
+        "src/race_support.asm",
+        "src/ai.asm",
+        "src/audio_effects.asm",
+        "src/objects.asm",
+        "src/endgame.asm",
+        "src/gameplay.asm"
+      ]
+    },
+    {
+      "file": "macros.asm",
+      "kind": "support",
+      "depth": 1,
+      "include_order": 1,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "constants.asm",
+      "kind": "hub",
+      "depth": 1,
+      "include_order": 2,
+      "included_by": "smgp.asm",
+      "includes": [
+        "hw_constants.asm",
+        "ram_addresses.asm",
+        "sound_constants.asm",
+        "game_constants.asm"
+      ]
+    },
+    {
+      "file": "hw_constants.asm",
+      "kind": "constants",
+      "depth": 2,
+      "include_order": 3,
+      "included_by": "constants.asm",
+      "includes": []
+    },
+    {
+      "file": "ram_addresses.asm",
+      "kind": "constants",
+      "depth": 2,
+      "include_order": 4,
+      "included_by": "constants.asm",
+      "includes": []
+    },
+    {
+      "file": "sound_constants.asm",
+      "kind": "constants",
+      "depth": 2,
+      "include_order": 5,
+      "included_by": "constants.asm",
+      "includes": []
+    },
+    {
+      "file": "game_constants.asm",
+      "kind": "constants",
+      "depth": 2,
+      "include_order": 6,
+      "included_by": "constants.asm",
+      "includes": []
+    },
+    {
+      "file": "header.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 7,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "init.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 8,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/core.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 9,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/menus.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 10,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/race.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 11,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/driving.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 12,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/rendering.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 13,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/race_support.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 14,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/ai.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 15,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/audio_effects.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 16,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/objects.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 17,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/endgame.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 18,
+      "included_by": "smgp.asm",
+      "includes": []
+    },
+    {
+      "file": "src/gameplay.asm",
+      "kind": "code",
+      "depth": 1,
+      "include_order": 19,
+      "included_by": "smgp.asm",
+      "includes": [
+        "src/endgame_game_over_data.asm",
+        "src/endgame_result_data.asm",
+        "src/endgame_credits_data.asm",
+        "src/endgame_data.asm",
+        "src/track_config_data.asm",
+        "src/sprite_frame_data.asm",
+        "src/result_screen_lists.asm",
+        "src/result_sprite_anim_data.asm",
+        "src/result_screen_assets.asm",
+        "src/result_screen_tiles_b.asm",
+        "src/driver_standings_data.asm",
+        "src/car_spec_text_data.asm",
+        "src/car_select_metadata.asm",
+        "src/driver_portrait_tilemaps.asm",
+        "src/driver_portrait_tiles.asm",
+        "src/team_messages_data.asm",
+        "src/crash_gauge_data.asm",
+        "src/car_sprite_blobs.asm",
+        "src/hud_and_minimap_data.asm",
+        "src/screen_art_data.asm",
+        "src/track_bg_data.asm",
+        "src/road_and_track_data.asm",
+        "src/audio_engine.asm"
+      ]
+    },
+    {
+      "file": "src/endgame_game_over_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 20,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/endgame_result_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 21,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/endgame_credits_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 22,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/endgame_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 23,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/track_config_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 24,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/sprite_frame_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 25,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/result_screen_lists.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 26,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/result_sprite_anim_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 27,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/result_screen_assets.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 28,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/result_screen_tiles_b.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 29,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/driver_standings_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 30,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/car_spec_text_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 31,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/car_select_metadata.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 32,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/driver_portrait_tilemaps.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 33,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/driver_portrait_tiles.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 34,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/team_messages_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 35,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/crash_gauge_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 36,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/car_sprite_blobs.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 37,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/hud_and_minimap_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 38,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/screen_art_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 39,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/track_bg_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 40,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/road_and_track_data.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 41,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    },
+    {
+      "file": "src/audio_engine.asm",
+      "kind": "data",
+      "depth": 2,
+      "include_order": 42,
+      "included_by": "src/gameplay.asm",
+      "includes": []
+    }
+  ],
+  "edges": [
+    {
+      "from": "smgp.asm",
+      "to": "macros.asm",
+      "line": 1
+    },
+    {
+      "from": "smgp.asm",
+      "to": "constants.asm",
+      "line": 2
+    },
+    {
+      "from": "constants.asm",
+      "to": "hw_constants.asm",
+      "line": 1
+    },
+    {
+      "from": "constants.asm",
+      "to": "ram_addresses.asm",
+      "line": 2
+    },
+    {
+      "from": "constants.asm",
+      "to": "sound_constants.asm",
+      "line": 3
+    },
+    {
+      "from": "constants.asm",
+      "to": "game_constants.asm",
+      "line": 4
+    },
+    {
+      "from": "smgp.asm",
+      "to": "header.asm",
+      "line": 3
+    },
+    {
+      "from": "smgp.asm",
+      "to": "init.asm",
+      "line": 4
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/core.asm",
+      "line": 5
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/menus.asm",
+      "line": 6
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/race.asm",
+      "line": 7
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/driving.asm",
+      "line": 8
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/rendering.asm",
+      "line": 9
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/race_support.asm",
+      "line": 10
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/ai.asm",
+      "line": 11
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/audio_effects.asm",
+      "line": 12
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/objects.asm",
+      "line": 13
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/endgame.asm",
+      "line": 14
+    },
+    {
+      "from": "smgp.asm",
+      "to": "src/gameplay.asm",
+      "line": 15
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/endgame_game_over_data.asm",
+      "line": 1878
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/endgame_result_data.asm",
+      "line": 2075
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/endgame_credits_data.asm",
+      "line": 2214
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/endgame_data.asm",
+      "line": 2394
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/track_config_data.asm",
+      "line": 3918
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/sprite_frame_data.asm",
+      "line": 3919
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/result_screen_lists.asm",
+      "line": 5128
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/result_sprite_anim_data.asm",
+      "line": 5184
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/result_screen_assets.asm",
+      "line": 5185
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/result_screen_tiles_b.asm",
+      "line": 5186
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/driver_standings_data.asm",
+      "line": 5187
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/car_spec_text_data.asm",
+      "line": 5189
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/car_select_metadata.asm",
+      "line": 5190
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/driver_portrait_tilemaps.asm",
+      "line": 5191
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/driver_portrait_tiles.asm",
+      "line": 5192
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/team_messages_data.asm",
+      "line": 9770
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/crash_gauge_data.asm",
+      "line": 9771
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/car_sprite_blobs.asm",
+      "line": 9773
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/hud_and_minimap_data.asm",
+      "line": 9774
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/screen_art_data.asm",
+      "line": 9775
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/track_bg_data.asm",
+      "line": 9776
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/road_and_track_data.asm",
+      "line": 9777
+    },
+    {
+      "from": "src/gameplay.asm",
+      "to": "src/audio_engine.asm",
+      "line": 9778
+    }
+  ]
+}

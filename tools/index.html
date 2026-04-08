@@ -1,0 +1,4055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Super Monaco GP Tools UI</title>
+  <style>
+    :root {
+      --bg: #dceef9;
+      --bg-strong: #9fcbe3;
+      --panel: rgba(250, 251, 248, 0.9);
+      --panel-strong: rgba(255, 255, 255, 0.98);
+      --ink: #18212f;
+      --muted: #4e5f73;
+      --line: rgba(24, 33, 47, 0.12);
+      --accent: #d5332f;
+      --accent-strong: #8f1718;
+      --accent-soft: rgba(213, 51, 47, 0.14);
+      --gold: #d6a128;
+      --sky: #63b6e7;
+      --sky-deep: #1776a7;
+      --asphalt: #1d2430;
+      --track-edge: #f5f5f2;
+      --ready: #22684a;
+      --planned: #8f6114;
+      --internal: #4d5670;
+      --shadow: 0 24px 60px rgba(15, 24, 35, 0.18);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+      --sans: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+      --display: Impact, Haettenschweiler, "Arial Black", sans-serif;
+      --serif: Georgia, "Palatino Linotype", "Book Antiqua", serif;
+      --mono: "Lucida Console", Consolas, "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--sans);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 22%),
+        linear-gradient(180deg, var(--sky) 0%, #8ad4f0 20%, #d8eef8 48%, #d0d9dc 49%, #2d3745 49.6%, #1b212b 100%);
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.24;
+    }
+
+    body::before {
+      top: 2rem;
+      left: 6vw;
+      width: 18rem;
+      height: 18rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 243, 168, 0.92), rgba(255, 228, 119, 0.3) 48%, transparent 72%);
+      filter: blur(4px);
+    }
+
+    body::after {
+      right: 0;
+      bottom: 10vh;
+      width: 48vw;
+      height: 16rem;
+      border-radius: 0;
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 18px, transparent 18px 42px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.18), transparent 70%);
+      transform: skewX(-28deg);
+      filter: blur(0);
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-gutter: stable;
+      padding: 1.35rem 1.2rem 2rem;
+      background:
+        linear-gradient(180deg, rgba(21, 30, 41, 0.98), rgba(23, 27, 35, 0.97)),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 14px, transparent 14px 28px);
+      color: #f3f6f8;
+      border-right: 2px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset -1px 0 0 rgba(213, 51, 47, 0.32);
+    }
+
+    .brand {
+      padding: 1rem 1rem 1.15rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)), linear-gradient(90deg, rgba(213, 51, 47, 0.16), transparent 40%);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .brand-mark {
+      width: 3.4rem;
+      height: 3.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, #fff9f0 0 16%, transparent 16%), linear-gradient(135deg, #ec4b46, #980f11);
+      color: #fff8f1;
+      font: 700 1rem var(--mono);
+      letter-spacing: 0.08em;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .brand h1 {
+      margin: 0.9rem 0 0.2rem;
+      font: 700 1.95rem/0.95 var(--display);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .brand p,
+    .sidebar-note,
+    .nav-meta,
+    .nav-count {
+      color: rgba(248, 239, 227, 0.76);
+    }
+
+    .empty-state p,
+    .card p,
+    .card ul,
+    .hero-copy p,
+    .quickstep p,
+    .stat p,
+    .section-head p,
+    .command-hint,
+    .footer-note {
+      color: var(--muted);
+    }
+
+    .sidebar-note {
+      margin: 1rem 0 0;
+      font-size: 0.93rem;
+      line-height: 1.55;
+    }
+
+    .search-wrap {
+      margin: 1.1rem 0 1rem;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      padding: 0.88rem 1rem;
+      color: #fff8f1;
+      background: rgba(255, 255, 255, 0.08);
+      font: 500 0.95rem var(--sans);
+      outline: none;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .search-wrap input::placeholder {
+      color: rgba(248, 239, 227, 0.58);
+    }
+
+    .search-wrap input:focus {
+      border-color: rgba(239, 69, 67, 0.75);
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 0.55rem;
+      margin-top: 1rem;
+    }
+
+    .nav-link {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 0.8rem;
+      padding: 0.9rem 1rem;
+      border-radius: 16px;
+      color: inherit;
+      text-decoration: none;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible {
+      transform: translateX(4px);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
+      outline: none;
+    }
+
+    .nav-link strong {
+      display: block;
+      font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .nav-meta {
+      font-size: 0.82rem;
+      white-space: normal;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
+    .nav-link > span {
+      min-width: 0;
+    }
+
+    .nav-count {
+      align-self: start;
+      padding: 0.2rem 0.48rem;
+      border-radius: 999px;
+      background: rgba(213, 51, 47, 0.16);
+      color: #ffd8d7;
+      font: 700 0.74rem var(--mono);
+      white-space: nowrap;
+    }
+
+    .content {
+      min-width: 0;
+      padding: 1.5rem 1.7rem 2rem;
+    }
+
+    .hero,
+    .quickstart,
+    .tool-section,
+    .empty-state,
+    .footer-card {
+      backdrop-filter: blur(12px);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      overflow: hidden;
+      position: relative;
+      padding: 1.8rem;
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, rgba(100, 186, 230, 0.2), transparent 32%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(239, 244, 247, 0.92)),
+        linear-gradient(180deg, rgba(23, 118, 167, 0.12), transparent 52%);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -1rem -1rem auto;
+      width: 18rem;
+      height: 10rem;
+      border-radius: 1.5rem 1.5rem 0 0;
+      background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 18px, transparent 18px 40px), linear-gradient(180deg, rgba(24, 33, 47, 0.96), rgba(39, 47, 60, 0.94));
+      transform: perspective(320px) rotateX(28deg);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      margin-bottom: 0.9rem;
+      padding: 0.45rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(213, 51, 47, 0.12);
+      color: var(--accent-strong);
+      font: 700 0.78rem var(--mono);
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+      gap: 1.4rem;
+      align-items: end;
+    }
+
+    .hero-copy h2 {
+      margin: 0;
+      font: 700 clamp(2.2rem, 5vw, 4rem)/0.88 var(--display);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      max-width: 13ch;
+    }
+
+    .hero-copy p {
+      max-width: 62ch;
+      margin: 1rem 0 0;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 1rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-top: 1.2rem;
+    }
+
+    .button,
+    .copy-button {
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      font: 700 0.92rem var(--sans);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.9rem 1.15rem;
+      background: linear-gradient(135deg, #ef4543, #8e1315);
+      color: #fff6ef;
+      box-shadow: 0 14px 24px rgba(127, 30, 20, 0.24);
+    }
+
+    .button.secondary {
+      background: rgba(24, 33, 47, 0.07);
+      color: var(--ink);
+      box-shadow: none;
+    }
+
+    .button:hover,
+    .copy-button:hover,
+    .button:focus-visible,
+    .copy-button:focus-visible {
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+    }
+
+    .stat {
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 248, 250, 0.92));
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      box-shadow: inset 0 4px 0 rgba(213, 51, 47, 0.18);
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--accent-strong);
+      font: 700 1.8rem/1 var(--serif);
+    }
+
+    .stat p {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.92rem;
+    }
+
+    .quickstart {
+      margin-top: 1.25rem;
+      padding: 1.3rem;
+      border-radius: var(--radius-lg);
+    }
+
+    .planner-band {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.25rem;
+    }
+
+    .launchpad {
+      margin-top: 1.25rem;
+      padding: 1.45rem;
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 245, 248, 0.94)),
+        linear-gradient(90deg, rgba(213, 51, 47, 0.08), transparent 40%);
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      box-shadow: var(--shadow);
+    }
+
+    .launchpad h3 {
+      margin: 0;
+      font: 700 1.75rem/1 var(--display);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .launchpad > p {
+      margin: 0.55rem 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 68ch;
+    }
+
+    .launchpad-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .launchpad-main,
+    .launchpad-side {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .launch-card {
+      padding: 1rem;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      box-shadow: inset 0 4px 0 rgba(99, 182, 231, 0.16);
+    }
+
+    .launch-card h4 {
+      margin: 0;
+      font: 700 1.05rem/1.2 var(--sans);
+    }
+
+    .launch-card p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .launch-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      margin-top: 0.9rem;
+      align-items: center;
+    }
+
+    .launch-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 3rem;
+      padding: 0.95rem 1.2rem;
+      border: 0;
+      border-radius: 999px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #ef4543, #8e1315);
+      color: #fff7f0;
+      box-shadow: 0 14px 24px rgba(127, 30, 20, 0.24);
+      font: 700 0.98rem var(--sans);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .launch-button.secondary {
+      background: rgba(24, 33, 47, 0.08);
+      color: var(--ink);
+      box-shadow: none;
+    }
+
+    .launch-button:hover,
+    .launch-button:focus-visible {
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+      margin-top: 0.8rem;
+    }
+
+    .preset-button {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      gap: 0.25rem;
+      padding: 0.8rem 0.9rem;
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .preset-button:hover,
+    .preset-button:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(213, 51, 47, 0.3);
+      background: rgba(255, 255, 255, 0.96);
+      outline: none;
+    }
+
+    .preset-button strong {
+      font-size: 0.92rem;
+    }
+
+    .preset-button span {
+      color: var(--muted);
+      font-size: 0.83rem;
+      line-height: 1.4;
+    }
+
+    .launch-list {
+      margin: 0.85rem 0 0;
+      padding-left: 1.15rem;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.92rem;
+    }
+
+    .launch-list li + li {
+      margin-top: 0.2rem;
+    }
+
+    .workbench-panel {
+      margin-top: 1.25rem;
+      padding: 1.35rem;
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: var(--shadow);
+    }
+
+    .track-studio {
+      margin-top: 1.25rem;
+      padding: 1.4rem;
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 246, 250, 0.93)),
+        linear-gradient(90deg, rgba(24, 118, 167, 0.08), transparent 36%);
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      box-shadow: var(--shadow);
+    }
+
+    .track-studio h3 {
+      margin: 0;
+      font: 700 1.72rem/1 var(--display);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .track-studio > p {
+      margin: 0.55rem 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 72ch;
+    }
+
+    .studio-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .studio-main,
+    .studio-side {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .studio-panel {
+      padding: 1rem;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      box-shadow: inset 0 4px 0 rgba(24, 118, 167, 0.14);
+    }
+
+    .studio-panel h4 {
+      margin: 0;
+      font: 700 1.04rem/1.2 var(--sans);
+    }
+
+    .studio-panel p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.94rem;
+    }
+
+    .studio-controls {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.9rem;
+    }
+
+    .studio-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+      margin-top: 0.9rem;
+    }
+
+    .studio-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.9rem;
+    }
+
+    .studio-metric {
+      padding: 0.85rem 0.9rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(24, 33, 47, 0.08);
+    }
+
+    .studio-metric strong {
+      display: block;
+      color: var(--accent-strong);
+      font: 700 0.78rem var(--mono);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .studio-metric span {
+      display: block;
+      margin-top: 0.35rem;
+      color: var(--ink);
+      font: 700 1rem/1.3 var(--sans);
+    }
+
+    .studio-visuals {
+      display: grid;
+      gap: 0.9rem;
+    }
+
+    .visual-card {
+      padding: 0.9rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(24, 33, 47, 0.08);
+    }
+
+    .visual-card h5 {
+      margin: 0 0 0.25rem;
+      font: 700 0.96rem/1.2 var(--sans);
+    }
+
+    .visual-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    .visual-card canvas {
+      display: block;
+      width: 100%;
+      margin-top: 0.75rem;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(218, 238, 247, 0.95), rgba(243, 248, 250, 0.98));
+      border: 1px solid rgba(24, 33, 47, 0.08);
+    }
+
+    .segment-list {
+      display: grid;
+      gap: 0.45rem;
+      margin-top: 0.8rem;
+      max-height: 18rem;
+      overflow: auto;
+      padding-right: 0.2rem;
+    }
+
+    .segment-button {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 0.7rem;
+      align-items: center;
+      padding: 0.72rem 0.82rem;
+      border-radius: 14px;
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      background: rgba(255, 255, 255, 0.88);
+      cursor: pointer;
+      text-align: left;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .segment-button:hover,
+    .segment-button:focus-visible,
+    .segment-button.active {
+      transform: translateY(-1px);
+      border-color: rgba(213, 51, 47, 0.26);
+      background: rgba(255, 255, 255, 0.98);
+      outline: none;
+    }
+
+    .segment-index {
+      color: var(--accent-strong);
+      font: 700 0.78rem var(--mono);
+    }
+
+    .segment-meta strong,
+    .segment-tail {
+      font: 700 0.8rem var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .segment-meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .segment-tail.left {
+      color: #c03a35;
+    }
+
+    .segment-tail.right {
+      color: #2373a3;
+    }
+
+    .segment-tail.straight {
+      color: var(--muted);
+    }
+
+    .workbench-panel h3 {
+      margin: 0;
+      font: 600 1.45rem/1.1 var(--serif);
+    }
+
+    .workbench-panel > p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .workbench-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-top: 0.85rem;
+    }
+
+    .mutation-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-top: 0.85rem;
+    }
+
+    .mutation-group[hidden] {
+      display: none !important;
+    }
+
+    .preview-card {
+      padding: 0.9rem;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(30, 36, 48, 0.08);
+    }
+
+    .preview-card strong {
+      display: block;
+      color: var(--accent-strong);
+      font: 700 0.8rem var(--mono);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .preview-card span {
+      display: block;
+      margin-top: 0.35rem;
+      color: var(--ink);
+      font: 700 1.02rem/1.3 var(--sans);
+      word-break: break-word;
+    }
+
+    .field pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 400 0.84rem/1.55 var(--mono);
+      color: #f9efe5;
+    }
+
+    .planner-panel {
+      padding: 1.35rem;
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(12px);
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: var(--shadow);
+    }
+
+    .planner-panel h3 {
+      margin: 0;
+      font: 600 1.45rem/1.1 var(--serif);
+    }
+
+    .planner-panel > p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .planner-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .field,
+    .toggle-list {
+      padding: 0.9rem;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(30, 36, 48, 0.08);
+    }
+
+    .field.full,
+    .toggle-list.full,
+    .planner-output,
+    .planner-actions {
+      grid-column: 1 / -1;
+    }
+
+    .field label,
+    .toggle-title {
+      display: block;
+      margin-bottom: 0.45rem;
+      color: var(--ink);
+      font: 700 0.88rem var(--sans);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid rgba(30, 36, 48, 0.14);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--ink);
+      padding: 0.78rem 0.85rem;
+      font: 500 0.94rem var(--sans);
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .field textarea {
+      min-height: 6.5rem;
+      resize: vertical;
+      font-family: var(--mono);
+      line-height: 1.45;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: rgba(179, 50, 32, 0.5);
+      box-shadow: 0 0 0 3px rgba(179, 50, 32, 0.1);
+    }
+
+    .field small,
+    .planner-note,
+    .toggle-item span {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.82rem;
+    }
+
+    .toggle-stack,
+    .mode-switch {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .toggle-item,
+    .mode-pill {
+      display: flex;
+      align-items: start;
+      gap: 0.65rem;
+    }
+
+    .toggle-item input,
+    .mode-pill input {
+      margin-top: 0.2rem;
+      accent-color: var(--accent);
+    }
+
+    .toggle-item strong,
+    .mode-pill strong {
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    .mode-switch {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mode-pill {
+      padding: 0.75rem 0.8rem;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(30, 36, 48, 0.08);
+    }
+
+    .planner-output {
+      padding: 0.9rem;
+      border-radius: 18px;
+      background: rgba(30, 36, 48, 0.94);
+      color: #f9efe5;
+    }
+
+    .planner-output strong {
+      display: block;
+      margin-bottom: 0.55rem;
+      font: 700 0.84rem var(--mono);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: #efbea8;
+    }
+
+    .planner-output code {
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font: 400 0.86rem/1.55 var(--mono);
+    }
+
+    .planner-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+    }
+
+    .result-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+
+    .quickstart h3,
+    .section-head h3,
+    .footer-card h3,
+    .empty-state h3 {
+      margin: 0;
+      font: 600 1.45rem/1.1 var(--serif);
+    }
+
+    .quickstart-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .quickstep {
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      box-shadow: inset 0 4px 0 rgba(99, 182, 231, 0.2);
+    }
+
+    .quickstep span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.9rem;
+      height: 1.9rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font: 700 0.92rem var(--mono);
+    }
+
+    .quickstep h4 {
+      margin: 0.8rem 0 0.35rem;
+      font: 700 1rem/1.25 var(--sans);
+    }
+
+    .quickstep p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.93rem;
+    }
+
+    .sections {
+      display: grid;
+      gap: 1.25rem;
+      margin-top: 1.25rem;
+    }
+
+    .terminal-output {
+      margin: 1rem 0 0;
+      min-height: 15rem;
+      max-height: 32rem;
+      overflow: auto;
+      padding: 1rem;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(20, 27, 37, 0.98), rgba(11, 16, 24, 0.98));
+      color: #d8f0ff;
+      border: 1px solid rgba(99, 182, 231, 0.2);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      font: 400 0.84rem/1.55 var(--mono);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .server-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+
+    .server-note {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .tool-section {
+      padding: 1.35rem;
+      border-radius: var(--radius-lg);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-head p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 64ch;
+    }
+
+    .section-count {
+      flex: 0 0 auto;
+      padding: 0.4rem 0.68rem;
+      border-radius: 999px;
+      background: rgba(30, 36, 48, 0.08);
+      color: var(--muted);
+      font: 700 0.82rem var(--mono);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.95rem;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      min-height: 100%;
+      padding: 1rem;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(248, 250, 251, 0.68));
+      border: 1px solid rgba(24, 33, 47, 0.08);
+      box-shadow: inset 0 4px 0 rgba(213, 51, 47, 0.1);
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(179, 50, 32, 0.22);
+      box-shadow: 0 20px 28px rgba(67, 38, 16, 0.08);
+    }
+
+    .card[hidden],
+    .tool-section[hidden] {
+      display: none !important;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 0.8rem;
+    }
+
+    .card h4 {
+      margin: 0;
+      font: 700 1.05rem/1.25 var(--sans);
+    }
+
+    .script-path {
+      margin-top: 0.28rem;
+      color: var(--muted);
+      font: 600 0.78rem/1.35 var(--mono);
+      word-break: break-word;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 0.28rem 0.55rem;
+      font: 700 0.72rem var(--mono);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      background: rgba(30, 36, 48, 0.08);
+      color: var(--internal);
+      white-space: nowrap;
+    }
+
+    .pill.ready {
+      background: rgba(34, 104, 74, 0.12);
+      color: var(--ready);
+    }
+
+    .pill.planned {
+      background: rgba(197, 141, 36, 0.18);
+      color: var(--planned);
+    }
+
+    .pill.internal {
+      background: rgba(77, 86, 112, 0.14);
+      color: var(--internal);
+    }
+
+    .pill.cli {
+      background: rgba(179, 50, 32, 0.12);
+      color: var(--accent-strong);
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 0.95rem;
+    }
+
+    .meta-list {
+      margin: 0;
+      padding-left: 1.1rem;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .meta-list li + li {
+      margin-top: 0.22rem;
+    }
+
+    .command-box {
+      padding: 0.8rem 0.9rem;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(36, 45, 58, 0.98), rgba(21, 29, 39, 0.98));
+      color: #f9efe5;
+    }
+
+    .command-box code {
+      display: block;
+      font: 400 0.86rem/1.5 var(--mono);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-top: auto;
+    }
+
+    .copy-button {
+      padding: 0.7rem 0.92rem;
+      background: rgba(179, 50, 32, 0.1);
+      color: var(--accent-strong);
+    }
+
+    .copy-button.disabled {
+      cursor: default;
+      background: rgba(24, 33, 47, 0.08);
+      color: var(--muted);
+      transform: none !important;
+      box-shadow: none;
+    }
+
+    .command-hint {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .empty-state,
+    .footer-card {
+      padding: 1.2rem 1.3rem;
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-state {
+      margin-top: 1.25rem;
+      text-align: center;
+    }
+
+    .empty-state p,
+    .footer-note {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .footer-card {
+      margin-top: 1.25rem;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(232, 242, 249, 0.92)), linear-gradient(90deg, rgba(213, 51, 47, 0.08), transparent 40%);
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 0.7rem;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .footer-card p {
+      margin: 0.45rem 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.55rem;
+      padding: 0.12rem 0.38rem;
+      border-radius: 0.45rem;
+      border: 1px solid rgba(30, 36, 48, 0.14);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: inset 0 -1px 0 rgba(30, 36, 48, 0.08);
+      font: 700 0.82rem var(--mono);
+    }
+
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        height: auto;
+        max-height: none;
+      }
+
+      .hero-grid,
+      .quickstart-grid,
+      .card-grid,
+      .planner-band,
+      .launchpad-grid,
+      .studio-grid,
+      .preview-grid,
+      .workbench-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .studio-summary,
+      .studio-controls,
+      .preset-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .content,
+      .sidebar {
+        padding: 1rem;
+      }
+
+      .nav-link {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-count {
+        justify-self: start;
+      }
+
+      .hero,
+      .quickstart,
+      .launchpad,
+      .track-studio,
+      .tool-section,
+      .empty-state,
+      .footer-card {
+        border-radius: 22px;
+      }
+
+      .section-head {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .hero-copy h2 {
+        max-width: none;
+      }
+
+      .card-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .studio-summary,
+      .studio-controls,
+      .preset-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SM</div>
+        <h1>SMGP Tools UI</h1>
+        <p>Disassembly workshop dashboard</p>
+      </div>
+      <p class="sidebar-note">
+        A standalone browser hub for the project's Node.js tooling, with room for the planned randomizer and editor front ends.
+      </p>
+      <div class="search-wrap">
+        <input id="tool-search" type="search" placeholder="Search tools, commands, tags, paths...">
+      </div>
+      <nav class="nav-list" id="nav-list" aria-label="Tool sections"></nav>
+      <p class="sidebar-note">
+        Tip: press <kbd>/</kbd> to focus search, then filter by words like <code>editor</code>, <code>verify</code>, or <code>randomizer</code>.
+      </p>
+    </aside>
+
+    <main class="content">
+      <section class="hero">
+        <div class="eyebrow">Racing Workshop</div>
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <h2>One pit lane for every script.</h2>
+            <p>
+              This page mirrors the sibling Vermilion tools shell in spirit, but stays self-contained: open it directly, browse the command surface, search by task, and keep the future browser randomizer and editor in the same home.
+            </p>
+            <div class="hero-actions">
+              <a class="button" href="#section-randomizer-launchpad">Generate Randomized ROM</a>
+              <a class="button secondary" href="#section-live-console">Open Live Console</a>
+            </div>
+          </div>
+          <div class="hero-stats" id="hero-stats"></div>
+        </div>
+      </section>
+
+      <section class="launchpad" id="section-randomizer-launchpad">
+        <h3>Make A Randomized ROM</h3>
+        <p>This is the main path. Pick a preset or tweak the seed below, then click the big run button. The live console shows progress and final build output.</p>
+        <div class="launchpad-grid">
+          <div class="launchpad-main">
+            <article class="launch-card">
+              <h4>Quick Start</h4>
+              <p>Use one of these presets to instantly load a sensible randomizer setup. If you want the actual randomized minimap art and marker path in the ROM, run a real build instead of a dry run.</p>
+              <div class="preset-grid">
+                <button class="preset-button" type="button" data-preset="tracks-only"><strong>Tracks Only</strong><span>Shuffle course shape and layout data. Starts in preview mode, so it does not build a patched ROM yet.</span></button>
+                <button class="preset-button" type="button" data-preset="full-safe"><strong>Full Safe Build</strong><span>Tracks, config, teams, AI, and championship with a real ROM build. This path now patches generated minimap tiles, maps, and marker paths again.</span></button>
+                <button class="preset-button" type="button" data-preset="workspace"><strong>Workspace Build</strong><span>Generate in an isolated workspace. Best choice when you want a playable randomized ROM without touching the main tree.</span></button>
+                <button class="preset-button" type="button" data-preset="championship"><strong>Championship Focus</strong><span>Race order and progression shuffle with supporting AI/team changes.</span></button>
+              </div>
+              <div class="launch-actions">
+                <button class="launch-button" id="run-randomizer-primary" type="button">Generate Randomized ROM</button>
+                <button class="launch-button secondary" id="preview-randomizer-primary" type="button">Preview Randomizer Only</button>
+                <a class="button secondary" href="#section-track-studio">Open Track Studio</a>
+              </div>
+            </article>
+            <article class="launch-card">
+              <h4>Current Run Command</h4>
+              <div class="command-box"><code id="randomizer-primary-command"></code></div>
+              <div class="result-strip" id="randomizer-primary-summary"></div>
+            </article>
+          </div>
+          <div class="launchpad-side">
+            <article class="launch-card">
+              <h4>What Happens</h4>
+              <ol class="launch-list">
+                <li>Build a seed from the controls below</li>
+                <li>Run `tools/randomize.js` or `tools/hack_workdir.js` on the server</li>
+                <li>Patch data, build `out.bin`, and apply generated minimap tile, map, and marker-path patches when Tracks is enabled</li>
+                <li>Watch progress in the Live Console</li>
+              </ol>
+            </article>
+            <article class="launch-card">
+              <h4>Best Default</h4>
+              <p>On <strong>master</strong>, the safe/default randomized ROM path is workspace-based so the root source tree stays canonical. Use <strong>Workspace Build</strong> or the default <code>tools/randomize.js</code> flow for playable randomized ROMs.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="quickstart">
+        <h3>Suggested Flow</h3>
+        <div class="quickstart-grid">
+          <article class="quickstep">
+            <span>1</span>
+            <h4>Pick A Preset</h4>
+            <p>Start in the Randomized ROM panel and choose Tracks Only, Full Safe Build, Workspace Build, or Championship Focus.</p>
+          </article>
+          <article class="quickstep">
+            <span>2</span>
+            <h4>Run It</h4>
+            <p>Click Generate Randomized ROM. Preview mode only updates data files and validation output; a real build is required for the generated minimap art and marker path to appear in the ROM.</p>
+          </article>
+          <article class="quickstep">
+            <span>3</span>
+            <h4>Watch Output</h4>
+            <p>Follow progress in the Live Console to see validation, data writes, and build status as they happen.</p>
+          </article>
+          <article class="quickstep">
+            <span>4</span>
+            <h4>Verify Or Restore</h4>
+            <p>Use the built-in verify and restore actions once the randomizer completes.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="planner-band" id="section-command-workshop">
+        <article class="planner-panel">
+          <h3>Randomizer Workshop</h3>
+          <p>Advanced controls for the randomizer. Most people should start in the Randomized ROM panel above, then only come here if they want to fine-tune the seed.</p>
+          <div class="planner-grid">
+            <div class="field">
+              <label for="seed-version">Version</label>
+              <input id="seed-version" type="number" min="1" step="1" value="1">
+            </div>
+            <div class="field">
+              <label for="seed-number">Seed Number</label>
+              <input id="seed-number" type="number" min="0" step="1" value="12345">
+            </div>
+            <div class="toggle-list full">
+              <div class="toggle-title">Flag Bits</div>
+              <div class="toggle-stack">
+                <label class="toggle-item"><input type="checkbox" data-flag="01" checked><span><strong>Tracks</strong>Curve, slope, sign, and minimap randomization. A real ROM build also patches generated minimap art and marker data into the output ROM.</span></label>
+                <label class="toggle-item"><input type="checkbox" data-flag="02"><span><strong>Config</strong>Track art, palette, horizon, and steering config shuffle.</span></label>
+                <label class="toggle-item"><input type="checkbox" data-flag="04"><span><strong>Teams</strong>Team and car stat randomization.</span></label>
+                <label class="toggle-item"><input type="checkbox" data-flag="08"><span><strong>AI</strong>AI parameter randomization.</span></label>
+                <label class="toggle-item"><input type="checkbox" data-flag="10"><span><strong>Championship</strong>Race order and progression randomization.</span></label>
+                <label class="toggle-item"><input type="checkbox" data-flag="20"><span><strong>Signs</strong>Reserved bit; current CLI notes it as not yet implemented.</span></label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="track-subset">Track Subset</label>
+              <input id="track-subset" type="text" placeholder="san_marino france">
+              <small>Optional: space-separated slugs for <code>--tracks</code>.</small>
+            </div>
+            <div class="toggle-list">
+              <div class="toggle-title">Run Mode</div>
+              <div class="toggle-stack">
+                <label class="toggle-item"><input id="rand-dry-run" type="checkbox" checked><span><strong>Dry Run</strong>Preview changes without writing or building. This will not produce a ROM with generated minimap tile, map, or marker-path patches.</span></label>
+                <label class="toggle-item"><input id="rand-no-build" type="checkbox"><span><strong>No Build</strong>Write data changes but skip ROM assembly. Generated minimap tile, map, and marker-path patches are skipped too.</span></label>
+                <label class="toggle-item"><input id="rand-verbose" type="checkbox"><span><strong>Verbose</strong>Print extra detail while running.</span></label>
+                <label class="toggle-item"><input id="rand-workspace" type="checkbox" checked><span><strong>Workspace Mode</strong>Recommended and now the default safe path on <code>master</code>. Uses <code>hack_workdir.js</code> so randomized builds do not mutate the root source tree.</span></label>
+                <label class="toggle-item"><input id="rand-keep" type="checkbox" checked><span><strong>Keep Workspace</strong>Retain the generated workspace after completion.</span></label>
+              </div>
+            </div>
+            <div class="planner-output">
+              <strong>Generated Command</strong>
+              <code id="randomizer-command"></code>
+              <div class="result-strip" id="randomizer-summary"></div>
+            </div>
+            <div class="planner-actions">
+              <button class="copy-button" id="copy-randomizer-command" type="button">Copy Randomizer Command</button>
+              <button class="copy-button" id="copy-restore-command" type="button">Copy Restore Command</button>
+              <span class="planner-note">Tip: choose Workspace Mode for the least confusing playable output, or Full Safe Build if you want the main tree ROM updated too.</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="planner-panel">
+          <h3>Editor Launcher</h3>
+          <p>Choose an editor, fill in the basic arguments, and generate a working CLI command for the current task.</p>
+          <div class="planner-grid">
+            <div class="field full">
+              <label>Editor Mode</label>
+              <div class="mode-switch">
+                <label class="mode-pill"><input type="radio" name="editor-mode" value="track" checked><span><strong>Track</strong><small>Track JSON, segments, signs, inject</small></span></label>
+                <label class="mode-pill"><input type="radio" name="editor-mode" value="team"><span><strong>Team</strong><small>AI, car stats, thresholds, inject</small></span></label>
+                <label class="mode-pill"><input type="radio" name="editor-mode" value="championship"><span><strong>Championship</strong><small>Order, rivals, AI tables, inject</small></span></label>
+                <label class="mode-pill"><input type="radio" name="editor-mode" value="text"><span><strong>Text</strong><small>Strings, capacity checks, inject</small></span></label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="editor-action">Action</label>
+              <select id="editor-action"></select>
+            </div>
+            <div class="field">
+              <label for="editor-target">Target</label>
+              <input id="editor-target" type="text" placeholder="san_marino / madonna / team_names">
+              <small id="editor-target-help">Track name, slug, or index depending on the selected mode.</small>
+            </div>
+            <div class="field">
+              <label for="editor-option">Option</label>
+              <input id="editor-option" type="text" placeholder="curves / ai / standard / 0">
+              <small id="editor-option-help">Optional secondary argument or flag value.</small>
+            </div>
+            <div class="field">
+              <label for="editor-value">Value / Text</label>
+              <textarea id="editor-value" placeholder="Only used for mutation-style commands such as text set or numeric updates."></textarea>
+            </div>
+            <div class="toggle-list">
+              <div class="toggle-title">Editor Flags</div>
+              <div class="toggle-stack">
+                <label class="toggle-item"><input id="editor-dry-run" type="checkbox"><span><strong>Dry Run</strong>Append dry-run where supported.</span></label>
+                <label class="toggle-item"><input id="editor-verbose" type="checkbox"><span><strong>Verbose</strong>Add verbose mode where available.</span></label>
+              </div>
+            </div>
+            <div class="planner-output">
+              <strong>Generated Command</strong>
+              <code id="editor-command"></code>
+              <div class="result-strip" id="editor-summary"></div>
+            </div>
+            <div class="planner-actions">
+              <button class="copy-button" id="copy-editor-command" type="button">Copy Editor Command</button>
+              <button class="copy-button" id="copy-verify-command" type="button">Copy Verify Command</button>
+              <span class="planner-note">For real browser editing later, this panel can become the argument model behind form-driven editors.</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="workbench-panel" id="section-data-workbench">
+        <h3>Data Workbench</h3>
+        <p>Preview the shape of track, team, championship, or text JSON in-browser. Use the built-in snapshot or paste a real file from <code>tools/data</code> to inspect entries before you run editor or injector commands.</p>
+        <div class="workbench-grid">
+          <div class="field">
+            <label for="workbench-mode">Data Type</label>
+            <select id="workbench-mode">
+              <option value="track">Track Data</option>
+              <option value="team">Team Data</option>
+              <option value="championship">Championship Data</option>
+              <option value="text">String Data</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="workbench-source">Source</label>
+            <select id="workbench-source">
+              <option value="snapshot">Embedded Repo Snapshot</option>
+              <option value="custom">Paste Custom JSON</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="workbench-entry">Entry</label>
+            <select id="workbench-entry"></select>
+          </div>
+          <div class="field full" id="workbench-json-wrap" hidden>
+            <label for="workbench-json">Custom JSON</label>
+            <textarea id="workbench-json" placeholder="Paste the contents of tools/data/tracks.json, teams.json, championship.json, or strings.json here."></textarea>
+            <small id="workbench-help">Paste a full JSON document for the selected data type.</small>
+          </div>
+          <div class="field full">
+            <label>Preview Summary</label>
+            <div class="preview-grid" id="workbench-summary"></div>
+          </div>
+          <div class="field full">
+            <label>Quick Mutations</label>
+            <small>Edit a few high-value fields in browser memory, then export the working JSON back out.</small>
+            <div class="mutation-grid">
+              <div class="mutation-group" id="mutate-track" hidden>
+                <div class="field">
+                  <label for="mut-track-length">Track Length</label>
+                  <input id="mut-track-length" type="number" step="64" min="64">
+                </div>
+                <div class="field">
+                  <label for="mut-track-horizon">Horizon Override</label>
+                  <input id="mut-track-horizon" type="number" step="1" min="0">
+                </div>
+                <div class="field">
+                  <label for="mut-track-straight">Steering Straight</label>
+                  <input id="mut-track-straight" type="number" step="1" min="0">
+                </div>
+                <div class="field">
+                  <label for="mut-track-curve">Steering Curve</label>
+                  <input id="mut-track-curve" type="number" step="1" min="0">
+                </div>
+              </div>
+              <div class="mutation-group" id="mutate-team" hidden>
+                <div class="field">
+                  <label for="mut-team-factor">AI Factor</label>
+                  <input id="mut-team-factor" type="number" step="1" min="0" max="255">
+                </div>
+                <div class="field">
+                  <label for="mut-team-engine">Engine Index</label>
+                  <input id="mut-team-engine" type="number" step="1" min="0">
+                </div>
+                <div class="field">
+                  <label for="mut-team-accel">Accel Index</label>
+                  <input id="mut-team-accel" type="number" step="1" min="0">
+                </div>
+                <div class="field">
+                  <label for="mut-team-wear">Tire Wear Multiplier</label>
+                  <input id="mut-team-wear" type="number" step="1" min="0">
+                </div>
+              </div>
+              <div class="mutation-group" id="mutate-championship" hidden>
+                <div class="field">
+                  <label for="mut-champ-promote">Promote Threshold</label>
+                  <input id="mut-champ-promote" type="number" step="1" min="0" max="15">
+                </div>
+                <div class="field">
+                  <label for="mut-champ-partner">Partner Threshold</label>
+                  <input id="mut-champ-partner" type="number" step="1" min="0" max="15">
+                </div>
+                <div class="field">
+                  <label for="mut-champ-ai">AI Factor</label>
+                  <input id="mut-champ-ai" type="number" step="1" min="0" max="255">
+                </div>
+              </div>
+              <div class="mutation-group" id="mutate-text" hidden>
+                <div class="field full">
+                  <label for="mut-text-value">Entry Text</label>
+                  <textarea id="mut-text-value" placeholder="Edit visible EN text here."></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="planner-actions">
+              <button class="copy-button" id="apply-workbench-mutation" type="button">Apply Mutations</button>
+              <button class="copy-button" id="reset-workbench-data" type="button">Reset Working Copy</button>
+              <button class="copy-button" id="load-minimap-workspace" type="button">Load Latest Minimap Workspace</button>
+              <span class="planner-note">These edits are local to the page until you export them.</span>
+            </div>
+            <div class="result-strip" id="workbench-status"></div>
+          </div>
+          <div class="planner-output full">
+            <strong>Entry Preview</strong>
+            <code id="workbench-preview"></code>
+          </div>
+          <div class="planner-output full">
+            <strong>Suggested Commands</strong>
+            <code id="workbench-command"></code>
+          </div>
+          <div class="planner-actions full">
+            <button class="copy-button" id="copy-workbench-command" type="button">Copy Suggested Commands</button>
+            <button class="copy-button" id="copy-workbench-preview" type="button">Copy Preview JSON</button>
+            <button class="copy-button" id="copy-workbench-dataset" type="button">Copy Working JSON</button>
+            <button class="copy-button" id="load-workbench-custom" type="button">Load Working JSON Into Custom</button>
+            <span class="planner-note">The embedded snapshot is intentionally abridged; paste the real JSON file when you want to inspect current working data.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="track-studio" id="section-track-studio">
+        <h3>Track Studio</h3>
+        <p>Visualize a full course at a glance. Pick a track, inspect its curve flow, minimap path, slope rhythm, and sign placement, then jump straight into the editor command flow.</p>
+        <div class="studio-grid">
+          <div class="studio-main">
+            <article class="studio-panel">
+              <h4>Track Browser</h4>
+              <p>Choose a source, select a track, and focus a specific curve segment.</p>
+              <div class="studio-controls">
+                <div class="field">
+                  <label for="track-source">Source</label>
+                  <select id="track-source">
+                    <option value="repo">Repo Tracks JSON</option>
+                    <option value="snapshot">Embedded Snapshot</option>
+                    <option value="workbench">Workbench Track Data</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="track-select">Track</label>
+                  <select id="track-select"></select>
+                </div>
+                <div class="field">
+                  <label for="track-segment-select">Curve Segment</label>
+                  <select id="track-segment-select"></select>
+                </div>
+              </div>
+              <div class="studio-actions">
+                <button class="launch-button" id="track-open-editor" type="button">Open In Track Editor</button>
+                <button class="launch-button secondary" id="track-validate" type="button">Validate This Track</button>
+                <button class="launch-button secondary" id="track-refresh" type="button">Refresh Track Data</button>
+              </div>
+              <div class="studio-summary" id="track-summary"></div>
+            </article>
+
+            <article class="studio-panel">
+              <h4>Curve Timeline</h4>
+              <p>The full course curve sequence rendered left-to-right. The highlighted block is the selected segment.</p>
+              <div class="visual-card">
+                <canvas id="track-curve-canvas" width="920" height="240"></canvas>
+              </div>
+            </article>
+
+            <article class="studio-panel">
+              <h4>Closed Loop Track Map</h4>
+              <p>A generated closed-loop course shape derived from curve data, with sign markers and a faint overlay of the extracted HUD map for comparison.</p>
+              <div class="visual-card">
+                <canvas id="track-minimap-canvas" width="920" height="280"></canvas>
+              </div>
+            </article>
+          </div>
+
+          <div class="studio-side">
+            <article class="studio-panel">
+              <h4>Selected Segment</h4>
+              <div class="preview-grid" id="track-segment-summary"></div>
+            </article>
+            <article class="studio-panel">
+              <h4>Slope Rhythm</h4>
+              <div class="visual-card">
+                <h5>Slope Preview</h5>
+                <p>Relative up/down movement across the track distance.</p>
+                <canvas id="track-slope-canvas" width="420" height="220"></canvas>
+              </div>
+            </article>
+            <article class="studio-panel">
+              <h4>Curve Segments</h4>
+              <p>Click any segment to jump the visualizer there.</p>
+              <div class="segment-list" id="track-segment-list"></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="tool-section" id="section-live-console">
+        <div class="section-head">
+          <div>
+            <h3>Live Console</h3>
+            <p>Run approved local tool commands directly from the browser once the SMGP tools server is up.</p>
+          </div>
+          <div class="pill-row">
+            <span class="pill internal" id="server-status-pill">Server offline</span>
+            <span class="pill internal" id="runner-status-pill">Idle</span>
+          </div>
+        </div>
+        <div class="server-actions">
+          <button class="copy-button" id="refresh-server-state" type="button">Reconnect Server</button>
+          <button class="copy-button" id="clear-live-output" type="button">Clear Output</button>
+          <span class="server-note" id="server-help">Start with <code>node tools/server.js</code>, then open <code>http://127.0.0.1:3210</code>.</span>
+        </div>
+        <div class="command-box"><code id="execution-command">No command run yet.</code></div>
+        <pre class="terminal-output" id="execution-output">Open this page through the local server to run tools directly from the browser.</pre>
+      </section>
+
+      <div class="sections" id="sections"></div>
+
+      <section class="empty-state" id="empty-state" hidden>
+        <h3>No Matches</h3>
+        <p>Try a broader search term, or clear the filter to see every tool again.</p>
+      </section>
+
+      <section class="footer-card">
+        <h3>Next UI Surface</h3>
+        <p>
+          The command workshop is now live in-browser, and the next step is turning those planners into full read/write panels backed by the same toolchain.
+        </p>
+        <p class="footer-note">
+          File location: <code>tools/index.html</code>
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const sections = [
+      {
+        id: "build-verify",
+        title: "Build + Verify",
+        description: "Core repository guardrails. These are the first stops before and after any data or source change.",
+        items: [
+          {
+            title: "Build ROM",
+            path: "build.bat",
+            status: "ready",
+            kind: "workflow",
+            description: "Assemble the current source tree into out.bin and regenerate smgp.lst.",
+            details: ["Outputs: out.bin, smgp.lst", "Assembler: asm68k", "Use after source or asset changes"],
+            command: "build.bat",
+            tags: ["build", "rom", "listing"]
+          },
+          {
+            title: "Verify Bit Match",
+            path: "verify.bat",
+            status: "ready",
+            kind: "workflow",
+            description: "Build and confirm the ROM still matches the known-good SHA256 hash.",
+            details: ["Primary acceptance test", "Exit 0 = bit-perfect", "Run after any code change"],
+            command: "verify.bat",
+            tags: ["verify", "checksum", "sha256"]
+          },
+          {
+            title: "Run Structural Checks",
+            path: "tools/run_checks.js",
+            status: "ready",
+            kind: "cli",
+            description: "Runs the project safety suite for include order, symbol map, raw literals, VDP usage, duplicate constants, and more.",
+            details: ["Aggregates 9 checks", "Useful before commits", "Reads symbol and listing outputs"],
+            command: "node tools/run_checks.js",
+            tags: ["lint", "checks", "safety", "symbols"]
+          }
+        ]
+      },
+      {
+        id: "data-pipeline",
+        title: "Data Pipeline",
+        description: "Extractors and injectors that bridge ROM data, JSON editing layers, and generated binaries.",
+        items: [
+          {
+            title: "Unified Extractor",
+            path: "tools/extract_game_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Pull track, team, and championship data from a source ROM into the editable JSON layer.",
+            details: ["Default source: orig.bin", "Writes under tools/data", "Supports subsets or --all"],
+            command: "node tools/extract_game_data.js --all --rom orig.bin",
+            tags: ["extract", "json", "tracks", "teams", "championship"]
+          },
+          {
+            title: "Unified Injector",
+            path: "tools/inject_game_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Push edited track, team, and championship data back to binaries and ROM targets.",
+            details: ["Tracks -> data/tracks", "Teams/championship -> out.bin", "Supports --dry-run"],
+            command: "node tools/inject_game_data.js --all --rom out.bin",
+            tags: ["inject", "rom", "patch", "dry-run"]
+          },
+          {
+            title: "Track Extractor",
+            path: "tools/extract_track_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Decodes per-track binaries into the rich tracks.json editing layer.",
+            details: ["Builds RLE segments", "Includes minimap and sign data", "Targets tools/data/tracks.json"],
+            command: "node tools/extract_track_data.js",
+            tags: ["extract", "track", "curves", "slopes"]
+          },
+          {
+            title: "Track Injector",
+            path: "tools/inject_track_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Re-encodes track JSON back into data/tracks/<slug>/*.bin files.",
+            details: ["Supports specific track slugs", "Good companion to track_editor.js", "Safe dry-run mode"],
+            command: "node tools/inject_track_data.js --dry-run",
+            tags: ["inject", "track", "bin", "rle"]
+          },
+          {
+            title: "Team Extractor",
+            path: "tools/extract_team_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Reads team, driver, engine, and stat tables from the ROM into teams.json.",
+            details: ["Uses known ROM addresses", "Feeds team editor and randomizer", "Writes tools/data/teams.json"],
+            command: "node tools/extract_team_data.js --rom orig.bin",
+            tags: ["extract", "team", "engine", "drivers"]
+          },
+          {
+            title: "Team Injector",
+            path: "tools/inject_team_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Patches out.bin with the edited team and car tables from teams.json.",
+            details: ["In-place ROM patch", "Supports --dry-run", "Pairs with team_editor.js"],
+            command: "node tools/inject_team_data.js --rom out.bin --dry-run",
+            tags: ["inject", "team", "rom", "cars"]
+          },
+          {
+            title: "Championship Extractor",
+            path: "tools/extract_championship_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Extracts race order, thresholds, rival tables, lap-time tables, and AI progression data.",
+            details: ["Outputs tools/data/championship.json", "Supports verbose mode", "Sources from orig.bin"],
+            command: "node tools/extract_championship_data.js --rom orig.bin",
+            tags: ["extract", "championship", "ai", "progression"]
+          },
+          {
+            title: "Championship Injector",
+            path: "tools/inject_championship_data.js",
+            status: "ready",
+            kind: "cli",
+            description: "Writes championship.json changes back into a ROM binary.",
+            details: ["Targets out.bin by default", "Supports --dry-run", "Shares tables with the editor"],
+            command: "node tools/inject_championship_data.js --rom out.bin --dry-run",
+            tags: ["inject", "championship", "rom", "thresholds"]
+          },
+          {
+            title: "String Extractor",
+            path: "tools/extract_strings.js",
+            status: "ready",
+            kind: "cli",
+            description: "Builds strings.json, including the editable English text categories and read-only references.",
+            details: ["Captures capacity per string slot", "Keeps shared pointers visible", "Feeds text_editor.js"],
+            command: "node tools/extract_strings.js --rom orig.bin",
+            tags: ["extract", "strings", "text", "capacity"]
+          },
+          {
+            title: "String Injector",
+            path: "tools/inject_strings.js",
+            status: "ready",
+            kind: "cli",
+            description: "Re-encodes mutable English strings and patches them back into out.bin.",
+            details: ["Enforces slot capacity", "Skips read-only categories", "Supports shared-address updates"],
+            command: "node tools/inject_strings.js --rom out.bin --dry-run",
+            tags: ["inject", "strings", "text", "rom"]
+          }
+        ]
+      },
+      {
+        id: "editors",
+        title: "Editors",
+        description: "Current CLI editors plus the reserved space for a browser-native editor suite.",
+        items: [
+          {
+            title: "Track Editor",
+            path: "tools/editor/track_editor.js",
+            status: "ready",
+            kind: "cli",
+            description: "Inspect, validate, and mutate track JSON fields, segments, signs, and minimap data.",
+            details: ["Supports list/show/edit/inject flows", "Writes tools/data/tracks.json", "Never edits src/*.asm directly"],
+            command: "node tools/editor/track_editor.js list",
+            tags: ["editor", "track", "segments", "validate"]
+          },
+          {
+            title: "Team Editor",
+            path: "tools/editor/team_editor.js",
+            status: "ready",
+            kind: "cli",
+            description: "Edit team AI, car stats, engine tables, points, and thresholds from teams.json.",
+            details: ["Can inject to out.bin", "Includes validation gates", "Useful for balancing work"],
+            command: "node tools/editor/team_editor.js list-teams",
+            tags: ["editor", "teams", "ai", "stats"]
+          },
+          {
+            title: "Championship Editor",
+            path: "tools/editor/championship_editor.js",
+            status: "ready",
+            kind: "cli",
+            description: "Manage race order, promotion thresholds, rival tables, and championship AI progression.",
+            details: ["Protects fixed Monaco final slot", "Supports dry-run injection", "Validates after mutation"],
+            command: "node tools/editor/championship_editor.js show-order",
+            tags: ["editor", "championship", "order", "rivals"]
+          },
+          {
+            title: "Text Editor",
+            path: "tools/editor/text_editor.js",
+            status: "ready",
+            kind: "cli",
+            description: "Edit mutable English strings while enforcing character-set and capacity rules.",
+            details: ["Team names, intros, rival text, post-race text", "Can show charset reference", "Injects straight into out.bin"],
+            command: "node tools/editor/text_editor.js list",
+            tags: ["editor", "text", "strings", "charset"]
+          },
+          {
+            title: "Browser Editor Suite",
+            path: "tools/index.html",
+            status: "planned",
+            kind: "ui",
+            description: "Reserved landing area for a future in-browser editor wrapping the current JSON and inject flows.",
+            details: ["Could host track, team, championship, and text tabs", "Should keep validate -> inject -> verify visible", "Natural next step from this page"],
+            command: "Planned: browser panel built on top of the existing editor CLIs",
+            tags: ["planned", "editor", "ui", "browser"]
+          }
+        ]
+      },
+      {
+        id: "randomizer",
+        title: "Randomizer",
+        description: "Seed-driven workflows for modded builds, restoration, and isolated workspaces.",
+        items: [
+          {
+            title: "Unified Randomizer",
+            path: "tools/randomize.js",
+            status: "ready",
+            kind: "cli",
+            description: "Runs seeded track, config, team, AI, and championship randomization, then builds the ROM.",
+            details: ["Seed format: SMGP-<version>-<flags>-<seed>", "Supports dry-run and no-build", "Backs up original JSON/ASM when needed"],
+            command: "node tools/randomize.js SMGP-1-01-12345 --dry-run",
+            tags: ["randomizer", "seed", "tracks", "teams", "ai"]
+          },
+          {
+            title: "Restore Originals",
+            path: "tools/restore_tracks.js",
+            status: "ready",
+            kind: "cli",
+            description: "Restores backed-up track, team, championship, and art-config data after a randomized run.",
+            details: ["Re-injects original assets", "Can re-run verify", "Useful reset tool during experimentation"],
+            command: "node tools/restore_tracks.js --verify",
+            tags: ["restore", "randomizer", "backup", "verify"]
+          },
+          {
+            title: "Hack Workspace Builder",
+            path: "tools/hack_workdir.js",
+            status: "ready",
+            kind: "cli",
+            description: "Creates an isolated workspace, randomizes there, builds there, and leaves the main tree untouched.",
+            details: ["Outputs build/workspaces/<seed>", "Copies only required files", "Good for safer randomized ROM generation"],
+            command: "node tools/hack_workdir.js SMGP-1-01-12345 --keep",
+            tags: ["workspace", "randomizer", "safe", "build"]
+          },
+          {
+            title: "Randomizer Engines",
+            path: "tools/randomizer/*.js",
+            status: "internal",
+            kind: "module",
+            description: "Core modules for track, team, championship randomization and validation.",
+            details: ["track_randomizer.js", "team_randomizer.js", "championship_randomizer.js", "track_validator.js"],
+            command: "Modules consumed by tools/randomize.js and tests",
+            tags: ["internal", "randomizer", "modules", "validator"]
+          },
+          {
+            title: "Browser Randomizer",
+            path: "tools/index.html",
+            status: "planned",
+            kind: "ui",
+            description: "Placeholder for a guided seed builder, flag picker, and output workflow similar to the Vermilion tooling shell.",
+            details: ["Could generate seeds visually", "Could pair with isolated workspaces", "Should surface restore and verify actions"],
+            command: "Planned: browser randomizer flow built atop tools/randomize.js",
+            tags: ["planned", "randomizer", "ui", "seed"]
+          }
+        ]
+      },
+      {
+        id: "index-analysis",
+        title: "Index + Analysis",
+        description: "Indexes and reports that turn smgp.lst and source files into navigable project metadata.",
+        items: [
+          {
+            title: "Symbol Map",
+            path: "tools/index/symbol_map.js",
+            status: "ready",
+            kind: "cli",
+            description: "Parses smgp.lst into a machine-readable symbol map used by other tooling.",
+            details: ["Outputs tools/index/symbol_map.json", "Sorted by address", "Feeds split-address checks"],
+            command: "node tools/index/symbol_map.js",
+            tags: ["index", "symbols", "listing", "json"]
+          },
+          {
+            title: "Function Index",
+            path: "tools/index/functions.js",
+            status: "ready",
+            kind: "cli",
+            description: "Classifies labels as routines, data, constants, or sublabels, with source-file context and header coverage.",
+            details: ["Outputs tools/index/functions.json", "Uses smgp.lst + source tree", "Highlights documentation gaps"],
+            command: "node tools/index/functions.js",
+            tags: ["index", "functions", "labels", "coverage"]
+          },
+          {
+            title: "Callsite Index",
+            path: "tools/index/callsites.js",
+            status: "ready",
+            kind: "cli",
+            description: "Maps every known label to the lines that reference it in the assembly source.",
+            details: ["Tracks calls, branches, pointers, and loads", "Outputs tools/index/callsites.json", "Good for navigation work"],
+            command: "node tools/index/callsites.js",
+            tags: ["index", "callsites", "cross-reference", "xrefs"]
+          },
+          {
+            title: "Include Graph",
+            path: "tools/index/include_graph.js",
+            status: "ready",
+            kind: "cli",
+            description: "Builds the full include tree rooted at smgp.asm, including file kinds and edge metadata.",
+            details: ["Outputs tools/index/include_graph.json", "Captures include order", "Useful for source-map style browsing"],
+            command: "node tools/index/include_graph.js",
+            tags: ["index", "includes", "graph", "modules"]
+          },
+          {
+            title: "Coverage Report",
+            path: "tools/index/coverage_report.js",
+            status: "ready",
+            kind: "cli",
+            description: "Measures comment density and header coverage across the build source files.",
+            details: ["Outputs tools/index/coverage_report.json", "Pairs with functions.json", "Highlights documentation targets"],
+            command: "node tools/index/coverage_report.js",
+            tags: ["analysis", "coverage", "comments", "docs"]
+          },
+          {
+            title: "Hotspots Report",
+            path: "tools/index/hotspots.js",
+            status: "ready",
+            kind: "cli",
+            description: "Finds heavily referenced routines, single-site helpers, and unreferenced routines.",
+            details: ["Combines callsites + functions", "Outputs tools/index/hotspots.json", "Good triage tool for reverse engineering"],
+            command: "node tools/index/hotspots.js",
+            tags: ["analysis", "hotspots", "dead-code", "routines"]
+          },
+          {
+            title: "String Index",
+            path: "tools/index/strings.js",
+            status: "ready",
+            kind: "cli",
+            description: "Indexes ROM text with decoded English strings and raw JP data for analysis work.",
+            details: ["Outputs tools/index/strings.json", "Documents encoding behavior", "Complements extract_strings.js"],
+            command: "node tools/index/strings.js --rom orig.bin",
+            tags: ["index", "strings", "encoding", "text"]
+          }
+        ]
+      },
+      {
+        id: "safety-lint",
+        title: "Safety + Lint",
+        description: "Focused guards that keep symbolization, constants, VDP use, and magic-number discipline from regressing.",
+        items: [
+          {
+            title: "Split Address Check",
+            path: "tools/check_split_addresses.js",
+            status: "ready",
+            kind: "cli",
+            description: "Compares current smgp.lst symbol addresses against the frozen symbol map baseline.",
+            details: ["Requires smgp.lst", "Detects moved or missing baseline labels", "New symbols are allowed"],
+            command: "node tools/check_split_addresses.js",
+            tags: ["safety", "split", "addresses", "listing"]
+          },
+          {
+            title: "Backslide Lint",
+            path: "tools/lint_backslide.js",
+            status: "ready",
+            kind: "cli",
+            description: "Flags raw RAM or ROM literals reintroduced after symbolization work.",
+            details: ["Checks code modules", "Frozen allowlist model", "Supports strict mode"],
+            command: "node tools/lint_backslide.js --strict",
+            tags: ["lint", "raw-address", "pointers", "symbols"]
+          },
+          {
+            title: "Duplicate Constants Lint",
+            path: "tools/lint_dup_constants.js",
+            status: "ready",
+            kind: "cli",
+            description: "Ensures a constant name does not appear in more than one constants file.",
+            details: ["Covers 4 split constants files", "Guards ambiguous assembler definitions", "Supports verbose scan"],
+            command: "node tools/lint_dup_constants.js",
+            tags: ["lint", "constants", "duplicates", "safety"]
+          },
+          {
+            title: "Raw VDP Lint",
+            path: "tools/lint_raw_vdp.js",
+            status: "ready",
+            kind: "cli",
+            description: "Freezes the count of inline raw VDP register writes so no new ones slip in unnoticed.",
+            details: ["Baseline count gate", "Supports strict mode", "Skips intentional exempt files"],
+            command: "node tools/lint_raw_vdp.js",
+            tags: ["lint", "vdp", "hardware", "baseline"]
+          },
+          {
+            title: "Magic Number Audit",
+            path: "tools/audit_magic_numbers.js",
+            status: "ready",
+            kind: "cli",
+            description: "Flags large unexplained decimal literals in code lines without inline comments.",
+            details: ["Frozen baseline model", "Targets executable code lines", "Supports strict mode"],
+            command: "node tools/audit_magic_numbers.js",
+            tags: ["lint", "comments", "magic-numbers", "audit"]
+          }
+        ]
+      },
+      {
+        id: "testing",
+        title: "Testing",
+        description: "Node-driven CLI and workflow checks for tools, editors, and randomized builds.",
+        items: [
+          {
+            title: "Test Runner",
+            path: "tools/tests/run.js",
+            status: "ready",
+            kind: "cli",
+            description: "Discovers test_*.js files and runs the whole Node-based test suite.",
+            details: ["Supports --filter and --verbose", "Aggregates per-file pass/fail", "Good default suite entrypoint"],
+            command: "node tools/tests/run.js",
+            tags: ["tests", "runner", "node", "suite"]
+          },
+          {
+            title: "Editors E2E",
+            path: "tools/tests/test_editors_e2e.js",
+            status: "ready",
+            kind: "cli",
+            description: "Exercises the show -> set -> validate -> inject dry-run flow for all four editor CLIs.",
+            details: ["Uses isolated temp copies", "Covers error handling too", "Focused editor regression suite"],
+            command: "node tools/tests/test_editors_e2e.js",
+            tags: ["tests", "editors", "e2e", "cli"]
+          },
+          {
+            title: "Randomizer Smoke Test",
+            path: "tools/tests/test_randomizer_smoke.js",
+            status: "ready",
+            kind: "cli",
+            description: "Runs seed generation, validation, injection, and optional isolated build checks for the randomizer.",
+            details: ["Can skip build with --no-build", "Protects original data/tracks", "Good end-to-end randomizer check"],
+            command: "node tools/tests/test_randomizer_smoke.js --no-build",
+            tags: ["tests", "randomizer", "smoke", "build"]
+          }
+        ]
+      }
+    ];
+
+    const navList = document.getElementById("nav-list");
+    const sectionsHost = document.getElementById("sections");
+    const heroStats = document.getElementById("hero-stats");
+    const searchInput = document.getElementById("tool-search");
+    const emptyState = document.getElementById("empty-state");
+    const randomizerCommand = document.getElementById("randomizer-command");
+    const randomizerSummary = document.getElementById("randomizer-summary");
+    const editorCommand = document.getElementById("editor-command");
+    const editorSummary = document.getElementById("editor-summary");
+    const workbenchSummary = document.getElementById("workbench-summary");
+    const workbenchPreview = document.getElementById("workbench-preview");
+    const workbenchCommand = document.getElementById("workbench-command");
+    const workbenchStatus = document.getElementById("workbench-status");
+    const executionCommand = document.getElementById("execution-command");
+    const executionOutput = document.getElementById("execution-output");
+    const serverStatusPill = document.getElementById("server-status-pill");
+    const runnerStatusPill = document.getElementById("runner-status-pill");
+    const serverHelp = document.getElementById("server-help");
+    const randomizerPrimaryCommand = document.getElementById("randomizer-primary-command");
+    const randomizerPrimarySummary = document.getElementById("randomizer-primary-summary");
+    const trackSummary = document.getElementById("track-summary");
+    const trackSegmentSummary = document.getElementById("track-segment-summary");
+    const trackSegmentList = document.getElementById("track-segment-list");
+    const trackCurveCanvas = document.getElementById("track-curve-canvas");
+    const trackMinimapCanvas = document.getElementById("track-minimap-canvas");
+    const trackSlopeCanvas = document.getElementById("track-slope-canvas");
+    const workbenchState = {
+      key: "",
+      baseData: null,
+      workingData: null,
+      error: "",
+      dirty: false,
+      lastAction: ""
+    };
+    const runtimeState = {
+      serverOnline: false,
+      serverCommands: [],
+      running: false,
+      lastResult: null
+    };
+    const trackStudioState = {
+      source: "repo",
+      tracks: [],
+      selectedTrackIndex: 0,
+      selectedSegmentIndex: 0,
+      minimapPreview: null,
+      generatedMinimapPreview: null,
+      minimapPreviewSlug: "",
+      minimapPreviewRequestId: 0
+    };
+    const serverCommands = {
+      "build-rom": "build.bat",
+      "verify-rom": "verify.bat",
+      "run-checks": "node tools/run_checks.js",
+      "tests-runner": "node tools/tests/run.js"
+    };
+
+    function splitCommandLine(command) {
+      return command.match(/"(?:\\.|[^"])*"|\S+/g) || [];
+    }
+
+    function parseNodeCommand(command) {
+      const parts = splitCommandLine(command.trim()).map(part => part.replace(/^"|"$/g, "").replace(/\\"/g, '"'));
+      if (parts[0] !== "node" || !parts[1]) {
+        throw new Error(`Could not parse node command: ${command}`);
+      }
+      return {
+        script: parts[1],
+        args: parts.slice(2)
+      };
+    }
+
+    const snapshotData = {
+      track: {
+        _meta: { track_count: 2, format_version: 1, snapshot: true },
+        tracks: [
+          {
+            index: 0,
+            name: "San Marino",
+            slug: "san_marino",
+            track_length: 7040,
+            horizon_override: 0,
+            steering_straight: 43,
+            steering_curve: 43,
+            lap_targets_name: "San_Marino_lap_targets",
+            curve_rle_segments: [
+              { type: "straight", length: 10, curve_byte: 0 },
+              { type: "curve", length: 20, curve_byte: 18, bg_disp: 28 },
+              { type: "curve", length: 20, curve_byte: 82, bg_disp: 28 },
+              { type: "terminator", curve_byte: 255 }
+            ],
+            slope_rle_segments: [
+              { type: "flat", length: 10, slope_byte: 0, bg_vert_disp: 0 },
+              { type: "slope", length: 20, slope_byte: 70, bg_vert_disp: 112 },
+              { type: "terminator", slope_byte: 255 }
+            ],
+            sign_data: [
+              { distance: 400, count: 2, sign_id: 17 },
+              { distance: 1200, count: 2, sign_id: 23 }
+            ],
+            minimap_pos: [[0, 0], [4, 1], [8, 2], [12, 3]]
+          },
+          {
+            index: 1,
+            name: "Brazil",
+            slug: "brazil",
+            track_length: 6976,
+            horizon_override: 0,
+            steering_straight: 43,
+            steering_curve: 43,
+            lap_targets_name: "Brazil_lap_targets",
+            curve_rle_segments: [
+              { type: "straight", length: 16, curve_byte: 0 },
+              { type: "curve", length: 24, curve_byte: 24, bg_disp: 20 },
+              { type: "terminator", curve_byte: 255 }
+            ],
+            slope_rle_segments: [
+              { type: "flat", length: 16, slope_byte: 0, bg_vert_disp: 0 },
+              { type: "terminator", slope_byte: 255 }
+            ],
+            sign_data: [{ distance: 900, count: 3, sign_id: 12 }],
+            minimap_pos: [[0, 0], [3, 1], [7, 2], [10, 3]]
+          }
+        ]
+      },
+      team: {
+        _meta: { team_count: 2, format_version: 1, snapshot: true },
+        ai_performance_factor: [
+          { team: "Madonna", factor: 15 },
+          { team: "Zero Force", factor: 1 }
+        ],
+        ai_performance_table: [
+          { team: "Madonna", entries: [6, 6, 6, 6, 9, 9, 9, 9] },
+          { team: "Zero Force", entries: [1, 1, 1, 1, 2, 2, 2, 2] }
+        ],
+        team_car_characteristics: [
+          { team: "Madonna", accel_index: 6, engine_index: 10, steering_idx: 4, steering_idx_b: 4, braking_idx: 7 },
+          { team: "Zero Force", accel_index: 0, engine_index: 0, steering_idx: 0, steering_idx_b: 0, braking_idx: 0 }
+        ],
+        team_engine_multiplier: [
+          { team: "Madonna", tire_wear_multiplier: 1 },
+          { team: "Zero Force", tire_wear_multiplier: 2 }
+        ],
+        team_machine_screen_stats: {
+          teams: [
+            { team: "Madonna", eng_bar: 90, tm_bar: 88, sus_bar: 82, tire_bar: 76, bra_bar: 85, tire_wear_delta: 16 },
+            { team: "Zero Force", eng_bar: 20, tm_bar: 24, sus_bar: 18, tire_bar: 30, bra_bar: 22, tire_wear_delta: 40 }
+          ]
+        }
+      },
+      championship: {
+        _meta: {
+          snapshot: true,
+          championship_track_order: ["San Marino", "Brazil", "France", "Hungary", "West Germany", "USA", "Canada", "Great Britain", "Italy", "Portugal", "Spain", "Mexico", "Japan", "Belgium", "Australia", "Monaco"],
+          team_names: ["Madonna", "Firenze", "Millions", "Bestowal", "Blanche", "Tyrant", "Losel", "May", "Bullets", "Dardan", "Linden", "Minarae", "Rigel", "Comet", "Orchis", "Zero Force"]
+        },
+        points_awarded_per_placement: [9, 6, 4, 3, 2, 1],
+        post_race_driver_target_points: [
+          { team: 0, name: "Madonna", promote_threshold: 2, partner_threshold: 5 },
+          { team: 15, name: "Zero Force", promote_threshold: 10, partner_threshold: 13 }
+        ],
+        ai_performance_factor_by_team: [15, 13, 12, 11],
+        ai_performance_table: [
+          { name: "Madonna", scores: [6, 6, 6, 6, 9, 9, 9, 9] },
+          { name: "Zero Force", scores: [1, 1, 1, 1, 2, 2, 2, 2] }
+        ]
+      },
+      text: {
+        _meta: { snapshot: true, mutable_categories: ["team_names", "team_intro_messages", "pre_race_rival_messages", "post_race_messages"] },
+        team_names: {
+          entries: [
+            { id: 0, team: "Madonna", rom_addr: "0x03ba88", en: " MADONNA", capacity: 9 },
+            { id: 1, team: "Firenze", rom_addr: "0x03ba92", en: " FIRENZE", capacity: 9 }
+          ]
+        },
+        post_race_messages: {
+          entries: [
+            { id: 0, rom_addr: "0x020000", en: "DO YOUR BEST!", capacity: 16 }
+          ]
+        }
+      }
+    };
+
+    const editorModes = {
+      track: {
+        script: "node tools/editor/track_editor.js",
+        targetHelp: "Track index, slug, or name fragment.",
+        optionHelp: "Optional section like all, curves, slopes, signs, or minimap.",
+        actions: [
+          { value: "list", label: "list", build: () => ["list"] },
+          { value: "show", label: "show", build: state => ["show", state.target || "san_marino", ...(state.option ? ["--section", state.option] : [])] },
+          { value: "validate", label: "validate", build: state => ["validate", ...(state.target ? [state.target] : [])] },
+          { value: "inject", label: "inject", build: state => ["inject", ...(state.target ? [state.target] : []), ...(state.dryRun ? ["--dry-run"] : []), ...(state.verbose ? ["--verbose"] : [])] }
+        ]
+      },
+      team: {
+        script: "node tools/editor/team_editor.js",
+        targetHelp: "Team index, slug, or name fragment.",
+        optionHelp: "Optional section like car, ai, stats, or all.",
+        actions: [
+          { value: "list-teams", label: "list-teams", build: () => ["list-teams"] },
+          { value: "show", label: "show", build: state => ["show", state.target || "madonna", ...(state.option ? ["--section", state.option] : [])] },
+          { value: "validate", label: "validate", build: () => ["validate"] },
+          { value: "inject", label: "inject", build: state => ["inject", ...(state.dryRun ? ["--dry-run"] : [])] }
+        ]
+      },
+      championship: {
+        script: "node tools/editor/championship_editor.js",
+        targetHelp: "Usually optional unless you are targeting a team or track slot.",
+        optionHelp: "Use for variants like standard, easy, or champ with AI placement.",
+        actions: [
+          { value: "show-order", label: "show-order", build: () => ["show-order"] },
+          { value: "show-thresholds", label: "show-thresholds", build: () => ["show-thresholds"] },
+          { value: "show-ai-placement", label: "show-ai-placement", build: state => ["show-ai-placement", ...(state.option ? [state.option] : ["standard"])] },
+          { value: "validate", label: "validate", build: () => ["validate"] },
+          { value: "inject", label: "inject", build: state => ["inject", ...(state.dryRun ? ["--dry-run"] : [])] }
+        ]
+      },
+      text: {
+        script: "node tools/editor/text_editor.js",
+        targetHelp: "Category or prefix, like team_names, team_intro, or post_race.",
+        optionHelp: "For show/set, this is usually the 0-based index.",
+        actions: [
+          { value: "list", label: "list", build: () => ["list"] },
+          { value: "show", label: "show", build: state => ["show", state.target || "team_names", ...(state.option ? [state.option] : [])] },
+          { value: "set", label: "set", build: state => ["set", state.target || "team_names", state.option || "0", state.value || " FERRARI"] },
+          { value: "validate", label: "validate", build: () => ["validate"] },
+          { value: "inject", label: "inject", build: state => ["inject", ...(state.dryRun ? ["--dry-run"] : [])] },
+          { value: "charset", label: "charset", build: () => ["charset"] }
+        ]
+      }
+    };
+
+    function prettyStatus(status) {
+      if (status === "ready") return "Ready";
+      if (status === "planned") return "Planned";
+      return "Internal";
+    }
+
+    function cardText(item, section) {
+      return [
+        section.title,
+        item.title,
+        item.path,
+        item.description,
+        item.command,
+        item.kind,
+        item.status,
+        ...(item.details || []),
+        ...(item.tags || [])
+      ].join(" ").toLowerCase();
+    }
+
+    function renderStats() {
+      const items = sections.flatMap(section => section.items);
+      const ready = items.filter(item => item.status === "ready").length;
+      const planned = items.filter(item => item.status === "planned").length;
+      const commands = items.filter(item => item.kind === "cli" || item.kind === "workflow").length;
+
+      heroStats.innerHTML = [
+        { value: items.length, label: "tool cards", copy: "A single catalog of the current command surface." },
+        { value: commands, label: "CLI entries", copy: "Concrete commands you can run today." },
+        { value: ready, label: "ready now", copy: "Active scripts and workflows already in the repo." },
+        { value: planned, label: "planned panels", copy: "The remaining space for full browser-native editing." }
+      ].map(stat => `
+        <article class="stat">
+          <strong>${stat.value}</strong>
+          <p>${stat.label}<br>${stat.copy}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderNavigation() {
+      const navItems = [
+        {
+          id: "randomizer-launchpad",
+          title: "Randomized ROM",
+          description: "Simple entry point for generating a randomized build.",
+          count: "start"
+        },
+        {
+          id: "track-studio",
+          title: "Track Studio",
+          description: "Visualize curves, minimap path, slopes, and signs.",
+          count: "live"
+        },
+        {
+          id: "data-workbench",
+          title: "Data Workbench",
+          description: "Preview JSON structure from snapshot data or pasted files.",
+          count: "live"
+        },
+        {
+          id: "command-workshop",
+          title: "Command Workshop",
+          description: "Interactive seed builder and editor command launcher.",
+          count: "live"
+        },
+        ...sections.map(section => ({
+          id: section.id,
+          title: section.title,
+          description: section.description,
+          count: section.items.length
+        }))
+      ];
+
+      navList.innerHTML = navItems.map(section => `
+        <a class="nav-link" href="#section-${section.id}">
+          <span>
+            <strong>${section.title}</strong>
+            <span class="nav-meta">${section.description}</span>
+          </span>
+          <span class="nav-count">${section.count}</span>
+        </a>
+      `).join("");
+    }
+
+    function quoteArg(value) {
+      if (!value) return "";
+      return /\s/.test(value) ? `"${value.replace(/"/g, '\\"')}"` : value;
+    }
+
+    function setServerPill(node, text, tone) {
+      node.textContent = text;
+      node.className = `pill ${tone || "internal"}`;
+    }
+
+    function appendExecutionOutput(text, stream) {
+      if (!text) return;
+      const prefix = stream === "stderr" ? "[stderr] " : "";
+      executionOutput.textContent += `${prefix}${text}`;
+      executionOutput.scrollTop = executionOutput.scrollHeight;
+    }
+
+    function resetExecutionOutput(message) {
+      executionOutput.textContent = message || "";
+      executionOutput.scrollTop = 0;
+    }
+
+    async function fetchServerStatus() {
+      try {
+        const response = await fetch("/api/status", { cache: "no-store" });
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        const data = await response.json();
+        runtimeState.serverOnline = true;
+        runtimeState.serverCommands = data.commands || [];
+        runtimeState.running = !!data.activeTask;
+        setServerPill(serverStatusPill, `Server online :${data.port}`, "ready");
+        setServerPill(runnerStatusPill, data.activeTask ? `Busy ${data.activeTask.key}` : "Idle", data.activeTask ? "planned" : "internal");
+        serverHelp.innerHTML = `Server connected. Approved commands: <code>${runtimeState.serverCommands.join("</code>, <code>")}</code>.`;
+      } catch (error) {
+        runtimeState.serverOnline = false;
+        runtimeState.serverCommands = [];
+        runtimeState.running = false;
+        setServerPill(serverStatusPill, "Server offline", "planned");
+        setServerPill(runnerStatusPill, "Idle", "internal");
+        serverHelp.innerHTML = `Start with <code>node tools/server.js</code>, then open <code>http://127.0.0.1:3210/tools/index.html</code>.`;
+      }
+    }
+
+    async function runServerCommand(key, label) {
+      executionCommand.textContent = serverCommands[key] || key;
+      resetExecutionOutput(`Running ${label || key}...\n\n`);
+      setServerPill(runnerStatusPill, "Running", "planned");
+      try {
+        const response = await fetch("/api/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `request failed (${response.status})`);
+        }
+        appendExecutionOutput(data.stdout || "", "stdout");
+        appendExecutionOutput(data.stderr || "", "stderr");
+        if (data.checksumPatched) {
+          appendExecutionOutput("\n[checksum] ROM header checksum updated for hacked output.\n", "stdout");
+        }
+        if (payload && payload.mode === "node" && /tools[\\/]randomize\.js$/.test(String(payload.script || ""))) {
+          const args = Array.isArray(payload.args) ? payload.args : [];
+          const seedArg = args.find(arg => /^SMGP-/.test(arg)) || "";
+          const match = /^SMGP-\d+-([0-9A-Fa-f]+)-\d+$/.exec(seedArg);
+          const flags = match ? parseInt(match[1], 16) : 0;
+          const trackEnabled = (flags & 0x01) !== 0;
+          const dryRun = args.includes("--dry-run");
+          const noBuild = args.includes("--no-build");
+          if (trackEnabled && (dryRun || noBuild)) {
+            appendExecutionOutput("\n[note] This run did not build a ROM with generated minimap tile, map, or marker-path patches. Use Generate Randomized ROM without Dry Run/No Build, or use Workspace Build, if you want the randomized maps to appear in the ROM.\n", "stdout");
+          }
+        }
+        appendExecutionOutput(`\n[exit ${data.exitCode}] ${data.ok ? "OK" : "FAILED"} in ${data.durationMs}ms\n`, "stdout");
+        setServerPill(runnerStatusPill, data.ok ? "Last run OK" : "Last run failed", data.ok ? "ready" : "planned");
+        runtimeState.lastResult = data;
+      } catch (error) {
+        appendExecutionOutput(`${error.message}\n`, "stderr");
+        setServerPill(runnerStatusPill, "Run failed", "planned");
+      }
+      fetchServerStatus();
+    }
+
+    async function executeStructuredCommand(payload, displayCommand) {
+      executionCommand.textContent = displayCommand;
+      resetExecutionOutput(`Running ${displayCommand}...\n\n`);
+      setServerPill(runnerStatusPill, "Running", "planned");
+      try {
+        const response = await fetch("/api/execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `request failed (${response.status})`);
+        }
+        appendExecutionOutput(data.stdout || "", "stdout");
+        appendExecutionOutput(data.stderr || "", "stderr");
+        if (data.checksumPatched) {
+          appendExecutionOutput("\n[checksum] ROM header checksum updated for hacked output.\n", "stdout");
+        }
+        appendExecutionOutput(`\n[exit ${data.exitCode}] ${data.ok ? "OK" : "FAILED"} in ${data.durationMs}ms\n`, "stdout");
+        setServerPill(runnerStatusPill, data.ok ? "Last run OK" : "Last run failed", data.ok ? "ready" : "planned");
+        runtimeState.lastResult = data;
+      } catch (error) {
+        appendExecutionOutput(`${error.message}\n`, "stderr");
+        setServerPill(runnerStatusPill, "Run failed", "planned");
+      }
+      fetchServerStatus();
+    }
+
+    function setPillRow(node, items) {
+      node.innerHTML = items.map(item => `<span class="pill ${item.tone || ""}">${item.text}</span>`).join("");
+    }
+
+    function makePreviewCard(label, value) {
+      return `<article class="preview-card"><strong>${label}</strong><span>${value}</span></article>`;
+    }
+
+    function getTrackStudioData() {
+      const source = document.getElementById("track-source").value;
+      if (source === "snapshot") {
+        return cloneJson(snapshotData.track);
+      }
+      if (source === "workbench" && getWorkbenchMode() === "track" && workbenchState.workingData && workbenchState.workingData.tracks) {
+        return cloneJson(workbenchState.workingData);
+      }
+      return cloneJson(window.__repoTracksData || snapshotData.track);
+    }
+
+    async function loadRepoTrackData() {
+      try {
+        const response = await fetch("/tools/data/tracks.json", { cache: "no-store" });
+        if (!response.ok) throw new Error(`status ${response.status}`);
+        window.__repoTracksData = await response.json();
+      } catch (error) {
+        window.__repoTracksData = cloneJson(snapshotData.track);
+      }
+    }
+
+    async function loadLatestMinimapWorkspaceIntoWorkbench() {
+      const response = await fetch("/api/latest-minimap-workspace", { cache: "no-store" });
+      if (!response.ok) throw new Error(`status ${response.status}`);
+      const data = await response.json();
+      if (!data.ok || !data.tracks) throw new Error(data.error || "Failed to load workspace tracks");
+      document.getElementById("workbench-mode").value = "track";
+      document.getElementById("workbench-source").value = "custom";
+      document.getElementById("workbench-json").value = JSON.stringify(data.tracks, null, 2);
+      syncWorkbenchState();
+      updateWorkbench();
+      document.getElementById("track-source").value = "workbench";
+      await updateTrackStudio();
+      workbenchState.lastAction = `Loaded track data from workspace ${data.workspace}.`;
+      updateWorkbench();
+    }
+
+    async function loadMinimapPreview(slug, tracksData = null) {
+      const requestId = ++trackStudioState.minimapPreviewRequestId;
+      if (!runtimeState.serverOnline || !slug) {
+        trackStudioState.minimapPreview = null;
+        trackStudioState.generatedMinimapPreview = null;
+        trackStudioState.minimapPreviewSlug = "";
+        return;
+      }
+      try {
+        const [originalResponse, generatedResponse] = await Promise.all([
+          fetch(`/api/minimap-preview?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }),
+          fetch(`/api/generated-minimap-preview`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug, tracks: tracksData || getTrackStudioData() })
+          })
+        ]);
+        if (!originalResponse.ok) throw new Error(`status ${originalResponse.status}`);
+        if (!generatedResponse.ok) throw new Error(`status ${generatedResponse.status}`);
+        const data = await originalResponse.json();
+        const generatedData = await generatedResponse.json();
+        if (requestId !== trackStudioState.minimapPreviewRequestId) return;
+        trackStudioState.minimapPreview = data.preview || null;
+        trackStudioState.generatedMinimapPreview = generatedData.preview || null;
+        trackStudioState.minimapPreviewSlug = slug;
+      } catch (error) {
+        if (requestId !== trackStudioState.minimapPreviewRequestId) return;
+        trackStudioState.minimapPreview = null;
+        trackStudioState.generatedMinimapPreview = null;
+        trackStudioState.minimapPreviewSlug = "";
+      }
+    }
+
+    function resetCanvasContext(ctx) {
+      if (!ctx) return;
+      if (typeof ctx.resetTransform === "function") {
+        ctx.resetTransform();
+      } else {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineDashOffset = 0;
+      if (typeof ctx.setLineDash === "function") ctx.setLineDash([]);
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+      ctx.filter = "none";
+      ctx.lineCap = "butt";
+      ctx.lineJoin = "miter";
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#000000";
+      ctx.fillStyle = "#000000";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "start";
+      ctx.textBaseline = "alphabetic";
+    }
+
+    function selectTrackStudioTrack() {
+      const tracks = trackStudioState.tracks;
+      const trackSelect = document.getElementById("track-select");
+      const selectedIndex = parseInt(trackSelect.value || "0", 10) || 0;
+      trackStudioState.selectedTrackIndex = Math.min(selectedIndex, Math.max(0, tracks.length - 1));
+      return tracks[trackStudioState.selectedTrackIndex] || null;
+    }
+
+    function curveDirection(segment) {
+      if (!segment || segment.type !== "curve") return "straight";
+      return segment.curve_byte >= 0x41 ? "right" : "left";
+    }
+
+    function trackSegmentEntries(track) {
+      return (track.curve_rle_segments || [])
+        .filter(segment => segment.type !== "terminator")
+        .map((segment, index) => ({
+          index,
+          segment,
+          direction: curveDirection(segment)
+        }));
+    }
+
+    function buildTrackSummary(track) {
+      const curveSegments = trackSegmentEntries(track);
+      const leftCount = curveSegments.filter(entry => entry.direction === "left").length;
+      const rightCount = curveSegments.filter(entry => entry.direction === "right").length;
+      const signs = (track.sign_data || []).length;
+      return [
+        makePreviewCard("Track", `${track.name} (#${track.index})`),
+        makePreviewCard("Length", `${track.track_length} units`),
+        makePreviewCard("Curves", `${curveSegments.length} segments`),
+        makePreviewCard("Turns", `${leftCount}L / ${rightCount}R`),
+        makePreviewCard("Signs", String(signs)),
+        makePreviewCard("Minimap", `${(track.minimap_pos || []).length} points`),
+        makePreviewCard("Steering", `${track.steering_straight}/${track.steering_curve}`),
+        makePreviewCard("Horizon", String(track.horizon_override))
+      ].join("");
+    }
+
+    function renderTrackSegmentSummary(track, entry) {
+      if (!track || !entry) {
+        trackSegmentSummary.innerHTML = makePreviewCard("Segment", "No segment selected");
+        return;
+      }
+      const segment = entry.segment;
+      const startDistance = trackSegmentEntries(track)
+        .slice(0, entry.index)
+        .reduce((sum, item) => sum + (item.segment.length || 0), 0) * 4;
+      trackSegmentSummary.innerHTML = [
+        makePreviewCard("Segment", `#${entry.index}`),
+        makePreviewCard("Type", entry.direction === "straight" ? "Straight" : `${entry.direction} curve`),
+        makePreviewCard("Length", `${segment.length * 4} units`),
+        makePreviewCard("Starts At", `${startDistance} units`),
+        makePreviewCard("Curve Byte", `0x${(segment.curve_byte || 0).toString(16).toUpperCase().padStart(2, "0")}`),
+        makePreviewCard("BG Disp", String(segment.bg_disp ?? 0))
+      ].join("");
+    }
+
+    function renderTrackSegmentList(track, selectedIndex) {
+      const entries = trackSegmentEntries(track);
+      trackSegmentList.innerHTML = entries.map(entry => `
+        <button class="segment-button ${entry.index === selectedIndex ? "active" : ""}" type="button" data-segment-index="${entry.index}">
+          <span class="segment-index">#${entry.index}</span>
+          <span class="segment-meta">
+            <strong>${entry.direction === "straight" ? "straight" : `${entry.direction} curve`}</strong>
+            <span>${entry.segment.length * 4} units</span>
+          </span>
+          <span class="segment-tail ${entry.direction}">${entry.direction}</span>
+        </button>
+      `).join("");
+    }
+
+    function drawCurveTimeline(track, selectedIndex) {
+      const canvas = trackCurveCanvas;
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      resetCanvasContext(ctx);
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.fillStyle = "#f6fbff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(24, 33, 47, 0.06)";
+      for (let i = 0; i < 12; i++) {
+        ctx.fillRect((width / 12) * i, 0, 1, height);
+      }
+
+      const entries = trackSegmentEntries(track);
+      const total = entries.reduce((sum, entry) => sum + (entry.segment.length || 0), 0) || 1;
+      let cursor = 20;
+      const usableWidth = width - 40;
+      const centerY = height / 2;
+      const amp = 68;
+
+      entries.forEach(entry => {
+        const segWidth = Math.max(6, usableWidth * ((entry.segment.length || 0) / total));
+        const dir = entry.direction;
+        const color = dir === "left" ? "#d84a3e" : dir === "right" ? "#2885b8" : "#9aa9b8";
+        const offset = dir === "left" ? -1 : dir === "right" ? 1 : 0;
+        const barY = centerY + offset * amp * Math.min(1, ((entry.segment.curve_byte || 0) & 0x2F) / 47);
+
+        ctx.beginPath();
+        ctx.moveTo(cursor, centerY);
+        ctx.lineTo(cursor + segWidth * 0.5, barY);
+        ctx.lineTo(cursor + segWidth, centerY);
+        ctx.lineWidth = entry.index === selectedIndex ? 8 : 5;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+
+        ctx.fillStyle = entry.index === selectedIndex ? "rgba(213, 51, 47, 0.14)" : "rgba(24, 33, 47, 0.05)";
+        ctx.fillRect(cursor, 24, segWidth, height - 48);
+        cursor += segWidth;
+      });
+    }
+
+    function drawMinimap(track, selectedIndex) {
+      const canvas = trackMinimapCanvas;
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      resetCanvasContext(ctx);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#eef7fc";
+      ctx.fillRect(0, 0, width, height);
+
+      const segments = trackSegmentEntries(track);
+      const totalLength = segments.reduce((sum, entry) => sum + entry.segment.length * 4, 0) || 1;
+      const pairs = (track.minimap_pos || []).filter((pair, index, array) => {
+        if (!pair) return false;
+        if (index === 0) return true;
+        const prev = array[index - 1];
+        return !prev || prev[0] !== pair[0] || prev[1] !== pair[1];
+      });
+      if (pairs.length < 2) return;
+
+      const points = pairs.map(pair => ({ x: pair[0], y: pair[1] }));
+      const minRawX = Math.min(...points.map(point => point.x));
+      const maxRawX = Math.max(...points.map(point => point.x));
+      const minRawY = Math.min(...points.map(point => point.y));
+      const maxRawY = Math.max(...points.map(point => point.y));
+      const rawWidth = Math.max(1, maxRawX - minRawX);
+      const rawHeight = Math.max(1, maxRawY - minRawY);
+      const targetAspect = 0.52;
+
+      const normalized = points.map(point => ({
+        x: point.x - minRawX,
+        y: point.y - minRawY
+      }));
+
+      const currentAspect = rawWidth / rawHeight;
+      const aspectScaleX = currentAspect < targetAspect ? targetAspect / currentAspect : 1;
+      const aspectScaleY = currentAspect > 0.92 ? currentAspect / 0.92 : 1;
+
+      const warped = normalized.map((point, index) => {
+        const t = points.length <= 1 ? 0 : index / (points.length - 1);
+        const pinch = Math.sin(t * Math.PI) * 0.08;
+        return {
+          x: point.x * aspectScaleX + pinch * rawWidth,
+          y: point.y * aspectScaleY
+        };
+      });
+
+      const smoothPoints = warped.map((point, index, array) => {
+        const prev = array[(index - 1 + array.length) % array.length];
+        const next = array[(index + 1) % array.length];
+        return {
+          x: (prev.x + point.x * 2 + next.x) / 4,
+          y: (prev.y + point.y * 2 + next.y) / 4
+        };
+      });
+
+      const xs = smoothPoints.map(point => point.x);
+      const ys = smoothPoints.map(point => point.y);
+      const minX = Math.min(...xs), maxX = Math.max(...xs);
+      const minY = Math.min(...ys), maxY = Math.max(...ys);
+      const pad = 28;
+      const scaleX = (width - pad * 2) / Math.max(1, maxX - minX || 1);
+      const scaleY = (height - pad * 2) / Math.max(1, maxY - minY || 1);
+      const scale = Math.min(scaleX, scaleY);
+      const toCanvas = point => ({
+        x: pad + (point.x - minX) * scale,
+        y: pad + (point.y - minY) * scale
+      });
+
+      const preview = trackStudioState.minimapPreview;
+      const generatedPreview = trackStudioState.generatedMinimapPreview;
+      const previewMatchesTrack = preview && trackStudioState.minimapPreviewSlug === (track.slug || "");
+      const generatedMatchesTrack = generatedPreview && trackStudioState.minimapPreviewSlug === (track.slug || "");
+
+      function drawPreviewPanel(panelPreview, panelX, panelY, tint, title) {
+        if (!panelPreview || !panelPreview.width || !panelPreview.height || !Array.isArray(panelPreview.pixels)) return;
+        const previewPoints = [];
+        for (let y = 0; y < panelPreview.height; y++) {
+          for (let x = 0; x < panelPreview.width; x++) {
+            if (panelPreview.pixels[y * panelPreview.width + x]) {
+              previewPoints.push({ x, y });
+            }
+          }
+        }
+        if (!previewPoints.length) return;
+        const previewMinX = Math.min(...previewPoints.map(point => point.x));
+        const previewMaxX = Math.max(...previewPoints.map(point => point.x));
+        const previewMinY = Math.min(...previewPoints.map(point => point.y));
+        const previewMaxY = Math.max(...previewPoints.map(point => point.y));
+        const previewWidth = Math.max(1, previewMaxX - previewMinX);
+        const previewHeight = Math.max(1, previewMaxY - previewMinY);
+        const previewScale = Math.min(4.4, Math.min(170 / previewWidth, 250 / previewHeight));
+        const palette = [null, tint, tint, tint, tint, tint, tint, tint, tint, tint];
+
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.fillRect(panelX - 10, panelY - 18, previewWidth * previewScale + 20, previewHeight * previewScale + 28);
+        ctx.fillStyle = "rgba(29,36,48,0.7)";
+        ctx.font = "11px Georgia, serif";
+        ctx.fillText(title, panelX - 2, panelY - 4);
+
+        for (let y = 0; y < panelPreview.height; y++) {
+          for (let x = 0; x < panelPreview.width; x++) {
+            const colorIndex = panelPreview.pixels[y * panelPreview.width + x];
+            if (!colorIndex) continue;
+            ctx.fillStyle = palette[colorIndex] || tint;
+            ctx.fillRect(
+              panelX + (x - previewMinX) * previewScale,
+              panelY + (y - previewMinY) * previewScale,
+              Math.max(1.1, previewScale),
+              Math.max(1.1, previewScale)
+            );
+          }
+        }
+      }
+
+      if (previewMatchesTrack) drawPreviewPanel(preview, width - 170, 34, "rgba(39,47,61,0.72)", "Original");
+      if (generatedMatchesTrack) drawPreviewPanel(generatedPreview, width - 170, 210, "rgba(213,51,47,0.78)", "Generated");
+
+      ctx.strokeStyle = "rgba(29, 36, 48, 0.22)";
+      ctx.lineWidth = 18;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      smoothPoints.forEach((point, index) => {
+        const mapped = toCanvas(point);
+        if (index === 0) ctx.moveTo(mapped.x, mapped.y); else ctx.lineTo(mapped.x, mapped.y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.strokeStyle = "#f3f5f7";
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      smoothPoints.forEach((point, index) => {
+        const mapped = toCanvas(point);
+        if (index === 0) ctx.moveTo(mapped.x, mapped.y); else ctx.lineTo(mapped.x, mapped.y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      ctx.strokeStyle = "#1d2430";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      smoothPoints.forEach((point, index) => {
+        const mapped = toCanvas(point);
+        if (index === 0) ctx.moveTo(mapped.x, mapped.y); else ctx.lineTo(mapped.x, mapped.y);
+      });
+      ctx.closePath();
+      ctx.stroke();
+
+      const selectedStart = segments.slice(0, selectedIndex).reduce((sum, entry) => sum + entry.segment.length * 4, 0);
+      const selectedMid = selectedStart + ((segments[selectedIndex] && segments[selectedIndex].segment.length * 2) || 0);
+      const highlightIndex = Math.min(smoothPoints.length - 1, Math.max(0, Math.floor((selectedMid / totalLength) * (smoothPoints.length - 1))));
+      const selectedPoint = smoothPoints[highlightIndex];
+      if (selectedPoint) {
+        const mapped = toCanvas(selectedPoint);
+        ctx.fillStyle = "#d5332f";
+        ctx.beginPath();
+        ctx.arc(mapped.x, mapped.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (pairs.length > 1) {
+        const rawScaleX = (width - pad * 2) / Math.max(1, rawWidth);
+        const rawScaleY = (height - pad * 2) / Math.max(1, rawHeight);
+        const rawScale = Math.min(rawScaleX, rawScaleY) * 0.55;
+        const rawOffsetX = width - rawWidth * rawScale - 36;
+        const rawOffsetY = 34;
+        ctx.strokeStyle = "rgba(36, 115, 163, 0.28)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        pairs.forEach((pair, index) => {
+          const px = rawOffsetX + (pair[0] - minRawX) * rawScale;
+          const py = rawOffsetY + (pair[1] - minRawY) * rawScale;
+          if (index === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = "#d6a128";
+      (track.sign_data || []).forEach(sign => {
+        const idx = Math.min(smoothPoints.length - 1, Math.max(0, Math.floor((sign.distance / Math.max(1, track.track_length)) * (smoothPoints.length - 1))));
+        const point = smoothPoints[idx];
+        if (!point) return;
+        const mapped = toCanvas(point);
+        ctx.fillRect(mapped.x - 2, mapped.y - 2, 5, 5);
+      });
+    }
+
+    function drawSlopeProfile(track) {
+      const canvas = trackSlopeCanvas;
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      resetCanvasContext(ctx);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#eef7fc";
+      ctx.fillRect(0, 0, width, height);
+
+      const segments = (track.slope_rle_segments || []).filter(segment => segment.type !== "terminator");
+      const total = segments.reduce((sum, segment) => sum + (segment.length || 0), 0) || 1;
+      let cursor = 20;
+      const usableWidth = width - 40;
+      let currentY = height * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cursor, currentY);
+      segments.forEach(segment => {
+        const segWidth = usableWidth * ((segment.length || 0) / total);
+        const offset = segment.type === "slope"
+          ? ((segment.slope_byte || 0) >= 0x41 ? -1 : 1) * Math.min(36, Math.abs(segment.bg_vert_disp || 0) * 0.3)
+          : 0;
+        currentY += offset;
+        cursor += segWidth;
+        ctx.lineTo(cursor, currentY);
+      });
+      ctx.strokeStyle = "#2373a3";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
+
+    async function updateTrackStudio() {
+      const data = getTrackStudioData();
+      const tracks = (data && data.tracks) || [];
+      trackStudioState.tracks = tracks;
+      const trackSelect = document.getElementById("track-select");
+      const segmentSelect = document.getElementById("track-segment-select");
+      const previousTrack = trackSelect.value;
+      trackSelect.innerHTML = tracks.map((track, index) => `<option value="${index}">[${track.index}] ${track.name}</option>`).join("");
+      if (tracks.some((_, index) => String(index) === previousTrack)) {
+        trackSelect.value = previousTrack;
+      }
+      const track = selectTrackStudioTrack();
+
+      const entries = track ? trackSegmentEntries(track) : [];
+      const previousSegment = segmentSelect.value;
+      segmentSelect.innerHTML = entries.map(entry => `<option value="${entry.index}">#${entry.index} ${entry.direction} ${entry.segment.length * 4}u</option>`).join("");
+      if (entries.some(entry => String(entry.index) === previousSegment)) {
+        segmentSelect.value = previousSegment;
+      }
+      const selectedSegmentIndex = parseInt(segmentSelect.value || "0", 10) || 0;
+      trackStudioState.selectedSegmentIndex = Math.min(selectedSegmentIndex, Math.max(0, entries.length - 1));
+      const selectedEntry = entries.find(entry => entry.index === trackStudioState.selectedSegmentIndex) || entries[0] || null;
+
+      if (track) {
+        trackStudioState.minimapPreview = null;
+        trackStudioState.minimapPreviewSlug = "";
+        await loadMinimapPreview(track.slug || "", data);
+      } else {
+        trackStudioState.minimapPreview = null;
+        trackStudioState.minimapPreviewSlug = "";
+      }
+
+      trackSummary.innerHTML = track ? buildTrackSummary(track) : makePreviewCard("Track", "No track data available");
+      renderTrackSegmentSummary(track, selectedEntry);
+      renderTrackSegmentList(track || { curve_rle_segments: [] }, trackStudioState.selectedSegmentIndex);
+      if (track) {
+        drawCurveTimeline(track, trackStudioState.selectedSegmentIndex);
+        drawMinimap(track, trackStudioState.selectedSegmentIndex);
+        drawSlopeProfile(track);
+      }
+    }
+
+    function getWorkbenchMode() {
+      return document.getElementById("workbench-mode").value;
+    }
+
+    function getWorkbenchSource() {
+      return document.getElementById("workbench-source").value;
+    }
+
+    function parseWorkbenchData() {
+      const mode = getWorkbenchMode();
+      const source = getWorkbenchSource();
+      if (source === "snapshot") {
+        return { data: snapshotData[mode], error: "" };
+      }
+
+      const raw = document.getElementById("workbench-json").value.trim();
+      if (!raw) {
+        return { data: null, error: "Paste a JSON document to inspect custom data." };
+      }
+
+      try {
+        return { data: JSON.parse(raw), error: "" };
+      } catch (error) {
+        return { data: null, error: `JSON parse error: ${error.message}` };
+      }
+    }
+
+    function cloneJson(value) {
+      return value ? JSON.parse(JSON.stringify(value)) : value;
+    }
+
+    function getWorkbenchKey(mode, source) {
+      if (source === "snapshot") return `snapshot:${mode}`;
+      return `custom:${mode}:${document.getElementById("workbench-json").value.trim()}`;
+    }
+
+    function syncWorkbenchState() {
+      const mode = getWorkbenchMode();
+      const source = getWorkbenchSource();
+      const key = getWorkbenchKey(mode, source);
+      if (key === workbenchState.key) return;
+
+      const { data, error } = parseWorkbenchData();
+      workbenchState.key = key;
+      workbenchState.error = error;
+      workbenchState.baseData = data ? cloneJson(data) : null;
+      workbenchState.workingData = data ? cloneJson(data) : null;
+      workbenchState.dirty = false;
+      workbenchState.lastAction = error ? error : (data ? "Loaded data into the browser workbench." : "");
+    }
+
+    function buildWorkbenchEntries(mode, data) {
+      if (!data) return [];
+
+      if (mode === "track") {
+        return (data.tracks || []).map((track, index) => ({
+          value: String(index),
+          label: `[${track.index ?? index}] ${track.name || track.slug || `Track ${index}`}`,
+          index,
+          payload: track
+        }));
+      }
+
+      if (mode === "team") {
+        return (data.ai_performance_factor || []).map((entry, index) => ({
+          value: String(index),
+          label: `[${index}] ${entry.team || `Team ${index}`}`,
+          index,
+          payload: {
+            factor: entry,
+            table: (data.ai_performance_table || [])[index] || null,
+            car: (data.team_car_characteristics || [])[index] || null,
+            wear: (data.team_engine_multiplier || [])[index] || null,
+            stats: ((data.team_machine_screen_stats || {}).teams || [])[index] || null
+          }
+        }));
+      }
+
+      if (mode === "championship") {
+        return (data.post_race_driver_target_points || []).map((entry, index) => ({
+          value: String(index),
+          label: `[${entry.team ?? index}] ${entry.name || `Team ${index}`}`,
+          index,
+          payload: {
+            threshold: entry,
+            points: data.points_awarded_per_placement || [],
+            order: ((data._meta || {}).championship_track_order || []).slice(0, 16),
+            aiFactor: (data.ai_performance_factor_by_team || [])[index],
+            aiTable: (data.ai_performance_table || [])[index] || null
+          }
+        }));
+      }
+
+      if (mode === "text") {
+        const categories = ["team_names", "team_intro_messages", "pre_race_rival_messages", "post_race_messages"];
+        const entries = [];
+        categories.forEach(category => {
+          (((data[category] || {}).entries) || []).forEach((entry, index) => {
+            entries.push({
+              value: `${category}:${index}`,
+              label: `${category}[${index}] ${entry.team || entry.rom_addr || "entry"}`,
+              category,
+              index,
+              payload: { category, index, entry }
+            });
+          });
+        });
+        return entries;
+      }
+
+      return [];
+    }
+
+    function renderWorkbenchSummary(mode, entry, source) {
+      if (!entry) {
+        workbenchSummary.innerHTML = makePreviewCard("Status", "No entry available for this data set.");
+        return;
+      }
+
+      if (mode === "track") {
+        const track = entry.payload;
+        workbenchSummary.innerHTML = [
+          makePreviewCard("Source", source === "snapshot" ? "Abridged snapshot" : "Custom JSON"),
+          makePreviewCard("Track", `${track.name || track.slug} (${track.slug || `#${track.index}`})`),
+          makePreviewCard("Length", String(track.track_length || "?")),
+          makePreviewCard("Curve Segments", String((track.curve_rle_segments || []).filter(segment => segment.type !== "terminator").length)),
+          makePreviewCard("Slope Segments", String((track.slope_rle_segments || []).filter(segment => segment.type !== "terminator").length)),
+          makePreviewCard("Signs", String((track.sign_data || []).length))
+        ].join("");
+        return;
+      }
+
+      if (mode === "team") {
+        const team = entry.payload;
+        workbenchSummary.innerHTML = [
+          makePreviewCard("Source", source === "snapshot" ? "Abridged snapshot" : "Custom JSON"),
+          makePreviewCard("Team", team.factor && team.factor.team ? team.factor.team : entry.label),
+          makePreviewCard("AI Factor", String((team.factor || {}).factor ?? "?")),
+          makePreviewCard("Engine Index", String((team.car || {}).engine_index ?? "?")),
+          makePreviewCard("Accel Index", String((team.car || {}).accel_index ?? "?")),
+          makePreviewCard("Tire Wear", String((team.wear || {}).tire_wear_multiplier ?? "?"))
+        ].join("");
+        return;
+      }
+
+      if (mode === "championship") {
+        const champ = entry.payload;
+        workbenchSummary.innerHTML = [
+          makePreviewCard("Source", source === "snapshot" ? "Abridged snapshot" : "Custom JSON"),
+          makePreviewCard("Team", (champ.threshold || {}).name || entry.label),
+          makePreviewCard("Promote", String((champ.threshold || {}).promote_threshold ?? "?")),
+          makePreviewCard("Partner", String((champ.threshold || {}).partner_threshold ?? "?")),
+          makePreviewCard("AI Factor", String(champ.aiFactor ?? "?")),
+          makePreviewCard("Final Race", String((champ.order || [])[15] || "?"))
+        ].join("");
+        return;
+      }
+
+      const text = entry.payload;
+      workbenchSummary.innerHTML = [
+        makePreviewCard("Source", source === "snapshot" ? "Abridged snapshot" : "Custom JSON"),
+        makePreviewCard("Category", text.category),
+        makePreviewCard("Index", String(text.index)),
+        makePreviewCard("Capacity", String((text.entry || {}).capacity ?? "?")),
+        makePreviewCard("ROM Addr", String((text.entry || {}).rom_addr || "(none)")),
+        makePreviewCard("Chars", String(((text.entry || {}).en || "").length))
+      ].join("");
+    }
+
+    function renderWorkbenchPreview(mode, entry, error) {
+      if (error) {
+        workbenchPreview.textContent = error;
+        return;
+      }
+      if (!entry) {
+        workbenchPreview.textContent = "No entry selected.";
+        return;
+      }
+
+      if (mode === "track") {
+        const track = entry.payload;
+        workbenchPreview.textContent = JSON.stringify({
+          index: track.index,
+          name: track.name,
+          slug: track.slug,
+          track_length: track.track_length,
+          horizon_override: track.horizon_override,
+          steering_straight: track.steering_straight,
+          steering_curve: track.steering_curve,
+          lap_targets_name: track.lap_targets_name,
+          curve_rle_segments: track.curve_rle_segments,
+          slope_rle_segments: track.slope_rle_segments,
+          sign_data: track.sign_data,
+          minimap_pos_preview: (track.minimap_pos || []).slice(0, 8)
+        }, null, 2);
+        return;
+      }
+
+      if (mode === "team") {
+        workbenchPreview.textContent = JSON.stringify(entry.payload, null, 2);
+        return;
+      }
+
+      if (mode === "championship") {
+        workbenchPreview.textContent = JSON.stringify({
+          threshold: entry.payload.threshold,
+          points_awarded_per_placement: entry.payload.points,
+          ai_factor: entry.payload.aiFactor,
+          ai_table: entry.payload.aiTable,
+          championship_track_order: entry.payload.order
+        }, null, 2);
+        return;
+      }
+
+      workbenchPreview.textContent = JSON.stringify(entry.payload, null, 2);
+    }
+
+    function renderWorkbenchStatus() {
+      if (workbenchState.error) {
+        setPillRow(workbenchStatus, [{ text: workbenchState.error, tone: "planned" }]);
+        return;
+      }
+
+      const items = [];
+      items.push({ text: workbenchState.dirty ? "browser edits pending" : "clean working copy", tone: workbenchState.dirty ? "planned" : "ready" });
+      if (workbenchState.lastAction) {
+        items.push({ text: workbenchState.lastAction, tone: "internal" });
+      }
+      setPillRow(workbenchStatus, items);
+    }
+
+    function renderWorkbenchMutations(mode, entry, error) {
+      ["track", "team", "championship", "text"].forEach(name => {
+        document.getElementById(`mutate-${name}`).hidden = name !== mode;
+      });
+
+      if (error || !entry) return;
+
+      if (mode === "track") {
+        document.getElementById("mut-track-length").value = entry.payload.track_length ?? "";
+        document.getElementById("mut-track-horizon").value = entry.payload.horizon_override ?? "";
+        document.getElementById("mut-track-straight").value = entry.payload.steering_straight ?? "";
+        document.getElementById("mut-track-curve").value = entry.payload.steering_curve ?? "";
+        return;
+      }
+
+      if (mode === "team") {
+        document.getElementById("mut-team-factor").value = entry.payload.factor && entry.payload.factor.factor !== undefined ? entry.payload.factor.factor : "";
+        document.getElementById("mut-team-engine").value = entry.payload.car && entry.payload.car.engine_index !== undefined ? entry.payload.car.engine_index : "";
+        document.getElementById("mut-team-accel").value = entry.payload.car && entry.payload.car.accel_index !== undefined ? entry.payload.car.accel_index : "";
+        document.getElementById("mut-team-wear").value = entry.payload.wear && entry.payload.wear.tire_wear_multiplier !== undefined ? entry.payload.wear.tire_wear_multiplier : "";
+        return;
+      }
+
+      if (mode === "championship") {
+        document.getElementById("mut-champ-promote").value = entry.payload.threshold && entry.payload.threshold.promote_threshold !== undefined ? entry.payload.threshold.promote_threshold : "";
+        document.getElementById("mut-champ-partner").value = entry.payload.threshold && entry.payload.threshold.partner_threshold !== undefined ? entry.payload.threshold.partner_threshold : "";
+        document.getElementById("mut-champ-ai").value = entry.payload.aiFactor !== undefined ? entry.payload.aiFactor : "";
+        return;
+      }
+
+      document.getElementById("mut-text-value").value = entry.payload.entry && entry.payload.entry.en !== undefined ? entry.payload.entry.en : "";
+    }
+
+    function renderWorkbenchCommands(mode, entry, error) {
+      if (error || !entry) {
+        workbenchCommand.textContent = error || "No command available.";
+        return;
+      }
+
+      if (mode === "track") {
+        const track = entry.payload;
+        workbenchCommand.textContent = [
+          `node tools/editor/track_editor.js show ${quoteArg(track.slug || track.name || String(track.index || 0))}`,
+          `node tools/editor/track_editor.js validate ${quoteArg(track.slug || track.name || String(track.index || 0))}`,
+          "node tools/inject_track_data.js --dry-run"
+        ].join("\n");
+        return;
+      }
+
+      if (mode === "team") {
+        const teamName = (entry.payload.factor || {}).team || entry.label;
+        workbenchCommand.textContent = [
+          `node tools/editor/team_editor.js show ${quoteArg(teamName)}`,
+          "node tools/editor/team_editor.js validate",
+          "node tools/inject_team_data.js --rom out.bin --dry-run"
+        ].join("\n");
+        return;
+      }
+
+      if (mode === "championship") {
+        const teamName = (entry.payload.threshold || {}).name || entry.label;
+        workbenchCommand.textContent = [
+          `node tools/editor/championship_editor.js show-thresholds`,
+          `node tools/editor/championship_editor.js show-ai-factor`,
+          `node tools/editor/championship_editor.js validate`
+        ].join("\n");
+        return;
+      }
+
+      workbenchCommand.textContent = [
+        `node tools/editor/text_editor.js show ${quoteArg(entry.payload.category)} ${entry.payload.index}`,
+        "node tools/editor/text_editor.js validate",
+        "node tools/inject_strings.js --rom out.bin --dry-run"
+      ].join("\n");
+    }
+
+    function getSelectedWorkbenchEntry() {
+      const mode = getWorkbenchMode();
+      const entries = buildWorkbenchEntries(mode, workbenchState.workingData);
+      const select = document.getElementById("workbench-entry");
+      return entries.find(entry => entry.value === select.value) || entries[0] || null;
+    }
+
+    function getWorkingJsonText() {
+      if (!workbenchState.workingData) return workbenchState.error || "No working data available.";
+      return JSON.stringify(workbenchState.workingData, null, 2);
+    }
+
+    function applyWorkbenchMutation() {
+      if (workbenchState.error || !workbenchState.workingData) {
+        workbenchState.lastAction = workbenchState.error || "No working data loaded.";
+        renderWorkbenchStatus();
+        return;
+      }
+
+      const mode = getWorkbenchMode();
+      const entry = getSelectedWorkbenchEntry();
+      if (!entry) {
+        workbenchState.lastAction = "No entry selected.";
+        renderWorkbenchStatus();
+        return;
+      }
+
+      if (mode === "track") {
+        const track = workbenchState.workingData.tracks[entry.index];
+        track.track_length = parseInt(document.getElementById("mut-track-length").value || track.track_length, 10);
+        track.horizon_override = parseInt(document.getElementById("mut-track-horizon").value || track.horizon_override, 10);
+        track.steering_straight = parseInt(document.getElementById("mut-track-straight").value || track.steering_straight, 10);
+        track.steering_curve = parseInt(document.getElementById("mut-track-curve").value || track.steering_curve, 10);
+      } else if (mode === "team") {
+        const i = entry.index;
+        if ((workbenchState.workingData.ai_performance_factor || [])[i]) {
+          workbenchState.workingData.ai_performance_factor[i].factor = parseInt(document.getElementById("mut-team-factor").value || workbenchState.workingData.ai_performance_factor[i].factor, 10);
+        }
+        if ((workbenchState.workingData.team_car_characteristics || [])[i]) {
+          workbenchState.workingData.team_car_characteristics[i].engine_index = parseInt(document.getElementById("mut-team-engine").value || workbenchState.workingData.team_car_characteristics[i].engine_index, 10);
+          workbenchState.workingData.team_car_characteristics[i].accel_index = parseInt(document.getElementById("mut-team-accel").value || workbenchState.workingData.team_car_characteristics[i].accel_index, 10);
+        }
+        if ((workbenchState.workingData.team_engine_multiplier || [])[i]) {
+          workbenchState.workingData.team_engine_multiplier[i].tire_wear_multiplier = parseInt(document.getElementById("mut-team-wear").value || workbenchState.workingData.team_engine_multiplier[i].tire_wear_multiplier, 10);
+        }
+      } else if (mode === "championship") {
+        const i = entry.index;
+        if ((workbenchState.workingData.post_race_driver_target_points || [])[i]) {
+          workbenchState.workingData.post_race_driver_target_points[i].promote_threshold = parseInt(document.getElementById("mut-champ-promote").value || workbenchState.workingData.post_race_driver_target_points[i].promote_threshold, 10);
+          workbenchState.workingData.post_race_driver_target_points[i].partner_threshold = parseInt(document.getElementById("mut-champ-partner").value || workbenchState.workingData.post_race_driver_target_points[i].partner_threshold, 10);
+        }
+        if ((workbenchState.workingData.ai_performance_factor_by_team || [])[i] !== undefined) {
+          workbenchState.workingData.ai_performance_factor_by_team[i] = parseInt(document.getElementById("mut-champ-ai").value || workbenchState.workingData.ai_performance_factor_by_team[i], 10);
+        }
+      } else if (mode === "text") {
+        const category = entry.category;
+        const i = entry.index;
+        if ((((workbenchState.workingData[category] || {}).entries) || [])[i]) {
+          workbenchState.workingData[category].entries[i].en = document.getElementById("mut-text-value").value;
+        }
+      }
+
+      workbenchState.dirty = true;
+      workbenchState.lastAction = `Applied ${mode} mutation to ${entry.label}.`;
+      updateWorkbench();
+    }
+
+    function resetWorkbenchData() {
+      workbenchState.workingData = cloneJson(workbenchState.baseData);
+      workbenchState.dirty = false;
+      workbenchState.lastAction = "Reset working copy to the loaded source.";
+      updateWorkbench();
+    }
+
+    function loadWorkbenchIntoCustom() {
+      const json = getWorkingJsonText();
+      document.getElementById("workbench-source").value = "custom";
+      document.getElementById("workbench-json").value = json;
+      workbenchState.key = "";
+      updateWorkbench();
+      workbenchState.lastAction = "Loaded the working JSON into custom paste mode.";
+      renderWorkbenchStatus();
+    }
+
+    function updateWorkbench() {
+      const mode = getWorkbenchMode();
+      const source = getWorkbenchSource();
+      const jsonWrap = document.getElementById("workbench-json-wrap");
+      const help = document.getElementById("workbench-help");
+      jsonWrap.hidden = source !== "custom";
+      help.textContent = source === "custom"
+        ? "Paste a full JSON document for the selected data type."
+        : "Using an embedded abridged snapshot from this repo for quick previewing.";
+
+      syncWorkbenchState();
+      const select = document.getElementById("workbench-entry");
+      const previous = select.value;
+      const entries = buildWorkbenchEntries(mode, workbenchState.workingData);
+      select.innerHTML = entries.map(entry => `<option value="${entry.value}">${entry.label}</option>`).join("");
+      if (entries.some(entry => entry.value === previous)) {
+        select.value = previous;
+      }
+      const selected = entries.find(entry => entry.value === select.value) || entries[0] || null;
+      renderWorkbenchSummary(mode, selected, source);
+      renderWorkbenchPreview(mode, selected, workbenchState.error);
+      renderWorkbenchMutations(mode, selected, workbenchState.error);
+      renderWorkbenchCommands(mode, selected, workbenchState.error);
+      renderWorkbenchStatus();
+    }
+
+    function updateRandomizerWorkshop() {
+      const version = Math.max(1, parseInt(document.getElementById("seed-version").value || "1", 10) || 1);
+      const seedNumber = Math.max(0, parseInt(document.getElementById("seed-number").value || "0", 10) || 0);
+      const flags = Array.from(document.querySelectorAll("[data-flag]"))
+        .filter(input => input.checked)
+        .reduce((sum, input) => sum + parseInt(input.dataset.flag, 16), 0);
+      const flagsHex = flags.toString(16).toUpperCase().padStart(2, "0");
+      const seed = `SMGP-${version}-${flagsHex}-${seedNumber}`;
+      const subset = document.getElementById("track-subset").value.trim();
+      const dryRun = document.getElementById("rand-dry-run").checked;
+      const noBuild = document.getElementById("rand-no-build").checked;
+      const verbose = document.getElementById("rand-verbose").checked;
+      const workspace = document.getElementById("rand-workspace").checked;
+      const keep = document.getElementById("rand-keep").checked;
+      const trackEnabled = (flags & 0x01) !== 0;
+      const minimapPatched = trackEnabled && !dryRun && (workspace || !noBuild);
+      const minimapPending = trackEnabled && !minimapPatched;
+
+      const commandParts = workspace
+        ? ["node", "tools/hack_workdir.js", seed, ...(keep ? ["--keep"] : []), ...(dryRun ? ["--dry-run"] : []), ...(verbose ? ["--verbose"] : [])]
+        : ["node", "tools/randomize.js", seed, ...(subset ? ["--tracks", subset] : []), ...(dryRun ? ["--dry-run"] : []), ...(noBuild ? ["--no-build"] : []), ...(verbose ? ["--verbose"] : [])];
+
+      randomizerCommand.textContent = commandParts.map(quoteArg).filter(Boolean).join(" ");
+      randomizerPrimaryCommand.textContent = randomizerCommand.textContent;
+      setPillRow(randomizerSummary, [
+        { text: `seed ${seed}`, tone: "cli" },
+        { text: `flags 0x${flagsHex}`, tone: flags ? "ready" : "planned" },
+        { text: workspace ? "workspace mode" : "in-tree mode", tone: workspace ? "ready" : "internal" },
+        ...(minimapPatched ? [{ text: "ROM gets generated minimaps", tone: "ready" }] : []),
+        ...(minimapPending ? [{ text: "minimap ROM patch skipped", tone: "planned" }] : []),
+        ...(subset ? [{ text: `${subset.split(/\s+/).filter(Boolean).length} track filter`, tone: "internal" }] : []),
+        ...(dryRun ? [{ text: "dry run", tone: "planned" }] : []),
+        ...(noBuild ? [{ text: "no build", tone: "planned" }] : [])
+      ]);
+      setPillRow(randomizerPrimarySummary, [
+        { text: workspace ? "workspace" : "main tree", tone: workspace ? "ready" : "internal" },
+        { text: dryRun ? "preview only" : (noBuild ? "patch only" : "build ROM"), tone: dryRun ? "planned" : "ready" },
+        { text: minimapPatched ? "generated minimaps in ROM" : (trackEnabled ? "generated minimaps not in ROM" : "no track randomizer"), tone: minimapPatched ? "ready" : (trackEnabled ? "planned" : "internal") },
+        { text: `seed ${seed}`, tone: "cli" }
+      ]);
+    }
+
+    function applyRandomizerPreset(name) {
+      const setFlag = (flag, value) => {
+        const node = document.querySelector(`[data-flag="${flag}"]`);
+        if (node) node.checked = value;
+      };
+      document.getElementById("track-subset").value = "";
+      document.getElementById("rand-verbose").checked = false;
+
+      if (name === "tracks-only") {
+        setFlag("01", true);
+        setFlag("02", false);
+        setFlag("04", false);
+        setFlag("08", false);
+        setFlag("10", false);
+        setFlag("20", false);
+        document.getElementById("rand-dry-run").checked = true;
+        document.getElementById("rand-no-build").checked = true;
+        document.getElementById("rand-workspace").checked = false;
+        document.getElementById("rand-keep").checked = true;
+      } else if (name === "full-safe") {
+        setFlag("01", true);
+        setFlag("02", true);
+        setFlag("04", true);
+        setFlag("08", true);
+        setFlag("10", true);
+        setFlag("20", false);
+        document.getElementById("rand-dry-run").checked = false;
+        document.getElementById("rand-no-build").checked = false;
+        document.getElementById("rand-workspace").checked = false;
+        document.getElementById("rand-keep").checked = true;
+      } else if (name === "workspace") {
+        setFlag("01", true);
+        setFlag("02", true);
+        setFlag("04", true);
+        setFlag("08", true);
+        setFlag("10", true);
+        setFlag("20", false);
+        document.getElementById("rand-dry-run").checked = false;
+        document.getElementById("rand-no-build").checked = false;
+        document.getElementById("rand-workspace").checked = true;
+        document.getElementById("rand-keep").checked = true;
+      } else if (name === "championship") {
+        setFlag("01", false);
+        setFlag("02", false);
+        setFlag("04", true);
+        setFlag("08", true);
+        setFlag("10", true);
+        setFlag("20", false);
+        document.getElementById("rand-dry-run").checked = false;
+        document.getElementById("rand-no-build").checked = false;
+        document.getElementById("rand-workspace").checked = false;
+        document.getElementById("rand-keep").checked = true;
+      }
+
+      updateRandomizerWorkshop();
+    }
+
+    function primaryToolAction(item) {
+      if (item.path === "build.bat") {
+        return { type: "preset", key: "build-rom", label: "Run Build" };
+      }
+      if (item.path === "verify.bat") {
+        return { type: "preset", key: "verify-rom", label: "Run Verify" };
+      }
+      if (item.path === "tools/run_checks.js") {
+        return { type: "preset", key: "run-checks", label: "Run Checks" };
+      }
+      if (item.path === "tools/tests/run.js") {
+        return { type: "preset", key: "tests-runner", label: "Run Tests" };
+      }
+      if (item.kind === "cli" && /^node\s+tools\//.test(item.command)) {
+        return { type: "node", command: item.command, label: "Run In UI" };
+      }
+      if (item.kind === "workflow" && item.command === "build.bat") {
+        return { type: "preset", key: "build-rom", label: "Run Build" };
+      }
+      if (item.kind === "workflow" && item.command === "verify.bat") {
+        return { type: "preset", key: "verify-rom", label: "Run Verify" };
+      }
+      return null;
+    }
+
+    function updateEditorActions() {
+      const mode = document.querySelector('input[name="editor-mode"]:checked').value;
+      const config = editorModes[mode];
+      const actionSelect = document.getElementById("editor-action");
+      const previous = actionSelect.value;
+      actionSelect.innerHTML = config.actions.map(action => `<option value="${action.value}">${action.label}</option>`).join("");
+      if (config.actions.some(action => action.value === previous)) {
+        actionSelect.value = previous;
+      }
+      document.getElementById("editor-target-help").textContent = config.targetHelp;
+      document.getElementById("editor-option-help").textContent = config.optionHelp;
+      updateEditorWorkshop();
+    }
+
+    function updateEditorWorkshop() {
+      const mode = document.querySelector('input[name="editor-mode"]:checked').value;
+      const config = editorModes[mode];
+      const actionValue = document.getElementById("editor-action").value || config.actions[0].value;
+      const action = config.actions.find(entry => entry.value === actionValue) || config.actions[0];
+      const state = {
+        target: document.getElementById("editor-target").value.trim(),
+        option: document.getElementById("editor-option").value.trim(),
+        value: document.getElementById("editor-value").value.trim(),
+        dryRun: document.getElementById("editor-dry-run").checked,
+        verbose: document.getElementById("editor-verbose").checked
+      };
+      const parts = [config.script, ...action.build(state)];
+      editorCommand.textContent = parts.map(quoteArg).filter(Boolean).join(" ");
+
+      setPillRow(editorSummary, [
+        { text: mode, tone: "cli" },
+        { text: actionValue, tone: "ready" },
+        ...(state.target ? [{ text: `target ${state.target}`, tone: "internal" }] : []),
+        ...(state.option ? [{ text: `option ${state.option}`, tone: "internal" }] : []),
+        ...(state.value ? [{ text: "has value/text", tone: "planned" }] : []),
+        ...(state.dryRun ? [{ text: "dry run", tone: "planned" }] : []),
+        ...(state.verbose ? [{ text: "verbose", tone: "planned" }] : [])
+      ]);
+    }
+
+    function renderSections() {
+      sectionsHost.innerHTML = sections.map(section => `
+        <section class="tool-section" id="section-${section.id}" data-section-id="${section.id}">
+          <div class="section-head">
+            <div>
+              <h3>${section.title}</h3>
+              <p>${section.description}</p>
+            </div>
+            <div class="section-count">${section.items.length} cards</div>
+          </div>
+          <div class="card-grid">
+            ${section.items.map(item => {
+              const detailLines = (item.details || []).map(detail => `<li>${detail}</li>`).join("");
+              const tagPills = (item.tags || []).map(tag => `<span class="pill">${tag}</span>`).join("");
+              const action = primaryToolAction(item);
+              return `
+                <article class="card" data-search="${cardText(item, section).replace(/"/g, "&quot;")}">
+                  <div class="card-top">
+                    <div>
+                      <h4>${item.title}</h4>
+                      <div class="script-path">${item.path}</div>
+                    </div>
+                    <span class="pill ${item.status}">${prettyStatus(item.status)}</span>
+                  </div>
+                  <div class="pill-row">
+                    <span class="pill ${item.kind === "cli" || item.kind === "workflow" ? "cli" : "internal"}">${item.kind}</span>
+                    ${tagPills}
+                  </div>
+                  <p>${item.description}</p>
+                  <ul class="meta-list">${detailLines}</ul>
+                  <div class="command-box"><code>${item.command}</code></div>
+                  <div class="card-actions">
+                    ${action
+                      ? (action.type === "preset"
+                        ? `<button class="copy-button" type="button" data-run-key="${action.key}" data-run-label="${action.label}">${action.label}</button>`
+                        : `<button class="copy-button" type="button" data-run-command="${item.command.replace(/"/g, "&quot;")}">${action.label}</button>`)
+                      : `<button class="copy-button disabled" type="button" disabled>Reference Only</button>`}
+                    <span class="command-hint">${action ? "Runs through the local browser tools server." : "Planned, UI-only, or internal reference item."}</span>
+                  </div>
+                </article>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `).join("");
+    }
+
+    async function copyCommand(command, button) {
+      try {
+        await navigator.clipboard.writeText(command);
+        const old = button.textContent;
+        button.textContent = "Copied";
+        setTimeout(() => {
+          button.textContent = old;
+        }, 1200);
+      } catch (err) {
+        const old = button.textContent;
+        button.textContent = "Copy Failed";
+        setTimeout(() => {
+          button.textContent = old;
+        }, 1200);
+      }
+    }
+
+    function applyFilter() {
+      const query = searchInput.value.trim().toLowerCase();
+      const sectionNodes = Array.from(document.querySelectorAll(".tool-section"));
+      let visibleCards = 0;
+
+      sectionNodes.forEach(sectionNode => {
+        const cards = Array.from(sectionNode.querySelectorAll(".card"));
+        let sectionVisible = 0;
+
+        cards.forEach(card => {
+          const haystack = card.dataset.search || "";
+          const match = !query || haystack.includes(query);
+          card.hidden = !match;
+          if (match) {
+            sectionVisible += 1;
+            visibleCards += 1;
+          }
+        });
+
+        sectionNode.hidden = sectionVisible === 0;
+        const countNode = sectionNode.querySelector(".section-count");
+        if (countNode) {
+          countNode.textContent = query ? `${sectionVisible} match${sectionVisible === 1 ? "" : "es"}` : `${cards.length} cards`;
+        }
+      });
+
+      emptyState.hidden = visibleCards !== 0;
+    }
+
+    document.addEventListener("click", event => {
+      const button = event.target.closest(".copy-button");
+      if (!button) return;
+      if (button.dataset.runKey) {
+        runServerCommand(button.dataset.runKey, button.dataset.runLabel || button.dataset.runKey);
+        return;
+      }
+      if (button.dataset.runCommand) {
+        try {
+          const parsed = parseNodeCommand(button.dataset.runCommand);
+          executeStructuredCommand({
+            mode: "node",
+            script: parsed.script,
+            args: parsed.args,
+            timeout: 1800000
+          }, button.dataset.runCommand);
+        } catch (error) {
+          resetExecutionOutput(error.message);
+          executionCommand.textContent = button.dataset.runCommand;
+        }
+        return;
+      }
+      if (button.dataset.command) {
+        copyCommand(button.dataset.command || "", button);
+      }
+    });
+
+    document.getElementById("copy-workbench-command").addEventListener("click", event => {
+      copyCommand(workbenchCommand.textContent, event.currentTarget);
+    });
+
+    document.getElementById("copy-workbench-preview").addEventListener("click", event => {
+      copyCommand(workbenchPreview.textContent, event.currentTarget);
+    });
+
+    document.getElementById("copy-workbench-dataset").addEventListener("click", event => {
+      copyCommand(getWorkingJsonText(), event.currentTarget);
+    });
+
+    document.getElementById("load-workbench-custom").addEventListener("click", event => {
+      loadWorkbenchIntoCustom();
+      const old = event.currentTarget.textContent;
+      event.currentTarget.textContent = "Loaded";
+      setTimeout(() => {
+        event.currentTarget.textContent = old;
+      }, 1200);
+    });
+
+    document.getElementById("apply-workbench-mutation").addEventListener("click", applyWorkbenchMutation);
+    document.getElementById("reset-workbench-data").addEventListener("click", resetWorkbenchData);
+    document.getElementById("load-minimap-workspace").addEventListener("click", async () => {
+      try {
+        await loadLatestMinimapWorkspaceIntoWorkbench();
+      } catch (error) {
+        workbenchState.lastAction = error.message || String(error);
+        updateWorkbench();
+      }
+    });
+    document.getElementById("refresh-server-state").addEventListener("click", async () => {
+      await fetchServerStatus();
+      const track = trackStudioState.tracks[trackStudioState.selectedTrackIndex];
+      if (!track) return;
+      trackStudioState.minimapPreview = null;
+      trackStudioState.minimapPreviewSlug = "";
+      await loadMinimapPreview(track.slug || "", getTrackStudioData());
+      drawMinimap(track, trackStudioState.selectedSegmentIndex);
+    });
+    document.getElementById("clear-live-output").addEventListener("click", () => {
+      executionCommand.textContent = "No command run yet.";
+      resetExecutionOutput("Output cleared.");
+    });
+
+    document.getElementById("track-source").addEventListener("change", () => { updateTrackStudio(); });
+    document.getElementById("track-select").addEventListener("change", () => { updateTrackStudio(); });
+    document.getElementById("track-segment-select").addEventListener("change", () => { updateTrackStudio(); });
+    document.getElementById("track-refresh").addEventListener("click", async () => {
+      await loadRepoTrackData();
+      updateTrackStudio();
+    });
+    document.getElementById("track-open-editor").addEventListener("click", () => {
+      const track = trackStudioState.tracks[trackStudioState.selectedTrackIndex];
+      if (!track) return;
+      document.querySelector('input[name="editor-mode"][value="track"]').checked = true;
+      updateEditorActions();
+      document.getElementById("editor-target").value = track.slug || track.name;
+      document.getElementById("editor-action").value = "show";
+      document.getElementById("editor-option").value = "all";
+      updateEditorWorkshop();
+      location.hash = "section-command-workshop";
+    });
+    document.getElementById("track-validate").addEventListener("click", () => {
+      const track = trackStudioState.tracks[trackStudioState.selectedTrackIndex];
+      if (!track) return;
+      const command = `node tools/editor/track_editor.js validate ${quoteArg(track.slug || track.name)}`;
+      try {
+        const parsed = parseNodeCommand(command);
+        executeStructuredCommand({ mode: "node", script: parsed.script, args: parsed.args, timeout: 1800000 }, command);
+      } catch (error) {
+        resetExecutionOutput(error.message);
+      }
+    });
+    trackSegmentList.addEventListener("click", event => {
+      const button = event.target.closest("[data-segment-index]");
+      if (!button) return;
+      document.getElementById("track-segment-select").value = button.dataset.segmentIndex;
+      updateTrackStudio();
+    });
+    document.getElementById("workbench-mode").addEventListener("change", () => {
+      if (document.getElementById("track-source").value === "workbench") {
+        updateTrackStudio();
+      }
+    });
+
+    document.querySelectorAll("[data-preset]").forEach(button => {
+      button.addEventListener("click", () => {
+        applyRandomizerPreset(button.dataset.preset);
+      });
+    });
+
+    document.getElementById("run-randomizer-primary").addEventListener("click", () => {
+      document.getElementById("rand-dry-run").checked = false;
+      if (!document.getElementById("rand-workspace").checked) {
+        document.getElementById("rand-no-build").checked = false;
+      }
+      updateRandomizerWorkshop();
+      document.getElementById("copy-randomizer-command").click();
+    });
+
+    document.getElementById("preview-randomizer-primary").addEventListener("click", () => {
+      document.getElementById("rand-dry-run").checked = true;
+      document.getElementById("rand-no-build").checked = true;
+      updateRandomizerWorkshop();
+      document.getElementById("copy-randomizer-command").click();
+    });
+
+    document.getElementById("copy-randomizer-command").addEventListener("click", () => {
+      const command = randomizerCommand.textContent.trim();
+      try {
+        const parsed = parseNodeCommand(command);
+        executeStructuredCommand({ mode: "node", script: parsed.script, args: parsed.args, timeout: 1800000 }, command);
+      } catch (error) {
+        resetExecutionOutput(`Could not parse command:\n${command}`);
+        return;
+      }
+    });
+
+    document.getElementById("copy-editor-command").addEventListener("click", () => {
+      const command = editorCommand.textContent.trim();
+      try {
+        const parsed = parseNodeCommand(command);
+        executeStructuredCommand({ mode: "node", script: parsed.script, args: parsed.args, timeout: 1800000 }, command);
+      } catch (error) {
+        resetExecutionOutput(`Could not parse command:\n${command}`);
+        return;
+      }
+    });
+
+    document.getElementById("copy-verify-command").addEventListener("click", () => {
+      runServerCommand("verify-rom", "Run Verify");
+    });
+
+    document.getElementById("copy-restore-command").addEventListener("click", () => {
+      executeStructuredCommand({
+        mode: "node",
+        script: "tools/restore_tracks.js",
+        args: ["--verify"],
+        timeout: 1800000
+      }, "node tools/restore_tracks.js --verify");
+    });
+
+    document.getElementById("copy-randomizer-command").textContent = "Run Randomizer In Server";
+    document.getElementById("copy-randomizer-command").removeAttribute("data-command");
+
+    document.getElementById("copy-editor-command").textContent = "Run Editor In Server";
+
+    document.getElementById("copy-workbench-command").textContent = "Show Suggested Commands";
+    document.getElementById("copy-workbench-command").addEventListener("click", () => {
+      executionCommand.textContent = workbenchCommand.textContent.split("\n")[0] || "No command";
+      resetExecutionOutput(workbenchCommand.textContent);
+    });
+
+    document.getElementById("copy-verify-command").textContent = "Run Verify In Server";
+
+    document.getElementById("copy-restore-command").textContent = "Run Restore In Server";
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "/" && document.activeElement !== searchInput) {
+        event.preventDefault();
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+
+    searchInput.addEventListener("input", applyFilter);
+    document.querySelectorAll("#section-command-workshop input, #section-command-workshop select, #section-command-workshop textarea").forEach(node => {
+      node.addEventListener("input", () => {
+        updateRandomizerWorkshop();
+        updateEditorWorkshop();
+      });
+      node.addEventListener("change", () => {
+        updateRandomizerWorkshop();
+        updateEditorWorkshop();
+      });
+    });
+    document.querySelectorAll('input[name="editor-mode"]').forEach(node => {
+      node.addEventListener("change", updateEditorActions);
+    });
+    document.querySelectorAll("#section-data-workbench select, #section-data-workbench textarea").forEach(node => {
+      node.addEventListener("input", updateWorkbench);
+      node.addEventListener("change", updateWorkbench);
+    });
+
+    renderStats();
+    renderNavigation();
+    renderSections();
+    Promise.all([loadRepoTrackData(), fetchServerStatus()]).then(() => updateTrackStudio());
+    updateRandomizerWorkshop();
+    updateEditorActions();
+    updateWorkbench();
+    applyFilter();
+  </script>
+</body>
+</html>

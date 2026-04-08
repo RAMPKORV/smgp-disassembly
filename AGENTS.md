@@ -166,3 +166,15 @@ the ROM -- it supports breakpoints, memory/register inspection, and step executi
 3. **Checksum must be correct** or the emulator shows a red screen. Update the word at `$018E` if the binary changes.
 4. **All loc_ labels have been renamed.** When editing labels, preserve the `;loc_XXXX` comment above for traceability.
 5. **Modular source structure.** `smgp.asm` is an include hub. Edit the individual module files under `src/`, not the concatenated `smgp_full.asm`.
+6. **Tooling language policy.** This project uses Node.js tooling and NEVER Python. Do not create or extend Python scripts; port any needed tooling to JavaScript instead.
+
+## Tooling Guardrails
+
+- **Do not guess at Windows batch/PowerShell invocation.** In this environment, run canonical build verification via PowerShell:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -Command "& .\build.bat"`
+  - `powershell -NoProfile -ExecutionPolicy Bypass -Command "& .\verify.bat"`
+- **Do not try to inline asm68k with bash wrappers** when checking canonical builds; arguments like `/p` can be mangled and produce false results.
+- **If `build.bat` fails with missing `data/tracks/.../*.bin`, treat the root tree as broken immediately.** Restore the canonical extracted track data before doing anything else.
+- **Before claiming the root tree is canonical, actually run `verify.bat` and report the result.** Do not infer success from partial shell output.
+- **When preserving a broken or experimental state, checkpoint it first on a commit/branch, then restore the root tree to a verified commit. Never leave `master` non-bit-perfect between steps.**
+- **Master operating model:** keep `master` bit-perfect-buildable while still allowing randomizer tooling on `master`. Randomized ROM generation must default to workspace-only flows (`tools/hack_workdir.js` / workspace-safe `tools/randomize.js`) and must not mutate the root source tree unless explicitly using a debugging-only in-root mode.

@@ -1,0 +1,29 @@
+{
+  "name": "smgp-tools",
+  "version": "1.0.0",
+  "description": "Node.js tooling for the Super Monaco GP disassembly project",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "tools-ui": "node tools/server.js",
+    "patch-checksum": "node tools/patch_rom_checksum.js",
+    "minimap-diagnostics": "node tools/minimap_diagnostics.js --write-json",
+    "sync-track-config": "node tools/sync_track_config.js",
+    "generate-track-data": "node tools/generate_track_data_asm.js",
+    "test": "node tools/tests/run.js",
+    "checks": "node tools/run_checks.js",
+    "symbol-map": "node tools/index/symbol_map.js",
+    "strings": "node tools/index/strings.js",
+    "functions": "node tools/index/functions.js",
+    "callsites": "node tools/index/callsites.js",
+    "hotspots": "node tools/index/hotspots.js",
+    "coverage-report": "node tools/index/coverage_report.js",
+    "include-graph": "node tools/index/include_graph.js"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "license": "UNLICENSED"
+}

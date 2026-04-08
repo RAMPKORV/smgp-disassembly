@@ -1,0 +1,3419 @@
+{
+  "_meta": {
+    "source": [
+      "callsites.json",
+      "functions.json"
+    ],
+    "generated": "2026-03-09",
+    "total_routines": 376,
+    "headered_routines": 362,
+    "header_coverage_pct": "96.3%",
+    "unreferenced_count": 59,
+    "single_site_count": 159,
+    "hotspot_threshold": 10,
+    "hotspot_count": 14
+  },
+  "unreferenced_routines": [
+    {
+      "name": "EntryPoint",
+      "rom_addr": "0x00020E",
+      "size_estimate": 6,
+      "source_file": "init.asm",
+      "has_header": true
+    },
+    {
+      "name": "Vertical_blank_interrupt",
+      "rom_addr": "0x0003B4",
+      "size_estimate": 16,
+      "source_file": "init.asm",
+      "has_header": true
+    },
+    {
+      "name": "Default_vblank_handler",
+      "rom_addr": "0x0003D8",
+      "size_estimate": 8,
+      "source_file": "init.asm",
+      "has_header": true
+    },
+    {
+      "name": "Start_dma_fill_wait",
+      "rom_addr": "0x000960",
+      "size_estimate": 18,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Load_stream_desc_clear_loop",
+      "rom_addr": "0x000C28",
+      "size_estimate": 14,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Continue_stream_decomp_inner",
+      "rom_addr": "0x000CE4",
+      "size_estimate": 54,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Build_sprites_bg_row",
+      "rom_addr": "0x000DB8",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Update_scaled_sprite",
+      "rom_addr": "0x000F7A",
+      "size_estimate": 8,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Scaled_sprite_frame_a_data",
+      "rom_addr": "0x000FA4",
+      "size_estimate": 26,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Load_hud_gfx_monaco_fill_loop",
+      "rom_addr": "0x001100",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Init_hud_clear_plane_a_loop",
+      "rom_addr": "0x001186",
+      "size_estimate": 24,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Attract_screen_logo_frame",
+      "rom_addr": "0x0022D0",
+      "size_estimate": 34,
+      "source_file": "src/core.asm",
+      "has_header": true
+    },
+    {
+      "name": "Race_preview_screen_init",
+      "rom_addr": "0x0023A2",
+      "size_estimate": 158,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Startup_screen_init",
+      "rom_addr": "0x002592",
+      "size_estimate": 74,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Title_anim_frame",
+      "rom_addr": "0x002818",
+      "size_estimate": 40,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Title_menu",
+      "rom_addr": "0x00293C",
+      "size_estimate": 8,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Options_setup_frame",
+      "rom_addr": "0x0031FE",
+      "size_estimate": 28,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Options_screen_arcade_init",
+      "rom_addr": "0x0032E0",
+      "size_estimate": 26,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Options_cursor_anim_table",
+      "rom_addr": "0x003595",
+      "size_estimate": 13,
+      "source_file": "src/menus.asm",
+      "has_header": true
+    },
+    {
+      "name": "Championship_race_init",
+      "rom_addr": "0x00375E",
+      "size_estimate": 162,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Arcade_race_init",
+      "rom_addr": "0x003800",
+      "size_estimate": 92,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Clear_word_range_Loop",
+      "rom_addr": "0x003D2A",
+      "size_estimate": 8,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Championship_warmup_race_frame",
+      "rom_addr": "0x003D84",
+      "size_estimate": 18,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Practice_mode_init",
+      "rom_addr": "0x003D98",
+      "size_estimate": 146,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Race_results_frame",
+      "rom_addr": "0x00429E",
+      "size_estimate": 22,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Race_finish_results_init",
+      "rom_addr": "0x0042F8",
+      "size_estimate": 84,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Pre_race_display_frame",
+      "rom_addr": "0x0044A8",
+      "size_estimate": 96,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Name_entry_frame",
+      "rom_addr": "0x00475C",
+      "size_estimate": 58,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Car_intro_object_Cooldown",
+      "rom_addr": "0x004F5C",
+      "size_estimate": 8,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Championship_mode_init",
+      "rom_addr": "0x004FDC",
+      "size_estimate": 84,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Car_selection_frame",
+      "rom_addr": "0x00509C",
+      "size_estimate": 64,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Championship_start_init",
+      "rom_addr": "0x005690",
+      "size_estimate": 54,
+      "source_file": "src/race.asm",
+      "has_header": true
+    },
+    {
+      "name": "Race_timer_countdown_table",
+      "rom_addr": "0x007400",
+      "size_estimate": 20,
+      "source_file": "src/race_support.asm",
+      "has_header": false
+    },
+    {
+      "name": "Lap_end_obj",
+      "rom_addr": "0x0076C2",
+      "size_estimate": 54,
+      "source_file": "src/race_support.asm",
+      "has_header": true
+    },
+    {
+      "name": "Crash_obj_phase1",
+      "rom_addr": "0x007A70",
+      "size_estimate": 36,
+      "source_file": "src/race_support.asm",
+      "has_header": true
+    },
+    {
+      "name": "Retire_car_obj_decel_table",
+      "rom_addr": "0x007E28",
+      "size_estimate": 2,
+      "source_file": "src/race_support.asm",
+      "has_header": false
+    },
+    {
+      "name": "Slide_car_obj_init_from_bottom",
+      "rom_addr": "0x007EE2",
+      "size_estimate": 22,
+      "source_file": "src/race_support.asm",
+      "has_header": true
+    },
+    {
+      "name": "Checkpoint_anim_obj_init",
+      "rom_addr": "0x008076",
+      "size_estimate": 12,
+      "source_file": "src/race_support.asm",
+      "has_header": true
+    },
+    {
+      "name": "Sign_handler_dispatch_rts",
+      "rom_addr": "0x008B1C",
+      "size_estimate": 82,
+      "source_file": "src/ai.asm",
+      "has_header": false
+    },
+    {
+      "name": "Special_sign_dispatch_table",
+      "rom_addr": "0x008B6E",
+      "size_estimate": 52,
+      "source_file": "src/ai.asm",
+      "has_header": false
+    },
+    {
+      "name": "Init_rival_car_intro",
+      "rom_addr": "0x008C74",
+      "size_estimate": 36,
+      "source_file": "src/ai.asm",
+      "has_header": true
+    },
+    {
+      "name": "Compute_ai_screen_x",
+      "rom_addr": "0x009724",
+      "size_estimate": 42,
+      "source_file": "src/ai.asm",
+      "has_header": true
+    },
+    {
+      "name": "Race_grid_obj_init_champ",
+      "rom_addr": "0x009DB8",
+      "size_estimate": 24,
+      "source_file": "src/audio_effects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Rival_dust_obj_init",
+      "rom_addr": "0x00A0CC",
+      "size_estimate": 26,
+      "source_file": "src/audio_effects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Flagkeeper_car_obj_guard",
+      "rom_addr": "0x00A174",
+      "size_estimate": 8,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Crash_retire_obj_init",
+      "rom_addr": "0x00A50E",
+      "size_estimate": 24,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Rival_crowd_car_obj_init",
+      "rom_addr": "0x00A566",
+      "size_estimate": 44,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Gear_diagram_obj_init",
+      "rom_addr": "0x00A60A",
+      "size_estimate": 42,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Countdown_lights_Wait",
+      "rom_addr": "0x00A716",
+      "size_estimate": 20,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Background_ai_car_b_obj",
+      "rom_addr": "0x00A922",
+      "size_estimate": 22,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Crash_lateral_follower_obj_init",
+      "rom_addr": "0x00ADA2",
+      "size_estimate": 26,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Crash_depth_obj_init",
+      "rom_addr": "0x00AE06",
+      "size_estimate": 24,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Crash_shadow_obj_init",
+      "rom_addr": "0x00AE9C",
+      "size_estimate": 20,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Race_result_overlay_frame",
+      "rom_addr": "0x00B316",
+      "size_estimate": 18,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Podium_car_obj_Update",
+      "rom_addr": "0x00BC20",
+      "size_estimate": 8,
+      "source_file": "src/objects.asm",
+      "has_header": true
+    },
+    {
+      "name": "Driver_name_tile_offsets",
+      "rom_addr": "0x00C60C",
+      "size_estimate": 4,
+      "source_file": "src/gameplay.asm",
+      "has_header": true
+    },
+    {
+      "name": "Driver_standings_frame",
+      "rom_addr": "0x00CBEE",
+      "size_estimate": 62,
+      "source_file": "src/gameplay.asm",
+      "has_header": true
+    },
+    {
+      "name": "Game_over_frame",
+      "rom_addr": "0x00D6B2",
+      "size_estimate": 22,
+      "source_file": "src/gameplay.asm",
+      "has_header": true
+    },
+    {
+      "name": "EndOfRom",
+      "rom_addr": "0x080000",
+      "size_estimate": 0,
+      "source_file": "src/audio_engine.asm",
+      "has_header": false
+    }
+  ],
+  "single_site_routines": [
+    {
+      "name": "Bad_rom_handler",
+      "rom_addr": "0x000376",
+      "size_estimate": 18,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "EntryPoint_Checksum_loop",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 163,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Vblank_interrupt_tail",
+      "rom_addr": "0x0003C4",
+      "size_estimate": 20,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Vertical_blank_interrupt",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 237,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Vblank_tail",
+      "rom_addr": "0x0003E6",
+      "size_estimate": 12,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Default_vblank_handler",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 249,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Install_hblank_handler",
+      "rom_addr": "0x0003F2",
+      "size_estimate": 12,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "EntryPoint_Ram_init_loop",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 192,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Hblank_handler_stub_src",
+      "rom_addr": "0x000406",
+      "size_estimate": 42,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Install_hblank_handler",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 257,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Load_startup_graphics",
+      "rom_addr": "0x000430",
+      "size_estimate": 58,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "EntryPoint_Ram_init_loop",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 194,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Load_z80_driver",
+      "rom_addr": "0x00046A",
+      "size_estimate": 26,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "EntryPoint_Ram_init_loop",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 191,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Boot_init_data",
+      "rom_addr": "0x0004B4",
+      "size_estimate": 100,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "EntryPoint_Cold_boot",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 86,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Prng",
+      "rom_addr": "0x00057C",
+      "size_estimate": 14,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Initialize_standings_order_buffer_Score_loop",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 4151,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Upload_tilemap_dma",
+      "rom_addr": "0x000762",
+      "size_estimate": 14,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Upload_h40_tilemap_buffer_to_vram",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 270,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Decompress_shared_body",
+      "rom_addr": "0x00098A",
+      "size_estimate": 14,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Decompress_to_vdp",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 612,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Decompress_code_table_skip",
+      "rom_addr": "0x000998",
+      "size_estimate": 34,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Decompress_shared_body",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 635,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Decompress_ram_emit_group",
+      "rom_addr": "0x000A48",
+      "size_estimate": 22,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Decompress_to_ram",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 620,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Build_code_table_next_entry",
+      "rom_addr": "0x000A60",
+      "size_estimate": 8,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Build_code_table_read_slot",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 774,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Decomp_tilemap_refill",
+      "rom_addr": "0x000AF6",
+      "size_estimate": 16,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Decompress_tilemap_to_buffer_Loop",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 833,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Load_streamed_decompression_descriptor",
+      "rom_addr": "0x000C0E",
+      "size_estimate": 26,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_preview_screen_init",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 32,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Start_streamed_decompression",
+      "rom_addr": "0x000C44",
+      "size_estimate": 34,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Attract_screen_logo_frame",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 3105,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Start_stream_decomp_sink_select",
+      "rom_addr": "0x000C66",
+      "size_estimate": 50,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Start_streamed_decompression",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1017,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Continue_streamed_decompression",
+      "rom_addr": "0x000C9A",
+      "size_estimate": 74,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Attract_screen_logo_vblank_handler",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 46,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Stream_descriptor_table",
+      "rom_addr": "0x000D2C",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Load_streamed_decompression_descriptor",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 989,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Vdp_init_register_table",
+      "rom_addr": "0x000D36",
+      "size_estimate": 38,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Initialize_vdp",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 147,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Update_flag_anim_wrap",
+      "rom_addr": "0x001010",
+      "size_estimate": 18,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Scaled_sprite_size_table",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1358,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Flag_anim_tiles_phase1",
+      "rom_addr": "0x00105A",
+      "size_estimate": 36,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_flag_anim_wrap",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1362,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Draw_lap_number_and_times",
+      "rom_addr": "0x00139C",
+      "size_estimate": 48,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_race_init",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 94,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Initialize_hud_objects",
+      "rom_addr": "0x0013F6",
+      "size_estimate": 34,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Initialize_race_hud",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1464,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Flush_tilemap_draw_queue",
+      "rom_addr": "0x001482",
+      "size_estimate": 12,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Practice_vblank_Step2",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 655,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Render_placement_display",
+      "rom_addr": "0x0014A6",
+      "size_estimate": 6,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 40,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Binary_to_decimal_next",
+      "rom_addr": "0x00159C",
+      "size_estimate": 58,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Binary_to_decimal_loop",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1888,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Pack_hex_leading_zero",
+      "rom_addr": "0x001662",
+      "size_estimate": 4,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Pack_hex_digits_to_tilemap",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1997,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Flush_dma_slot_a_skip",
+      "rom_addr": "0x001688",
+      "size_estimate": 34,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Flush_pending_dma_transfers",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2014,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Update_car_palette_dma",
+      "rom_addr": "0x001778",
+      "size_estimate": 22,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Practice_vblank_Step2",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 654,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_hud_overtake_check",
+      "rom_addr": "0x0017B6",
+      "size_estimate": 90,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Update_car_palette_dma",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2090,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Update_overtake_style_b",
+      "rom_addr": "0x001810",
+      "size_estimate": 28,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Update_hud_overtake_check",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2124,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Update_placement_anim_check",
+      "rom_addr": "0x00184C",
+      "size_estimate": 76,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Update_hud_overtake_check",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2108,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Initialize_car_tile_scroll",
+      "rom_addr": "0x001A7C",
+      "size_estimate": 34,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_minimap_champ",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1520,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_background_scroll_delta",
+      "rom_addr": "0x001B80",
+      "size_estimate": 60,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Active",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 24,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Flush_road_column_dma",
+      "rom_addr": "0x001CCC",
+      "size_estimate": 28,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Practice_vblank_Step1",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 647,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Copy_ai_scroll_data_to_objects",
+      "rom_addr": "0x001E32",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_minimap_champ",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1518,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Race_hud_full_asset_list",
+      "rom_addr": "0x001E50",
+      "size_estimate": 74,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Load_race_hud_graphics",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1400,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Hud_best_lap_tilemap_list",
+      "rom_addr": "0x001EB4",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_draw_laptime",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1545,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Hud_rival_lap_tilemap_list",
+      "rom_addr": "0x001EE2",
+      "size_estimate": 38,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_draw_laptime_rival",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1557,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Hud_champ_lap_tilemap_list",
+      "rom_addr": "0x001F08",
+      "size_estimate": 26,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_player_ordinal",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1605,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Hud_lap_digit_row",
+      "rom_addr": "0x001F22",
+      "size_estimate": 18,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Hud_rival_lap_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2811,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Hud_laps_3_label",
+      "rom_addr": "0x001F42",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Hud_rival_lap_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2813,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Hud_laptime_label",
+      "rom_addr": "0x001F56",
+      "size_estimate": 12,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Hud_rival_lap_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2814,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Hud_3lap_timer_rows",
+      "rom_addr": "0x001F70",
+      "size_estimate": 48,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Hud_rival_lap_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2815,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Hud_5lap_timer_rows",
+      "rom_addr": "0x001FA0",
+      "size_estimate": 46,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Hud_champ_lap_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2826,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Hud_countdown_tilemap",
+      "rom_addr": "0x001FD8",
+      "size_estimate": 10,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Hud_rival_lap_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2817,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Hud_position_rival_labels",
+      "rom_addr": "0x002024",
+      "size_estimate": 32,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_champ_race_check",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1590,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Hud_your_position_label",
+      "rom_addr": "0x002044",
+      "size_estimate": 22,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_hud_champ_race_check",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 1593,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Hud_panel_tile_row",
+      "rom_addr": "0x00205A",
+      "size_estimate": 44,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_hud_tilemap_list",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2790,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Overtake_tile_row",
+      "rom_addr": "0x002182",
+      "size_estimate": 16,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_hud_overtake_check",
+      "sole_site": {
+        "file": "src/core.asm",
+        "line": 2125,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Attract_anim_cell_update",
+      "rom_addr": "0x0026B4",
+      "size_estimate": 18,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Attract_screen_frame_Code_pos",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 69,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Decomp_code_table_init",
+      "rom_addr": "0x0027E0",
+      "size_estimate": 56,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Startup_screen_init_Zero_loop",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 217,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Clear_driver_points",
+      "rom_addr": "0x002B52",
+      "size_estimate": 8,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_driver_select_continue",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 2592,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Options_palette_data",
+      "rom_addr": "0x003432",
+      "size_estimate": 122,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_screen_init_Champ_layout",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1279,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Options_asset_list",
+      "rom_addr": "0x0034AC",
+      "size_estimate": 26,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_screen_init_Body",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1233,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Options_tilemap_list",
+      "rom_addr": "0x0034C6",
+      "size_estimate": 50,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_screen_init_Body",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1244,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Options_champ_lap_list",
+      "rom_addr": "0x0034F8",
+      "size_estimate": 26,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_screen_init_Body",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1246,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Options_arcade_lap_list",
+      "rom_addr": "0x003512",
+      "size_estimate": 18,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_screen_init_Body",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1249,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Options_shift_display_table",
+      "rom_addr": "0x003524",
+      "size_estimate": 24,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_screen_init_Champ_layout",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1257,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Options_selected_text_data",
+      "rom_addr": "0x00358A",
+      "size_estimate": 11,
+      "source_file": "src/menus.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Options_setup_frame_Draw_selected",
+      "sole_site": {
+        "file": "src/menus.asm",
+        "line": 1184,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Race_loop",
+      "rom_addr": "0x0036B6",
+      "size_estimate": 34,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_warmup_race_frame",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 562,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Load_default_control_type_handler",
+      "rom_addr": "0x003C02",
+      "size_estimate": 4,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Init_race_player_state",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 438,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Load_control_type_handler",
+      "rom_addr": "0x003C06",
+      "size_estimate": 16,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Practice_mode_init",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 584,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Reset_race_state",
+      "rom_addr": "0x003D32",
+      "size_estimate": 82,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_race_init",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 83,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Practice_vblank_Step_wrap",
+      "rom_addr": "0x003E4A",
+      "size_estimate": 4,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Practice_mode_vblank_handler",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 615,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Replay_input_update",
+      "rom_addr": "0x003EE4",
+      "size_estimate": 40,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Practice_vblank_Step2",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 653,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Handle_pause",
+      "rom_addr": "0x003F0E",
+      "size_estimate": 34,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 18,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_braking_performance",
+      "rom_addr": "0x003FE0",
+      "size_estimate": 46,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 52,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Pause_tilemap_a",
+      "rom_addr": "0x0040C0",
+      "size_estimate": 18,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Handle_pause_Music",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 731,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Rival_grid_base_table",
+      "rom_addr": "0x004126",
+      "size_estimate": 16,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_race_player_state_Champ",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 493,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Ai_placement_data",
+      "rom_addr": "0x004141",
+      "size_estimate": 76,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_race_object_pool_Arcade",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 208,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Handle_initials_entry_button_input",
+      "rom_addr": "0x00481E",
+      "size_estimate": 76,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Name_entry_frame_Active",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1263,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_initials_entry_selection",
+      "rom_addr": "0x0048D6",
+      "size_estimate": 14,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Name_entry_frame_Active",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1262,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Load_pre_race_qualifying_data",
+      "rom_addr": "0x004AE2",
+      "size_estimate": 66,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Pre_race_screen_init",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1450,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Draw_pre_race_standings",
+      "rom_addr": "0x004CD6",
+      "size_estimate": 28,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Pre_race_screen_init_Not_champ",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1457,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Draw_car_result_placement_tiles",
+      "rom_addr": "0x004DCC",
+      "size_estimate": 16,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Update_car_selection_Draw",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1788,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Initialize_default_lap_times",
+      "rom_addr": "0x00510A",
+      "size_estimate": 10,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "EntryPoint_Checksum_loop",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 165,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Draw_team_driver_lineup",
+      "rom_addr": "0x005156",
+      "size_estimate": 22,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_mode_init_Restored",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 2055,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Sort_and_apply_championship_standings",
+      "rom_addr": "0x0051E4",
+      "size_estimate": 26,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_mode_init",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 2053,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Lineup_header_tilemap",
+      "rom_addr": "0x005232",
+      "size_estimate": 80,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Draw_team_driver_lineup",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 2184,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Championship_driver_asset_list",
+      "rom_addr": "0x005282",
+      "size_estimate": 38,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Initialize_race_track_scroll_tables_Loop",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1686,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Nationality_tile_pair_table",
+      "rom_addr": "0x0052F6",
+      "size_estimate": 12,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Draw_car_result_nationality_tile",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1924,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Qualifying_time_thresholds",
+      "rom_addr": "0x005306",
+      "size_estimate": 8,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Draw_pre_race_standings_With_target",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1749,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Qualifying_rank_position_data",
+      "rom_addr": "0x00530E",
+      "size_estimate": 15,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Draw_pre_race_standings_With_target",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1747,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Initials_entry_cursor_tile_offset_table",
+      "rom_addr": "0x0054DE",
+      "size_estimate": 30,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Draw_initials_entry_selection",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 1426,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Default_lap_time_data",
+      "rom_addr": "0x00553E",
+      "size_estimate": 216,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Initialize_default_lap_times",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 2132,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Update_shift",
+      "rom_addr": "0x0059BC",
+      "size_estimate": 18,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Update_driving",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 32,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_rpm_Crash_decel_chk",
+      "rom_addr": "0x005ABE",
+      "size_estimate": 16,
+      "source_file": "src/race.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Update_rpm_Crash_decel",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 2757,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Update_rpm",
+      "rom_addr": "0x005B02",
+      "size_estimate": 50,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Update_driving",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 33,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_engine_sound_pitch",
+      "rom_addr": "0x005F10",
+      "size_estimate": 28,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Update_driving",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 35,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_speed",
+      "rom_addr": "0x005F5E",
+      "size_estimate": 64,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Update_driving",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 36,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_breaking",
+      "rom_addr": "0x006062",
+      "size_estimate": 30,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Update_driving",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 34,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Braking_strength_table",
+      "rom_addr": "0x0060C0",
+      "size_estimate": 16,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_breaking_Apply",
+      "sole_site": {
+        "file": "src/driving.asm",
+        "line": 407,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Braking_track_modifier_table",
+      "rom_addr": "0x0060D0",
+      "size_estimate": 12,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_breaking_Apply",
+      "sole_site": {
+        "file": "src/driving.asm",
+        "line": 417,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Update_steering",
+      "rom_addr": "0x0060DC",
+      "size_estimate": 42,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 41,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Track_steering_params",
+      "rom_addr": "0x0061FC",
+      "size_estimate": 40,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_steering",
+      "sole_site": {
+        "file": "src/driving.asm",
+        "line": 484,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Initialize_ui_tilemap_buffers",
+      "rom_addr": "0x006428",
+      "size_estimate": 12,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "EntryPoint_Ram_init_loop",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 193,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Apply_tilemap_attr_Or_loop",
+      "rom_addr": "0x006564",
+      "size_estimate": 18,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Initialize_ui_tilemap_buffers_Copy2_loop",
+      "sole_site": {
+        "file": "src/driving.asm",
+        "line": 938,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Render_road_bg_Zone_nonzero",
+      "rom_addr": "0x006622",
+      "size_estimate": 26,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Initialize_road_scroll_state_Loop",
+      "sole_site": {
+        "file": "src/driving.asm",
+        "line": 1012,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Bg_interp_segment_counts",
+      "rom_addr": "0x006F1A",
+      "size_estimate": 68,
+      "source_file": "src/rendering.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_road_graphics_Bg_scale_loop",
+      "sole_site": {
+        "file": "src/rendering.asm",
+        "line": 631,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Flush_vdp_mode_and_signs",
+      "rom_addr": "0x007298",
+      "size_estimate": 14,
+      "source_file": "src/rendering.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Practice_vblank_Step0_Tileset_done",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 644,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Arcade_bg_scroll_row_data",
+      "rom_addr": "0x007356",
+      "size_estimate": 10,
+      "source_file": "src/rendering.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Render_road_bg_entry",
+      "sole_site": {
+        "file": "src/rendering.asm",
+        "line": 160,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Default_bg_scroll_row_data",
+      "rom_addr": "0x007360",
+      "size_estimate": 10,
+      "source_file": "src/rendering.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_road_graphics_Sign_fill_loop",
+      "sole_site": {
+        "file": "src/rendering.asm",
+        "line": 140,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Blank_bg_scroll_row_data",
+      "rom_addr": "0x00736A",
+      "size_estimate": 96,
+      "source_file": "src/rendering.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_road_graphics_Bg_check",
+      "sole_site": {
+        "file": "src/rendering.asm",
+        "line": 310,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Arcade_placement_seq_v1",
+      "rom_addr": "0x0073CA",
+      "size_estimate": 18,
+      "source_file": "src/rendering.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Load_track_data_Steering_init",
+      "sole_site": {
+        "file": "src/driving.asm",
+        "line": 785,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Update_best_lap_time",
+      "rom_addr": "0x007614",
+      "size_estimate": 52,
+      "source_file": "src/race_support.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Update_race_timer_Lap_store",
+      "sole_site": {
+        "file": "src/race_support.asm",
+        "line": 89,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_rival_best_lap_time",
+      "rom_addr": "0x007656",
+      "size_estimate": 48,
+      "source_file": "src/race_support.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Update_race_timer_Arcade",
+      "sole_site": {
+        "file": "src/race_support.asm",
+        "line": 113,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Advance_rival_position_bcd",
+      "rom_addr": "0x007822",
+      "size_estimate": 34,
+      "source_file": "src/race_support.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Lap_end_obj_Arcade",
+      "sole_site": {
+        "file": "src/race_support.asm",
+        "line": 307,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Crash_car_tile_offsets",
+      "rom_addr": "0x007968",
+      "size_estimate": 6,
+      "source_file": "src/race_support.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Advance_rival_position_bcd",
+      "sole_site": {
+        "file": "src/race_support.asm",
+        "line": 407,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Compute_curve_speed_factor",
+      "rom_addr": "0x0080E0",
+      "size_estimate": 40,
+      "source_file": "src/race_support.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Advance_player_distance",
+      "sole_site": {
+        "file": "src/rendering.asm",
+        "line": 451,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_horizontal_position",
+      "rom_addr": "0x008142",
+      "size_estimate": 52,
+      "source_file": "src/race_support.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 42,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Advance_lap_checkpoint",
+      "rom_addr": "0x00867C",
+      "size_estimate": 12,
+      "source_file": "src/ai.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 39,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Race_placement_bonus_table",
+      "rom_addr": "0x008694",
+      "size_estimate": 26,
+      "source_file": "src/ai.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Award_race_position_points",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 392,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Curve_displacement_table",
+      "rom_addr": "0x0086AE",
+      "size_estimate": 96,
+      "source_file": "src/ai.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_horizontal_position_Load_curve",
+      "sole_site": {
+        "file": "src/race_support.asm",
+        "line": 1197,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Placement_hud_tiles_a",
+      "rom_addr": "0x00870E",
+      "size_estimate": 10,
+      "source_file": "src/ai.asm",
+      "has_header": false,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_placement_overlay_Redraw",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 344,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Pit_prompt_tilemap",
+      "rom_addr": "0x008870",
+      "size_estimate": 40,
+      "source_file": "src/ai.asm",
+      "has_header": false,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_pit_prompt_Display",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 525,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Steering_curve_divisors",
+      "rom_addr": "0x008998",
+      "size_estimate": 20,
+      "source_file": "src/ai.asm",
+      "has_header": false,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Update_horizontal_position",
+      "sole_site": {
+        "file": "src/race_support.asm",
+        "line": 1173,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Parse_tileset_for_signs",
+      "rom_addr": "0x0089AC",
+      "size_estimate": 22,
+      "source_file": "src/ai.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 49,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_ai_sign_pass_Frame",
+      "rom_addr": "0x008BA2",
+      "size_estimate": 36,
+      "source_file": "src/ai.asm",
+      "has_header": false,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Update_ai_sign_pass_Loop_back",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 920,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Rival_sprite_depth_frame_ptrs",
+      "rom_addr": "0x009C08",
+      "size_estimate": 20,
+      "source_file": "src/audio_effects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Assign_rival_sprite_depth_frame",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 2172,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Ai_sprite_depth_frame_ptrs",
+      "rom_addr": "0x009C1C",
+      "size_estimate": 12,
+      "source_file": "src/audio_effects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Assign_ai_sprite_depth_frame",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 2071,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Ai_car_obj_init_C0",
+      "rom_addr": "0x009EC0",
+      "size_estimate": 6,
+      "source_file": "src/audio_effects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Ai_car_init_table_champ",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 144,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Ai_oscillation_phase_offset",
+      "rom_addr": "0x00A0AE",
+      "size_estimate": 10,
+      "source_file": "src/audio_effects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Ai_car_obj_Oscillate",
+      "sole_site": {
+        "file": "src/audio_effects.asm",
+        "line": 468,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Apply_sorted_positions_to_cars",
+      "rom_addr": "0x00A278",
+      "size_estimate": 6,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_loop_Render",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 53,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Ai_lateral_sine_table",
+      "rom_addr": "0x00A3FA",
+      "size_estimate": 264,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Ai_oscillation_phase_Lookup",
+      "sole_site": {
+        "file": "src/audio_effects.asm",
+        "line": 523,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Spawn_background_ai_car_0",
+      "rom_addr": "0x00A80A",
+      "size_estimate": 16,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Sign_handler_dispatch_rts",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 844,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Init_background_ai_car_0",
+      "rom_addr": "0x00A81A",
+      "size_estimate": 14,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Sign_handler_dispatch_rts",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 828,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Crash_approach_obj_init",
+      "rom_addr": "0x00AF2A",
+      "size_estimate": 74,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Special_sign_dispatch_table",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 850,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Rival_approach_obj_init",
+      "rom_addr": "0x00B09E",
+      "size_estimate": 70,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Special_sign_dispatch_table",
+      "sole_site": {
+        "file": "src/ai.asm",
+        "line": 851,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Write_approach_scroll_strip",
+      "rom_addr": "0x00B1C2",
+      "size_estimate": 50,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Crash_approach_obj_Reenter",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1204,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Draw_intro_car_tilemap",
+      "rom_addr": "0x00B648",
+      "size_estimate": 38,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_2",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1560,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Team_select_update_controls",
+      "rom_addr": "0x00B674",
+      "size_estimate": 44,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_2",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1561,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Set_gear_indicator_CO",
+      "rom_addr": "0x00B706",
+      "size_estimate": 46,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Team_select_update_controls_Check",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1825,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Draw_rival_team_message",
+      "rom_addr": "0x00B762",
+      "size_estimate": 48,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_3",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1566,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Championship_next_race_advance",
+      "rom_addr": "0x00B792",
+      "size_estimate": 34,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_3",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1568,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Championship_podium_load_or_fade",
+      "rom_addr": "0x00B8AE",
+      "size_estimate": 12,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_3",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1569,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Championship_team_select_update_controls",
+      "rom_addr": "0x00BA12",
+      "size_estimate": 42,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_3",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1570,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Set_champ_gear_indicator_CO",
+      "rom_addr": "0x00BAAA",
+      "size_estimate": 46,
+      "source_file": "src/objects.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Championship_team_select_update_controls_Check",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 2143,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Write_bcd_digits_to_vdp",
+      "rom_addr": "0x00C16E",
+      "size_estimate": 32,
+      "source_file": "src/endgame.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Format_result_score_row_Loop",
+      "sole_site": {
+        "file": "src/endgame.asm",
+        "line": 192,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Draw_track_name_and_championship_standings",
+      "rom_addr": "0x00C1B4",
+      "size_estimate": 32,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_next_race_init_MidChamp_Objects_loop",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 2482,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Finish_race_shared_setup",
+      "rom_addr": "0x00C242",
+      "size_estimate": 56,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_finish_init",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 2341,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Initialize_minimap_display_buffers",
+      "rom_addr": "0x00C324",
+      "size_estimate": 10,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Championship_next_race_init_MidChamp_Objects_loop",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 2481,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Init_result_score_data",
+      "rom_addr": "0x00C480",
+      "size_estimate": 10,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Init_race_result_scores",
+      "sole_site": {
+        "file": "src/endgame.asm",
+        "line": 150,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Finish_screen_tilemap_with_rival",
+      "rom_addr": "0x00C494",
+      "size_estimate": 32,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_finish_init",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 2345,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Minimap_player_header_template",
+      "rom_addr": "0x00C5A4",
+      "size_estimate": 52,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Build_minimap_player_row_buffer",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 381,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Minimap_standings_header_template",
+      "rom_addr": "0x00C5D8",
+      "size_estimate": 52,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Build_minimap_standings_row_buffer_Score_loop",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 493,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Minimap_round_label_tilemap",
+      "rom_addr": "0x00C618",
+      "size_estimate": 12,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Draw_track_name_and_championship_standings",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 5,
+        "kind": "lea"
+      }
+    },
+    {
+      "name": "Track_name_San_Marino",
+      "rom_addr": "0x00C624",
+      "size_estimate": 11,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Track_name_tilemap_ptrs",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 29,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Build_minimap_player_row_buffer",
+      "rom_addr": "0x00C6D6",
+      "size_estimate": 24,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Initialize_minimap_display_buffers_Clear_loop",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 141,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Championship_standings_display_setup",
+      "rom_addr": "0x00CA44",
+      "size_estimate": 16,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Race_result_phase_table_3",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1573,
+        "kind": "data_ptr"
+      }
+    },
+    {
+      "name": "Draw_championship_standings_text",
+      "rom_addr": "0x00CB3C",
+      "size_estimate": 20,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Race_result_frame_3_Alt",
+      "sole_site": {
+        "file": "src/objects.asm",
+        "line": 1528,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Advance_team_stat_display",
+      "rom_addr": "0x00D068",
+      "size_estimate": 60,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Team_select_phase0",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 999,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Advance_road_marker_sequence_a",
+      "rom_addr": "0x00D0FC",
+      "size_estimate": 38,
+      "source_file": "src/gameplay.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Team_select_phase0_marker_a",
+      "sole_site": {
+        "file": "src/gameplay.asm",
+        "line": 1004,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Trigger_music_mode_1",
+      "rom_addr": "0x075C56",
+      "size_estimate": 12,
+      "source_file": "src/audio_engine.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Handle_pause_Pause",
+      "sole_site": {
+        "file": "src/race.asm",
+        "line": 720,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Update_audio_engine",
+      "rom_addr": "0x075C6E",
+      "size_estimate": 28,
+      "source_file": "src/audio_engine.asm",
+      "has_header": true,
+      "ref_count": 1,
+      "call_count": 1,
+      "branch_count": 0,
+      "sole_caller": "Vblank_interrupt_tail",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 242,
+        "kind": "call"
+      }
+    },
+    {
+      "name": "Audio_engine_seq_timer_check",
+      "rom_addr": "0x075C8A",
+      "size_estimate": 18,
+      "source_file": "src/audio_engine.asm",
+      "has_header": false,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 1,
+      "sole_caller": "Update_audio_engine",
+      "sole_site": {
+        "file": "src/audio_engine.asm",
+        "line": 63,
+        "kind": "branch"
+      }
+    },
+    {
+      "name": "Z80_data",
+      "rom_addr": "0x0763F0",
+      "size_estimate": 39952,
+      "source_file": "src/audio_engine.asm",
+      "has_header": false,
+      "ref_count": 1,
+      "call_count": 0,
+      "branch_count": 0,
+      "sole_caller": "Load_z80_driver",
+      "sole_site": {
+        "file": "init.asm",
+        "line": 295,
+        "kind": "lea"
+      }
+    }
+  ],
+  "hotspots": [
+    {
+      "name": "Wait_for_vblank",
+      "rom_addr": "0x000396",
+      "size_estimate": 4,
+      "source_file": "init.asm",
+      "has_header": true,
+      "ref_count": 94,
+      "call_count": 94,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Championship_podium_load_or_fade_Palette_loop",
+          "count": 7
+        },
+        {
+          "caller": "(top-level)",
+          "count": 3
+        },
+        {
+          "caller": "Championship_podium_load_or_fade_Fade",
+          "count": 3
+        },
+        {
+          "caller": "Fade_palette_entry",
+          "count": 2
+        },
+        {
+          "caller": "Driver_standings_init_Hscroll_loop",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "Decompress_to_vdp",
+      "rom_addr": "0x000972",
+      "size_estimate": 16,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 44,
+      "call_count": 44,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Team_select_screen_init_Setup",
+          "count": 6
+        },
+        {
+          "caller": "Title_menu_Init_screen",
+          "count": 5
+        },
+        {
+          "caller": "Championship_standings_init_Load_assets",
+          "count": 4
+        },
+        {
+          "caller": "Initialize_results_screen_Clear_loop",
+          "count": 3
+        },
+        {
+          "caller": "Championship_driver_select_init",
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "Tile_index_to_vdp_command",
+      "rom_addr": "0x0008AE",
+      "size_estimate": 18,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 30,
+      "call_count": 30,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Podium_minimap_Show",
+          "count": 3
+        },
+        {
+          "caller": "Decompress_asset_list_loop",
+          "count": 1
+        },
+        {
+          "caller": "Draw_tilemap_list_loop",
+          "count": 1
+        },
+        {
+          "caller": "Draw_packed_tilemap_to_vdp_preset_base",
+          "count": 1
+        },
+        {
+          "caller": "Draw_lap_times_loop",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Fade_palette_to_black",
+      "rom_addr": "0x0008C0",
+      "size_estimate": 12,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 28,
+      "call_count": 28,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "(top-level)",
+          "count": 1
+        },
+        {
+          "caller": "Initialize_results_screen",
+          "count": 1
+        },
+        {
+          "caller": "Driver_standings_init",
+          "count": 1
+        },
+        {
+          "caller": "Team_select_screen_init",
+          "count": 1
+        },
+        {
+          "caller": "Championship_standings_init",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Copy_word_run_from_stream",
+      "rom_addr": "0x0006DA",
+      "size_estimate": 8,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 27,
+      "call_count": 27,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Initialize_race_track_scroll_tables_Loop",
+          "count": 4
+        },
+        {
+          "caller": "Title_menu_Init_screen",
+          "count": 2
+        },
+        {
+          "caller": "Race_finish_results_init_Skip",
+          "count": 2
+        },
+        {
+          "caller": "Pre_race_car_sprite_col_loop",
+          "count": 2
+        },
+        {
+          "caller": "Initialize_race_hud",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Send_D567_to_VDP",
+      "rom_addr": "0x000914",
+      "size_estimate": 48,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 27,
+      "call_count": 21,
+      "branch_count": 6,
+      "top_callers": [
+        {
+          "caller": "Flush_dma_slot_b_skip",
+          "count": 2
+        },
+        {
+          "caller": "Update_hud_overtake_check",
+          "count": 2
+        },
+        {
+          "caller": "Update_placement_anim_check",
+          "count": 2
+        },
+        {
+          "caller": "Update_placement_anim_b_check",
+          "count": 2
+        },
+        {
+          "caller": "Draw_car_selection_screen",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "Draw_packed_tilemap_to_vdp",
+      "rom_addr": "0x000846",
+      "size_estimate": 8,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 24,
+      "call_count": 24,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Save_name_entry_init",
+          "count": 2
+        },
+        {
+          "caller": "Endgame_sequence_init",
+          "count": 2
+        },
+        {
+          "caller": "(top-level)",
+          "count": 1
+        },
+        {
+          "caller": "Draw_packed_list_loop",
+          "count": 1
+        },
+        {
+          "caller": "Init_hud_rival_present",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Queue_tilemap_draw",
+      "rom_addr": "0x00146C",
+      "size_estimate": 22,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 24,
+      "call_count": 19,
+      "branch_count": 5,
+      "top_callers": [
+        {
+          "caller": "Update_placement_overlay_Draw_normal",
+          "count": 2
+        },
+        {
+          "caller": "Update_placement_overlay_Queue",
+          "count": 2
+        },
+        {
+          "caller": "Update_race_timer_Format_display",
+          "count": 2
+        },
+        {
+          "caller": "Lap_end_obj_Draw_queue",
+          "count": 2
+        },
+        {
+          "caller": "Draw_placement_ordinal_to_vdp",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Update_objects_and_build_sprite_buffer",
+      "rom_addr": "0x000D5C",
+      "size_estimate": 54,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 23,
+      "call_count": 22,
+      "branch_count": 1,
+      "top_callers": [
+        {
+          "caller": "Attract_screen_logo_frame",
+          "count": 1
+        },
+        {
+          "caller": "Driver_standings_frame",
+          "count": 1
+        },
+        {
+          "caller": "Team_select_frame",
+          "count": 1
+        },
+        {
+          "caller": "Game_over_frame",
+          "count": 1
+        },
+        {
+          "caller": "Credits_scroll_frame",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Halt_audio_sequence",
+      "rom_addr": "0x075C4A",
+      "size_estimate": 12,
+      "source_file": "src/audio_engine.asm",
+      "has_header": true,
+      "ref_count": 23,
+      "call_count": 22,
+      "branch_count": 1,
+      "top_callers": [
+        {
+          "caller": "Load_z80_driver_Loop",
+          "count": 1
+        },
+        {
+          "caller": "(top-level)",
+          "count": 1
+        },
+        {
+          "caller": "Driver_standings_init_Hscroll_loop",
+          "count": 1
+        },
+        {
+          "caller": "Game_over_confirm_frame_Rts",
+          "count": 1
+        },
+        {
+          "caller": "Race_finish_credits_init",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Initialize_h40_vdp_state",
+      "rom_addr": "0x00062E",
+      "size_estimate": 40,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 22,
+      "call_count": 22,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "(top-level)",
+          "count": 1
+        },
+        {
+          "caller": "Driver_standings_init",
+          "count": 1
+        },
+        {
+          "caller": "Team_select_screen_init",
+          "count": 1
+        },
+        {
+          "caller": "Championship_standings_init",
+          "count": 1
+        },
+        {
+          "caller": "Game_over_confirm_frame_Rts",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Clear_main_object_pool",
+      "rom_addr": "0x000F16",
+      "size_estimate": 8,
+      "source_file": "src/core.asm",
+      "has_header": true,
+      "ref_count": 21,
+      "call_count": 21,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "(top-level)",
+          "count": 1
+        },
+        {
+          "caller": "Driver_standings_init",
+          "count": 1
+        },
+        {
+          "caller": "Team_select_screen_init",
+          "count": 1
+        },
+        {
+          "caller": "Championship_standings_init",
+          "count": 1
+        },
+        {
+          "caller": "Race_finish_credits_init",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "Copy_2d_rect_words",
+      "rom_addr": "0x006576",
+      "size_estimate": 6,
+      "source_file": "src/driving.asm",
+      "has_header": true,
+      "ref_count": 12,
+      "call_count": 12,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Initialize_ui_tilemap_buffers_Copy_loop",
+          "count": 6
+        },
+        {
+          "caller": "Initialize_ui_tilemap_buffers_Clear_loop",
+          "count": 4
+        },
+        {
+          "caller": "Initialize_ui_tilemap_buffers_Copy2_loop",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "Alloc_aux_object_slot",
+      "rom_addr": "0x008AE8",
+      "size_estimate": 6,
+      "source_file": "src/ai.asm",
+      "has_header": true,
+      "ref_count": 12,
+      "call_count": 12,
+      "branch_count": 0,
+      "top_callers": [
+        {
+          "caller": "Update_race_position_Two_ahead",
+          "count": 2
+        },
+        {
+          "caller": "Championship_standings_display_setup_Buf2_loop",
+          "count": 1
+        },
+        {
+          "caller": "Spawn_background_ai_car_0",
+          "count": 1
+        },
+        {
+          "caller": "Spawn_background_ai_car_1",
+          "count": 1
+        },
+        {
+          "caller": "Background_ai_car_c_obj_spawn",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}

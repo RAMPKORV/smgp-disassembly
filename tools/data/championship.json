@@ -1,0 +1,1025 @@
+{
+  "_meta": {
+    "source": "extract_championship_data.js (EXTR-006)",
+    "rom": "orig.bin",
+    "description": "Championship progression tables: points, AI placement, rival grid, driver maps, lap-time offsets.",
+    "championship_track_order": [
+      "San Marino",
+      "Brazil",
+      "France",
+      "Hungary",
+      "West Germany",
+      "USA",
+      "Canada",
+      "Great Britain",
+      "Italy",
+      "Portugal",
+      "Spain",
+      "Mexico",
+      "Japan",
+      "Belgium",
+      "Australia",
+      "Monaco"
+    ],
+    "team_names": [
+      "Madonna",
+      "Firenze",
+      "Millions",
+      "Bestowal",
+      "Blanche",
+      "Tyrant",
+      "Losel",
+      "May",
+      "Bullets",
+      "Dardan",
+      "Linden",
+      "Minarae",
+      "Rigel",
+      "Comet",
+      "Orchis",
+      "Zero Force"
+    ]
+  },
+  "points_awarded_per_placement": [
+    9,
+    6,
+    4,
+    3,
+    2,
+    1
+  ],
+  "post_race_driver_target_points": [
+    {
+      "team": 0,
+      "name": "Madonna",
+      "promote_threshold": 2,
+      "partner_threshold": 5
+    },
+    {
+      "team": 1,
+      "name": "Firenze",
+      "promote_threshold": 2,
+      "partner_threshold": 5
+    },
+    {
+      "team": 2,
+      "name": "Millions",
+      "promote_threshold": 2,
+      "partner_threshold": 5
+    },
+    {
+      "team": 3,
+      "name": "Bestowal",
+      "promote_threshold": 2,
+      "partner_threshold": 5
+    },
+    {
+      "team": 4,
+      "name": "Blanche",
+      "promote_threshold": 2,
+      "partner_threshold": 5
+    },
+    {
+      "team": 5,
+      "name": "Tyrant",
+      "promote_threshold": 3,
+      "partner_threshold": 6
+    },
+    {
+      "team": 6,
+      "name": "Losel",
+      "promote_threshold": 4,
+      "partner_threshold": 7
+    },
+    {
+      "team": 7,
+      "name": "May",
+      "promote_threshold": 5,
+      "partner_threshold": 8
+    },
+    {
+      "team": 8,
+      "name": "Bullets",
+      "promote_threshold": 6,
+      "partner_threshold": 9
+    },
+    {
+      "team": 9,
+      "name": "Dardan",
+      "promote_threshold": 6,
+      "partner_threshold": 10
+    },
+    {
+      "team": 10,
+      "name": "Linden",
+      "promote_threshold": 7,
+      "partner_threshold": 10
+    },
+    {
+      "team": 11,
+      "name": "Minarae",
+      "promote_threshold": 7,
+      "partner_threshold": 11
+    },
+    {
+      "team": 12,
+      "name": "Rigel",
+      "promote_threshold": 8,
+      "partner_threshold": 12
+    },
+    {
+      "team": 13,
+      "name": "Comet",
+      "promote_threshold": 8,
+      "partner_threshold": 12
+    },
+    {
+      "team": 14,
+      "name": "Orchis",
+      "promote_threshold": 8,
+      "partner_threshold": 12
+    },
+    {
+      "team": 15,
+      "name": "Zero Force",
+      "promote_threshold": 8,
+      "partner_threshold": 13
+    }
+  ],
+  "ai_performance_factor_by_team": [
+    15,
+    13,
+    12,
+    11,
+    10,
+    10,
+    10,
+    10,
+    8,
+    8,
+    8,
+    8,
+    2,
+    2,
+    1,
+    1
+  ],
+  "ai_performance_table": [
+    {
+      "team": 0,
+      "name": "Madonna",
+      "scores": [
+        6,
+        6,
+        6,
+        6,
+        9,
+        9,
+        9,
+        9
+      ]
+    },
+    {
+      "team": 1,
+      "name": "Firenze",
+      "scores": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        6,
+        9,
+        9
+      ]
+    },
+    {
+      "team": 2,
+      "name": "Millions",
+      "scores": [
+        1,
+        2,
+        2,
+        3,
+        4,
+        6,
+        6,
+        9
+      ]
+    },
+    {
+      "team": 3,
+      "name": "Bestowal",
+      "scores": [
+        1,
+        1,
+        2,
+        3,
+        3,
+        4,
+        6,
+        9
+      ]
+    },
+    {
+      "team": 4,
+      "name": "Blanche",
+      "scores": [
+        0,
+        1,
+        2,
+        2,
+        3,
+        4,
+        4,
+        6
+      ]
+    },
+    {
+      "team": 5,
+      "name": "Tyrant",
+      "scores": [
+        0,
+        0,
+        1,
+        1,
+        2,
+        3,
+        3,
+        9
+      ]
+    },
+    {
+      "team": 6,
+      "name": "Losel",
+      "scores": [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        3,
+        3
+      ]
+    },
+    {
+      "team": 7,
+      "name": "May",
+      "scores": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "team": 8,
+      "name": "Bullets",
+      "scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2
+      ]
+    },
+    {
+      "team": 9,
+      "name": "Dardan",
+      "scores": [
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "team": 10,
+      "name": "Linden",
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "team": 11,
+      "name": "Minarae",
+      "scores": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "team": 12,
+      "name": "Rigel",
+      "scores": [
+        0,
+        2,
+        2,
+        3,
+        6,
+        9,
+        9,
+        9
+      ]
+    },
+    {
+      "team": 13,
+      "name": "Comet",
+      "scores": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "team": 14,
+      "name": "Orchis",
+      "scores": [
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        3,
+        3
+      ]
+    },
+    {
+      "team": 15,
+      "name": "Zero Force",
+      "scores": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "initial_drivers_and_team_map": {
+    "player_team_raw": 27,
+    "driver_team_map": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      0,
+      12,
+      13,
+      14,
+      15
+    ],
+    "rival_team_raw": 0
+  },
+  "second_year_drivers_and_teams_map": {
+    "player_team_raw": 80,
+    "driver_team_map": [
+      80,
+      13,
+      5,
+      3,
+      6,
+      2,
+      7,
+      11,
+      1,
+      4,
+      12,
+      15,
+      10,
+      8,
+      9,
+      14
+    ],
+    "rival_team_raw": 0
+  },
+  "rival_grid_base_table": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    2,
+    2,
+    2,
+    4,
+    4,
+    6,
+    6,
+    6,
+    9,
+    9,
+    9
+  ],
+  "rival_grid_delta_table": [
+    -3,
+    -2,
+    0,
+    -1,
+    -2,
+    1,
+    1,
+    2,
+    1,
+    1,
+    0
+  ],
+  "ai_placement_data": {
+    "cars": [
+      {
+        "speed_hi": 0,
+        "speed_lo": 254,
+        "accel_hi": 0,
+        "accel_lo": 253,
+        "brake": 1
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 64,
+        "accel_hi": 0,
+        "accel_lo": 230,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 59,
+        "accel_hi": 0,
+        "accel_lo": 227,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 54,
+        "accel_hi": 0,
+        "accel_lo": 224,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 44,
+        "accel_hi": 0,
+        "accel_lo": 221,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 39,
+        "accel_hi": 0,
+        "accel_lo": 218,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 34,
+        "accel_hi": 0,
+        "accel_lo": 215,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 24,
+        "accel_hi": 0,
+        "accel_lo": 212,
+        "brake": 252
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 19,
+        "accel_hi": 0,
+        "accel_lo": 209,
+        "brake": 252
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 14,
+        "accel_hi": 0,
+        "accel_lo": 206,
+        "brake": 252
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 4,
+        "accel_hi": 0,
+        "accel_lo": 203,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 250,
+        "accel_hi": 0,
+        "accel_lo": 200,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 240,
+        "accel_hi": 0,
+        "accel_lo": 197,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 220,
+        "accel_hi": 0,
+        "accel_lo": 194,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 195,
+        "accel_hi": 0,
+        "accel_lo": 191,
+        "brake": 248
+      }
+    ],
+    "sentinel": 0
+  },
+  "ai_placement_data_easy": {
+    "header_record": {
+      "speed_hi": 165,
+      "speed_lo": 0,
+      "accel_hi": 188,
+      "accel_lo": 248,
+      "brake": 0
+    },
+    "cars": [
+      {
+        "speed_hi": 1,
+        "speed_lo": 54,
+        "accel_hi": 0,
+        "accel_lo": 215,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 49,
+        "accel_hi": 0,
+        "accel_lo": 212,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 44,
+        "accel_hi": 0,
+        "accel_lo": 209,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 34,
+        "accel_hi": 0,
+        "accel_lo": 206,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 29,
+        "accel_hi": 0,
+        "accel_lo": 203,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 24,
+        "accel_hi": 0,
+        "accel_lo": 200,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 14,
+        "accel_hi": 0,
+        "accel_lo": 197,
+        "brake": 252
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 9,
+        "accel_hi": 0,
+        "accel_lo": 194,
+        "brake": 252
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 4,
+        "accel_hi": 0,
+        "accel_lo": 191,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 250,
+        "accel_hi": 0,
+        "accel_lo": 188,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 240,
+        "accel_hi": 0,
+        "accel_lo": 185,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 230,
+        "accel_hi": 0,
+        "accel_lo": 182,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 210,
+        "accel_hi": 0,
+        "accel_lo": 179,
+        "brake": 252
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 185,
+        "accel_hi": 0,
+        "accel_lo": 176,
+        "brake": 248
+      },
+      {
+        "speed_hi": 0,
+        "speed_lo": 155,
+        "accel_hi": 0,
+        "accel_lo": 173,
+        "brake": 248
+      }
+    ],
+    "sentinel": 0
+  },
+  "ai_placement_data_champ": {
+    "records": [
+      {
+        "speed_hi": 1,
+        "speed_lo": 79,
+        "accel_hi": 0,
+        "accel_lo": 232,
+        "brake": 8
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 79,
+        "accel_hi": 0,
+        "accel_lo": 232,
+        "brake": 4
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 72,
+        "accel_hi": 0,
+        "accel_lo": 224,
+        "brake": 8
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 66,
+        "accel_hi": 0,
+        "accel_lo": 232,
+        "brake": 8
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 72,
+        "accel_hi": 0,
+        "accel_lo": 224,
+        "brake": 4
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 79,
+        "accel_hi": 0,
+        "accel_lo": 224,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 66,
+        "accel_hi": 0,
+        "accel_lo": 224,
+        "brake": 8
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 72,
+        "accel_hi": 0,
+        "accel_lo": 216,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 66,
+        "accel_hi": 0,
+        "accel_lo": 216,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 66,
+        "accel_hi": 0,
+        "accel_lo": 216,
+        "brake": 4
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 60,
+        "accel_hi": 0,
+        "accel_lo": 224,
+        "brake": 4
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 66,
+        "accel_hi": 0,
+        "accel_lo": 208,
+        "brake": 4
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 54,
+        "accel_hi": 0,
+        "accel_lo": 216,
+        "brake": 8
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 54,
+        "accel_hi": 0,
+        "accel_lo": 208,
+        "brake": 4
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 60,
+        "accel_hi": 0,
+        "accel_lo": 216,
+        "brake": 0
+      },
+      {
+        "speed_hi": 1,
+        "speed_lo": 54,
+        "accel_hi": 0,
+        "accel_lo": 216,
+        "brake": 4
+      }
+    ],
+    "trailing_words_raw": [
+      0,
+      20,
+      0,
+      15,
+      0,
+      20,
+      0,
+      15,
+      0,
+      20,
+      0,
+      15,
+      0,
+      20,
+      0,
+      15,
+      0,
+      16,
+      0,
+      15,
+      0,
+      16,
+      0,
+      15,
+      0,
+      16,
+      0,
+      15,
+      0,
+      16,
+      0,
+      15,
+      0,
+      5,
+      0,
+      0,
+      0,
+      5,
+      0,
+      0,
+      0,
+      5,
+      0,
+      0,
+      0,
+      5,
+      0,
+      0
+    ]
+  },
+  "ai_placement_champ_offsets": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      -1,
+      -5
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -5
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -5
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -5
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -20
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -20
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -20
+    ],
+    [
+      -1,
+      -10
+    ],
+    [
+      -1,
+      -20
+    ]
+  ],
+  "pre_race_lap_time_offset_table": [
+    1,
+    89,
+    1,
+    7,
+    0,
+    135,
+    0,
+    116,
+    0,
+    104,
+    0,
+    99,
+    0,
+    88,
+    0,
+    82,
+    0,
+    71,
+    0,
+    66,
+    0,
+    55,
+    0,
+    50,
+    0,
+    39,
+    0,
+    34,
+    0,
+    23,
+    0,
+    0
+  ]
+}
