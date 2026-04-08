@@ -1414,7 +1414,7 @@
           <div class="launchpad-main">
             <article class="launch-card">
               <h4>Quick Start</h4>
-              <p>Use one of these presets to instantly load a sensible randomizer setup. If you want the actual randomized minimap art and marker path in the ROM, run a real build instead of a dry run.</p>
+              <p>Use one of these presets to instantly load a sensible randomizer setup. On <code>master</code>, the safe path is workspace-based, and successful randomized builds are written to <code>build/roms/latest_randomized.bin</code>.</p>
               <div class="preset-grid">
                 <button class="preset-button" type="button" data-preset="tracks-only"><strong>Tracks Only</strong><span>Shuffle course shape and layout data. Starts in preview mode, so it does not build a patched ROM yet.</span></button>
                 <button class="preset-button" type="button" data-preset="full-safe"><strong>Full Safe Build</strong><span>Tracks, config, teams, AI, and championship with a real ROM build. This path now patches generated minimap tiles, maps, and marker paths again.</span></button>
@@ -2666,6 +2666,13 @@
         if (data.checksumPatched) {
           appendExecutionOutput("\n[checksum] ROM header checksum updated for hacked output.\n", "stdout");
         }
+        if (payload && payload.mode === "node" && (/tools[\\/]randomize\.js$/.test(String(payload.script || "")) || /tools[\\/]hack_workdir\.js$/.test(String(payload.script || "")))) {
+          const args = Array.isArray(payload.args) ? payload.args : [];
+          const dryRun = args.includes("--dry-run");
+          if (!dryRun && data.ok) {
+            appendExecutionOutput("\n[note] Latest randomized ROM written to build/roms/latest_randomized.bin. The UI reruns workspace builds with --force, so the same seed can be regenerated safely. The root out.bin remains the canonical non-randomized build on master.\n", "stdout");
+          }
+        }
         appendExecutionOutput(`\n[exit ${data.exitCode}] ${data.ok ? "OK" : "FAILED"} in ${data.durationMs}ms\n`, "stdout");
         setServerPill(runnerStatusPill, data.ok ? "Last run OK" : "Last run failed", data.ok ? "ready" : "planned");
         runtimeState.lastResult = data;
@@ -3591,16 +3598,17 @@
       const minimapPatched = trackEnabled && !dryRun && (workspace || !noBuild);
       const minimapPending = trackEnabled && !minimapPatched;
 
+      const latestOutput = ["--output", "build/roms/latest_randomized.bin"];
       const commandParts = workspace
-        ? ["node", "tools/hack_workdir.js", seed, ...(keep ? ["--keep"] : []), ...(dryRun ? ["--dry-run"] : []), ...(verbose ? ["--verbose"] : [])]
-        : ["node", "tools/randomize.js", seed, ...(subset ? ["--tracks", subset] : []), ...(dryRun ? ["--dry-run"] : []), ...(noBuild ? ["--no-build"] : []), ...(verbose ? ["--verbose"] : [])];
+        ? ["node", "tools/hack_workdir.js", seed, ...latestOutput, "--force", ...(keep ? ["--keep"] : []), ...(dryRun ? ["--dry-run"] : []), ...(verbose ? ["--verbose"] : [])]
+        : ["node", "tools/randomize.js", seed, ...latestOutput, ...(subset ? ["--tracks", subset] : []), ...(dryRun ? ["--dry-run"] : []), ...(noBuild ? ["--no-build"] : []), ...(verbose ? ["--verbose"] : [])];
 
       randomizerCommand.textContent = commandParts.map(quoteArg).filter(Boolean).join(" ");
       randomizerPrimaryCommand.textContent = randomizerCommand.textContent;
       setPillRow(randomizerSummary, [
         { text: `seed ${seed}`, tone: "cli" },
         { text: `flags 0x${flagsHex}`, tone: flags ? "ready" : "planned" },
-        { text: workspace ? "workspace mode" : "in-tree mode", tone: workspace ? "ready" : "internal" },
+        { text: workspace ? "workspace mode" : "debug in-root mode", tone: workspace ? "ready" : "planned" },
         ...(minimapPatched ? [{ text: "ROM gets generated minimaps", tone: "ready" }] : []),
         ...(minimapPending ? [{ text: "minimap ROM patch skipped", tone: "planned" }] : []),
         ...(subset ? [{ text: `${subset.split(/\s+/).filter(Boolean).length} track filter`, tone: "internal" }] : []),
@@ -3608,7 +3616,7 @@
         ...(noBuild ? [{ text: "no build", tone: "planned" }] : [])
       ]);
       setPillRow(randomizerPrimarySummary, [
-        { text: workspace ? "workspace" : "main tree", tone: workspace ? "ready" : "internal" },
+        { text: workspace ? "workspace" : "debug in-root", tone: workspace ? "ready" : "planned" },
         { text: dryRun ? "preview only" : (noBuild ? "patch only" : "build ROM"), tone: dryRun ? "planned" : "ready" },
         { text: minimapPatched ? "generated minimaps in ROM" : (trackEnabled ? "generated minimaps not in ROM" : "no track randomizer"), tone: minimapPatched ? "ready" : (trackEnabled ? "planned" : "internal") },
         { text: `seed ${seed}`, tone: "cli" }
@@ -3643,7 +3651,7 @@
         setFlag("20", false);
         document.getElementById("rand-dry-run").checked = false;
         document.getElementById("rand-no-build").checked = false;
-        document.getElementById("rand-workspace").checked = false;
+        document.getElementById("rand-workspace").checked = true;
         document.getElementById("rand-keep").checked = true;
       } else if (name === "workspace") {
         setFlag("01", true);
@@ -3665,7 +3673,7 @@
         setFlag("20", false);
         document.getElementById("rand-dry-run").checked = false;
         document.getElementById("rand-no-build").checked = false;
-        document.getElementById("rand-workspace").checked = false;
+        document.getElementById("rand-workspace").checked = true;
         document.getElementById("rand-keep").checked = true;
       }
 

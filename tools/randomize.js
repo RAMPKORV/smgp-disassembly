@@ -22,6 +22,7 @@
 //
 // Usage:
 //   node tools/randomize.js SMGP-1-01-12345                 # workspace-safe default
+//   node tools/randomize.js SMGP-1-01-12345 --output build/roms/latest_randomized.bin
 //   node tools/randomize.js SMGP-1-03-12345    # tracks + art config
 //   node tools/randomize.js SMGP-1-01-12345 --dry-run
 //   node tools/randomize.js SMGP-1-01-12345 --tracks san_marino france
@@ -41,8 +42,15 @@ const { patchRomChecksum } = require('./patch_rom_checksum');
 
 function runWorkspaceDefault(argv) {
 	const workspaceScript = path.join(REPO_ROOT, 'tools', 'hack_workdir.js');
+	const forwarded = Array.from(argv);
+	if (!forwarded.includes('--output') && !forwarded.some(arg => arg.startsWith('--output='))) {
+		forwarded.push('--output', path.join('build', 'roms', 'latest_randomized.bin'));
+	}
+	if (!forwarded.includes('--force')) {
+		forwarded.push('--force');
+	}
 	try {
-		execFileSync(process.execPath, [workspaceScript, ...argv], {
+		execFileSync(process.execPath, [workspaceScript, ...forwarded], {
 			cwd: REPO_ROOT,
 			stdio: 'inherit',
 		});

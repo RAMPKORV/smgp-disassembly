@@ -268,6 +268,7 @@ test('master randomize CLI defaults to workspace-safe help path', () => {
   const output = (result.stdout || '') + (result.stderr || '');
   assert.ok(output.includes('Workspace :'), 'expected workspace-safe output banner');
   assert.ok(output.includes('DRY RUN'), 'expected dry-run workspace message');
+  assert.ok(output.includes('latest_randomized.bin'), 'expected stable randomized output path');
 });
 
 test('workspace contains smgp.asm', () => {
