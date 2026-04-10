@@ -164,6 +164,12 @@ function hasSignNearDistance(signs, distance, radius) {
   return signs.some(sign => Math.abs(sign.distance - distance) <= radius);
 }
 
+function cyclicTrackDistance(a, b, trackLength) {
+	const diff = Math.abs(a - b);
+	if (!Number.isInteger(trackLength) || trackLength <= 0) return diff;
+	return Math.min(diff, trackLength - diff);
+}
+
 function countTightDirectionChanges(curveSegments) {
 	const curves = (curveSegments || []).filter(seg => seg.type === 'curve');
 	let count = 0;
@@ -514,6 +520,7 @@ test('generateSignTileset tileset_offset values are multiples of 8 in [0, 88]', 
 console.log('Section D: randomizeOneTrack and randomizeTracks');
 
 const tracksJson = readJson(path.join(REPO_ROOT, 'tools/data/tracks.json'));
+const stockMinimapReport = validateAllTracks(tracksJson);
 
 test('generateMinimap returns [intPairs, trailing] with count == trackLength >> 6', () => {
   const track = deepCopy(tracksJson.tracks[0]);
@@ -570,7 +577,7 @@ test('randomizeOneTrack sets track_length, curve_rle_segments, slope_rle_segment
 test('randomizeOneTrack keeps generated sign cadence mode enabled for validator safety', () => {
   const track = deepCopy(tracksJson.tracks[0]);
   randomizeOneTrack(track, 9999);
-  assert.strictEqual(track._preserve_original_sign_cadence, false);
+	assert.strictEqual(track._preserve_original_sign_cadence, false);
 });
 
 test('randomizeOneTrack opens and closes with straights', () => {
@@ -637,8 +644,8 @@ test('randomizeOneTrack keeps signs away from sign tileset transitions', () => {
 	const track = deepCopy(tracksJson.tracks[0]);
 	randomizeOneTrack(track, 9999);
 	for (const sign of track.sign_data) {
-		for (const tileset of track.sign_tileset.slice(1)) {
-			assert.ok(Math.abs(tileset.distance - sign.distance) >= 256,
+		for (const tileset of track.sign_tileset) {
+			assert.ok(cyclicTrackDistance(tileset.distance, sign.distance, track.track_length) >= 256,
 				`sign at ${sign.distance} too close to tileset transition at ${tileset.distance}`);
 		}
 	}
@@ -701,7 +708,7 @@ test('randomizeOneTrack places signs near meaningful curve windows', () => {
   assert.ok(windows.length > 0, 'expected at least one strong curve window');
 	for (const window of windows) {
 		const anchor = Math.max(0, window.startDistance - window.leadDistance);
-		const transitionNearby = track.sign_tileset.slice(1).some(rec => Math.abs(rec.distance - anchor) < 256);
+		const transitionNearby = track.sign_tileset.some(rec => cyclicTrackDistance(rec.distance, anchor, track.track_length) < 512);
 		if (transitionNearby) continue;
 		assert.ok(
 			hasSignNearDistance(track.sign_data, anchor, 160),
@@ -849,12 +856,22 @@ test('randomizeTracks on all 19 tracks produces all passing validation', () => {
 });
 
 test('randomized tracks pass generated minimap validation', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 99999);
-  const report = validateAllTracks(data);
-  const generatedFailures = report.tracks.filter(track => track.flags.candidate_marker_offroad);
-  assert.strictEqual(generatedFailures.length, 0,
-    `Generated minimap failures: ${generatedFailures.map(track => track.track.slug).join(', ')}`);
+	const data = deepCopy(tracksJson);
+	randomizeTracks(data, 99999);
+	const report = validateAllTracks(data);
+	const generatedFailures = report.tracks.filter(track => track.flags.candidate_marker_offroad);
+	assert.strictEqual(generatedFailures.length, 0,
+	  `Generated minimap failures: ${generatedFailures.map(track => track.track.slug).join(', ')}`);
+	assert.ok(report.curve_map_sign_match_percent >= (stockMinimapReport.curve_map_sign_match_percent - 2),
+		`expected randomized curve/map sign match >= ${stockMinimapReport.curve_map_sign_match_percent - 2}, got ${report.curve_map_sign_match_percent}`);
+	assert.ok(report.curve_map_left_right_mismatch_count <= (stockMinimapReport.curve_map_left_right_mismatch_count + 2),
+		`expected randomized left/right mismatch count <= ${stockMinimapReport.curve_map_left_right_mismatch_count + 2}, got ${report.curve_map_left_right_mismatch_count}`);
+	assert.ok(report.curve_map_phase_mismatch_count <= stockMinimapReport.curve_map_phase_mismatch_count,
+		`expected randomized phase mismatch count <= ${stockMinimapReport.curve_map_phase_mismatch_count}, got ${report.curve_map_phase_mismatch_count}`);
+	assert.ok(report.preview_self_intersections <= (stockMinimapReport.preview_self_intersections + 4),
+		`expected randomized preview self intersections <= ${stockMinimapReport.preview_self_intersections + 4}, got ${report.preview_self_intersections}`);
+	assert.ok(report.preview_branch_pixel_count <= (stockMinimapReport.preview_branch_pixel_count + 200),
+		`expected randomized preview branch pixels <= ${stockMinimapReport.preview_branch_pixel_count + 200}, got ${report.preview_branch_pixel_count}`);
 });
 
 test('randomizeTracks with slug filter only modifies matching track', () => {

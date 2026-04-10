@@ -20,6 +20,7 @@ const {
 } = require('./lib/minimap_analysis');
 const { getMinimapPreview } = require('./lib/minimap_preview');
 const { buildGeneratedMinimapPreview } = require('./lib/minimap_render');
+const { decompressCurveSegments } = require('./randomizer/track_randomizer');
 
 function getOccupiedPoints(preview) {
 	const points = [];
@@ -128,6 +129,137 @@ function collectCandidateAlignmentMetrics(track) {
 	};
 }
 
+function normalizeAngleDelta(angle) {
+	let value = angle;
+	while (value <= -Math.PI) value += Math.PI * 2;
+	while (value > Math.PI) value -= Math.PI * 2;
+	return value;
+}
+
+function buildCurveTurnProfile(track, sampleCount) {
+	const flat = [];
+	for (const value of decompressCurveSegments(track.curve_rle_segments || [])) {
+		if (value >= 0x80) break;
+		flat.push(value);
+	}
+	const bins = Array.from({ length: sampleCount }, () => ({ sum: 0, count: 0 }));
+	for (let i = 0; i < flat.length; i++) {
+		const value = flat[i];
+		let turn = 0;
+		if (value >= 0x01 && value <= 0x2F) turn = -1 / Math.max(value & 0x3F, 1);
+		else if (value >= 0x41 && value <= 0x6F) turn = 1 / Math.max(value & 0x3F, 1);
+		const bin = Math.min(sampleCount - 1, Math.floor((i * sampleCount) / Math.max(flat.length, 1)));
+		bins[bin].sum += turn;
+		bins[bin].count += 1;
+	}
+	return bins.map(bin => bin.count > 0 ? bin.sum / bin.count : 0);
+}
+
+function buildCenterlineTurnProfile(centerlinePoints, sampleCount) {
+	const sampled = sampleClosedPath(centerlinePoints, sampleCount + 2);
+	const profile = [];
+	for (let i = 1; i <= sampleCount; i++) {
+		const prev = sampled[i - 1];
+		const cur = sampled[i];
+		const next = sampled[i + 1];
+		const a0 = Math.atan2(cur[1] - prev[1], cur[0] - prev[0]);
+		const a1 = Math.atan2(next[1] - cur[1], next[0] - cur[0]);
+		profile.push(normalizeAngleDelta(a1 - a0));
+	}
+	return profile;
+}
+
+function pearsonCorrelation(a, b) {
+	const count = Math.min(a.length, b.length);
+	if (count <= 1) return 0;
+	let sumA = 0;
+	let sumB = 0;
+	for (let i = 0; i < count; i++) {
+		sumA += a[i];
+		sumB += b[i];
+	}
+	const meanA = sumA / count;
+	const meanB = sumB / count;
+	let num = 0;
+	let denA = 0;
+	let denB = 0;
+	for (let i = 0; i < count; i++) {
+		const da = a[i] - meanA;
+		const db = b[i] - meanB;
+		num += da * db;
+		denA += da * da;
+		denB += db * db;
+	}
+	if (denA <= 0 || denB <= 0) return 0;
+	return num / Math.sqrt(denA * denB);
+}
+
+function rotateArray(values, shift) {
+	if (!Array.isArray(values) || values.length === 0) return [];
+	const length = values.length;
+	const offset = ((shift % length) + length) % length;
+	return values.slice(offset).concat(values.slice(0, offset));
+}
+
+function findBestCircularShift(expected, observed) {
+	const count = Math.min(expected.length, observed.length);
+	let bestShift = 0;
+	let bestCorr = -Infinity;
+	for (let shift = 0; shift < count; shift++) {
+		const rotated = rotateArray(observed, shift);
+		const corr = pearsonCorrelation(expected, rotated);
+		if (corr > bestCorr) {
+			bestCorr = corr;
+			bestShift = shift;
+		}
+	}
+	return { shift: bestShift, corr: bestCorr };
+}
+
+function evaluateCurveMapAgreement(track, preview) {
+	const sampleCount = Math.max(64, Math.min(256, (track.track_length || 0) >> 4));
+	let centerline = Array.isArray(preview.centerline_points)
+		? preview.centerline_points.map(([x, y]) => [x, y])
+		: [];
+	if (centerline.length && Number.isInteger(preview.start_index)) {
+		const offset = ((preview.start_index % centerline.length) + centerline.length) % centerline.length;
+		centerline = centerline.slice(offset).concat(centerline.slice(0, offset));
+	}
+	const expected = buildCurveTurnProfile(track, sampleCount);
+	const observed = buildCenterlineTurnProfile(centerline, sampleCount);
+	const expectedAbs = expected.map(value => Math.abs(value));
+	const observedAbs = observed.map(value => Math.abs(value));
+	const zeroShiftCorr = pearsonCorrelation(expectedAbs, observedAbs);
+	const best = findBestCircularShift(expectedAbs, observedAbs);
+	const shiftedObserved = rotateArray(observed, best.shift);
+	const shiftedObservedAbs = shiftedObserved.map(value => Math.abs(value));
+	let signedShiftRatio = best.shift / sampleCount;
+	if (signedShiftRatio > 0.5) signedShiftRatio -= 1;
+	const activeThreshold = 0.02;
+	let activeCount = 0;
+	let signMatches = 0;
+	for (let i = 0; i < sampleCount; i++) {
+		if (expectedAbs[i] < activeThreshold) continue;
+		activeCount += 1;
+		if (Math.sign(expected[i]) === Math.sign(shiftedObserved[i])) signMatches += 1;
+	}
+	const expectedTotal = expectedAbs.reduce((sum, value) => sum + value, 0) || 1;
+	const observedTotal = shiftedObservedAbs.reduce((sum, value) => sum + value, 0) || 1;
+	let strengthError = 0;
+	for (let i = 0; i < sampleCount; i++) {
+		strengthError += Math.abs((expectedAbs[i] / expectedTotal) - (shiftedObservedAbs[i] / observedTotal));
+	}
+	return {
+		sample_count: sampleCount,
+		zero_shift_corr: zeroShiftCorr,
+		best_shift_corr: best.corr,
+		best_shift_ratio: signedShiftRatio,
+		phase_gain: best.corr - zeroShiftCorr,
+		sign_match_percent: activeCount > 0 ? (signMatches * 100) / activeCount : 100,
+		strength_error: strengthError / sampleCount,
+	};
+}
+
 function validateTrack(track, tracksData) {
 	const preview = buildGeneratedMinimapPreview(track);
 	const occupied = getOccupiedPoints(preview);
@@ -145,6 +277,7 @@ function validateTrack(track, tracksData) {
 	const stockAlignment = collectAlignmentMetrics(track, 'stock');
 	const generatedAlignment = collectAlignmentMetrics(track, 'generated');
 	const candidateAlignment = collectCandidateAlignmentMetrics(track);
+	const curveMap = evaluateCurveMapAgreement(track, preview);
 
 	return {
 		track: { slug: track.slug, name: track.name, track_length: track.track_length },
@@ -158,6 +291,9 @@ function validateTrack(track, tracksData) {
 			pair_follow_mean: Number(pairFit.mean.toFixed(3)),
 			pair_follow_max: Number(pairFit.max.toFixed(3)),
 			tight_turn_count: tightTurns,
+			preview_self_intersections: preview.self_intersections,
+			preview_branch_pixel_count: preview.branch_pixel_count,
+			preview_lower_tail_clearance: preview.lower_tail_clearance,
 			stock_marker_mean_distance: stockAlignment.alignment.road.mean_distance,
 			stock_marker_max_distance: stockAlignment.alignment.road.max_distance,
 			stock_marker_hit_percent: stockAlignment.alignment.road.hit_percent,
@@ -167,6 +303,12 @@ function validateTrack(track, tracksData) {
 			candidate_marker_mean_distance: candidateAlignment.alignment.road.mean_distance,
 			candidate_marker_max_distance: candidateAlignment.alignment.road.max_distance,
 			candidate_marker_hit_percent: candidateAlignment.alignment.road.hit_percent,
+			curve_map_zero_shift_corr: Number(curveMap.zero_shift_corr.toFixed(3)),
+			curve_map_best_shift_corr: Number(curveMap.best_shift_corr.toFixed(3)),
+			curve_map_best_shift_ratio: Number(curveMap.best_shift_ratio.toFixed(4)),
+			curve_map_phase_gain: Number(curveMap.phase_gain.toFixed(3)),
+			curve_map_sign_match_percent: Number(curveMap.sign_match_percent.toFixed(2)),
+			curve_map_strength_error: Number(curveMap.strength_error.toFixed(4)),
 		},
 		alignment: {
 			stock: stockAlignment.alignment,
@@ -184,6 +326,9 @@ function validateTrack(track, tracksData) {
 			pair_desync: pairFit.mean > 4,
 			generated_marker_offroad: generatedAlignment.alignment.road.mean_distance > 1.25 || generatedAlignment.alignment.road.hit_percent < 90,
 			candidate_marker_offroad: candidateAlignment.alignment.road.mean_distance > 1.25 || candidateAlignment.alignment.road.hit_percent < 90,
+			curve_map_left_right_mismatch: curveMap.sign_match_percent < 58,
+			curve_map_phase_mismatch: Math.abs(curveMap.best_shift_ratio) > 0.08 && curveMap.phase_gain > 0.08,
+			curve_map_strength_mismatch: curveMap.strength_error > 0.008,
 			many_tight_turns: tightTurns > Math.max(6, Math.floor(generatedPairs.length / 12)),
 		},
 	};
@@ -205,8 +350,15 @@ function validateAllTracks(tracksData) {
 		generated_marker_hit_percent: Number(average(reports, report => report.metrics.generated_marker_hit_percent).toFixed(2)),
 		candidate_marker_mean_distance: Number(average(reports, report => report.metrics.candidate_marker_mean_distance).toFixed(3)),
 		candidate_marker_hit_percent: Number(average(reports, report => report.metrics.candidate_marker_hit_percent).toFixed(2)),
+		preview_self_intersections: Number(average(reports, report => report.metrics.preview_self_intersections || 0).toFixed(2)),
+		preview_branch_pixel_count: Number(average(reports, report => report.metrics.preview_branch_pixel_count || 0).toFixed(2)),
+		curve_map_sign_match_percent: Number(average(reports, report => report.metrics.curve_map_sign_match_percent).toFixed(2)),
+		curve_map_strength_error: Number(average(reports, report => report.metrics.curve_map_strength_error).toFixed(4)),
 		generated_marker_offroad_count: reports.filter(report => report.flags.generated_marker_offroad).length,
 		candidate_marker_offroad_count: reports.filter(report => report.flags.candidate_marker_offroad).length,
+		curve_map_left_right_mismatch_count: reports.filter(report => report.flags.curve_map_left_right_mismatch).length,
+		curve_map_phase_mismatch_count: reports.filter(report => report.flags.curve_map_phase_mismatch).length,
+		curve_map_strength_mismatch_count: reports.filter(report => report.flags.curve_map_strength_mismatch).length,
 		tracks: reports,
 	};
 }
@@ -241,8 +393,15 @@ function main() {
 		info(`generated marker hit percent: ${report.generated_marker_hit_percent}`);
 		info(`candidate marker mean distance: ${report.candidate_marker_mean_distance}`);
 		info(`candidate marker hit percent: ${report.candidate_marker_hit_percent}`);
+		info(`preview self intersections: ${report.preview_self_intersections}`);
+		info(`preview branch pixel count: ${report.preview_branch_pixel_count}`);
 		info(`generated offroad tracks: ${report.generated_marker_offroad_count}`);
 		info(`candidate offroad tracks: ${report.candidate_marker_offroad_count}`);
+		info(`curve/map sign match percent: ${report.curve_map_sign_match_percent}`);
+		info(`curve/map strength error: ${report.curve_map_strength_error}`);
+		info(`curve/map left-right mismatches: ${report.curve_map_left_right_mismatch_count}`);
+		info(`curve/map phase mismatches: ${report.curve_map_phase_mismatch_count}`);
+		info(`curve/map strength mismatches: ${report.curve_map_strength_mismatch_count}`);
 		return;
 	}
 

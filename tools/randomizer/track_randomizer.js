@@ -162,17 +162,17 @@ const SIGN_TILESET_MIN_SPACING = 1500;
 const SIGN_COUNT_VALUES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 24];
 
 const TILESET_SIGN_ID_MAP = new Map([
-	[0,  [0, 1, 8, 10, 11, 28, 29, 30, 31]],
-	[8,  [0, 1, 8, 9, 10, 11, 28, 29, 30, 31]],
-	[16, [0, 1, 4, 5, 8, 9, 31, 48, 49]],
-	[24, [0, 1, 8, 9, 16, 17, 30]],
-	[32, [0, 1, 8, 9, 10, 11, 20, 21, 22, 30, 31]],
-	[40, [0, 1, 8, 9, 10, 24, 25, 26, 27, 30, 31]],
-	[48, [0, 1, 8, 11, 31, 32, 33]],
-	[56, [0, 1, 8, 9, 10, 11, 30, 31, 36, 37, 39, 49]],
-	[64, [0, 1, 8, 9, 31, 40, 41]],
-	[72, [0, 1, 8, 9, 10, 44, 45, 46]],
-	[80, [0, 1, 12, 13, 14, 15]],
+	[0,  [28, 29]],
+	[8,  [28, 29]],
+	[16, [4, 5]],
+	[24, [16, 17]],
+	[32, [20, 21]],
+	[40, [24, 25]],
+	[48, [32, 33]],
+	[56, [36, 37]],
+	[64, [40, 41]],
+	[72, [44, 45]],
+	[80, [12, 13]],
 	[88, [2, 50]],
 ]);
 
@@ -184,6 +184,16 @@ const SAFE_SIGN_TILESET_GUARD_DISTANCE = 256;
 const LEFT_SIGN_IDS = new Set([4, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48]);
 const RIGHT_SIGN_IDS = new Set([5, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]);
 const SPECIAL_SIGN_IDS = new Set([48, 49, 50]);
+
+const SIGN_SEQUENCE_SLOT_COUNT = new Map([
+	[0, 1], [1, 1], [2, 2], [4, 2], [5, 2], [6, 4], [7, 4],
+	[8, 2], [9, 2], [10, 4], [11, 4], [12, 2], [13, 2], [14, 4], [15, 4],
+	[16, 2], [17, 2], [18, 4], [19, 4], [20, 2], [21, 2], [22, 4], [23, 4],
+	[24, 2], [25, 2], [26, 4], [27, 4], [28, 1], [29, 1], [30, 1], [31, 1],
+	[32, 2], [33, 2], [34, 4], [35, 4], [36, 2], [37, 2], [38, 4], [39, 4],
+	[40, 2], [41, 2], [42, 4], [43, 4], [44, 2], [45, 2], [46, 4], [47, 4],
+	[48, 1], [49, 1], [50, 1],
+]);
 
 const SIGN_SPACING_MIN  = 100;
 const SIGN_SPACING_MAX  = 500;
@@ -748,37 +758,7 @@ function buildPathIntersections(points, minIndexGap = 6) {
 }
 
 function buildSpecialRoadFeatures(rng, trackLength, curveSegments) {
-	const { buildDerivedPath } = require('../lib/minimap_analysis');
-	const derived = buildDerivedPath({ curve_rle_segments: curveSegments });
-	const points = Array.isArray(derived?.points) ? derived.points : [];
-	const intersections = buildPathIntersections(points, 6);
-	if (!intersections.length) return [];
-
-	const features = [];
-	for (const intersection of intersections) {
-		const distA = Math.round((intersection.segmentA + 0.5) * (derived.sampleEvery || 16) * 4);
-		const distB = Math.round((intersection.segmentB + 0.5) * (derived.sampleEvery || 16) * 4);
-		const branchDistance = Math.max(distA, distB);
-		const sectionLength = clamp(rng.randInt(TUNNEL_SECTION_MIN, TUNNEL_SECTION_MAX), TUNNEL_SECTION_MIN, TUNNEL_SECTION_MAX);
-		let tilesetDistance = clamp(branchDistance - rng.randInt(48, 112), 160, Math.max(160, trackLength - SIGN_FINISH_ZONE - sectionLength - 120));
-		let restoreDistance = clamp(tilesetDistance + sectionLength, tilesetDistance + SIGN_TILESET_MIN_SPACING, trackLength - SIGN_FINISH_ZONE - 32);
-		if ((restoreDistance - tilesetDistance) < SIGN_TILESET_MIN_SPACING) continue;
-		const entrySignDistance = clamp(tilesetDistance - 6, 0, trackLength - SIGN_FINISH_ZONE - 1);
-		const interiorDistance = clamp(tilesetDistance + 30, 0, trackLength - SIGN_FINISH_ZONE - 1);
-		const exitSignDistance = clamp(restoreDistance - rng.randInt(96, 160), 0, trackLength - SIGN_FINISH_ZONE - 1);
-		if (features.some(feature => Math.abs(feature.tilesetDistance - tilesetDistance) < 384)) continue;
-		features.push({
-			type: 'tunnel',
-			entrySignDistance,
-			tilesetDistance,
-			interiorDistance,
-			exitSignDistance,
-			restoreDistance,
-			interiorCount: rng.choice([15, 24]),
-		});
-	}
-
-	return features.sort((a, b) => a.tilesetDistance - b.tilesetDistance).slice(0, 2);
+	return [];
 }
 
 function getActiveTilesetOffset(records, distance) {
@@ -791,9 +771,21 @@ function getActiveTilesetOffset(records, distance) {
 	return active;
 }
 
-function isNearTilesetTransition(tilesetRecords, distance, guardDistance = SAFE_SIGN_TILESET_GUARD_DISTANCE) {
+function cyclicTrackDistance(a, b, trackLength) {
+	const diff = Math.abs(a - b);
+	if (!Number.isInteger(trackLength) || trackLength <= 0) return diff;
+	return Math.min(diff, trackLength - diff);
+}
+
+function getSignRuntimeRowSpan(signId, count) {
+	const sequenceSlots = SIGN_SEQUENCE_SLOT_COUNT.get(signId) || 1;
+	const repeatCount = Math.max(1, count | 0);
+	return Math.max(1, sequenceSlots * repeatCount);
+}
+
+function isNearTilesetTransition(trackLength, tilesetRecords, distance, guardDistance = SAFE_SIGN_TILESET_GUARD_DISTANCE) {
 	if (!Array.isArray(tilesetRecords) || tilesetRecords.length === 0) return false;
-	return tilesetRecords.some(record => Math.abs(record.distance - distance) < guardDistance);
+	return tilesetRecords.some(record => cyclicTrackDistance(record.distance, distance, trackLength) < guardDistance);
 }
 
 function getWrapTilesetGap(trackLength, records) {
@@ -831,14 +823,20 @@ function enforceWrapSafeTilesetRecords(trackLength, records) {
 		.filter(record => record && Number.isInteger(record.distance) && Number.isInteger(record.tileset_offset))
 		.sort((a, b) => a.distance - b.distance)
 		.map(record => ({ ...record }));
+	const openingRecord = working[0] && working[0].distance === 0 ? { ...working[0] } : null;
 	while (working.length > 1 && getWrapTilesetGap(trackLength, working) < SIGN_TILESET_MIN_SPACING) {
 		if (working.length <= 2) {
-			working[0].tileset_offset = working[working.length - 1].tileset_offset;
+			if (openingRecord) working[0].tileset_offset = openingRecord.tileset_offset;
+			else working[0].tileset_offset = working[working.length - 1].tileset_offset;
 			working.splice(1);
 			break;
 		}
-		if (working[working.length - 1].distance >= (trackLength >> 1)) working.pop();
+		if (openingRecord && working[0].distance === 0) working.pop();
+		else if (working[working.length - 1].distance >= (trackLength >> 1)) working.pop();
 		else working.shift();
+	}
+	if (openingRecord && (working.length === 0 || working[0].distance !== 0)) {
+		working.unshift(openingRecord);
 	}
 	return working;
 }
@@ -850,13 +848,17 @@ function applySpecialRoadSignRecords(records, features) {
 		if (feature.type !== 'tunnel') continue;
 		if (!feature._applied) continue;
 		const transitionDistances = [feature.tilesetDistance, feature.restoreDistance];
-		working = working.filter(record => transitionDistances.every(distance => Math.abs(record.distance - distance) >= SAFE_SIGN_TILESET_GUARD_DISTANCE));
+		working = working.filter(record => transitionDistances.every(distance => {
+			const trackLength = feature.trackLength || 0;
+			return cyclicTrackDistance(record.distance, distance, trackLength) >= SAFE_SIGN_TILESET_GUARD_DISTANCE;
+		}));
 		for (const record of [
 			{ distance: feature.entrySignDistance, count: 1, sign_id: TUNNEL_ENTRY_SIGN_ID },
 			{ distance: feature.interiorDistance, count: 4, sign_id: TUNNEL_INTERIOR_SIGN_ID },
 			{ distance: feature.exitSignDistance, count: 1, sign_id: TUNNEL_EXIT_SIGN_ID },
 		]) {
-			if (transitionDistances.some(distance => Math.abs(distance - record.distance) < SAFE_SIGN_TILESET_GUARD_DISTANCE)) continue;
+			const trackLength = feature.trackLength || 0;
+			if (transitionDistances.some(distance => cyclicTrackDistance(distance, record.distance, trackLength) < SAFE_SIGN_TILESET_GUARD_DISTANCE)) continue;
 			working.push(record);
 		}
 	}
@@ -1263,6 +1265,11 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 	const allowedOffsets = arguments.length > 3 && Array.isArray(arguments[3]) && arguments[3].length > 0
 		? arguments[3].slice()
 		: STANDARD_SIGN_TILESET_OFFSETS;
+	const track = arguments.length > 4 ? arguments[4] : null;
+	const stockOpeningOffset = Number.isInteger(track?.sign_tileset?.[0]?.tileset_offset)
+		&& allowedOffsets.includes(track.sign_tileset[0].tileset_offset)
+		? track.sign_tileset[0].tileset_offset
+		: null;
 
 	function pickOffset(direction) {
 		let choices = allowedOffsets.filter(offset => offset !== lastOffset);
@@ -1279,10 +1286,12 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 	}
 
 	const openingDirection = strongWindows[0] ? strongWindows[0].direction : (windows[0] ? windows[0].direction : 0);
-	records.push({ distance: 0, tileset_offset: pickOffset(openingDirection) });
+	records.push({ distance: 0, tileset_offset: stockOpeningOffset !== null ? stockOpeningOffset : pickOffset(openingDirection) });
+	if (stockOpeningOffset !== null) lastOffset = stockOpeningOffset;
 	lastDistance = 0;
 
 	for (const window of strongWindows) {
+		if (records.length >= 2) break;
 		const desiredDistance = clamp(
 			window.startDistance - window.leadDistance - rng.randInt(32, 96),
 			0,
@@ -1294,6 +1303,7 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 	}
 
 	for (let i = 0; i + 1 < strongWindows.length; i++) {
+		if (records.length >= 2) break;
 		const gap = strongWindows[i + 1].startDistance - strongWindows[i].endDistance;
 		if (gap < 1800) continue;
 		const midpoint = clamp(
@@ -1306,7 +1316,7 @@ function buildCurveAwareTilesetPlan(rng, trackLength, curveSegments) {
 		lastDistance = midpoint;
 	}
 
-	if ((trackLength - lastDistance) > 1700) {
+	if (records.length < 2 && (trackLength - lastDistance) > 1700) {
 		const tailDistance = clamp(lastDistance + rng.randInt(900, 1300), 0, Math.max(0, trackLength - 1));
 		if ((tailDistance - lastDistance) >= SIGN_TILESET_MIN_SPACING && tailDistance < trackLength) {
 			const tailDirection = strongWindows.length > 0 ? strongWindows[strongWindows.length - 1].direction : 0;
@@ -1329,17 +1339,23 @@ function buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecord
 	const records = [];
 	const finishCutoff = trackLength - SIGN_FINISH_ZONE;
 	let lastDistance = -SAFE_SIGN_SPACING_MIN;
-	const transitionDistances = Array.isArray(tilesetRecords) ? tilesetRecords.slice(1).map(record => record.distance) : [];
+	const transitionDistances = Array.isArray(tilesetRecords) ? tilesetRecords.map(record => record.distance) : [];
 
 	function tryAddSign(distance, direction, sharpness, preferredCount) {
 		const clampedDistance = clamp(Math.round(distance), 0, finishCutoff - 1);
 		if (clampedDistance <= lastDistance) return;
 		if ((clampedDistance - lastDistance) < SAFE_SIGN_SPACING_MIN) return;
-		if (transitionDistances.some(transitionDistance => Math.abs(transitionDistance - clampedDistance) < SAFE_SIGN_TILESET_GUARD_DISTANCE)) return;
+		const count = clamp(preferredCount, 1, 4);
 		const activeTileset = getActiveTilesetRecord(tilesetRecords, clampedDistance);
 		const tilesetOffset = activeTileset ? activeTileset.tileset_offset : 8;
-		const count = clamp(preferredCount, 1, 4);
 		const signId = pickSignIdForTileset(rng, tilesetOffset, direction);
+		const runtimeSpanSlots = getSignRuntimeRowSpan(signId, count);
+		const rowEndDistance = Math.min(finishCutoff - 1, clampedDistance + ((runtimeSpanSlots - 1) * 0x10));
+		const transitionUnsafe = transitionDistances.some(transitionDistance => {
+			return cyclicTrackDistance(transitionDistance, clampedDistance, trackLength) < (SAFE_SIGN_TILESET_GUARD_DISTANCE * 2)
+				|| cyclicTrackDistance(transitionDistance, rowEndDistance, trackLength) < (SAFE_SIGN_TILESET_GUARD_DISTANCE * 2);
+		});
+		if (transitionUnsafe) return;
 		records.push({ distance: clampedDistance, count, sign_id: signId });
 		lastDistance = clampedDistance;
 	}
@@ -1647,15 +1663,7 @@ function decompressCurveSegments(segments) {
 // ---------------------------------------------------------------------------
 
 function generateSlopeRle(rng, trackLength, curveSegments) {
-  const targetSteps = Math.floor(trackLength / 4);
-  const initialBgDisp = 0;
-  const events = buildCurveDrivenSlopeEvents(rng, trackLength, curveSegments);
-	const normalized = ensureSlopeEvents(trackLength, initialBgDisp, events, rng);
-	if (!normalized) {
-		return buildFlatSlopeRle(trackLength);
-	}
-
-	return [initialBgDisp, normalized];
+	return buildFlatSlopeRle(trackLength);
 }
 
 function decodeVisualSlopeBgDisplacement(initialBgDisp, slopeSegments) {
@@ -1879,7 +1887,7 @@ function getAllowedSignTilesetOffsets(track) {
 }
 
 function generateSignTileset(rng, trackLength, curveSegments = [], track = null) {
-	return [buildCurveAwareTilesetPlan(rng, trackLength, curveSegments, getAllowedSignTilesetOffsets(track)), []];
+	return [buildCurveAwareTilesetPlan(rng, trackLength, curveSegments, getAllowedSignTilesetOffsets(track), track), []];
 }
 
 // ---------------------------------------------------------------------------
@@ -1899,6 +1907,33 @@ function generateMinimap(track) {
 		sample_count: pairs.length,
 	};
 	return [pairs, track.minimap_pos_trailing || []];
+}
+
+function evaluateGeneratedPreviewConstraints(track) {
+	const { buildGeneratedMinimapPreview } = require('../lib/minimap_render');
+	const preview = buildGeneratedMinimapPreview(track);
+	const startVerticality = preview.start_verticality || 0;
+	const tileCount = preview.tile_count || 0;
+	return {
+		preview,
+		selfIntersections: preview.self_intersections || 0,
+		startVerticality,
+		tileCount,
+		signMatchPercent: preview.curve_sign_match_percent || 0,
+		passes: (preview.self_intersections || 0) <= 1
+			&& startVerticality >= 0.68
+			&& tileCount <= 48
+			&& (preview.curve_sign_match_percent || 0) >= 60,
+	};
+}
+
+function compareGeneratedPreviewConstraints(a, b) {
+	if (a.passes !== b.passes) return a.passes ? -1 : 1;
+	if (a.selfIntersections !== b.selfIntersections) return a.selfIntersections - b.selfIntersections;
+	if (a.tileCount !== b.tileCount) return a.tileCount - b.tileCount;
+	if (a.signMatchPercent !== b.signMatchPercent) return b.signMatchPercent - a.signMatchPercent;
+	if (a.startVerticality !== b.startVerticality) return b.startVerticality - a.startVerticality;
+	return 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -2179,7 +2214,6 @@ function pickTrackLength(rng, isPrelim = false) {
 
 function randomizeOneTrack(track, masterSeed, verbose = false) {
 	const slug = track.slug || '?';
-	const isPrelim = slug.includes('prelim');
 	const originalLength = track.track_length;
 	track._preserve_original_sign_cadence = false;
 	track._runtime_safe_randomized = true;
@@ -2195,86 +2229,100 @@ function randomizeOneTrack(track, masterSeed, verbose = false) {
 	}
 	const perTrackSeed = ((masterSeed >>> 0) ^ ((trackIdx * 0x6B5B9C11) >>> 0)) >>> 0;
 
-  const rngCurves  = new XorShift32(deriveSubseed(perTrackSeed, MOD_TRACK_CURVES));
-  const rngSlopes  = new XorShift32(deriveSubseed(perTrackSeed, MOD_TRACK_SLOPES));
-  const rngSigns   = new XorShift32(deriveSubseed(perTrackSeed, MOD_TRACK_SIGNS));
-  const rngMinimap = new XorShift32(deriveSubseed(perTrackSeed, MOD_TRACK_MINIMAP));
+	const template = JSON.parse(JSON.stringify(track));
 
-  // Step 1: track length
-  const newLength = originalLength;
-  track.track_length = newLength;
-  if (verbose) process.stdout.write(`    track_length = ${newLength} (fixed original budget)\n`);
+	function buildAttempt(attemptIndex) {
+		const candidate = JSON.parse(JSON.stringify(template));
+		const attemptSeed = (perTrackSeed ^ (((attemptIndex + 1) * 0x45D9F3B) >>> 0)) >>> 0;
+		const rngCurves  = new XorShift32(deriveSubseed(attemptSeed, MOD_TRACK_CURVES));
+		const rngSlopes  = new XorShift32(deriveSubseed(attemptSeed, MOD_TRACK_SLOPES));
+		const rngSigns   = new XorShift32(deriveSubseed(attemptSeed, MOD_TRACK_SIGNS));
 
-	// Step 2: curves
-	const curveSegs = generateCurveRle(rngCurves, newLength, track);
-	const normalizedCurveSegs = normalizeCurveBgDisplacement(curveSegs, { protectStartupCurve: true, trackLength: newLength });
-	track.curve_rle_segments   = normalizedCurveSegs;
-	track.curve_decompressed   = decompressCurveSegments(normalizedCurveSegs);
-	if (verbose) {
-	  const nS = curveSegs.filter(s => s.type === 'straight').length;
-	  const nC = curveSegs.filter(s => s.type === 'curve').length;
-	  process.stdout.write(`    curve: ${nS} straight + ${nC} curve segments\n`);
+		const newLength = originalLength;
+		candidate.track_length = newLength;
+
+		const curveSegs = generateCurveRle(rngCurves, newLength, candidate);
+		const normalizedCurveSegs = normalizeCurveBgDisplacement(curveSegs, { protectStartupCurve: true, trackLength: newLength });
+		candidate.curve_rle_segments = normalizedCurveSegs;
+		candidate.curve_decompressed = decompressCurveSegments(normalizedCurveSegs);
+
+		const [initBgDisp, slopeSegs] = generateSlopeRle(rngSlopes, newLength, normalizedCurveSegs);
+		const physSegs = generatePhysSlopeRle(rngSlopes, newLength, slopeSegs);
+		candidate.slope_initial_bg_disp = initBgDisp;
+		candidate.slope_rle_segments = slopeSegs;
+		candidate.phys_slope_rle_segments = physSegs;
+
+		const slopeDecomp = [];
+		for (const seg of slopeSegs) {
+			if (seg.type === 'flat' || seg.type === 'slope') {
+				for (let i = 0; i < seg.length; i++) slopeDecomp.push(seg.slope_byte);
+			} else if (seg.type === 'terminator') {
+				slopeDecomp.push(0xFF);
+			}
+		}
+		candidate.slope_decompressed = slopeDecomp;
+
+		const physDecomp = [];
+		for (const seg of physSegs) {
+			if (seg.type === 'segment') {
+				for (let i = 0; i < seg.length; i++) physDecomp.push(seg.phys_byte);
+			}
+		}
+		candidate.phys_slope_decompressed = physDecomp;
+
+		const specialRoadFeatures = buildSpecialRoadFeatures(rngSigns, newLength, normalizedCurveSegs);
+		const [baseTilesetRecords, tilesetTrailing] = generateSignTileset(rngSigns, newLength, normalizedCurveSegs, candidate);
+		const tilesetRecords = enforceWrapSafeTilesetRecords(newLength, applySpecialRoadTilesetRecords(baseTilesetRecords, specialRoadFeatures));
+		const baseSignRecords = generateSignData(rngSigns, newLength, normalizedCurveSegs, tilesetRecords);
+		const signRecords = applySpecialRoadSignRecords(baseSignRecords, specialRoadFeatures);
+		candidate.sign_data = signRecords;
+		candidate.sign_tileset = tilesetRecords;
+		candidate.sign_tileset_trailing = tilesetTrailing;
+		candidate._generated_special_road_features = specialRoadFeatures;
+
+		const [minimapPairs, minimapTrailing] = generateMinimap(candidate);
+		candidate.minimap_pos = minimapPairs;
+		candidate.minimap_pos_trailing = minimapTrailing;
+
+		return {
+			candidate,
+			constraints: evaluateGeneratedPreviewConstraints(candidate),
+			curveCounts: {
+				straight: curveSegs.filter(s => s.type === 'straight').length,
+				curve: curveSegs.filter(s => s.type === 'curve').length,
+				slopeFlat: slopeSegs.filter(s => s.type === 'flat').length,
+				slope: slopeSegs.filter(s => s.type === 'slope').length,
+				signs: signRecords.length,
+				tilesets: tilesetRecords.length,
+			},
+		};
 	}
 
-	// Step 3: slopes
-	const [initBgDisp, slopeSegs] = generateSlopeRle(rngSlopes, newLength, normalizedCurveSegs);
-	const physSegs = generatePhysSlopeRle(rngSlopes, newLength, slopeSegs);
-
-	track.curve_rle_segments      = normalizedCurveSegs;
-	track.curve_decompressed      = decompressCurveSegments(normalizedCurveSegs);
-	track.slope_initial_bg_disp   = initBgDisp;
-	track.slope_rle_segments      = slopeSegs;
-	track.phys_slope_rle_segments = physSegs;
-
-	const slopeDecomp = [];
-	for (const seg of slopeSegs) {
-    if (seg.type === 'flat' || seg.type === 'slope') {
-      for (let i = 0; i < seg.length; i++) slopeDecomp.push(seg.slope_byte);
-    } else if (seg.type === 'terminator') {
-      slopeDecomp.push(0xFF);
-    }
-  }
-  track.slope_decompressed = slopeDecomp;
-
-  const physDecomp = [];
-  for (const seg of physSegs) {
-    if (seg.type === 'segment') {
-      for (let i = 0; i < seg.length; i++) physDecomp.push(seg.phys_byte);
-    }
-  }
-	track.phys_slope_decompressed = physDecomp;
-
-	if (verbose) {
-		const nF  = slopeSegs.filter(s => s.type === 'flat').length;
-		const nSl = slopeSegs.filter(s => s.type === 'slope').length;
-		process.stdout.write(`    slope: ${nF} flat + ${nSl} slope segments\n`);
+	let bestAttempt = null;
+	for (let attemptIndex = 0; attemptIndex < 2; attemptIndex++) {
+		const attempt = buildAttempt(attemptIndex);
+		if (!bestAttempt || compareGeneratedPreviewConstraints(attempt.constraints, bestAttempt.constraints) < 0) {
+			bestAttempt = attempt;
+		}
+		if (attempt.constraints.passes) break;
 	}
 
-  // Step 4: signs
-	const specialRoadFeatures = buildSpecialRoadFeatures(rngSigns, newLength, normalizedCurveSegs);
-	const [baseTilesetRecords, tilesetTrailing] = generateSignTileset(rngSigns, newLength, normalizedCurveSegs, track);
-	const tilesetRecords = enforceWrapSafeTilesetRecords(newLength, applySpecialRoadTilesetRecords(baseTilesetRecords, specialRoadFeatures));
-	const baseSignRecords = generateSignData(rngSigns, newLength, normalizedCurveSegs, tilesetRecords);
-	const signRecords = applySpecialRoadSignRecords(baseSignRecords, specialRoadFeatures);
-	track.sign_data             = signRecords;
-	track.sign_tileset          = tilesetRecords;
-	track.sign_tileset_trailing = tilesetTrailing;
-	track._generated_special_road_features = specialRoadFeatures;
-	if (verbose) process.stdout.write(`    signs: ${signRecords.length} records, ${tilesetRecords.length} tileset entries\n`);
+	for (const key of Object.keys(track)) delete track[key];
+	Object.assign(track, bestAttempt.candidate);
 
-	// Step 5: minimap
-	const [minimapPairs, minimapTrailing] = generateMinimap(track);
-	track.minimap_pos          = minimapPairs;
-	track.minimap_pos_trailing = minimapTrailing;
 	if (verbose) {
+		process.stdout.write(`    track_length = ${track.track_length} (fixed original budget)\n`);
+		process.stdout.write(`    curve: ${bestAttempt.curveCounts.straight} straight + ${bestAttempt.curveCounts.curve} curve segments\n`);
+		process.stdout.write(`    slope: ${bestAttempt.curveCounts.slopeFlat} flat + ${bestAttempt.curveCounts.slope} slope segments\n`);
+		process.stdout.write(`    signs: ${bestAttempt.curveCounts.signs} records, ${bestAttempt.curveCounts.tilesets} tileset entries\n`);
 		const previewInfo = track._generated_minimap_preview || {};
 		process.stdout.write(
-			`    minimap: ${minimapPairs.length} pairs (need ${newLength >> 6}), ` +
+			`    minimap: ${track.minimap_pos.length} pairs (need ${track.track_length >> 6}), ` +
 			`canon ${previewInfo.match_percent || 0}% / preview ${previewInfo.preview_match_percent || 0}% / thick ${previewInfo.thickness_aware_match_percent || 0}%\n`
 		);
 	}
 
-  return track;
+	return track;
 }
 
 // ---------------------------------------------------------------------------

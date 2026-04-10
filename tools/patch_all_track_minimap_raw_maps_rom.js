@@ -18,12 +18,12 @@ const {
 
 const PREVIEW_MAP_JSR_ADDR = 0x000058FA;
 const HUD_MAP_JSR_ADDR = 0x000011EC;
-const FINISH_MAP_JSR_ADDR = 0x0000BD08;
 const WRITE_TILEMAP_ROWS_TO_VDP_ADDR = 0x000007DC;
 const DECOMPRESS_PREVIEW_MAP_ADDR = 0x000007BE;
 const DECOMPRESS_HUD_MAP_ADDR = 0x000007CE;
 const DECOMPRESS_TILEMAP_TO_BUFFER_ADDR = 0x00000AB0;
 const TILEMAP_WORK_BUF_ADDR = 0x00FFEA00;
+const TRACK_PREVIEW_INDEX_ADDR = 0xFFFFFF28;
 
 const MAP_WIDTH = 7;
 const MAP_HEIGHT = 11;
@@ -109,19 +109,14 @@ function buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs) {
 		`Decompress_hud_map = ${formatHexLong(DECOMPRESS_HUD_MAP_ADDR)}`,
 		`Decompress_tilemap_to_buffer = ${formatHexLong(DECOMPRESS_TILEMAP_TO_BUFFER_ADDR)}`,
 		`Tilemap_work_buf = ${formatHexLong(TILEMAP_WORK_BUF_ADDR)}`,
+		`Track_preview_index = ${formatHexLong(TRACK_PREVIEW_INDEX_ADDR)}`,
 		'',
 		'Preview_map_helper:',
-		'\tLEA\tCompressed_map_ptr_table(PC), A2',
+		'\tMOVE.w\tTrack_preview_index, D0',
+		'\tADD.w\tD0, D0',
+		'\tADD.w\tD0, D0',
 		'\tLEA\tPreview_raw_map_ptr_table(PC), A3',
-		`\tMOVEQ\t#${trackCountMinusOne}, D0`,
-		'Preview_map_find:',
-		'\tCMPA.l\t(A2)+, A0',
-		'\tBEQ.b\tPreview_map_found',
-		'\tADDQ.w\t#4, A3',
-		'\tDBF\tD0, Preview_map_find',
-		'\tJMP\tDecompress_preview_map',
-		'Preview_map_found:',
-		'\tMOVEA.l\t(A3), A6',
+		'\tMOVEA.l\t0(A3,D0.w), A6',
 		'\tMOVE.l\t#$01000000, D3',
 		'\tJSR\tWrite_tilemap_rows_to_vdp',
 		'\tRTS',
@@ -140,25 +135,6 @@ function buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs) {
 		'\tMOVEA.l\t(A3), A6',
 		'\tMOVE.l\t#$00400000, D3',
 		'\tJSR\tWrite_tilemap_rows_to_vdp',
-		'\tRTS',
-		'',
-		'Finish_map_helper:',
-		'\tLEA\tCompressed_map_ptr_table(PC), A2',
-		'\tLEA\tHud_raw_map_ptr_table(PC), A3',
-		`\tMOVEQ\t#${trackCountMinusOne}, D0`,
-		'Finish_map_find:',
-		'\tCMPA.l\t(A2)+, A0',
-		'\tBEQ.b\tFinish_map_found',
-		'\tADDQ.w\t#4, A3',
-		'\tDBF\tD0, Finish_map_find',
-		'\tJMP\tDecompress_tilemap_to_buffer',
-		'Finish_map_found:',
-		'\tMOVEA.l\t(A3), A0',
-		'\tMOVEA.l\t#Tilemap_work_buf, A1',
-		`\tMOVEQ\t#${MAP_WORD_COUNT - 1}, D0`,
-		'Finish_map_copy:',
-		'\tMOVE.w\t(A0)+, (A1)+',
-		'\tDBF\tD0, Finish_map_copy',
 		'\tRTS',
 		'',
 		'\tEVEN',
@@ -204,7 +180,6 @@ function assembleHelperBlock(asmText, asm68kPath) {
 		helperOffsets: {
 			preview: symbolMap.get('Preview_map_helper'),
 			hud: symbolMap.get('Hud_map_helper'),
-			finish: symbolMap.get('Finish_map_helper'),
 		},
 	};
 }
@@ -272,33 +247,31 @@ function main() {
 	for (const track of tracks) {
 		const block = appendBlock(chunks, cursor, buildPreviewRawMap(track));
 		cursor = block.end;
-		previewRawMapPtrs[track.index] = block.start;
+		previewRawMapPtrs.push(block.start);
 	}
 
 	for (const track of tracks) {
 		const block = appendBlock(chunks, cursor, buildHudRawMap(track));
 		cursor = block.end;
-		hudRawMapPtrs[track.index] = block.start;
+		hudRawMapPtrs.push(block.start);
 	}
 
 	const helperAsm = buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs);
 	const assembled = assembleHelperBlock(helperAsm, asm68kPath);
 	const { helperOffsets } = assembled;
 	const helperCodeBytes = assembled.codeBytes;
-	if (helperOffsets.preview === undefined || helperOffsets.hud === undefined || helperOffsets.finish === undefined) {
+	if (helperOffsets.preview === undefined || helperOffsets.hud === undefined) {
 		throw new Error('failed to resolve helper labels from assembled minimap raw-map block');
 	}
 
 	const codeBlock = appendBlock(chunks, cursor, helperCodeBytes);
 	const previewHelperAddr = codeBlock.start + helperOffsets.preview;
 	const hudHelperAddr = codeBlock.start + helperOffsets.hud;
-	const finishHelperAddr = codeBlock.start + helperOffsets.finish;
 	cursor = codeBlock.end;
 
 	const rom = reuseFreeSpace ? chunks[0] : Buffer.concat(chunks, cursor);
 	encodeJsrAbsoluteLong(previewHelperAddr).copy(rom, PREVIEW_MAP_JSR_ADDR);
 	encodeJsrAbsoluteLong(hudHelperAddr).copy(rom, HUD_MAP_JSR_ADDR);
-	encodeJsrAbsoluteLong(finishHelperAddr).copy(rom, FINISH_MAP_JSR_ADDR);
 	if (!reuseFreeSpace) patchRomEnd(rom);
 
 	fs.writeFileSync(romPath, rom);
@@ -307,7 +280,6 @@ function main() {
 	info(`Patched raw minimap map helpers into ${path.relative(process.cwd(), romPath)}`);
 	info(`Preview helper: $${previewHelperAddr.toString(16).toUpperCase()}`);
 	info(`HUD helper: $${hudHelperAddr.toString(16).toUpperCase()}`);
-	info(`Finish helper: $${finishHelperAddr.toString(16).toUpperCase()}`);
 	info(`Raw preview map range: $${previewRawMapPtrs[0].toString(16).toUpperCase()}-$${(hudRawMapPtrs[0] - 1).toString(16).toUpperCase()}`);
 	info(`Raw HUD map range: $${hudRawMapPtrs[0].toString(16).toUpperCase()}-$${(codeBlock.start - 1).toString(16).toUpperCase()}`);
 	info(`ROM checksum ${checksum.changed ? 'updated' : 'verified'}: $${checksum.oldChecksum.toString(16).toUpperCase().padStart(4, '0')} -> $${checksum.newChecksum.toString(16).toUpperCase().padStart(4, '0')}`);

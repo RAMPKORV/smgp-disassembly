@@ -1,8 +1,19 @@
 'use strict';
 
 const { buildGeneratedMinimapPreview } = require('./minimap_render');
+const { resolvePreviewSlug } = require('./minimap_analysis');
+const { getMinimapPreview } = require('./minimap_preview');
 const { encodeTinyGraphics } = require('../minimap_graphics_codec');
 const { encodeLiteralTilemap } = require('../minimap_map_codec');
+
+const generatedAssetsCache = new WeakMap();
+
+function buildAssetsCacheKey(track) {
+	return JSON.stringify([
+		track?.track_length || 0,
+		track?.curve_rle_segments || [],
+	]);
+}
 
 function sanitizeLabelFragment(value) {
 	return String(value || '')
@@ -24,12 +35,28 @@ function formatDcB(bytes) {
 	return lines;
 }
 
-function buildTilesAndWordsFromPreview(preview) {
+function buildPreservedExternalCellIndexSet(previewSlug, stockWords, stockLocalTileCount) {
+	return new Set();
+}
+
+function isBlankTileRows(rows) {
+	return rows.every(row => row.every(value => value === 0));
+}
+
+function buildTilesAndWordsFromPreview(preview, stockPreview = null, previewSlug = '') {
 	const tiles = [];
 	const words = [];
+	const tileIndexBySignature = new Map();
+	const stockWords = Array.isArray(stockPreview?.words) ? stockPreview.words : null;
+	const stockTiles = Array.isArray(stockPreview?.tiles) ? stockPreview.tiles : null;
+	const stockLocalTileCount = Array.isArray(stockTiles) ? stockTiles.length : 0;
+	const preservedExternalCellIndices = buildPreservedExternalCellIndexSet(previewSlug, stockWords, stockLocalTileCount);
 
 	for (let tileY = 0; tileY < 11; tileY++) {
 		for (let tileX = 0; tileX < 7; tileX++) {
+			const cellIndex = (tileY * 7) + tileX;
+			const stockWord = stockWords && cellIndex < stockWords.length ? (stockWords[cellIndex] & 0xFFFF) : null;
+
 			const rows = [];
 			for (let y = 0; y < 8; y++) {
 				const row = [];
@@ -41,14 +68,30 @@ function buildTilesAndWordsFromPreview(preview) {
 				rows.push(row);
 			}
 
+			const preserveExternalStockCell = stockWord !== null
+				&& preservedExternalCellIndices.has(cellIndex)
+				&& isBlankTileRows(rows);
+			if (preserveExternalStockCell) {
+				words.push(stockWord);
+				continue;
+			}
+
 			const signature = rows.map(row => row.join(',')).join('/');
-			if (/^0(?:,0){7}(?:\/0(?:,0){7}){7}$/.test(signature)) {
+			const isBlankTile = isBlankTileRows(rows);
+
+			if (isBlankTile) {
 				words.push(0);
+				continue;
+			}
+			if (tileIndexBySignature.has(signature)) {
+				words.push(tileIndexBySignature.get(signature));
 				continue;
 			}
 
 			tiles.push(rows);
-			words.push(tiles.length);
+			const generatedWord = tiles.length & 0x07FF;
+			words.push(generatedWord);
+			tileIndexBySignature.set(signature, generatedWord);
 		}
 	}
 
@@ -56,17 +99,38 @@ function buildTilesAndWordsFromPreview(preview) {
 }
 
 function buildGeneratedMinimapAssets(track) {
+	const cacheKey = buildAssetsCacheKey(track);
+	const cached = generatedAssetsCache.get(track);
+	if (cached && cached.key === cacheKey) return cached.value;
 	const preview = buildGeneratedMinimapPreview(track);
-	const { tiles, words } = buildTilesAndWordsFromPreview(preview);
+	const previewSlug = resolvePreviewSlug(track);
+	const stockPreview = getMinimapPreview(previewSlug);
+	const generated = buildTilesAndWordsFromPreview(preview, stockPreview, previewSlug);
+	let tiles = generated.tiles.slice();
+	const words = generated.words.slice();
+	if (tiles.length > stockPreview.tiles.length) {
+		const trimmedWords = words.map(word => {
+			const rawTileIndex = word & 0x07FF;
+			if (rawTileIndex > stockPreview.tiles.length) return 0;
+			return word;
+		});
+		while (tiles.length > stockPreview.tiles.length) tiles.pop();
+		for (let i = 0; i < words.length; i++) words[i] = trimmedWords[i];
+	}
+	while (tiles.length < stockPreview.tiles.length) {
+		tiles.push(stockPreview.tiles[tiles.length]);
+	}
 	const maxWord = words.reduce((max, word) => Math.max(max, word & 0xFFFF), 0);
 	const bitWidth = Math.max(1, Math.ceil(Math.log2(Math.max(2, maxWord + 1))));
-	return {
+	const result = {
 		preview,
 		tiles,
 		words,
 		tile_bytes: Buffer.from(encodeTinyGraphics(tiles)),
 		map_bytes: Buffer.from(encodeLiteralTilemap(words, bitWidth)),
 	};
+	generatedAssetsCache.set(track, { key: cacheKey, value: result });
+	return result;
 }
 
 function buildGeneratedMinimapLabelStem(track) {

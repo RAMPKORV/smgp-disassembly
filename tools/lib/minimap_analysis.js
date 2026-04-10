@@ -5,9 +5,8 @@ const path = require('path');
 
 const { REPO_ROOT } = require('./rom');
 const { getMinimapPreview } = require('./minimap_preview');
-const { decompressCurveSegments } = require('../randomizer/track_randomizer');
-
 const TRACKS_JSON = path.join(REPO_ROOT, 'tools', 'data', 'tracks.json');
+const previewPointsCache = new Map();
 
 const PREVIEW_SLUG_BY_TRACK_INDEX = {
   16: 'monaco_prelim',
@@ -331,6 +330,8 @@ function densifyPolyline(points) {
 }
 
 function getPreviewOccupiedPoints(preview) {
+	const cacheKey = preview ? `${preview.width}x${preview.height}:${preview.slug || 'preview'}` : 'none';
+	if (previewPointsCache.has(cacheKey)) return previewPointsCache.get(cacheKey);
   const points = [];
   if (!preview || !Array.isArray(preview.pixels)) return points;
 
@@ -340,8 +341,9 @@ function getPreviewOccupiedPoints(preview) {
         points.push([x, y]);
       }
     }
-  }
+	}
 
+	previewPointsCache.set(cacheKey, points);
   return points;
 }
 
@@ -741,11 +743,11 @@ function gentlyClosePath(points) {
   const dy = last[1] - first[1];
 
   return points.map((point, index) => {
-    const t = index / (points.length - 1);
-    return [
-      point[0] - (dx * t),
-      point[1] - (dy * t),
-    ];
+	const t = index / (points.length - 1);
+	return [
+	  point[0] - (dx * t),
+	  point[1] - (dy * t),
+	];
   });
 }
 
@@ -765,50 +767,67 @@ function smoothPath(points, passes = 1) {
   return current;
 }
 
-function buildDerivedPath(track) {
-  const segments = Array.isArray(track.curve_rle_segments) ? track.curve_rle_segments : [];
-  const flat = [];
-  for (const value of decompressCurveSegments(segments)) {
-    if (value >= 0x80) break;
-    flat.push(value);
-  }
+function buildDerivedPath(track, options = {}) {
+	const segments = Array.isArray(track.curve_rle_segments) ? track.curve_rle_segments : [];
+	const points = [];
+	let angle = Math.PI / 2;
+	let x = 0;
+	let y = 0;
+	const sampleEvery = Math.max(1, Number.isInteger(options.sampleEvery) ? options.sampleEvery : 4);
+	let totalTurnWeight = 0;
+	let totalAbsTurnWeight = 0;
+	for (const seg of segments) {
+		if (!seg || seg.type === 'terminator') break;
+		if (seg.type !== 'curve') continue;
+		const sharpness = Math.max(seg.curve_byte & 0x3F, 1);
+		const direction = seg.curve_byte >= 0x41 && seg.curve_byte <= 0x6F ? 1 : -1;
+		const bgRate = (seg.bg_disp || 0) / Math.max(seg.length || 1, 1);
+		const turnWeight = (1 / (sharpness ** 1.4)) + (4 * (bgRate / 300));
+		totalTurnWeight += direction * turnWeight * seg.length;
+		totalAbsTurnWeight += turnWeight * seg.length;
+	}
+	const effectiveTurnWeight = Math.max(Math.abs(totalTurnWeight), totalAbsTurnWeight * 0.2);
+	const angleScale = typeof options.angleScale === 'number'
+		? options.angleScale
+		: (effectiveTurnWeight > 0.000001 ? (Math.PI * 2) / effectiveTurnWeight : 0.06);
+	const smoothingPasses = Number.isInteger(options.smoothingPasses) ? options.smoothingPasses : 0;
+	const closePath = options.closePath !== false;
 
-  const points = [];
-  let angle = Math.PI / 2;
-  let x = 0;
-  let y = 0;
-  const sampleEvery = 16;
+	points.push([x, y]);
+	let stepIndex = 0;
+	for (const seg of segments) {
+		if (!seg || seg.type === 'terminator') break;
+		let angleDelta = 0;
+		if (seg.type === 'curve') {
+			const sharpness = Math.max(seg.curve_byte & 0x3F, 1);
+			const direction = seg.curve_byte >= 0x41 && seg.curve_byte <= 0x6F ? 1 : -1;
+			const bgRate = (seg.bg_disp || 0) / Math.max(seg.length || 1, 1);
+			const turnWeight = (1 / (sharpness ** 1.4)) + (4 * (bgRate / 300));
+			angleDelta = direction * turnWeight * angleScale;
+		}
+		for (let i = 0; i < seg.length; i++) {
+			angle += angleDelta;
+			x += Math.cos(angle);
+			y += Math.sin(angle);
+			stepIndex += 1;
+			if ((stepIndex % sampleEvery) === 0) {
+				points.push([x, y]);
+			}
+		}
+	}
 
-  points.push([x, y]);
-  for (let i = 0; i < flat.length; i++) {
-    const value = flat[i];
-    let angleDelta = 0;
-    if (value >= 0x01 && value <= 0x2F) {
-      angleDelta = -0.06 / Math.max(value & 0x3F, 1);
-    } else if (value >= 0x41 && value <= 0x6F) {
-      angleDelta = 0.06 / Math.max(value & 0x3F, 1);
-    }
+	if (points.length < 2) {
+		points.push([x, y]);
+	}
 
-    angle += angleDelta;
-    x += Math.cos(angle);
-    y += Math.sin(angle);
-
-    if (((i + 1) % sampleEvery) === 0) {
-      points.push([x, y]);
-    }
-  }
-
-  if (points.length < 2) {
-    points.push([x, y]);
-  }
-
-  const closed = gentlyClosePath(points);
-  const smoothed = smoothPath(closed, 2);
-  return {
-    sampleEvery,
-    points: smoothed.map(point => [roundTo(point[0]), roundTo(point[1])]),
-    bounds: getBounds(smoothed),
-  };
+	const closed = closePath ? gentlyClosePath(points) : points;
+	const smoothed = smoothingPasses > 0 ? smoothPath(closed, smoothingPasses) : closed;
+	return {
+		sampleEvery,
+		angleScale,
+		points: smoothed.map(point => [roundTo(point[0]), roundTo(point[1])]),
+		bounds: getBounds(smoothed),
+	};
 }
 
 function analyzeTrackMinimap(track) {

@@ -68,7 +68,7 @@ function makeValidTrack(trackLength = 4096) {
       { type: 'terminator', length: 0, phys_byte: 0, _raw: [0x80, 0x00, 0x00] },
     ],
     sign_data: [
-      { distance: 500, count: 3, sign_id: 10 },
+	  { distance: 500, count: 3, sign_id: 28 },
     ],
     sign_tileset: [
       { distance: 0, tileset_offset: 8 },
@@ -374,7 +374,7 @@ function sectionB() {
   // B-15: sign_data distance out of bounds
   test('B-15 sign distance >= track_length', () => {
     const t = makeValidTrack(4096);
-    t.sign_data = [{ distance: 10000, count: 1, sign_id: 5 }];
+	  t.sign_data = [{ distance: 10000, count: 1, sign_id: 28 }];
     const errs = validateTrack(t);
     assert.ok(hasError(errs, 'sign_data'),
       `expected error on sign_data, got: ${JSON.stringify(errs)}`);
@@ -384,8 +384,8 @@ function sectionB() {
   test('B-16 sign distances not ascending', () => {
     const t = makeValidTrack(4096);
     t.sign_data = [
-      { distance: 500, count: 1, sign_id: 5 },
-      { distance: 300, count: 1, sign_id: 6 },
+	  { distance: 500, count: 1, sign_id: 28 },
+	  { distance: 300, count: 1, sign_id: 29 },
     ];
     const errs = validateTrack(t);
     assert.ok(hasError(errs, 'sign_data'),
@@ -395,7 +395,7 @@ function sectionB() {
   // B-17: sign_data count zero
   test('B-17 sign count=0', () => {
     const t = makeValidTrack(4096);
-    t.sign_data = [{ distance: 500, count: 0, sign_id: 5 }];
+	  t.sign_data = [{ distance: 500, count: 0, sign_id: 28 }];
     const errs = validateTrack(t);
     assert.ok(hasError(errs, 'sign_data'),
       `expected error on sign_data, got: ${JSON.stringify(errs)}`);

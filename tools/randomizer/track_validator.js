@@ -66,20 +66,42 @@ function _signedByteOk(v) {
   return Number.isInteger(v) && v >= -128 && v <= 127;
 }
 
+function cyclicTrackDistance(a, b, trackLength) {
+	const diff = Math.abs(a - b);
+	if (!Number.isInteger(trackLength) || trackLength <= 0) return diff;
+	return Math.min(diff, trackLength - diff);
+}
+
 const TILESET_SIGN_ID_MAP = new Map([
-	[0,  new Set([0, 1, 8, 10, 11, 28, 29, 30, 31])],
-	[8,  new Set([0, 1, 8, 9, 10, 11, 28, 29, 30, 31])],
-	[16, new Set([0, 1, 4, 5, 8, 9, 31, 48, 49])],
-	[24, new Set([0, 1, 8, 9, 16, 17, 30])],
-	[32, new Set([0, 1, 8, 9, 10, 11, 20, 21, 22, 30, 31])],
-	[40, new Set([0, 1, 8, 9, 10, 24, 25, 26, 27, 30, 31])],
-	[48, new Set([0, 1, 8, 11, 31, 32, 33])],
-	[56, new Set([0, 1, 8, 9, 10, 11, 30, 31, 36, 37, 39, 49])],
-	[64, new Set([0, 1, 8, 9, 31, 40, 41])],
-	[72, new Set([0, 1, 8, 9, 10, 44, 45, 46])],
-	[80, new Set([0, 1, 12, 13, 14, 15])],
+	[0,  new Set([28, 29])],
+	[8,  new Set([28, 29])],
+	[16, new Set([4, 5])],
+	[24, new Set([16, 17])],
+	[32, new Set([20, 21])],
+	[40, new Set([24, 25])],
+	[48, new Set([32, 33])],
+	[56, new Set([36, 37])],
+	[64, new Set([40, 41])],
+	[72, new Set([44, 45])],
+	[80, new Set([12, 13])],
 	[88, new Set([2, 50])],
 ]);
+
+const SIGN_SEQUENCE_SLOT_COUNT = new Map([
+	[0, 1], [1, 1], [2, 2], [4, 2], [5, 2], [6, 4], [7, 4],
+	[8, 2], [9, 2], [10, 4], [11, 4], [12, 2], [13, 2], [14, 4], [15, 4],
+	[16, 2], [17, 2], [18, 4], [19, 4], [20, 2], [21, 2], [22, 4], [23, 4],
+	[24, 2], [25, 2], [26, 4], [27, 4], [28, 1], [29, 1], [30, 1], [31, 1],
+	[32, 2], [33, 2], [34, 4], [35, 4], [36, 2], [37, 2], [38, 4], [39, 4],
+	[40, 2], [41, 2], [42, 4], [43, 4], [44, 2], [45, 2], [46, 4], [47, 4],
+	[48, 1], [49, 1], [50, 1],
+]);
+
+function getSignRuntimeRowSpan(signId, count) {
+	const sequenceSlots = SIGN_SEQUENCE_SLOT_COUNT.get(signId) || 1;
+	const repeatCount = Math.max(1, count | 0);
+	return Math.max(1, sequenceSlots * repeatCount);
+}
 
 // ---------------------------------------------------------------------------
 // Per-field validators
@@ -532,11 +554,15 @@ function _validateSignCompatibility(track, errors) {
 	if (track._runtime_safe_randomized === true) {
 		for (let i = 0; i < signData.length; i++) {
 			const rec = signData[i];
-			for (let j = 1; j < signTileset.length; j++) {
+			const count = Number.isInteger(rec.count) ? rec.count : 1;
+			const runtimeSpanSlots = getSignRuntimeRowSpan(rec.sign_id, count);
+			const rowEndDistance = rec.distance + ((runtimeSpanSlots - 1) * 0x10);
+			for (let j = 0; j < signTileset.length; j++) {
 				const tilesetRec = signTileset[j];
-				if (Math.abs(tilesetRec.distance - rec.distance) < 256) {
+				if (cyclicTrackDistance(tilesetRec.distance, rec.distance, track.track_length || 0) < 512
+					|| cyclicTrackDistance(tilesetRec.distance, rowEndDistance, track.track_length || 0) < 512) {
 					_err(errors, name, 'sign_data',
-						`record ${i}: distance=${rec.distance} is too close to tileset transition at ${tilesetRec.distance} (< 256)`);
+						`record ${i}: sign row ${rec.distance}-${rowEndDistance} is too close to tileset transition at ${tilesetRec.distance} (< 512)`);
 					break;
 				}
 			}
