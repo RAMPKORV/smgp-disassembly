@@ -13,6 +13,10 @@
       "tools/randomizer/track_validator.js",
       "tools/randomizer/track_model.js",
       "tools/randomizer/track_metadata.js",
+      "tools/restore_tracks.js",
+      "tools/tests/test_roundtrip.js",
+      "tools/lib/generated_minimap_assets.js",
+      "tools/lib/generated_minimap_pos.js",
       "docs/randomizer_architecture.md",
       "docs/randomizer_refactor_workflow.md",
       "docs/data_formats.md",
@@ -24,13 +28,16 @@
       "The current track flow is curve-first: generate curve RLE, derive slopes, place signs/features from curve windows, generate minimap last, then score preview constraints.",
       "Current orchestration in tools/randomizer/track_pipeline.js keeps each track on its original track_length budget even though older docs still describe variable length generation.",
       "Current minimap and preview tooling assume curve data is the geometry source of truth and evaluate curve-vs-minimap agreement as a quality signal.",
-      "Current validators are strong on structural/runtime safety, but topology is mostly reported as preview metrics rather than enforced as hard pass/fail rules."
+      "Current validators are strong on structural/runtime safety, but topology is mostly reported as preview metrics rather than enforced as hard pass/fail rules.",
+      "Recent minimap work showed that course-select preview packing, generated minimap assets, and runtime minimap_pos generation are tightly coupled enough that changing one can regress course-select tiles, runtime marker sync, or race-scene visuals."
     ],
     "known_conflicts_with_map_first": [
       "docs/randomizer_architecture.md and existing tests explicitly describe minimap generation as derived from curve data; that assumption must be retired.",
       "Sign planning and preview scoring are curve-window driven today; both need geometry-derived feature anchors instead.",
       "Several baselines and snapshots encode current curve-first preview behavior and will drift intentionally during the revamp.",
-      "track_validator.js has no hard geometry-topology gate for zero crossings vs one grade-separated crossing."
+      "track_validator.js has no hard geometry-topology gate for zero crossings vs one grade-separated crossing.",
+      "The current generated minimap stack does not have a clean internal seam between runtime marker-path output and course-select preview asset output, so the revamp must add one instead of assuming geometry-first changes are automatically local.",
+      "Canonical root restore cannot assume that re-encoding tools/data/tracks.json reproduces the committed canonical data/tracks binaries byte-for-byte; map-first work must preserve that distinction."
     ],
     "known_crossing_constraints": [
       "The original Japan track is the best in-repo reference for a crossing, but the exact bridge/underpass representation is not fully documented yet.",
@@ -47,11 +54,13 @@
     "crossing_style": "The upper branch should feel visually normal; the lower branch must read as driving through a tunnel or under a bridge.",
     "todo_depth": "Implementation-level tasks with research gates, TDD milestones, and explicit validation steps.",
     "compatibility": "Treat the revamp as a clean break in generation behavior; preserving existing seeds/output shape is not a goal.",
-    "runtime_scope": "Phase 1 stays tooling-first; only escalate to runtime/ASM work after explicit research and prototype gates.",
-    "crossing_metadata": "Do not plan on new persisted crossing/layer metadata in tools/data/tracks.json unless a later escalation proves it unavoidable.",
-    "track_coverage": "Target all 19 track slots, including Monaco arcade variants and Monaco Arcade Wet sync behavior.",
-    "japan_research": "Make reverse-engineering of the original Japan crossing a required early milestone before implementation claims are made."
-  },
+      "runtime_scope": "Phase 1 stays tooling-first; only escalate to runtime/ASM work after explicit research and prototype gates.",
+      "crossing_metadata": "Do not plan on new persisted crossing/layer metadata in tools/data/tracks.json unless a later escalation proves it unavoidable.",
+      "track_coverage": "Target all 19 track slots, including Monaco arcade variants and Monaco Arcade Wet sync behavior.",
+      "japan_research": "Make reverse-engineering of the original Japan crossing a required early milestone before implementation claims are made.",
+      "preview_runtime_decoupling": "Treat runtime minimap_pos generation and course-select preview asset generation as separate deliverables with separate regression gates.",
+      "canonical_track_restore": "Do not rely on tools/data/tracks.json re-encode for canonical root restoration; preserve the orig.bin/data-tracks canonical distinction throughout the revamp."
+    },
   "test_plan": {
     "principles": [
       "Add direct geometry/topology tests before extracting or rewriting generation helpers.",
@@ -75,6 +84,10 @@
       {
         "path": "tools/tests/test_track_projection.js",
         "purpose": "Tests for geometry-to-curve, geometry-to-slope, and geometry-to-minimap projection rules."
+      },
+      {
+        "path": "tools/tests/test_map_first_minimap_regressions.js",
+        "purpose": "Regression tests that keep runtime marker behavior, start-line anchoring, and course-select preview safety separated while geometry generation changes underneath them."
       }
     ],
     "existing_suites_to_update": [
@@ -88,7 +101,11 @@
       "tools/tests/test_generated_minimap_assets.js",
       "tools/tests/test_minimap_cli_tools.js",
       "tools/tests/test_track_model.js",
+      "tools/tests/test_roundtrip.js",
       "tools/tests/test_randomize_track_support.js",
+      "tools/tests/test_hack_workdir.js",
+      "tools/tests/test_canonical_build.js",
+      "tools/tests/test_in_root_checkpoint.js",
       "tools/tests/test_track_data_generation.js"
     ]
   },
@@ -98,6 +115,7 @@
     "Crossing tracks occur with deterministic 1/16 probability and contain exactly one grade-separated crossing, never more.",
     "Any crossing track has distinct upper/lower heights at the crossing and clearly marks the lower branch as tunnel or under-bridge.",
     "The generated minimap keeps a visible border around the road and makes the above/below relationship legible at the crossing rather than merging branches into one blob.",
+    "Map-first changes do not reintroduce the recent minimap regressions: course-select 'A' corruption, race-start grass/off-road corruption, runtime marker desync, or the start marker moving off the start/finish line.",
     "All 19 track slots still randomize successfully, including Monaco Arcade Wet inheriting shared geometry from Monaco Arcade Main.",
     "Same seed and flags remain deterministic across independent runs.",
     "All new and updated tests pass, workspace-safe randomization still works, and canonical root verify remains clean after non-randomized source changes."
@@ -108,18 +126,26 @@
     "Prefer workspace-safe flows and use in-root randomizer runs only for deliberate debugging.",
     "Do not persist new crossing metadata in tools/data/tracks.json during phase 1 unless a later escalation gate approves it.",
     "Keep the injectable track schema stable unless a schema change is explicitly justified and covered by new tests/docs.",
-    "Treat docs that still say minimap count is (track_length >> 5) + 1 as stale and update them as part of the revamp."
+    "Treat docs that still say minimap count is (track_length >> 5) + 1 as stale and update them as part of the revamp.",
+    "Do not let map-first minimap changes regress course-select preview packing, runtime marker start anchoring, or off-road/grass rendering; add explicit regression tests before touching those outputs.",
+    "Preserve the distinction between canonical root data (orig.bin plus committed data/tracks blobs) and generated workspace artifacts such as data/tracks/generated_minimap_data.asm.",
+    "Any change to restore/build tooling must keep canonical root verification and workspace-safe randomization both working; neither path is allowed to silently repair the other by mutating root data."
   ],
   "validation_commands": {
     "new_fast_loop": [
       "node tools/tests/test_track_geometry.js",
       "node tools/tests/test_track_topology.js",
       "node tools/tests/test_map_first_generation.js",
-      "node tools/tests/test_track_projection.js"
+      "node tools/tests/test_track_projection.js",
+      "node tools/tests/test_map_first_minimap_regressions.js"
     ],
     "existing_fast_loop": [
       "node tools/tests/test_track_validator.js",
       "node tools/tests/test_minimap_validate.js",
+      "node tools/tests/test_generated_minimap_pos.js",
+      "node tools/tests/test_generated_minimap_assets.js",
+      "node tools/tests/test_roundtrip.js",
+      "node tools/tests/test_hack_workdir.js",
       "node tools/tests/test_randomizer_smoke.js --no-build",
       "node tools/tests/test_randomizer_baselines.js",
       "node tools/tests/test_minimap_validation_snapshots.js",
@@ -242,6 +268,33 @@
             "The source-of-truth rule for minimap pair count is track_length >> 6 everywhere in docs, tests, and validation.",
             "No remaining revamp task depends on the stale (track_length >> 5) + 1 formula."
           ]
+        },
+        {
+          "id": "TRR-005",
+          "title": "Audit canonical track blob contracts before changing projection/injection behavior",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [],
+          "files": [
+            "tools/restore_tracks.js",
+            "tools/inject_track_data.js",
+            "tools/extract_track_data.js",
+            "tools/tests/test_roundtrip.js",
+            "tools/tests/test_canonical_build.js",
+            "data/tracks/",
+            "tools/data/tracks.json"
+          ],
+          "tests": [
+            "node tools/tests/test_roundtrip.js",
+            "node tools/tests/test_canonical_build.js",
+            "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+          ],
+          "acceptance": [
+            "The plan explicitly documents which artifacts are canonical root inputs versus generated workspace artifacts.",
+            "No revamp task assumes that JSON re-encoding is byte-identical to canonical root track blobs unless that claim is re-proven with tests.",
+            "Root restore and workspace randomization responsibilities are written down before projection work begins."
+          ]
         }
       ]
     },
@@ -349,6 +402,34 @@
           "acceptance": [
             "Generation code can carry in-memory geometry candidates and preview data without polluting the injectable track schema.",
             "Schema tests make it explicit which fields are transient and which fields must survive injection."
+          ]
+        },
+        {
+          "id": "TRR-014",
+          "title": "Add regression fixtures for preview/runtime minimap decoupling",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-003"
+          ],
+          "files": [
+            "tools/tests/test_map_first_minimap_regressions.js",
+            "tools/tests/test_generated_minimap_pos.js",
+            "tools/tests/test_generated_minimap_assets.js",
+            "tools/tests/test_minimap_validation_snapshots.js",
+            "tools/lib/generated_minimap_assets.js",
+            "tools/lib/generated_minimap_pos.js"
+          ],
+          "tests": [
+            "node tools/tests/test_map_first_minimap_regressions.js",
+            "node tools/tests/test_generated_minimap_pos.js",
+            "node tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "There are direct regression fixtures for course-select preview safety, runtime marker start anchoring, and marker/path agreement.",
+            "Geometry-pipeline work can change preview generation without silently changing runtime minimap_pos behavior, and vice versa.",
+            "The recent failure classes are represented as tests instead of tribal knowledge."
           ]
         }
       ]
@@ -551,7 +632,8 @@
           "effort": "large",
           "depends_on": [
             "TRR-023",
-            "TRR-004"
+            "TRR-004",
+            "TRR-014"
           ],
           "files": [
             "tools/lib/minimap_analysis.js",
@@ -569,7 +651,9 @@
           ],
           "acceptance": [
             "Minimap pairs come directly from geometry sampling instead of reintegrated curve bytes.",
-            "Generated minimap output fits panel constraints and retains a readable road border."
+            "Generated minimap output fits panel constraints and retains a readable road border.",
+            "Runtime minimap_pos generation and course-select preview asset generation have separate checks so one can be revised without regressing the other.",
+            "Map-first minimap work does not reintroduce course-select 'A' corruption or move the runtime marker away from the start/finish line."
           ]
         },
         {
@@ -927,6 +1011,22 @@
       "mitigation": [
         "Keep transient in-memory geometry/elevation artifacts during generation in TRR-013.",
         "Only consider persisted metadata if TRR-042 and TRR-050 prove the no-new-metadata constraint is unworkable."
+      ]
+    },
+    {
+      "id": "TRR-RISK-6",
+      "risk": "Map-first changes may regress course-select preview tiles, runtime marker sync, or start-line anchoring because preview and runtime minimap outputs are more coupled than they appear.",
+      "mitigation": [
+        "Add explicit decoupling regression fixtures in TRR-014 before large minimap refactors.",
+        "Stage TRR-032 so runtime minimap_pos and preview asset work can be validated independently."
+      ]
+    },
+    {
+      "id": "TRR-RISK-7",
+      "risk": "Revamp work could accidentally weaken canonical root restore/build guarantees by assuming generated data is canonical.",
+      "mitigation": [
+        "Audit canonical track blob contracts in TRR-005 before projection/injection refactors.",
+        "Keep verify.bat and workspace-safe build checks in the regular loop whenever restore/build tooling changes."
       ]
     }
   ],
