@@ -383,26 +383,37 @@ function loadRepoBaselineSymbolMap() {
 	return merged.size > 0 ? merged : null;
 }
 
-function getHeadTrackBlockSize() {
-	const symbolMap = loadRepoBaselineSymbolMap();
+function loadWorkspaceBaselineSymbolMap(wsDir) {
+	const baselinePath = path.join(wsDir, 'smgp_head.lst');
+	if (!fs.existsSync(baselinePath)) return null;
+	return parseLstSymbolMap(baselinePath);
+}
+
+function getBaselineSymbolMap(wsDir = null) {
+	return (wsDir ? loadWorkspaceBaselineSymbolMap(wsDir) : null) || loadRepoBaselineSymbolMap();
+}
+
+function getHeadTrackBlockSize(wsDir = null) {
+	const symbolMap = getBaselineSymbolMap(wsDir);
 	if (!symbolMap) return null;
 	const start = symbolMap.get('San_Marino_curve_data');
 	const end = symbolMap.get('Monaco_arcade_post_sign_tileset_blob');
 	if (start === undefined || end === undefined || end < start) return null;
-	const blobPath = path.join(REPO_ROOT, 'data', 'tracks', 'monaco_arcade', 'post_sign_tileset_blob.bin');
+	const blobBase = wsDir || REPO_ROOT;
+	const blobPath = path.join(blobBase, 'data', 'tracks', 'monaco_arcade', 'post_sign_tileset_blob.bin');
 	if (!fs.existsSync(blobPath)) return null;
 	const blobSize = fs.statSync(blobPath).size;
 	return (end - start) + blobSize;
 }
 
-function getHeadTrackBlockStart() {
-	const symbolMap = loadRepoBaselineSymbolMap();
+function getHeadTrackBlockStart(wsDir = null) {
+	const symbolMap = getBaselineSymbolMap(wsDir);
 	if (!symbolMap) return null;
 	return symbolMap.get('San_Marino_curve_data');
 }
 
-function getHeadMonacoBlobStart() {
-	const symbolMap = loadRepoBaselineSymbolMap();
+function getHeadMonacoBlobStart(wsDir = null) {
+	const symbolMap = getBaselineSymbolMap(wsDir);
 	if (!symbolMap) return null;
 	return symbolMap.get('Monaco_arcade_post_sign_tileset_blob');
 }
@@ -426,10 +437,10 @@ function padGeneratedTrackBlockToBaseline(wsDir, options = {}) {
 	const generatedPath = path.join(wsDir, 'src', 'road_and_track_data_generated.asm');
 	fs.writeFileSync(generatedPath, buildGeneratedTrackBlock({ includeGeneratedMinimapData }), 'utf8');
 
-	const baselineSize = getHeadTrackBlockSize();
-	const baselineStart = getHeadTrackBlockStart();
+	const baselineSize = getHeadTrackBlockSize(wsDir);
+	const baselineStart = getHeadTrackBlockStart(wsDir);
 	if (baselineSize === null) return 0;
-	const baselineBlobStart = getHeadMonacoBlobStart();
+	const baselineBlobStart = getHeadMonacoBlobStart(wsDir);
 	let currentSize = getWorkspaceGeneratedTrackBlockSize(wsDir);
 	const currentBlobStart = getWorkspaceGeneratedMonacoBlobStart(wsDir);
 	if (currentSize === null) return 0;
@@ -610,7 +621,7 @@ function verifyWorkspaceAddressStability(wsDir) {
   if (!fs.existsSync(workspacePath)) {
     return { ok: false, message: 'Missing workspace smgp.lst for address stability check.' };
   }
-  const baseline = loadRepoBaselineSymbolMap();
+  const baseline = loadWorkspaceBaselineSymbolMap(wsDir) || loadRepoBaselineSymbolMap();
   if (!baseline) {
     return { ok: false, message: 'Missing baseline symbol map for address stability check.' };
   }
@@ -759,14 +770,13 @@ function restoreWorkspaceTracksFromCanonicalSnapshot(wsDir) {
 	const snapshotDir = findCanonicalWorkspaceSnapshot(wsDir);
 	if (!snapshotDir) return null;
 
+	for (const entry of fs.readdirSync(snapshotDir, { withFileTypes: true })) {
+		if (!entry.isFile() || !entry.name.endsWith('.asm')) continue;
+		fs.copyFileSync(path.join(snapshotDir, entry.name), path.join(wsDir, entry.name));
+	}
+	copyDirRecursive(path.join(snapshotDir, 'src'), path.join(wsDir, 'src'), false);
 	copyDirRecursive(path.join(snapshotDir, 'data', 'tracks'), path.join(wsDir, 'data', 'tracks'), false);
 	fs.copyFileSync(path.join(snapshotDir, 'tools', 'data', 'tracks.json'), path.join(wsDir, 'tools', 'data', 'tracks.json'));
-	const snapshotGenerated = path.join(snapshotDir, 'src', 'road_and_track_data_generated.asm');
-	if (fs.existsSync(snapshotGenerated)) {
-		fs.copyFileSync(snapshotGenerated, path.join(wsDir, 'src', 'road_and_track_data_generated.asm'));
-	} else {
-		fs.writeFileSync(path.join(wsDir, 'src', 'road_and_track_data_generated.asm'), buildGeneratedTrackBlock({ includeGeneratedMinimapData: false }), 'utf8');
-	}
 	return snapshotDir;
 }
 

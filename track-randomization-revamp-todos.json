@@ -1,0 +1,951 @@
+{
+  "_meta": {
+    "project": "Super Monaco GP Disassembly",
+    "created": "2026-04-13",
+    "updated": "2026-04-13",
+    "status": "planned",
+    "deliverable": "Comprehensive implementation-level todo plan for a map-first track randomization revamp",
+    "planning_mode": "TDD-first, tooling-first phase 1, clean break allowed",
+    "primary_goal": "Replace the current curve-first track generator with a map-first pipeline that starts from generated map geometry, derives curve data from that geometry, avoids self-intersections by default, and supports a rare single grade-separated crossing case.",
+    "source_inputs": [
+      "User requirements gathered via ask tool before planning",
+      "tools/randomizer/track_pipeline.js",
+      "tools/randomizer/track_validator.js",
+      "tools/randomizer/track_model.js",
+      "tools/randomizer/track_metadata.js",
+      "docs/randomizer_architecture.md",
+      "docs/randomizer_refactor_workflow.md",
+      "docs/data_formats.md",
+      "tools/tests/test_track_validator.js"
+    ]
+  },
+  "investigation_summary": {
+    "current_pipeline": [
+      "The current track flow is curve-first: generate curve RLE, derive slopes, place signs/features from curve windows, generate minimap last, then score preview constraints.",
+      "Current orchestration in tools/randomizer/track_pipeline.js keeps each track on its original track_length budget even though older docs still describe variable length generation.",
+      "Current minimap and preview tooling assume curve data is the geometry source of truth and evaluate curve-vs-minimap agreement as a quality signal.",
+      "Current validators are strong on structural/runtime safety, but topology is mostly reported as preview metrics rather than enforced as hard pass/fail rules."
+    ],
+    "known_conflicts_with_map_first": [
+      "docs/randomizer_architecture.md and existing tests explicitly describe minimap generation as derived from curve data; that assumption must be retired.",
+      "Sign planning and preview scoring are curve-window driven today; both need geometry-derived feature anchors instead.",
+      "Several baselines and snapshots encode current curve-first preview behavior and will drift intentionally during the revamp.",
+      "track_validator.js has no hard geometry-topology gate for zero crossings vs one grade-separated crossing."
+    ],
+    "known_crossing_constraints": [
+      "The original Japan track is the best in-repo reference for a crossing, but the exact bridge/underpass representation is not fully documented yet.",
+      "The runtime minimap position stream is only signed (x, y) pairs; no explicit z-layer field was found.",
+      "Tunnel-related special behavior exists in runtime/sign handling, while a generic bridge/overpass data model was not clearly identified.",
+      "Phase 1 should stay tooling/data-first, with runtime/ASM changes only escalated if tooling prototypes cannot make the crossing readable or behaviorally correct."
+    ]
+  },
+  "locked_decisions": {
+    "point_density": "Use a configurable point density derived from map dimensions rather than a single fixed global point count.",
+    "hamilton_cycle_scope": "The generated cycle must visit every sampled point exactly once.",
+    "smoothing_policy": "Use a clamp-until-valid smoothing loop; if a smoothing pass risks a self-intersection, reduce smoothing until the path remains valid.",
+    "crossing_probability": "Roll a deterministic 1-in-16 chance per randomized track for the optional crossing case.",
+    "crossing_style": "The upper branch should feel visually normal; the lower branch must read as driving through a tunnel or under a bridge.",
+    "todo_depth": "Implementation-level tasks with research gates, TDD milestones, and explicit validation steps.",
+    "compatibility": "Treat the revamp as a clean break in generation behavior; preserving existing seeds/output shape is not a goal.",
+    "runtime_scope": "Phase 1 stays tooling-first; only escalate to runtime/ASM work after explicit research and prototype gates.",
+    "crossing_metadata": "Do not plan on new persisted crossing/layer metadata in tools/data/tracks.json unless a later escalation proves it unavoidable.",
+    "track_coverage": "Target all 19 track slots, including Monaco arcade variants and Monaco Arcade Wet sync behavior.",
+    "japan_research": "Make reverse-engineering of the original Japan crossing a required early milestone before implementation claims are made."
+  },
+  "test_plan": {
+    "principles": [
+      "Add direct geometry/topology tests before extracting or rewriting generation helpers.",
+      "Freeze or replace compact baselines before intentionally changing algorithmic behavior.",
+      "Prefer focused synthetic geometry fixtures for intersection edge cases instead of relying only on end-to-end randomized seeds.",
+      "Promote topology from a preview metric to a hard validation rule once the geometry pipeline is in place."
+    ],
+    "new_suites_to_add": [
+      {
+        "path": "tools/tests/test_track_geometry.js",
+        "purpose": "Unit tests for segment intersection, loop closure, resampling, and geometric helper functions."
+      },
+      {
+        "path": "tools/tests/test_track_topology.js",
+        "purpose": "Hard tests for zero-crossing loops, a single allowed crossing, shared endpoints, near misses, and multiple-crossing rejection."
+      },
+      {
+        "path": "tools/tests/test_map_first_generation.js",
+        "purpose": "Integration tests for point sampling, Hamilton cycle generation, smoothing clamp behavior, and deterministic geometry output."
+      },
+      {
+        "path": "tools/tests/test_track_projection.js",
+        "purpose": "Tests for geometry-to-curve, geometry-to-slope, and geometry-to-minimap projection rules."
+      }
+    ],
+    "existing_suites_to_update": [
+      "tools/tests/test_track_validator.js",
+      "tools/tests/test_randomizer.js",
+      "tools/tests/test_randomizer_smoke.js",
+      "tools/tests/test_randomizer_baselines.js",
+      "tools/tests/test_minimap_validate.js",
+      "tools/tests/test_minimap_validation_snapshots.js",
+      "tools/tests/test_generated_minimap_pos.js",
+      "tools/tests/test_generated_minimap_assets.js",
+      "tools/tests/test_minimap_cli_tools.js",
+      "tools/tests/test_track_model.js",
+      "tools/tests/test_randomize_track_support.js",
+      "tools/tests/test_track_data_generation.js"
+    ]
+  },
+  "global_acceptance": [
+    "The new source of truth for randomized track shape is generated map geometry, not curve data.",
+    "Non-crossing tracks have zero non-endpoint self-intersections after sampling, smoothing, and minimap projection.",
+    "Crossing tracks occur with deterministic 1/16 probability and contain exactly one grade-separated crossing, never more.",
+    "Any crossing track has distinct upper/lower heights at the crossing and clearly marks the lower branch as tunnel or under-bridge.",
+    "The generated minimap keeps a visible border around the road and makes the above/below relationship legible at the crossing rather than merging branches into one blob.",
+    "All 19 track slots still randomize successfully, including Monaco Arcade Wet inheriting shared geometry from Monaco Arcade Main.",
+    "Same seed and flags remain deterministic across independent runs.",
+    "All new and updated tests pass, workspace-safe randomization still works, and canonical root verify remains clean after non-randomized source changes."
+  ],
+  "guardrails": [
+    "Do not add Python or Jupyter tooling; all new helper modules and tests stay in Node.js/JavaScript.",
+    "Keep master/root buildable and close each checkpoint with canonical PowerShell verify.bat when repo files outside workspace outputs change.",
+    "Prefer workspace-safe flows and use in-root randomizer runs only for deliberate debugging.",
+    "Do not persist new crossing metadata in tools/data/tracks.json during phase 1 unless a later escalation gate approves it.",
+    "Keep the injectable track schema stable unless a schema change is explicitly justified and covered by new tests/docs.",
+    "Treat docs that still say minimap count is (track_length >> 5) + 1 as stale and update them as part of the revamp."
+  ],
+  "validation_commands": {
+    "new_fast_loop": [
+      "node tools/tests/test_track_geometry.js",
+      "node tools/tests/test_track_topology.js",
+      "node tools/tests/test_map_first_generation.js",
+      "node tools/tests/test_track_projection.js"
+    ],
+    "existing_fast_loop": [
+      "node tools/tests/test_track_validator.js",
+      "node tools/tests/test_minimap_validate.js",
+      "node tools/tests/test_randomizer_smoke.js --no-build",
+      "node tools/tests/test_randomizer_baselines.js",
+      "node tools/tests/test_minimap_validation_snapshots.js",
+      "node tools/tests/test_minimap_cli_tools.js"
+    ],
+    "deep_loop": [
+      "node tools/tests/test_randomizer.js --slow"
+    ],
+    "workspace_and_full": [
+      "node tools/hack_workdir.js SMGP-1-01-12345 --keep --force --output build/roms/test_randomized.bin",
+      "node tools/tests/test_randomizer_smoke.js",
+      "node tools/run_checks.js"
+    ],
+    "canonical_root_confirmation": [
+      "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+    ]
+  },
+  "phases": [
+    {
+      "id": "TRR-P1",
+      "title": "Research And Contracts",
+      "goal": "Freeze the current behavior, document the curve-first assumptions that must be replaced, and lock the map-first design contracts before major refactoring starts.",
+      "exit_criteria": [
+        "Japan crossing behavior has a concrete research note with knowns, unknowns, and phase-1-safe assumptions.",
+        "The internal geometry canvas, distance budget contract, and source-of-truth object are specified.",
+        "Stale minimap-size documentation is identified and queued for correction."
+      ],
+      "tasks": [
+        {
+          "id": "TRR-001",
+          "title": "Freeze compact baselines and catalog curve-first assumptions",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "small",
+          "depends_on": [],
+          "files": [
+            "tools/tests/test_randomizer_baselines.js",
+            "tools/tests/test_minimap_validation_snapshots.js",
+            "docs/randomizer_architecture.md",
+            "docs/randomizer_refactor_workflow.md"
+          ],
+          "tests": [
+            "node tools/tests/test_randomizer_baselines.js",
+            "node tools/tests/test_minimap_validation_snapshots.js"
+          ],
+          "acceptance": [
+            "Current curve-first outputs are frozen or intentionally replaced with a note that map-first drift is expected.",
+            "A short inventory exists of every current assumption that treats curves as the geometry authority."
+          ]
+        },
+        {
+          "id": "TRR-002",
+          "title": "Reverse-engineer the original Japan crossing before implementation claims",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [],
+          "files": [
+            "data/tracks/japan/curve_data.bin",
+            "data/tracks/japan/slope_data.bin",
+            "data/tracks/japan/phys_slope_data.bin",
+            "data/tracks/japan/sign_data.bin",
+            "data/tracks/japan/sign_tileset.bin",
+            "data/tracks/japan/minimap_pos.bin",
+            "src/track_config_data.asm",
+            "src/rendering.asm",
+            "src/ai.asm",
+            "notes.txt"
+          ],
+          "tests": [],
+          "acceptance": [
+            "The repo has a concrete note describing how much of Japan's crossing is data-driven versus runtime-driven.",
+            "Tunnel/underpass-related sign and tileset behavior near the crossing is identified well enough to guide phase 1 tooling work.",
+            "Unknowns that would require later ASM work are called out explicitly rather than guessed."
+          ]
+        },
+        {
+          "id": "TRR-003",
+          "title": "Define the map-first geometry contract and internal canvas",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-001"
+          ],
+          "files": [
+            "tools/randomizer/track_pipeline.js",
+            "tools/randomizer/track_randomizer.js",
+            "tools/lib/minimap_layout.js",
+            "docs/randomizer_architecture.md"
+          ],
+          "tests": [],
+          "acceptance": [
+            "A single in-memory geometry object is defined as the source of truth for randomized track shape.",
+            "The geometry canvas is explicitly tied to map/minimap dimensions and margins instead of being implicit.",
+            "Track length policy for the map-first pipeline is written down before implementation branches out."
+          ]
+        },
+        {
+          "id": "TRR-004",
+          "title": "Resolve minimap pair-count contract and stale docs",
+          "status": "todo",
+          "priority": "high",
+          "effort": "small",
+          "depends_on": [
+            "TRR-001"
+          ],
+          "files": [
+            "docs/data_formats.md",
+            "docs/randomizer_architecture.md",
+            "tools/randomizer/track_validator.js",
+            "tools/tests/test_track_validator.js",
+            "tools/tests/test_generated_minimap_pos.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_validator.js",
+            "node tools/tests/test_generated_minimap_pos.js"
+          ],
+          "acceptance": [
+            "The source-of-truth rule for minimap pair count is track_length >> 6 everywhere in docs, tests, and validation.",
+            "No remaining revamp task depends on the stale (track_length >> 5) + 1 formula."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TRR-P2",
+      "title": "Geometry TDD Foundation",
+      "goal": "Build a reliable geometry layer and topology test bed before replacing generator internals.",
+      "exit_criteria": [
+        "There are direct tests for all target intersection edge cases.",
+        "Reusable geometry helpers exist for intersection tests, closure, smoothing checks, and resampling.",
+        "Topology can be classified without adding persisted crossing metadata to tools/data/tracks.json."
+      ],
+      "tasks": [
+        {
+          "id": "TRR-010",
+          "title": "Add synthetic geometry fixtures and topology-first tests",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-003"
+          ],
+          "files": [
+            "tools/tests/test_track_geometry.js",
+            "tools/tests/test_track_topology.js",
+            "tools/tests/track_geometry_fixtures.js",
+            "tools/tests/randomizer_test_utils.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_geometry.js",
+            "node tools/tests/test_track_topology.js"
+          ],
+          "acceptance": [
+            "Tests cover no-crossing loops, a single true crossing, multiple crossings, shared endpoints, near-touch cases, and deterministic replay.",
+            "The fixtures are simple and explicit enough to debug topology failures without involving full randomizer runs."
+          ]
+        },
+        {
+          "id": "TRR-011",
+          "title": "Implement reusable geometry primitives",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-010"
+          ],
+          "files": [
+            "tools/randomizer/track_geometry.js",
+            "tools/tests/test_track_geometry.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_geometry.js"
+          ],
+          "acceptance": [
+            "The new geometry helper module provides segment intersection, closure checks, path length, sampling, and resampling helpers.",
+            "The helpers are deterministic and safe to reuse from the generator, validator, and minimap tooling."
+          ]
+        },
+        {
+          "id": "TRR-012",
+          "title": "Implement topology report model and hard crossing rules",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-011"
+          ],
+          "files": [
+            "tools/randomizer/track_validator.js",
+            "tools/minimap_validate.js",
+            "tools/lib/minimap_result_model.js",
+            "tools/tests/test_track_topology.js",
+            "tools/tests/test_track_validator.js",
+            "tools/tests/test_minimap_validate.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_topology.js",
+            "node tools/tests/test_track_validator.js",
+            "node tools/tests/test_minimap_validate.js"
+          ],
+          "acceptance": [
+            "Topology reports expose crossing count, crossing locations, and whether the track is currently eligible for the single-crossing rule.",
+            "Default validation fails any non-endpoint self-intersection unless the later grade-separated crossing rule is explicitly satisfied by derived geometry/elevation data.",
+            "The persisted track JSON schema remains unchanged during this phase."
+          ]
+        },
+        {
+          "id": "TRR-013",
+          "title": "Prepare track model and test helpers for transient geometry work state",
+          "status": "todo",
+          "priority": "high",
+          "effort": "small",
+          "depends_on": [
+            "TRR-011"
+          ],
+          "files": [
+            "tools/randomizer/track_model.js",
+            "tools/randomizer/track_metadata.js",
+            "tools/tests/test_track_model.js",
+            "tools/tests/randomizer_test_utils.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_model.js"
+          ],
+          "acceptance": [
+            "Generation code can carry in-memory geometry candidates and preview data without polluting the injectable track schema.",
+            "Schema tests make it explicit which fields are transient and which fields must survive injection."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TRR-P3",
+      "title": "Map Skeleton And Smoothing",
+      "goal": "Generate a deterministic, non-self-intersecting closed map skeleton from sampled points, then smooth and resample it without breaking validity.",
+      "exit_criteria": [
+        "Point sampling is dimension-aware and deterministic.",
+        "The Hamilton cycle visits every sampled point exactly once and closes cleanly.",
+        "Smoothing can improve shape while clamping back to the last valid path whenever needed."
+      ],
+      "tasks": [
+        {
+          "id": "TRR-020",
+          "title": "Implement configurable point sampling inside the map canvas",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-011",
+            "TRR-013"
+          ],
+          "files": [
+            "tools/randomizer/map_first_generator.js",
+            "tools/tests/test_map_first_generation.js"
+          ],
+          "tests": [
+            "node tools/tests/test_map_first_generation.js"
+          ],
+          "acceptance": [
+            "Point density is configurable from map dimensions and constrained by minimum spacing and edge margins.",
+            "Repeated runs with the same seed produce the same point set for the same track slot."
+          ]
+        },
+        {
+          "id": "TRR-021",
+          "title": "Build a Hamilton cycle generator that visits every sampled point",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "very_large",
+          "depends_on": [
+            "TRR-020"
+          ],
+          "files": [
+            "tools/randomizer/map_first_generator.js",
+            "tools/tests/test_map_first_generation.js",
+            "tools/tests/test_track_topology.js"
+          ],
+          "tests": [
+            "node tools/tests/test_map_first_generation.js",
+            "node tools/tests/test_track_topology.js"
+          ],
+          "acceptance": [
+            "The cycle visits all sampled points exactly once before returning to the start.",
+            "The base cycle is non-self-intersecting in the default case and exposes retry diagnostics instead of silently dropping points.",
+            "Failure/retry budgets are deterministic and test-covered."
+          ]
+        },
+        {
+          "id": "TRR-022",
+          "title": "Add clamp-until-valid smoothing and closure preservation",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-021"
+          ],
+          "files": [
+            "tools/randomizer/map_first_generator.js",
+            "tools/randomizer/track_geometry.js",
+            "tools/tests/test_map_first_generation.js",
+            "tools/tests/test_track_topology.js"
+          ],
+          "tests": [
+            "node tools/tests/test_map_first_generation.js",
+            "node tools/tests/test_track_topology.js"
+          ],
+          "acceptance": [
+            "Smoothing never introduces an unapproved self-intersection; if it would, the algorithm clamps to a weaker valid smoothing level.",
+            "Loop closure, map bounds, and start/finish orientation survive smoothing."
+          ]
+        },
+        {
+          "id": "TRR-023",
+          "title": "Resample the smoothed loop to a stable track-distance budget",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-022"
+          ],
+          "files": [
+            "tools/randomizer/map_first_generator.js",
+            "tools/randomizer/track_pipeline.js",
+            "tools/tests/test_map_first_generation.js",
+            "tools/tests/test_randomizer.js"
+          ],
+          "tests": [
+            "node tools/tests/test_map_first_generation.js",
+            "node tools/tests/test_randomizer.js"
+          ],
+          "acceptance": [
+            "A deterministic resampled centerline exists for downstream curve, slope, sign, and minimap projection.",
+            "The start/finish straight remains readable and safe after resampling."
+          ]
+        },
+        {
+          "id": "TRR-024",
+          "title": "Replace preview candidate scoring with geometry-quality scoring",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-023"
+          ],
+          "files": [
+            "tools/randomizer/track_pipeline.js",
+            "tools/randomizer/track_randomizer.js",
+            "tools/tests/test_randomizer.js",
+            "tools/tests/test_randomizer_baselines.js"
+          ],
+          "tests": [
+            "node tools/tests/test_randomizer.js",
+            "node tools/tests/test_randomizer_baselines.js"
+          ],
+          "acceptance": [
+            "Candidate selection no longer depends on curve-to-minimap agreement as the primary score.",
+            "Geometry quality metrics include topology validity, start-line safety, curvature sanity, and map fit."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TRR-P4",
+      "title": "Project Geometry Into Game Data",
+      "goal": "Turn the map-first centerline into valid SMGP curve, slope, sign, and minimap data while keeping the new geometry as the authoritative shape.",
+      "exit_criteria": [
+        "Curve projection produces valid curve bytes and valid RLE segments.",
+        "Slope generation reflects geometry/elevation decisions and supports future crossing separation.",
+        "Minimap generation and preview assets are derived directly from geometry rather than reconstructed from curves."
+      ],
+      "tasks": [
+        {
+          "id": "TRR-030",
+          "title": "Project map geometry into curve bytes and curve RLE",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-023"
+          ],
+          "files": [
+            "tools/randomizer/track_randomizer.js",
+            "tools/randomizer/track_projection.js",
+            "tools/tests/test_track_projection.js",
+            "tools/tests/test_randomizer.js",
+            "tools/tests/test_track_validator.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_projection.js",
+            "node tools/tests/test_randomizer.js",
+            "node tools/tests/test_track_validator.js"
+          ],
+          "acceptance": [
+            "Projected curve streams match the required decompressed length and valid byte ranges.",
+            "RLE output stays within RAM/runtime limits and remains deterministic for fixed geometry."
+          ]
+        },
+        {
+          "id": "TRR-031",
+          "title": "Generate elevation, visual slopes, and physical slopes from geometry",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-023"
+          ],
+          "files": [
+            "tools/randomizer/track_projection.js",
+            "tools/randomizer/track_randomizer.js",
+            "tools/tests/test_track_projection.js",
+            "tools/tests/test_track_validator.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_projection.js",
+            "node tools/tests/test_track_validator.js"
+          ],
+          "acceptance": [
+            "Zero-crossing tracks get safe visual/physical slope streams that pass current runtime envelopes.",
+            "The projection model is ready to enforce vertical separation at the crossing once the crossing case is enabled."
+          ]
+        },
+        {
+          "id": "TRR-032",
+          "title": "Rebuild minimap position and preview generation from geometry",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-023",
+            "TRR-004"
+          ],
+          "files": [
+            "tools/lib/minimap_analysis.js",
+            "tools/lib/minimap_render.js",
+            "tools/lib/generated_minimap_pos.js",
+            "tools/minimap_generate.js",
+            "tools/tests/test_generated_minimap_pos.js",
+            "tools/tests/test_generated_minimap_assets.js",
+            "tools/tests/test_minimap_validate.js"
+          ],
+          "tests": [
+            "node tools/tests/test_generated_minimap_pos.js",
+            "node tools/tests/test_generated_minimap_assets.js",
+            "node tools/tests/test_minimap_validate.js"
+          ],
+          "acceptance": [
+            "Minimap pairs come directly from geometry sampling instead of reintegrated curve bytes.",
+            "Generated minimap output fits panel constraints and retains a readable road border."
+          ]
+        },
+        {
+          "id": "TRR-033",
+          "title": "Refactor sign and special-road planning to use geometry features",
+          "status": "todo",
+          "priority": "high",
+          "effort": "large",
+          "depends_on": [
+            "TRR-030",
+            "TRR-031"
+          ],
+          "files": [
+            "tools/randomizer/track_randomizer.js",
+            "tools/randomizer/sign_utils.js",
+            "tools/tests/test_randomizer.js",
+            "tools/tests/test_track_validator.js"
+          ],
+          "tests": [
+            "node tools/tests/test_randomizer.js",
+            "node tools/tests/test_track_validator.js"
+          ],
+          "acceptance": [
+            "Sign placement is anchored to geometry-derived straights, turns, and special-road windows rather than raw curve windows.",
+            "Wraparound spacing and tileset transitions remain runtime-safe."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TRR-P5",
+      "title": "Optional Single Crossing",
+      "goal": "Enable the rare grade-separated crossing case without compromising the default non-self-intersecting generator.",
+      "exit_criteria": [
+        "The crossing case is deterministic, rare, and capped at exactly one crossing.",
+        "The lower branch is clearly below the upper branch in generated elevation and feature planning.",
+        "The minimap/rendered map communicates above/below order without persisted crossing metadata in track JSON."
+      ],
+      "tasks": [
+        {
+          "id": "TRR-040",
+          "title": "Add deterministic 1-in-16 crossing selection",
+          "status": "todo",
+          "priority": "high",
+          "effort": "small",
+          "depends_on": [
+            "TRR-024"
+          ],
+          "files": [
+            "tools/randomizer/track_pipeline.js",
+            "tools/randomizer/map_first_generator.js",
+            "tools/tests/test_map_first_generation.js",
+            "tools/tests/test_randomizer_prng_seed.js"
+          ],
+          "tests": [
+            "node tools/tests/test_map_first_generation.js",
+            "node tools/tests/test_randomizer_prng_seed.js"
+          ],
+          "acceptance": [
+            "Crossing eligibility is deterministic per seed and track slot.",
+            "Large-sample tests show an empirical crossing rate close to 1/16 without affecting non-crossing determinism."
+          ]
+        },
+        {
+          "id": "TRR-041",
+          "title": "Inject exactly one grade-separated crossing into the geometry pipeline",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "very_large",
+          "depends_on": [
+            "TRR-040",
+            "TRR-022"
+          ],
+          "files": [
+            "tools/randomizer/map_first_generator.js",
+            "tools/randomizer/track_geometry.js",
+            "tools/tests/test_track_topology.js",
+            "tools/tests/test_map_first_generation.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_topology.js",
+            "node tools/tests/test_map_first_generation.js"
+          ],
+          "acceptance": [
+            "When the crossing roll hits, the geometry contains exactly one non-endpoint crossing and never more than one.",
+            "All sampled points are still visited exactly once in the closed cycle.",
+            "Smoothing and resampling preserve the single-crossing cap."
+          ]
+        },
+        {
+          "id": "TRR-042",
+          "title": "Make above/below ordering inferable from geometry and elevation",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-041",
+            "TRR-031",
+            "TRR-033",
+            "TRR-002"
+          ],
+          "files": [
+            "tools/randomizer/track_projection.js",
+            "tools/randomizer/track_randomizer.js",
+            "tools/tests/test_track_projection.js",
+            "tools/tests/test_track_validator.js",
+            "tools/tests/test_randomizer.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_projection.js",
+            "node tools/tests/test_track_validator.js",
+            "node tools/tests/test_randomizer.js"
+          ],
+          "acceptance": [
+            "Crossing tracks derive a clear upper branch and lower branch from geometry/elevation, without adding new persisted fields to tools/data/tracks.json.",
+            "The lower branch receives tunnel or under-bridge handling, while the upper branch remains visually normal."
+          ]
+        },
+        {
+          "id": "TRR-043",
+          "title": "Make crossing depiction legible in minimap/map assets while preserving the border",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-032",
+            "TRR-042"
+          ],
+          "files": [
+            "tools/lib/minimap_render.js",
+            "tools/lib/generated_minimap_assets.js",
+            "tools/write_generated_minimap_assets.js",
+            "tools/tests/test_generated_minimap_assets.js",
+            "tools/tests/test_minimap_validation_snapshots.js"
+          ],
+          "tests": [
+            "node tools/tests/test_generated_minimap_assets.js",
+            "node tools/tests/test_minimap_validation_snapshots.js"
+          ],
+          "acceptance": [
+            "At the crossing, both branches keep a visible outer border instead of merging into a single filled shape.",
+            "The generated map makes it visually obvious which branch is above and which branch is below."
+          ]
+        },
+        {
+          "id": "TRR-044",
+          "title": "Open a runtime/ASM escalation only if tooling-only prototypes fail",
+          "status": "todo",
+          "priority": "medium",
+          "effort": "small",
+          "depends_on": [
+            "TRR-002",
+            "TRR-043"
+          ],
+          "files": [
+            "docs/randomizer_refactor_workflow.md",
+            "docs/randomizer_architecture.md",
+            "src/rendering.asm",
+            "src/ai.asm",
+            "src/race_support.asm"
+          ],
+          "tests": [],
+          "acceptance": [
+            "Phase 1 remains tooling-first unless a written escalation note shows exactly why asset/data work cannot achieve readable or behaviorally correct crossings.",
+            "Any candidate ASM work is narrowed to specific runtime files and specific missing behaviors."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TRR-P6",
+      "title": "Validation, Rollout, And Documentation",
+      "goal": "Make the new pipeline the supported default, replace stale curve-first assumptions in tests/docs, and verify the full workspace-safe flow.",
+      "exit_criteria": [
+        "Topology is enforced as a validator rule, not just a preview metric.",
+        "All relevant tests, baselines, and docs reflect the map-first pipeline.",
+        "All 19 tracks build and validate in workspace-safe mode."
+      ],
+      "tasks": [
+        {
+          "id": "TRR-050",
+          "title": "Promote topology and crossing rules to hard validation and CLI reporting",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-012",
+            "TRR-030",
+            "TRR-032",
+            "TRR-042"
+          ],
+          "files": [
+            "tools/randomizer/track_validator.js",
+            "tools/minimap_validate.js",
+            "tools/minimap_diagnostics.js",
+            "tools/tests/test_track_validator.js",
+            "tools/tests/test_minimap_validate.js",
+            "tools/tests/test_minimap_cli_tools.js"
+          ],
+          "tests": [
+            "node tools/tests/test_track_validator.js",
+            "node tools/tests/test_minimap_validate.js",
+            "node tools/tests/test_minimap_cli_tools.js"
+          ],
+          "acceptance": [
+            "A track fails validation if it has an unapproved self-intersection.",
+            "A crossing track passes only when it has exactly one crossing and the derived upper/lower separation checks succeed.",
+            "CLI JSON reports surface crossing count and classification explicitly."
+          ]
+        },
+        {
+          "id": "TRR-051",
+          "title": "Update existing suites and baselines to remove curve-first assumptions",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "TRR-050"
+          ],
+          "files": [
+            "tools/tests/test_randomizer.js",
+            "tools/tests/test_randomizer_smoke.js",
+            "tools/tests/test_randomizer_baselines.js",
+            "tools/tests/test_minimap_validation_snapshots.js",
+            "tools/tests/test_minimap_validate.js",
+            "tools/tests/test_track_validator.js"
+          ],
+          "tests": [
+            "node tools/tests/test_randomizer.js",
+            "node tools/tests/test_randomizer_smoke.js --no-build",
+            "node tools/tests/test_randomizer_baselines.js",
+            "node tools/tests/test_minimap_validation_snapshots.js"
+          ],
+          "acceptance": [
+            "Tests no longer assume minimap is secondary to curves.",
+            "Intentional baseline drift is documented rather than silently accepted.",
+            "Smoke and slow suites assert topology validity for both non-crossing and crossing outcomes."
+          ]
+        },
+        {
+          "id": "TRR-052",
+          "title": "Roll out the pipeline across all 19 tracks and preserve Monaco wet sync",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-051"
+          ],
+          "files": [
+            "tools/randomizer/track_pipeline.js",
+            "tools/tests/test_randomizer_smoke.js",
+            "tools/tests/test_randomize_track_support.js",
+            "tools/tests/test_track_data_generation.js"
+          ],
+          "tests": [
+            "node tools/tests/test_randomizer_smoke.js",
+            "node tools/tests/test_randomize_track_support.js",
+            "node tools/tests/test_track_data_generation.js"
+          ],
+          "acceptance": [
+            "All 19 track slots randomize successfully under the new pipeline.",
+            "Monaco Arcade Wet continues to share the intended geometry/data with Monaco Arcade Main.",
+            "Selected-track mode and workspace-safe CLI behavior stay deterministic."
+          ]
+        },
+        {
+          "id": "TRR-053",
+          "title": "Refresh architecture, guide, and workflow docs for the map-first design",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-051"
+          ],
+          "files": [
+            "docs/randomizer_architecture.md",
+            "docs/randomizer_guide.md",
+            "docs/randomizer_refactor_workflow.md",
+            "docs/data_formats.md"
+          ],
+          "tests": [],
+          "acceptance": [
+            "Docs describe the map-first source of truth, the new geometry stages, the 1/16 crossing rule, and the topology validation rules.",
+            "The guide explains current limitations and the runtime-escalation rule instead of implying bridges are already a documented generic system."
+          ]
+        },
+        {
+          "id": "TRR-054",
+          "title": "Run full validation and prepare manual emulator spot-checks",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "TRR-052",
+            "TRR-053"
+          ],
+          "files": [
+            "docs/randomizer_refactor_workflow.md"
+          ],
+          "tests": [
+            "node tools/tests/test_track_geometry.js",
+            "node tools/tests/test_track_topology.js",
+            "node tools/tests/test_map_first_generation.js",
+            "node tools/tests/test_track_projection.js",
+            "node tools/tests/test_randomizer.js --slow",
+            "node tools/hack_workdir.js SMGP-1-01-12345 --keep --force --output build/roms/test_randomized.bin",
+            "node tools/tests/test_randomizer_smoke.js",
+            "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+          ],
+          "acceptance": [
+            "The full automated test matrix passes after the map-first rollout.",
+            "Workspace-safe randomized build succeeds without mutating the repo root.",
+            "A manual emulator checklist exists for at least one non-crossing seed and one crossing seed once stable examples are available."
+          ]
+        }
+      ]
+    }
+  ],
+  "risk_register": [
+    {
+      "id": "TRR-RISK-1",
+      "risk": "Hamilton cycle generation over arbitrary sampled points may be brittle or expensive.",
+      "mitigation": [
+        "Keep deterministic retry budgets and diagnostics in TRR-021.",
+        "Constrain point sampling and spacing first in TRR-020 instead of solving arbitrary worst cases."
+      ]
+    },
+    {
+      "id": "TRR-RISK-2",
+      "risk": "Spline smoothing may reintroduce intersections even when the base polygon is valid.",
+      "mitigation": [
+        "Use clamp-until-valid smoothing in TRR-022.",
+        "Keep direct topology tests for pre-smooth and post-smooth paths in TRR-010 and TRR-022."
+      ]
+    },
+    {
+      "id": "TRR-RISK-3",
+      "risk": "A crossing may be geometrically valid but not readable enough in minimap/map assets without runtime help.",
+      "mitigation": [
+        "Require Japan research first in TRR-002.",
+        "Treat runtime/ASM work as an explicit escalation gate in TRR-044 instead of guessing early."
+      ]
+    },
+    {
+      "id": "TRR-RISK-4",
+      "risk": "Removing curve-first assumptions will invalidate many existing baselines and reports at once.",
+      "mitigation": [
+        "Freeze and annotate baseline drift in TRR-001.",
+        "Stage validator/reporting updates in TRR-050 and TRR-051 rather than changing everything implicitly."
+      ]
+    },
+    {
+      "id": "TRR-RISK-5",
+      "risk": "Trying to infer crossing semantics without persisted metadata may be harder after projection back into game formats.",
+      "mitigation": [
+        "Keep transient in-memory geometry/elevation artifacts during generation in TRR-013.",
+        "Only consider persisted metadata if TRR-042 and TRR-050 prove the no-new-metadata constraint is unworkable."
+      ]
+    }
+  ],
+  "runtime_escalation": {
+    "default_state": "blocked",
+    "allowed_after": [
+      "TRR-002",
+      "TRR-043"
+    ],
+    "trigger_conditions": [
+      "Tooling-only generated assets cannot make above/below order legible at the crossing while keeping the road border intact.",
+      "Existing tunnel/sign/tileset behavior cannot reliably represent the lower branch as an underpass.",
+      "Validator/reporting cannot infer the single-crossing semantics from geometry plus projected data strongly enough to be trustworthy."
+    ],
+    "candidate_runtime_files": [
+      "src/rendering.asm",
+      "src/ai.asm",
+      "src/race_support.asm",
+      "src/track_config_data.asm"
+    ]
+  }
+}

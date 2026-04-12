@@ -194,7 +194,7 @@ function _validateCurveRle(track, errors) {
 		const bgDisp = firstCurve?.bg_disp || 0;
 		const startupRate = length > 0 ? (bgDisp / length).toFixed(2) : 'n/a';
 		_err(errors, name, 'curve_rle_segments',
-			`race-start curve must begin with at least 48 straight steps and a gentle first background displacement (got opening=${opening}, first_curve_len=${length}, first_curve_bg_disp=${bgDisp}, first_curve_rate=${startupRate})`);
+			`race-start curve must begin with a long flat opening runway and a gentle first background displacement (got opening=${opening}, first_curve_len=${length}, first_curve_bg_disp=${bgDisp}, first_curve_rate=${startupRate})`);
 	}
 
 	if (isRuntimeSafeRandomized(track) && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveBgLoopAligns(segs, tl)) {

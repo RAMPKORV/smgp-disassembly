@@ -109,6 +109,7 @@ const CURVE_LEN_MAX    = 120;
 const BG_DISP_MIN = 30;
 const BG_DISP_MAX = 300;
 const CURVE_SAFE_OPENING_STRAIGHT_STEPS = 48;
+const CURVE_SAFE_TARGET_OPENING_STRAIGHT_STEPS = 96;
 const CURVE_SAFE_CLOSING_STRAIGHT_STEPS = 16;
 const CURVE_SAFE_FIRST_CURVE_MIN_LENGTH = 12;
 const CURVE_SAFE_FIRST_CURVE_MAX_BG_DISP = 192;
@@ -931,7 +932,7 @@ function computeSafeStartupCurveBgDisp(length) {
 function curveHasSafeRaceStart(curveSegments) {
 	const firstCurve = getFirstCurveSegment(curveSegments);
 	if (!firstCurve) return true;
-	return getCurveOpeningStraightSteps(curveSegments) >= CURVE_SAFE_OPENING_STRAIGHT_STEPS
+	return getCurveOpeningStraightSteps(curveSegments) >= CURVE_SAFE_TARGET_OPENING_STRAIGHT_STEPS
 		&& firstCurve.length >= CURVE_SAFE_FIRST_CURVE_MIN_LENGTH
 		&& (firstCurve.bg_disp || BG_DISP_MIN) <= computeSafeStartupCurveBgDisp(firstCurve.length);
 }
@@ -957,8 +958,8 @@ function enforceSafeCurveRaceStart(curveSegments, targetSteps) {
 		if (firstCurveIndex < 0) break;
 
 		const firstCurve = working[firstCurveIndex];
-		if (opening < CURVE_SAFE_OPENING_STRAIGHT_STEPS) {
-			const needed = CURVE_SAFE_OPENING_STRAIGHT_STEPS - opening;
+		if (opening < CURVE_SAFE_TARGET_OPENING_STRAIGHT_STEPS) {
+			const needed = CURVE_SAFE_TARGET_OPENING_STRAIGHT_STEPS - opening;
 			const spare = Math.max(0, firstCurve.length - CURVE_SAFE_FIRST_CURVE_MIN_LENGTH);
 			const transfer = Math.min(needed, spare);
 			if (transfer > 0) {
@@ -973,7 +974,7 @@ function enforceSafeCurveRaceStart(curveSegments, targetSteps) {
 			}
 		}
 
-		if (opening < CURVE_SAFE_OPENING_STRAIGHT_STEPS || firstCurve.length < CURVE_SAFE_FIRST_CURVE_MIN_LENGTH) {
+		if (opening < CURVE_SAFE_TARGET_OPENING_STRAIGHT_STEPS || firstCurve.length < CURVE_SAFE_FIRST_CURVE_MIN_LENGTH) {
 			firstCurve.type = 'straight';
 			firstCurve.curve_byte = 0;
 			delete firstCurve.bg_disp;
@@ -1580,6 +1581,12 @@ function decompressCurveSegments(segments) {
 // ---------------------------------------------------------------------------
 
 function generateSlopeRle(rng, trackLength, curveSegments) {
+	const initialBgDisp = 0;
+	const events = buildSlopeClosureEvents(trackLength, rng);
+	const normalized = ensureSlopeEvents(trackLength, initialBgDisp, events, rng);
+	if (normalized && visualSlopeHasSafeRaceStart(initialBgDisp, normalized) && visualSlopeLoopAligns(initialBgDisp, normalized)) {
+		return [initialBgDisp, normalized];
+	}
 	return buildFlatSlopeRle(trackLength);
 }
 
@@ -1806,6 +1813,8 @@ function evaluateGeneratedPreviewConstraints(track) {
 		selfIntersections: preview.self_intersections || 0,
 		startVerticality,
 		tileCount,
+		branchPixelCount: preview.branch_pixel_count || 0,
+		coverageMatchPercent: preview.match_percent || 0,
 		signMatchPercent: preview.curve_sign_match_percent || 0,
 		passes: (preview.self_intersections || 0) <= 1
 			&& startVerticality >= 0.68
@@ -1816,7 +1825,10 @@ function evaluateGeneratedPreviewConstraints(track) {
 
 function compareGeneratedPreviewConstraints(a, b) {
 	if (a.passes !== b.passes) return a.passes ? -1 : 1;
+	if (Math.abs(a.signMatchPercent - b.signMatchPercent) > 6) return b.signMatchPercent - a.signMatchPercent;
 	if (a.selfIntersections !== b.selfIntersections) return a.selfIntersections - b.selfIntersections;
+	if (a.coverageMatchPercent !== b.coverageMatchPercent) return b.coverageMatchPercent - a.coverageMatchPercent;
+	if (a.branchPixelCount !== b.branchPixelCount) return a.branchPixelCount - b.branchPixelCount;
 	if (a.tileCount !== b.tileCount) return a.tileCount - b.tileCount;
 	if (a.signMatchPercent !== b.signMatchPercent) return b.signMatchPercent - a.signMatchPercent;
 	if (a.startVerticality !== b.startVerticality) return b.startVerticality - a.startVerticality;

@@ -224,10 +224,6 @@ function evaluateCurveMapAgreement(track, preview) {
 	let centerline = Array.isArray(preview.centerline_points)
 		? preview.centerline_points.map(([x, y]) => [x, y])
 		: [];
-	if (centerline.length && Number.isInteger(preview.start_index)) {
-		const offset = ((preview.start_index % centerline.length) + centerline.length) % centerline.length;
-		centerline = centerline.slice(offset).concat(centerline.slice(0, offset));
-	}
 	const expected = buildCurveTurnProfile(track, sampleCount);
 	const observed = buildCenterlineTurnProfile(centerline, sampleCount);
 	const expectedAbs = expected.map(value => Math.abs(value));

@@ -16,7 +16,7 @@ const { getTracks } = require('./randomizer/track_model');
 function writeAlignedBlock(rom, cursor, bytes) {
 	const start = (cursor + 1) & ~1;
 	bytes.copy(rom, start);
-	return { start, end: start + bytes.length };
+	return { start, end: (start + bytes.length + 1) & ~1 };
 }
 
 function buildTrackAssetBytes(track) {

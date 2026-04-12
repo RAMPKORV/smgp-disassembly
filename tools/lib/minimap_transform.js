@@ -3,6 +3,7 @@
 const { MINIMAP_PANEL_TILES_H, MINIMAP_PANEL_TILES_W, MINIMAP_TILE_SIZE_PX } = require('./minimap_layout');
 const { cyclicDistance, rotateClosedPoints } = require('./path_utils');
 const { getBounds, sampleClosedPath } = require('./minimap_analysis');
+const { PREVIEW_SIGN_MATCH_SLACK } = require('./minimap_thresholds');
 
 function normalizeAngleDelta(angle) {
 	let value = angle;
@@ -20,6 +21,27 @@ function buildCurveTurnProfile(track, sampleCount = 128) {
 		const turn = seg.type === 'curve'
 			? (((seg.curve_byte >= 0x41 && seg.curve_byte <= 0x6F) ? 1 : -1) * ((1 / ((seg.curve_byte & 0x3F) ** 1.4)) + (4 * (((seg.bg_disp || 0) / Math.max(seg.length || 1, 1)) / 300))))
 			: 0;
+		for (let i = 0; i < seg.length; i++, step++) {
+			const bin = Math.min(sampleCount - 1, Math.floor((step * sampleCount) / totalSteps));
+			bins[bin].sum += turn;
+			bins[bin].count += 1;
+		}
+	}
+	return bins.map(bin => bin.count > 0 ? bin.sum / bin.count : 0);
+}
+
+function buildValidationCurveTurnProfile(track, sampleCount = 128) {
+	const bins = Array.from({ length: sampleCount }, () => ({ sum: 0, count: 0 }));
+	let step = 0;
+	const totalSteps = Math.max(1, (track.track_length || 0) >> 2);
+	for (const seg of track.curve_rle_segments || []) {
+		if (!seg || seg.type === 'terminator') break;
+		let turn = 0;
+		if (seg.type === 'curve') {
+			const curveByte = seg.curve_byte || 0;
+			const sharpness = Math.max(curveByte & 0x3F, 1);
+			turn = ((curveByte >= 0x41 && curveByte <= 0x6F) ? 1 : -1) / sharpness;
+		}
 		for (let i = 0; i < seg.length; i++, step++) {
 			const bin = Math.min(sampleCount - 1, Math.floor((step * sampleCount) / totalSteps));
 			bins[bin].sum += turn;
@@ -103,6 +125,46 @@ function scoreCurveAgreement(track, points) {
 	return { signMatchPercent, bestCorr, absDiff };
 }
 
+function scoreCurvePathAgreement(track, points, startIndex = 0, sampleCount = null) {
+	const count = Math.max(64, sampleCount || Math.min(256, (track.track_length || 0) >> 4));
+	let centerline = Array.isArray(points)
+		? points.map(([x, y]) => [x, y])
+		: [];
+	if (centerline.length && Number.isInteger(startIndex)) {
+		const offset = ((startIndex % centerline.length) + centerline.length) % centerline.length;
+		centerline = centerline.slice(offset).concat(centerline.slice(0, offset));
+	}
+	const expected = buildValidationCurveTurnProfile(track, count);
+	const observed = buildPathTurnProfile(centerline, count);
+	const expectedAbs = expected.map(value => Math.abs(value));
+	const observedAbs = observed.map(value => Math.abs(value));
+	const zeroShiftCorr = pearsonCorrelation(expectedAbs, observedAbs);
+	let bestShift = 0;
+	let bestCorr = -Infinity;
+	for (let shift = 0; shift < count; shift++) {
+		const corr = pearsonCorrelation(expectedAbs, rotateArray(observedAbs, shift));
+		if (corr > bestCorr) {
+			bestCorr = corr;
+			bestShift = shift;
+		}
+	}
+	const shiftedObserved = rotateArray(observed, bestShift);
+	const activeThreshold = 0.02;
+	let activeCount = 0;
+	let signMatches = 0;
+	for (let i = 0; i < count; i++) {
+		if (expectedAbs[i] < activeThreshold) continue;
+		activeCount += 1;
+		if (Math.sign(expected[i]) === Math.sign(shiftedObserved[i])) signMatches += 1;
+	}
+	return {
+		signMatchPercent: activeCount > 0 ? (signMatches * 100) / activeCount : 100,
+		zeroShiftCorr,
+		bestCorr,
+		bestShift,
+	};
+}
+
 function chooseCurveFaithfulTransform(track, points) {
 	const bounds = getBounds(points);
 	const transforms = [
@@ -122,13 +184,32 @@ function chooseCurveFaithfulTransform(track, points) {
 }
 
 function comparePreviewCandidates(a, b) {
+	const aSign = Number.isFinite(a.validation_sign_match_percent) ? a.validation_sign_match_percent : a.transform.score.signMatchPercent;
+	const bSign = Number.isFinite(b.validation_sign_match_percent) ? b.validation_sign_match_percent : b.transform.score.signMatchPercent;
+	const aZeroShift = Number.isFinite(a.validation_zero_shift_corr) ? a.validation_zero_shift_corr : -Infinity;
+	const bZeroShift = Number.isFinite(b.validation_zero_shift_corr) ? b.validation_zero_shift_corr : -Infinity;
+	const aPhasePenalty = Number.isFinite(a.validation_phase_penalty) ? a.validation_phase_penalty : Infinity;
+	const bPhasePenalty = Number.isFinite(b.validation_phase_penalty) ? b.validation_phase_penalty : Infinity;
+	const aPhaseGain = Number.isFinite(a.validation_phase_gain) ? a.validation_phase_gain : Infinity;
+	const bPhaseGain = Number.isFinite(b.validation_phase_gain) ? b.validation_phase_gain : Infinity;
 	if (a.tile_budget_ok !== b.tile_budget_ok) return a.tile_budget_ok ? -1 : 1;
+	const signDelta = Math.abs(aSign - bSign);
+	if (signDelta <= 12 && aZeroShift !== bZeroShift) return bZeroShift - aZeroShift;
+	if (signDelta <= 12 && aPhasePenalty !== bPhasePenalty) return aPhasePenalty - bPhasePenalty;
+	if (signDelta <= 12 && aPhaseGain !== bPhaseGain) return aPhaseGain - bPhaseGain;
 	const aGoal = a.self_intersections <= 1;
 	const bGoal = b.self_intersections <= 1;
 	if (aGoal !== bGoal) return aGoal ? -1 : 1;
+	const aVerticalGoal = (a.start_verticality || 0) >= 0.9;
+	const bVerticalGoal = (b.start_verticality || 0) >= 0.9;
+	if (signDelta <= 12 && aVerticalGoal !== bVerticalGoal) return aVerticalGoal ? -1 : 1;
+	if (signDelta > PREVIEW_SIGN_MATCH_SLACK) return bSign - aSign;
 	if (a.self_intersections !== b.self_intersections) return a.self_intersections - b.self_intersections;
-	if (a.transform.score.signMatchPercent !== b.transform.score.signMatchPercent) return b.transform.score.signMatchPercent - a.transform.score.signMatchPercent;
+	if (signDelta <= 12 && (a.start_verticality || 0) !== (b.start_verticality || 0)) return (b.start_verticality || 0) - (a.start_verticality || 0);
+	if (a.coverage_match_percent !== b.coverage_match_percent) return b.coverage_match_percent - a.coverage_match_percent;
 	if (a.branch_pixel_count !== b.branch_pixel_count) return a.branch_pixel_count - b.branch_pixel_count;
+	if (a.tile_count !== b.tile_count) return a.tile_count - b.tile_count;
+	if (aSign !== bSign) return bSign - aSign;
 	if (a.lower_tail_clearance !== b.lower_tail_clearance) return b.lower_tail_clearance - a.lower_tail_clearance;
 	return 0;
 }
@@ -241,10 +322,12 @@ function chooseSeamIndex(points) {
 module.exports = {
 	normalizeAngleDelta,
 	buildCurveTurnProfile,
+	buildValidationCurveTurnProfile,
 	buildPathTurnProfile,
 	rotateArray,
 	pearsonCorrelation,
 	scoreCurveAgreement,
+	scoreCurvePathAgreement,
 	chooseCurveFaithfulTransform,
 	comparePreviewCandidates,
 	countUsedPreviewCells,

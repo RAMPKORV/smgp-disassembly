@@ -33,7 +33,7 @@ const { injectTrack }            = require('./inject_track_data');
 const { injectTeamData }         = require('./inject_team_data');
 const { injectChampionshipData } = require('./inject_championship_data');
 const { buildSyncedTrackConfig } = require('./sync_track_config');
-const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE } = require('./generate_track_data_asm');
+const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE, TRACK_LAYOUT, FILE_SPECS } = require('./generate_track_data_asm');
 const { buildAsm: buildGeneratedMinimapMapAsm } = require('./write_generated_minimap_assets');
 const { getTracks, requireTracksDataShape } = require('./randomizer/track_model');
 
@@ -47,6 +47,8 @@ const TEAMS_JSON      = path.join(TOOLS_DIR, 'data', 'teams.json');
 const TEAMS_ORIG      = path.join(TOOLS_DIR, 'data', 'teams.orig.json');
 const CHAMP_JSON      = path.join(TOOLS_DIR, 'data', 'championship.json');
 const CHAMP_ORIG      = path.join(TOOLS_DIR, 'data', 'championship.orig.json');
+const ORIG_BIN        = path.join(REPO_ROOT, 'orig.bin');
+const SYMBOL_MAP_JSON = path.join(TOOLS_DIR, 'index', 'symbol_map.json');
 const ART_CONFIG_ASM  = path.join(REPO_ROOT, 'src', 'track_config_data.asm');
 const ART_CONFIG_ORIG = path.join(REPO_ROOT, 'src', 'track_config_data.orig.asm');
 const USAGE_TEXT = [
@@ -58,6 +60,74 @@ const USAGE_TEXT = [
 	'  --verbose, -v      Show additional inject output',
 	'  --help, -h         Show this help text',
 ].join('\n');
+
+function loadCanonicalSymbolMap() {
+	if (!fs.existsSync(SYMBOL_MAP_JSON)) return null;
+	const json = JSON.parse(fs.readFileSync(SYMBOL_MAP_JSON, 'utf8'));
+	if (!json || typeof json !== 'object' || !json.symbols || typeof json.symbols !== 'object') return null;
+	const map = new Map();
+	for (const [name, value] of Object.entries(json.symbols)) {
+		if (typeof value !== 'string') continue;
+		map.set(name, parseInt(value.replace(/^0x/i, ''), 16));
+	}
+	return map;
+}
+
+function buildCanonicalTrackBlobSpecs() {
+	const specs = [];
+	for (const track of TRACK_LAYOUT) {
+		for (const fileSpec of FILE_SPECS) {
+			specs.push({
+				label: `${track.prefix}_${fileSpec.suffix}`,
+				filePath: path.join(REPO_ROOT, 'data', 'tracks', track.slug, fileSpec.file),
+			});
+		}
+	}
+	specs.push({
+		label: 'Monaco_arcade_post_sign_tileset_blob',
+		filePath: path.join(REPO_ROOT, 'data', 'tracks', 'monaco_arcade', 'post_sign_tileset_blob.bin'),
+		endLabel: 'Halt_audio_sequence',
+	});
+	return specs;
+}
+
+function restoreCanonicalTrackBinaries(log) {
+	if (!fs.existsSync(ORIG_BIN)) {
+		throw new Error(`orig.bin not found: ${ORIG_BIN}`);
+	}
+	const symbolMap = loadCanonicalSymbolMap();
+	if (!symbolMap) {
+		throw new Error(`symbol map not found or invalid: ${SYMBOL_MAP_JSON}`);
+	}
+	const rom = fs.readFileSync(ORIG_BIN);
+	const specs = buildCanonicalTrackBlobSpecs();
+	let changedCount = 0;
+
+	for (let index = 0; index < specs.length; index++) {
+		const spec = specs[index];
+		const start = symbolMap.get(spec.label);
+		const nextLabel = spec.endLabel || specs[index + 1]?.label;
+		const end = nextLabel ? symbolMap.get(nextLabel) : null;
+		if (start === undefined) throw new Error(`Missing canonical symbol: ${spec.label}`);
+		if (end === undefined || end === null) throw new Error(`Missing canonical symbol: ${nextLabel}`);
+		if (end < start) throw new Error(`Invalid canonical blob range: ${spec.label} -> ${nextLabel}`);
+
+		const canonicalBytes = rom.slice(start, end);
+		fs.mkdirSync(path.dirname(spec.filePath), { recursive: true });
+		let changed = true;
+		if (fs.existsSync(spec.filePath)) {
+			const current = fs.readFileSync(spec.filePath);
+			changed = !current.equals(canonicalBytes);
+		}
+		if (changed) {
+			fs.writeFileSync(spec.filePath, canonicalBytes);
+			changedCount++;
+		}
+	}
+
+	log('Restored canonical track binaries from orig.bin.');
+	return changedCount;
+}
 
 // ---------------------------------------------------------------------------
 // Main
@@ -140,12 +210,16 @@ function main() {
 
 	const tracksData = requireTracksDataShape(JSON.parse(fs.readFileSync(TRACKS_JSON, 'utf8')));
 	const tracks = getTracks(tracksData);
-	log('Re-injecting original track binaries into data/tracks/ ...');
-	const dataDir = path.join(REPO_ROOT, 'data', 'tracks');
+	log('Restoring original track binaries into data/tracks/ ...');
 	let totalChanged = 0;
-	for (const track of tracks) {
-		const results = injectTrack(track, dataDir, false, verbose);
-		totalChanged += Object.values(results).filter(r => r.changed).length;
+	if (fs.existsSync(ORIG_BIN)) {
+		totalChanged = restoreCanonicalTrackBinaries(log);
+	} else {
+		const dataDir = path.join(REPO_ROOT, 'data', 'tracks');
+		for (const track of tracks) {
+			const results = injectTrack(track, dataDir, false, verbose);
+			totalChanged += Object.values(results).filter(r => r.changed).length;
+		}
 	}
 	summary.trackFilesRestored = totalChanged;
 	log(`  ${totalChanged} file(s) restored.`);

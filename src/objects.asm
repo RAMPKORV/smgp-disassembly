@@ -364,6 +364,7 @@ Queue_gear_diagram_draw_Dispatch:
 ; Sprite_frame_data_126EC, positions at screen-X $9F, Y $FD, pixel-X $84.
 ; Sets $2C(A0) = 40 (initial hold frames), records Player_place_score.w
 ; baseline in $2A(A0), and raises Countdown_lights_active_flag.w.
+	MOVE.l	#Countdown_lights_Wait, (A0)
 	MOVE.l	#Sprite_frame_data_126EC, $4(A0)
 	MOVE.w	#$009F, $E(A0)
 	MOVE.w	#$00FD, $16(A0)

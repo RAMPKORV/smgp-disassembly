@@ -45,6 +45,7 @@ const {
 	countPreviewTilesFromPixels,
 	countUniquePreviewTilesFromPixels,
 	countUsedPreviewCells,
+	scoreCurvePathAgreement,
 	selectBestRotatedPathForAgreement,
 } = require('./minimap_transform');
 const {
@@ -130,9 +131,11 @@ function buildGeneratedMinimapPreview(track) {
 		buildDerivedPath,
 		chooseCurveFaithfulTransform,
 		styleRoadPreview,
+		chooseStartIndex,
 		computeLowerTailClearance,
 		countUniquePreviewTilesFromPixels,
 		countUsedPreviewCells,
+		scoreCurvePathAgreement,
 		scoreRasterAgainstPreview,
 		fitStyledPathIntoFrame,
 		expandLowerTail,
@@ -150,9 +153,11 @@ function buildGeneratedMinimapPreview(track) {
 	const selfIntersections = bestCandidate.self_intersections;
 	const lowerTailClearance = bestCandidate.lower_tail_clearance;
 	const seamIndex = 0;
-	const startIndex = chooseStartIndex(styledPath, preview.width, preview.height, bestStyled.road_pixels);
+	const startIndex = Number.isInteger(bestCandidate.start_index)
+		? bestCandidate.start_index
+		: chooseStartIndex(styledPath, preview.width, preview.height, bestStyled.road_pixels);
 	const bounds = getBounds(styledPath);
-	const styled = styleRoadPreview(styledPath, preview.width, preview.height, startIndex);
+	const styled = bestStyled;
 
 	const result = {
 		slug: previewSlug,
@@ -165,7 +170,7 @@ function buildGeneratedMinimapPreview(track) {
 		seam_index: seamIndex,
 		bounds,
 		transform: bestTransform.name,
-		curve_sign_match_percent: Number(bestTransform.score.signMatchPercent.toFixed(2)),
+		curve_sign_match_percent: Number((bestCandidate.validation_sign_match_percent ?? bestTransform.score.signMatchPercent).toFixed(2)),
 		match_percent: 0,
 		join_clearance: styled.join_clearance,
 		branch_pixel_count: styled.branch_pixels.length,

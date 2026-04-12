@@ -20,7 +20,6 @@ const {
 	MINIMAP_PANEL_CELL_COUNT,
 	MINIMAP_PANEL_TILES_H,
 	MINIMAP_PANEL_TILES_W,
-	MINIMAP_TILE_INDEX_MASK,
 } = require('./lib/minimap_layout');
 const { patchRomChecksum } = require('./patch_rom_checksum');
 const { loadTracksData } = require('./lib/minimap_analysis');
@@ -64,24 +63,24 @@ function appendBlock(chunks, cursor, bytes) {
 	};
 }
 
-function buildPreviewRawMap(track) {
-	const assets = buildGeneratedMinimapAssets(track);
+function buildPreviewRawMap(track, assetsOverride = null) {
+	const assets = assetsOverride || buildGeneratedMinimapAssets(track);
 	if (!Array.isArray(assets.words) || assets.words.length !== MAP_WORD_COUNT) {
 		throw new Error(`unexpected minimap word count for ${track.slug}: ${assets.words ? assets.words.length : 'null'}`);
 	}
 	const out = Buffer.alloc(MAP_WORD_COUNT * 2);
-	for (let i = 0; i < assets.words.length; i++) writeWordBE(out, i * 2, assets.words[i] & MINIMAP_TILE_INDEX_MASK);
+	for (let i = 0; i < assets.words.length; i++) writeWordBE(out, i * 2, assets.words[i] & 0xFFFF);
 	return out;
 }
 
-function buildHudRawMap(track) {
-	const assets = buildGeneratedMinimapAssets(track);
+function buildHudRawMap(track, assetsOverride = null) {
+	const assets = assetsOverride || buildGeneratedMinimapAssets(track);
 	if (!Array.isArray(assets.words) || assets.words.length !== MAP_WORD_COUNT) {
 		throw new Error(`unexpected minimap word count for ${track.slug}: ${assets.words ? assets.words.length : 'null'}`);
 	}
 	const out = Buffer.alloc(MAP_WORD_COUNT * 2);
 	for (let i = 0; i < assets.words.length; i++) {
-		const word = assets.words[i] & MINIMAP_TILE_INDEX_MASK;
+		const word = assets.words[i] & 0xFFFF;
 		writeWordBE(out, i * 2, word === 0 ? 0 : (0x8000 | word));
 	}
 	return out;
@@ -273,3 +272,9 @@ function main() {
 }
 
 if (require.main === module) main();
+
+module.exports = {
+	buildPreviewRawMap,
+	buildHudRawMap,
+	main,
+};

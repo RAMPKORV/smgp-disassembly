@@ -39,6 +39,16 @@ test('clampSignedByte clamps and rounds to signed byte range', () => {
 	assert.strictEqual(generatedMinimapPos.clampSignedByte(12.6), 13);
 });
 
+test('buildGeneratedMinimapPosPairs falls back to generated pairs when preview centerline is empty', () => {
+	const track = { slug: 'synthetic', name: 'Synthetic', index: 0, track_length: 128, minimap_pos: [[0, 0], [0, 0]] };
+	withPatched(minimapRender, 'buildGeneratedMinimapPreview', () => ({ centerline_points: [] }), () => {
+		withPatched(minimapAnalysis, 'generateMinimapPairsFromTrack', () => ({ pairs: [[7, 8], [9, 10]] }), () => {
+			const pairs = generatedMinimapPos.buildGeneratedMinimapPosPairs(track);
+			assert.deepStrictEqual(pairs, [[7, 8], [9, 10]]);
+		});
+	});
+});
+
 test('buildGeneratedMinimapPosPairs respects preview start_index rotation', () => {
 	const track = { slug: 'synthetic', name: 'Synthetic', index: 0, track_length: 256, minimap_pos: [[0, 0], [0, 0], [0, 0], [0, 0]] };
 	withPatched(minimapRender, 'buildGeneratedMinimapPreview', () => ({
@@ -48,16 +58,6 @@ test('buildGeneratedMinimapPosPairs respects preview start_index rotation', () =
 		withPatched(minimapAnalysis, 'sampleClosedPath', (points, count) => points.slice(0, count), () => {
 			const pairs = generatedMinimapPos.buildGeneratedMinimapPosPairs(track);
 			assert.deepStrictEqual(pairs, [[30, 3], [40, 4], [10, 1], [20, 2]]);
-		});
-	});
-});
-
-test('buildGeneratedMinimapPosPairs falls back to generated pairs when preview centerline is empty', () => {
-	const track = { slug: 'synthetic', name: 'Synthetic', index: 0, track_length: 128, minimap_pos: [[0, 0], [0, 0]] };
-	withPatched(minimapRender, 'buildGeneratedMinimapPreview', () => ({ centerline_points: [] }), () => {
-		withPatched(minimapAnalysis, 'generateMinimapPairsFromTrack', () => ({ pairs: [[7, 8], [9, 10]] }), () => {
-			const pairs = generatedMinimapPos.buildGeneratedMinimapPosPairs(track);
-			assert.deepStrictEqual(pairs, [[7, 8], [9, 10]]);
 		});
 	});
 });

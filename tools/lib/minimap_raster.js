@@ -401,13 +401,22 @@ function styleRoadPreview(centerlinePoints, width, height, startIndex = null) {
 		const point = centerlinePoints[(startIndex + centerlinePoints.length) % centerlinePoints.length];
 		const prev = centerlinePoints[(startIndex - 1 + centerlinePoints.length) % centerlinePoints.length];
 		const next = centerlinePoints[(startIndex + 1 + centerlinePoints.length) % centerlinePoints.length];
-		const tx = next[0] - prev[0];
-		const ty = next[1] - prev[1];
-		const len = Math.hypot(tx, ty) || 1;
-		const nx = -ty / len;
-		const ny = tx / len;
-		const halfLength = 5.5;
-		drawThickLine(pixels, width, height, point[0] - (nx * halfLength), point[1] - (ny * halfLength), point[0] + (nx * halfLength), point[1] + (ny * halfLength), 1, 0.1);
+		const span = findHorizontalSpan(fillMask, width, height, Math.round(point[0]), Math.round(point[1]));
+		if (span) {
+			const lineWidth = Math.min(4, Math.max(1, span.width));
+			const startX = span.left + Math.max(0, Math.floor((span.width - lineWidth) / 2));
+			const endX = Math.min(span.right, startX + lineWidth - 1);
+			for (let x = startX; x <= endX; x++) {
+				if (fillMask[(span.y * width) + x]) pixels[(span.y * width) + x] = 1;
+			}
+		} else {
+			const tx = next[0] - prev[0];
+			const ty = next[1] - prev[1];
+			const len = Math.hypot(tx, ty) || 1;
+			const nx = -ty / len;
+			const ny = tx / len;
+			drawThickLine(pixels, width, height, point[0] - (nx * 1.5), point[1] - (ny * 1.5), point[0] + (nx * 1.5), point[1] + (ny * 1.5), 1, 0.1);
+		}
 	}
 	return {
 		pixels: Array.from(pixels),
