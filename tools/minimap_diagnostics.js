@@ -12,6 +12,7 @@ const {
   analyzeTrackMinimap,
   analyzeAllTracks,
 } = require('./lib/minimap_analysis');
+const { buildMinimapAnalysisSummary } = require('./lib/minimap_result_model');
 
 function formatSummaryLine(entry) {
   const track = entry.track;
@@ -49,11 +50,11 @@ function main() {
       die(`track not found: ${trackArg}`);
     }
 
-    const analysis = analyzeTrackMinimap(track);
-    if (jsonOnly) {
-      process.stdout.write(JSON.stringify(analysis, null, 2) + '\n');
-      return;
-    }
+		const analysis = analyzeTrackMinimap(track);
+		if (jsonOnly) {
+			process.stdout.write(JSON.stringify(buildMinimapAnalysisSummary(analysis), null, 2) + '\n');
+			return;
+		}
 
     info(formatSummaryLine(analysis));
     info(`  canonical points : ${analysis.canonical.points.length}`);

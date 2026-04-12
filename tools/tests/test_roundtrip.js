@@ -18,6 +18,7 @@ const assert = require('assert');
 const fs     = require('fs');
 const path   = require('path');
 const os     = require('os');
+const { getTracks, requireTracksDataShape } = require('../randomizer/track_model');
 
 const {
   TRACKS,
@@ -317,14 +318,14 @@ function testTracksJsonStructure() {
 
   if (!fs.existsSync(TRACKS_JSON)) return;
 
-  const data = JSON.parse(fs.readFileSync(TRACKS_JSON, 'utf8'));
+	const data = requireTracksDataShape(JSON.parse(fs.readFileSync(TRACKS_JSON, 'utf8')));
 
   test('tracks_json_has_meta',   () => assert.ok('_meta'  in data, 'missing _meta key'));
   test('tracks_json_has_tracks', () => assert.ok('tracks' in data, 'missing tracks key'));
   test('tracks_json_count', () => {
-    const count = (data.tracks || []).length;
-    assert.strictEqual(count, 19, `expected 19 tracks, got ${count}`);
-  });
+		const count = getTracks(data).length;
+		assert.strictEqual(count, 19, `expected 19 tracks, got ${count}`);
+	});
 
   const requiredFields = [
     'index', 'name', 'slug', 'track_length',
@@ -334,8 +335,8 @@ function testTracksJsonStructure() {
     'phys_slope_decompressed',
   ];
 
-  for (const track of (data.tracks || [])) {
-    for (const field of requiredFields) {
+	for (const track of getTracks(data)) {
+		for (const field of requiredFields) {
       test(`tracks_json_field[${track.slug || '?'}].${field}`, () => {
         assert.ok(field in track,
           `track ${track.slug || '?'} missing field '${field}'`);

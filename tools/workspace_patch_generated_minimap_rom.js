@@ -7,7 +7,10 @@ const os = require('os');
 const { execFileSync } = require('child_process');
 
 const { parseArgs, die, info } = require('./lib/cli');
+const { assertWorkspacePath, assertWorkspaceContainsTarget } = require('./lib/workspace_guard');
 const { loadTracksData } = require('./lib/minimap_analysis');
+const { getTracks, requireTracksDataShape } = require('./randomizer/track_model');
+const { isRuntimeSafeRandomized } = require('./randomizer/track_metadata');
 
 function runNodeTool(toolPath, args) {
 	execFileSync('node', [toolPath, ...args], {
@@ -25,7 +28,7 @@ function buildSelectedTracksInput(sourceJsonPath, trackArg) {
 	const wanted = new Set(String(trackArg).split(',').map(value => value.trim()).filter(Boolean));
 	if (wanted.size === 0) return sourceJsonPath;
 	const tracksData = loadTracksData(sourceJsonPath);
-	const selected = (tracksData.tracks || []).filter(track => wanted.has(track.slug));
+	const selected = getTracks(tracksData).filter(track => wanted.has(track.slug));
 	if (selected.length === 0) die(`no tracks matched --track=${trackArg}`);
 	const tempPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'smgp-minimap-workspace-')), 'tracks.json');
 	fs.writeFileSync(tempPath, JSON.stringify({ ...tracksData, tracks: selected }, null, 2));
@@ -34,17 +37,29 @@ function buildSelectedTracksInput(sourceJsonPath, trackArg) {
 
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
-		flags: ['--all'],
+		flags: ['--all', '--allow-root-mutation'],
 		options: ['--workspace', '--rom', '--lst', '--runtime-asm', '--track'],
 	});
 
 	const workspaceArg = args.options['--workspace'];
 	if (!workspaceArg) die('missing required option: --workspace');
 	const workspacePath = path.resolve(workspaceArg);
+	const allowRootMutation = args.flags['--allow-root-mutation'];
+	try {
+		assertWorkspacePath(workspacePath, { allowRootMutation });
+	} catch (err) {
+		die(err.message);
+	}
 	ensureFile(workspacePath, 'workspace');
 
 	const romPath = path.resolve(args.options['--rom'] || path.join(workspacePath, 'out.bin'));
 	const workspaceTracksJson = path.join(workspacePath, 'tools', 'data', 'tracks.json');
+	try {
+		assertWorkspaceContainsTarget(workspacePath, romPath, 'workspace rom', { allowRootMutation });
+		assertWorkspaceContainsTarget(workspacePath, workspaceTracksJson, 'workspace tracks json', { allowRootMutation });
+	} catch (err) {
+		die(err.message);
+	}
 	ensureFile(romPath, 'workspace rom');
 	ensureFile(workspaceTracksJson, 'workspace tracks json');
 	const selectedInputJson = buildSelectedTracksInput(workspaceTracksJson, args.options['--track']);
@@ -71,12 +86,10 @@ function main() {
 	else minimapPosArgs.push('--all');
 	runNodeTool(minimapPosTool, minimapPosArgs);
 
-	const tracksData = JSON.parse(fs.readFileSync(workspaceTracksJson, 'utf8'));
-	const selectedTracksData = JSON.parse(fs.readFileSync(selectedInputJson, 'utf8'));
-	const randomizedCount = Array.isArray(tracksData.tracks)
-		? tracksData.tracks.filter(track => track && track._runtime_safe_randomized === true).length
-		: 0;
-	const patchedTrackCount = Array.isArray(selectedTracksData.tracks) ? selectedTracksData.tracks.length : 0;
+	const tracksData = requireTracksDataShape(JSON.parse(fs.readFileSync(workspaceTracksJson, 'utf8')));
+	const selectedTracksData = requireTracksDataShape(JSON.parse(fs.readFileSync(selectedInputJson, 'utf8')));
+	const randomizedCount = getTracks(tracksData).filter(track => isRuntimeSafeRandomized(track)).length;
+	const patchedTrackCount = getTracks(selectedTracksData).length;
 	const romSize = fs.statSync(romPath).size;
 
 	info(`Patched generated minimap assets into ${path.relative(process.cwd(), romPath)}`);

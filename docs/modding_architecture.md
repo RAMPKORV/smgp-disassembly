@@ -221,10 +221,13 @@ result, writes modified JSON and binary files, and assembles the ROM.
 # Generate a randomized ROM in an isolated workspace (recommended):
 node tools/hack_workdir.js SMGP-1-01-12345
 
-# Or: randomize in-place (modifies data/ directly; use with care):
-node tools/randomize.js SMGP-1-01-12345
+# Or: inspect the workspace-safe plan without mutating anything:
+node tools/randomize.js SMGP-1-01-12345 --dry-run
 
-# Restore the original track data after in-place randomization:
+# Or: debug in-root with an explicit checkpoint (use with care):
+node tools/randomize.js SMGP-1-01-12345 --in-root
+
+# Restore the original track data and clear any in-root checkpoint:
 node tools/restore_tracks.js --verify
 ```
 
@@ -233,10 +236,11 @@ The randomizer pipeline internally:
 1. Reads `tools/data/tracks.json` (Layer 3).
 2. Randomizes all 19 tracks in memory using sub-seeded PRNG instances.
 3. Validates all generated tracks with `track_validator.js`.
-4. Backs up `tools/data/tracks.json` → `tools/data/tracks.orig.json`.
-5. Writes modified `tools/data/tracks.json`.
-6. Calls `inject_track_data.js` to push binary files to `data/tracks/`.
-7. Calls `build.bat` — checks assembler exit 0 with "0 error(s)".
+4. In workspace-safe mode, performs the mutations in the isolated workspace.
+5. In explicit `--in-root` mode, creates an in-root checkpoint under `build/checkpoints/in_root_debug/` before mutating tracked inputs.
+6. Writes modified `tools/data/tracks.json` and related generated files.
+7. Calls `inject_track_data.js` to push binary files to `data/tracks/`.
+8. Calls `build.bat` — checks assembler exit 0 with "0 error(s)".
 
 Because `verify.bat` compares against the original ROM hash, it will always
 fail after randomization.  The correct success gate for a randomized build is
@@ -370,7 +374,7 @@ This produces `out_SMGP-1-01-12345.bin` in the repo root.
 |--------------------------------------------|-----------------------------------|
 | Sharing a ROM with another person          | `hack_workdir.js`                 |
 | Testing a specific seed non-destructively  | `hack_workdir.js`                 |
-| Developing / debugging the randomizer      | `randomize.js --dry-run` in-place |
+| Developing / debugging the randomizer      | `randomize.js --dry-run`, then `--in-root` only if needed |
 | Editing track data manually and building   | Direct in-place workflow (§5)     |
 | Confirming an original ROM is bit-perfect  | `verify.bat` directly             |
 

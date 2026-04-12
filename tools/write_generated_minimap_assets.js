@@ -8,6 +8,7 @@ const { parseArgs, die, info } = require('./lib/cli');
 const { REPO_ROOT } = require('./lib/rom');
 const { loadTracksData } = require('./lib/minimap_analysis');
 const { buildGeneratedMinimapAssetsAsm } = require('./lib/generated_minimap_assets');
+const { getTracks } = require('./randomizer/track_model');
 
 const OUTPUT_REL = 'data/tracks/generated_minimap_data.asm';
 
@@ -21,9 +22,10 @@ function main() {
 	});
 	const tracksData = loadTracksData(args.options['--input'] || undefined);
 	const outputPath = path.resolve(REPO_ROOT, args.options['--output'] || OUTPUT_REL);
-	if (!tracksData || !Array.isArray(tracksData.tracks)) die('missing tracks data');
+	const tracks = getTracks(tracksData);
+	if (tracks.length === 0) die('missing tracks data');
 	fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-	fs.writeFileSync(outputPath, buildAsm(tracksData.tracks), 'utf8');
+	fs.writeFileSync(outputPath, buildAsm(tracks), 'utf8');
 	info(`Wrote ${path.relative(REPO_ROOT, outputPath)}`);
 }
 

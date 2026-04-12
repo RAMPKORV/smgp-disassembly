@@ -40,9 +40,11 @@ const crypto           = require('crypto');
 const fs               = require('fs');
 const path             = require('path');
 const { execFileSync, spawnSync } = require('child_process');
-const { parseArgs, die } = require('./lib/cli');
+const { parseArgs, die, printJson, printUsage } = require('./lib/cli');
 const { REPO_ROOT, ROM_SIZE }    = require('./lib/rom');
 const { patchRomChecksum } = require('./patch_rom_checksum');
+const { runBuild } = require('./randomize_build');
+const { getTracks, requireTracksDataShape } = require('./randomizer/track_model');
 const { buildGeneratedTrackBlock, measureAsmDataLayout } = require('./generate_track_data_asm');
 
 const MONACO_INLINE_BLOB_PAD_BYTES = 2399;
@@ -52,6 +54,24 @@ const MONACO_INLINE_BLOB_PAD_BYTES = 2399;
 // ---------------------------------------------------------------------------
 const WORKSPACES = path.join(REPO_ROOT, 'build', 'workspaces');
 const ROM_OUTPUTS = path.join(REPO_ROOT, 'build', 'roms');
+const WORKSPACE_TEMPLATE_DIR = path.join(WORKSPACES, '_template');
+const USAGE_TEXT = [
+	'Usage: node tools/hack_workdir.js SMGP-<v>-<flags_hex>-<decimal> [options]',
+	'       node tools/hack_workdir.js --list [--json]',
+	'',
+	'Options:',
+	'  --output, -o <path>  Output ROM path',
+	'  --workspace <path>   Override workspace directory',
+	'  --tracks <list>      Restrict track randomization to selected slugs',
+	'  --keep               Preserve the workspace on success',
+	'  --force              Refresh an existing workspace in place',
+	'  --dry-run            Show resolved paths without creating files',
+	'  --json               Emit machine-readable output for --dry-run/--list',
+	'  --use-working-tree   Use current ASM files as the workspace base (default)',
+	'  --use-git-head       Use tracked HEAD ASM files as the workspace base',
+	'  --verbose, -v        Show additional progress output',
+	'  --help, -h           Show this help text',
+].join('\n');
 
 // ---------------------------------------------------------------------------
 // Seed validation
@@ -104,6 +124,11 @@ function copySelectedToolFiles(repoRoot, wsDir, verbose) {
 	let totalFiles = 0;
 	const toolFiles = [
 		'randomize.js',
+		'randomizer_plan.js',
+		'randomize_actions.js',
+		'randomize_track_support.js',
+		'randomize_modules.js',
+		'randomize_build.js',
 		'patch_rom_checksum.js',
 		'patch_preview_minimap_raw_rom.js',
 		'patch_generated_minimap_rom.js',
@@ -286,6 +311,56 @@ function runRandomizer(wsDir, seedStr, verbose, options = {}) {
   return { success, output };
 }
 
+function removeDirContents(dirPath) {
+	if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return;
+	for (const entry of fs.readdirSync(dirPath)) {
+		fs.rmSync(path.join(dirPath, entry), { recursive: true, force: true });
+	}
+}
+
+function copyWorkspaceTemplate(templateDir, wsDir, verbose) {
+	fs.cpSync(templateDir, wsDir, { recursive: true });
+	if (verbose) console.log(`  copy: template -> ${path.relative(REPO_ROOT, wsDir)}`);
+	return true;
+}
+
+function refreshWorkspaceFromTemplate(templateDir, wsDir, verbose) {
+	const mutablePaths = [
+		['src'],
+		['data', 'tracks'],
+		['tools', 'data'],
+	];
+	for (const parts of mutablePaths) {
+		const srcPath = path.join(templateDir, ...parts);
+		const dstPath = path.join(wsDir, ...parts);
+		if (!fs.existsSync(srcPath)) continue;
+		fs.rmSync(dstPath, { recursive: true, force: true });
+		fs.cpSync(srcPath, dstPath, { recursive: true });
+	}
+	for (const fileName of ['out.bin', 'smgp.lst', 'smgp_head.lst', 'randomizer.log']) {
+		fs.rmSync(path.join(wsDir, fileName), { force: true });
+	}
+	if (verbose) console.log(`  refresh: mutable workspace inputs from template -> ${path.relative(REPO_ROOT, wsDir)}`);
+}
+
+function ensureWorkspaceTemplate(repoRoot, verbose, options = {}) {
+	const useWorkingTreeAsm = options.useWorkingTreeAsm === true;
+	const markerPath = path.join(WORKSPACE_TEMPLATE_DIR, '.template-ready.json');
+	const desiredMarker = JSON.stringify({ asmBase: useWorkingTreeAsm ? 'working-tree' : 'git-head' });
+	if (fs.existsSync(WORKSPACE_TEMPLATE_DIR) && fs.existsSync(markerPath)) {
+		try {
+			if (fs.readFileSync(markerPath, 'utf8').trim() === desiredMarker) return { reused: true };
+		} catch (_) {
+			// fall through to rebuild
+		}
+	}
+	fs.mkdirSync(WORKSPACE_TEMPLATE_DIR, { recursive: true });
+	removeDirContents(WORKSPACE_TEMPLATE_DIR);
+	const fileCount = copyBuildFiles(repoRoot, WORKSPACE_TEMPLATE_DIR, verbose, options);
+	fs.writeFileSync(markerPath, desiredMarker, 'utf8');
+	return { reused: false, fileCount };
+}
+
 function loadRepoBaselineSymbolMap() {
 	const merged = new Map();
 	const lstPath = path.join(REPO_ROOT, 'smgp.lst');
@@ -445,22 +520,6 @@ function patchWorkspaceRomHeaderEnd(romPath) {
 		newRomEnd,
 		changed: oldRomEnd !== newRomEnd,
 	};
-}
-
-/**
- * Run build.bat in the workspace.
- * Returns { success, output }.
- * Success requires exit code 0 and '0 error(s)' in output.
- */
-function runBuild(wsDir) {
-  const result = spawnSync('cmd', ['/c', 'build.bat'], {
-    cwd:      wsDir,
-    encoding: 'utf8',
-  });
-  const output  = (result.stdout || '') + (result.stderr || '');
-  if (result.status !== 0) return { success: false, output };
-  if (output.includes('0 error(s)')) return { success: true, output };
-  return { success: false, output };
 }
 
 function patchWorkspaceGeneratedMinimap(wsDir, verbose, options = {}) {
@@ -651,13 +710,13 @@ function restoreWorkspaceTracksFromBackup(wsDir) {
 
 	fs.copyFileSync(tracksOrigPath, tracksPath);
 
-	const tracksData = JSON.parse(fs.readFileSync(tracksOrigPath, 'utf8'));
+	const tracksData = requireTracksDataShape(JSON.parse(fs.readFileSync(tracksOrigPath, 'utf8')));
 	const injectorPath = path.resolve(wsDir, 'tools', 'inject_track_data.js');
 	const syncPath = path.resolve(wsDir, 'tools', 'sync_track_config.js');
 	const { injectTrack } = require(injectorPath);
 	const { buildSyncedTrackConfig } = require(syncPath);
 	const dataDir = path.join(wsDir, 'data', 'tracks');
-	for (const track of tracksData.tracks || []) {
+	for (const track of getTracks(tracksData)) {
 		injectTrack(track, dataDir, false, false);
 	}
 
@@ -713,7 +772,8 @@ function restoreWorkspaceTracksFromCanonicalSnapshot(wsDir) {
 
 function prepareWorkspaceCanonicalData(wsDir) {
 	try {
-		return { restoredFromBackup: false, restoredFromSnapshot: null, baselineLst: writeWorkspaceBaselineLst(wsDir) };
+		writeWorkspaceBaselineLst(wsDir);
+		return { restoredFromBackup: false, restoredFromSnapshot: null };
 	} catch (error) {
 		const message = String(error && error.message);
 		if (!/Workspace baseline ROM does not match orig\.bin/.test(message) && !/orig\.bin/.test(message)) {
@@ -721,7 +781,8 @@ function prepareWorkspaceCanonicalData(wsDir) {
 		}
 		const restored = restoreWorkspaceTracksFromBackup(wsDir);
 		if (restored) {
-			return { restoredFromBackup: true, restoredFromSnapshot: null, baselineLst: writeWorkspaceBaselineLst(wsDir) };
+			writeWorkspaceBaselineLst(wsDir);
+			return { restoredFromBackup: true, restoredFromSnapshot: null };
 		}
 		const snapshotDir = restoreWorkspaceTracksFromCanonicalSnapshot(wsDir);
 		if (!snapshotDir) throw error;
@@ -732,7 +793,8 @@ function prepareWorkspaceCanonicalData(wsDir) {
 				followupBuild.output
 			);
 		}
-		return { restoredFromBackup: false, restoredFromSnapshot: snapshotDir, baselineLst: writeWorkspaceBaselineLst(wsDir) };
+		writeWorkspaceBaselineLst(wsDir);
+		return { restoredFromBackup: false, restoredFromSnapshot: snapshotDir };
 	}
 }
 
@@ -768,35 +830,69 @@ function writeLog(wsDir, seedStr, randOutput, buildOutput, success, elapsedSecs,
 // ---------------------------------------------------------------------------
 // List workspaces
 // ---------------------------------------------------------------------------
-function listWorkspaces() {
-  if (!fs.existsSync(WORKSPACES) || !fs.statSync(WORKSPACES).isDirectory()) {
-    console.log('No workspaces directory found.');
-    return;
-  }
-  const entries = fs.readdirSync(WORKSPACES).sort();
-  if (entries.length === 0) {
-    console.log('No workspaces found.');
-    return;
-  }
-  console.log(`Workspaces in ${WORKSPACES}:`);
-  for (const name of entries) {
-    const ws      = path.join(WORKSPACES, name);
-    const logFile = path.join(ws, 'randomizer.log');
-    const romFile = path.join(ws, 'out.bin');
-    const romInfo = fs.existsSync(romFile)
-      ? `  ROM: ${fs.statSync(romFile).size.toLocaleString()} bytes`
-      : '  ROM: not found';
-    let resultStr = '';
-    if (fs.existsSync(logFile)) {
-      for (const line of fs.readFileSync(logFile, 'utf8').split('\n')) {
-        if (line.startsWith('Result')) {
-          resultStr = `  ${line.trim()}`;
-          break;
-        }
-      }
-    }
-    console.log(`  ${name}${romInfo}${resultStr}`);
-  }
+function getWorkspaceResult(logFile) {
+	if (!fs.existsSync(logFile)) return null;
+	for (const line of fs.readFileSync(logFile, 'utf8').split('\n')) {
+		if (line.startsWith('Result')) {
+			const match = /Result\s*:\s*(\S+)/.exec(line);
+			return match ? match[1] : line.trim();
+		}
+	}
+	return null;
+}
+
+function collectWorkspaceEntries() {
+	if (!fs.existsSync(WORKSPACES) || !fs.statSync(WORKSPACES).isDirectory()) {
+		return {
+			tool: 'hack_workdir',
+			workspacesDir: WORKSPACES,
+			workspaces: [],
+		};
+	}
+	const entries = fs.readdirSync(WORKSPACES).sort().map(name => {
+		const ws = path.join(WORKSPACES, name);
+		const logFile = path.join(ws, 'randomizer.log');
+		const romFile = path.join(ws, 'out.bin');
+		return {
+			name,
+			path: ws,
+			rom: {
+				exists: fs.existsSync(romFile),
+				size: fs.existsSync(romFile) ? fs.statSync(romFile).size : null,
+			},
+			result: getWorkspaceResult(logFile),
+		};
+	});
+	return {
+		tool: 'hack_workdir',
+		workspacesDir: WORKSPACES,
+		workspaces: entries,
+	};
+}
+
+function listWorkspaces(options = {}) {
+	const summary = collectWorkspaceEntries();
+	if (options.json) {
+		printJson(summary);
+		return summary;
+	}
+	if (!fs.existsSync(WORKSPACES) || !fs.statSync(WORKSPACES).isDirectory()) {
+		console.log('No workspaces directory found.');
+		return summary;
+	}
+	if (summary.workspaces.length === 0) {
+		console.log('No workspaces found.');
+		return summary;
+	}
+	console.log(`Workspaces in ${WORKSPACES}:`);
+	for (const entry of summary.workspaces) {
+		const romInfo = entry.rom.exists
+			? `  ROM: ${entry.rom.size.toLocaleString()} bytes`
+			: '  ROM: not found';
+		const resultStr = entry.result ? `  Result: ${entry.result}` : '';
+		console.log(`  ${entry.name}${romInfo}${resultStr}`);
+	}
+	return summary;
 }
 
 // ---------------------------------------------------------------------------
@@ -804,7 +900,7 @@ function listWorkspaces() {
 // ---------------------------------------------------------------------------
 function main() {
   const args = parseArgs(process.argv.slice(2), {
-		flags:   ['--keep', '--dry-run', '--list', '--force', '--use-working-tree', '--use-git-head', '--verbose', '-v'],
+		flags:   ['--keep', '--dry-run', '--list', '--force', '--use-working-tree', '--use-git-head', '--json', '--verbose', '-v', '--help', '-h'],
     options: ['--output', '-o', '--workspace', '--tracks'],
   });
 
@@ -812,25 +908,32 @@ function main() {
   const dryRun  = args.flags['--dry-run'];
   const list    = args.flags['--list'];
   const force   = args.flags['--force'];
+	const jsonOut = args.flags['--json'];
 	const useWorkingTreeAsm = args.flags['--use-git-head'] ? false : true;
   const verbose = args.flags['--verbose'] || args.flags['-v'];
   const outputArg    = args.options['--output'] || args.options['-o'] || null;
   const workspaceArg = args.options['--workspace'] || null;
   const tracksArg = args.options['--tracks'] || null;
 
+	if (args.flags['--help'] || args.flags['-h']) {
+		printUsage(USAGE_TEXT);
+		return;
+	}
+
+	if (jsonOut && !dryRun && !list) {
+		die('--json is currently supported only with --dry-run or --list.');
+	}
+
   // --list
   if (list) {
-    listWorkspaces();
+		listWorkspaces({ json: jsonOut });
     return;
   }
 
   // Require seed
   const seedStr = (args.positional || [])[0];
   if (!seedStr) {
-    process.stderr.write(
-      'Usage: node tools/hack_workdir.js SMGP-<v>-<flags_hex>-<decimal> [options]\n' +
-      '       node tools/hack_workdir.js --list\n'
-    );
+		printUsage(USAGE_TEXT, { stderr: true });
     process.exit(1);
   }
 
@@ -856,16 +959,34 @@ function main() {
     ? (path.isAbsolute(outputArg) ? outputArg : path.join(REPO_ROOT, outputArg))
     : defaultOut;
 
-  console.log(`Seed      : ${seedStr}`);
-  console.log(`Version   : ${version}`);
-  console.log(`Flags     : 0x${flags.toString(16).toUpperCase().padStart(2, '0')}`);
-  if (tracksArg) console.log(`Tracks    : ${tracksArg}`);
-  console.log(`Workspace : ${wsDir}`);
-  console.log(`Output    : ${outputPath}`);
-	console.log(`ASM base  : ${useWorkingTreeAsm ? 'working tree' : 'git HEAD'}`);
+	if (!jsonOut) {
+		console.log(`Seed      : ${seedStr}`);
+		console.log(`Version   : ${version}`);
+		console.log(`Flags     : 0x${flags.toString(16).toUpperCase().padStart(2, '0')}`);
+		if (tracksArg) console.log(`Tracks    : ${tracksArg}`);
+		console.log(`Workspace : ${wsDir}`);
+		console.log(`Output    : ${outputPath}`);
+		console.log(`ASM base  : ${useWorkingTreeAsm ? 'working tree' : 'git HEAD'}`);
+	}
 
   if (dryRun) {
-    console.log('\nDRY RUN — no files will be created or modified.');
+		if (jsonOut) {
+			printJson({
+				tool: 'hack_workdir',
+				mode: 'dry_run',
+				seed: seedStr,
+				version,
+				flags,
+				tracks: tracksArg,
+				workspace: wsDir,
+				output: outputPath,
+				asmBase: useWorkingTreeAsm ? 'working_tree' : 'git_head',
+				keep,
+				force,
+			});
+			return;
+		}
+		console.log('\nDRY RUN — no files will be created or modified.');
     return;
   }
 
@@ -873,34 +994,52 @@ function main() {
   fs.mkdirSync(WORKSPACES, { recursive: true });
   fs.mkdirSync(ROM_OUTPUTS, { recursive: true });
 
-  // Handle existing workspace
-  if (fs.existsSync(wsDir)) {
-    if (force) {
-      console.log(`\nRemoving existing workspace: ${wsDir}`);
-      fs.rmSync(wsDir, { recursive: true, force: true });
-    } else {
-      process.stderr.write(`\nERROR: Workspace already exists: ${wsDir}\n`);
-      process.stderr.write('Use --force to overwrite or --list to see existing workspaces.\n');
+	// Handle existing workspace
+	let refreshExistingWorkspace = false;
+	if (fs.existsSync(wsDir)) {
+		if (force) {
+			console.log(`\nRefreshing existing workspace: ${wsDir}`);
+			refreshExistingWorkspace = true;
+		} else {
+			process.stderr.write(`\nERROR: Workspace already exists: ${wsDir}\n`);
+			process.stderr.write('Use --force to overwrite or --list to see existing workspaces.\n');
       process.exit(1);
     }
   }
 
-  // Create workspace
-  fs.mkdirSync(wsDir, { recursive: true });
-  console.log('\n[1/5] Creating workspace ...');
+	// Create workspace
+	if (!refreshExistingWorkspace) fs.mkdirSync(wsDir, { recursive: true });
+	console.log('\n[1/5] Creating workspace ...');
 
-  // Copy build files
-  console.log('[2/5] Copying build files ...');
-	const nFiles = copyBuildFiles(REPO_ROOT, wsDir, verbose, { useWorkingTreeAsm });
-  console.log(`      ${nFiles} files copied.`);
+	// Copy build files
+	console.log('[2/5] Copying build files ...');
+	const templateInfo = ensureWorkspaceTemplate(REPO_ROOT, verbose, { useWorkingTreeAsm });
+	if (refreshExistingWorkspace) refreshWorkspaceFromTemplate(WORKSPACE_TEMPLATE_DIR, wsDir, verbose);
+	else copyWorkspaceTemplate(WORKSPACE_TEMPLATE_DIR, wsDir, verbose);
+	const nFiles = templateInfo.fileCount || 0;
+	if (templateInfo.reused) console.log('      Reused cached workspace template.');
+	else console.log(`      Built workspace template (${nFiles} files).`);
+	if (refreshExistingWorkspace) console.log('      Refreshed mutable workspace inputs only.');
 
-  let baselineInfo;
-  try {
-    baselineInfo = prepareWorkspaceCanonicalData(wsDir);
-  } catch (err) {
-    process.stderr.write(`ERROR: ${err.message}\n`);
-    process.exit(1);
-  }
+	let baselineInfo;
+	const timing = {
+		copySecs: 0,
+		canonicalSecs: 0,
+		randomizerSecs: 0,
+		buildSecs: 0,
+		minimapPatchSecs: 0,
+	};
+	const copyStartedAt = Date.now();
+	try {
+		const afterCopy = Date.now();
+		timing.copySecs = (afterCopy - copyStartedAt) / 1000;
+		const canonicalStartedAt = Date.now();
+		baselineInfo = prepareWorkspaceCanonicalData(wsDir);
+		timing.canonicalSecs = (Date.now() - canonicalStartedAt) / 1000;
+	} catch (err) {
+		process.stderr.write(`ERROR: ${err.message}\n`);
+		process.exit(1);
+	}
 	if (baselineInfo && baselineInfo.restoredFromBackup) {
 		console.log('      Restored canonical track data from workspace backup before baseline build.');
 	}
@@ -920,10 +1059,11 @@ function main() {
   // Run randomizer
   console.log(`[3/5] Running randomizer (seed: ${seedStr}) ...`);
   const t0 = Date.now();
-  const { success: randOk, output: randOutput } = runRandomizer(wsDir, seedStr, verbose, {
+	const { success: randOk, output: randOutput } = runRandomizer(wsDir, seedStr, verbose, {
 		tracks: tracksArg,
 	});
-  const randElapsed = (Date.now() - t0) / 1000;
+	const randElapsed = (Date.now() - t0) / 1000;
+	timing.randomizerSecs = randElapsed;
 
   if (verbose || !randOk) {
     for (const line of randOutput.split('\n')) {
@@ -953,9 +1093,10 @@ function main() {
   // Build (verification step — randomize.js already calls build.bat internally)
   console.log('[4/5] Building ROM ...');
   const t1 = Date.now();
-  const { success: buildOk, output: buildOutput } = runBuild(wsDir);
-  const buildElapsed = (Date.now() - t1) / 1000;
-  let finalBuildOutput = buildOutput;
+	const { success: buildOk, output: buildOutput } = runBuild(wsDir);
+	const buildElapsed = (Date.now() - t1) / 1000;
+	timing.buildSecs = buildElapsed;
+	let finalBuildOutput = buildOutput;
 
   if (verbose || !buildOk) {
     for (const line of buildOutput.split('\n')) {
@@ -998,9 +1139,11 @@ function main() {
 
 	if (flags & 0x01) {
 		console.log('      Patching generated minimap data into workspace ROM ...');
+		const minimapPatchStartedAt = Date.now();
 		const { success: minimapPatchOk, output: minimapPatchOutput } = patchWorkspaceGeneratedMinimap(wsDir, verbose, {
 			tracks: tracksArg,
 		});
+		timing.minimapPatchSecs = (Date.now() - minimapPatchStartedAt) / 1000;
 		finalBuildOutput += `\n\n[GENERATED MINIMAP PATCH]\n${minimapPatchOutput}`;
 		if (verbose || !minimapPatchOk) {
 			for (const line of minimapPatchOutput.split('\n')) {
@@ -1036,8 +1179,9 @@ function main() {
   }
 
   // Write log
-  const logPath = writeLog(wsDir, seedStr, randOutput, finalBuildOutput, true, totalElapsed, outputPath);
-  console.log(`      Log:     ${logPath}`);
+	const logPath = writeLog(wsDir, seedStr, randOutput, finalBuildOutput, true, totalElapsed, outputPath);
+	console.log(`      Log:     ${logPath}`);
+	console.log(`      Timing:  copy ${timing.copySecs.toFixed(1)}s, canonical ${timing.canonicalSecs.toFixed(1)}s, randomizer ${timing.randomizerSecs.toFixed(1)}s, build ${timing.buildSecs.toFixed(1)}s, minimap ${timing.minimapPatchSecs.toFixed(1)}s`);
 
   // Clean up workspace unless --keep
   if (!keep) {

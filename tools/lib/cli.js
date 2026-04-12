@@ -14,6 +14,10 @@
 
 'use strict';
 
+function writeLine(stream, message) {
+	stream.write(message.endsWith('\n') ? message : `${message}\n`);
+}
+
 /**
  * Parse a flat argv array into flags (boolean) and options (key=value).
  *
@@ -75,7 +79,7 @@ function parseArgs(argv, spec = {}) {
  * @param {string} message
  */
 function die(message) {
-  process.stderr.write(`ERROR: ${message}\n`);
+  writeLine(process.stderr, `ERROR: ${message}`);
   process.exit(1);
 }
 
@@ -84,7 +88,7 @@ function die(message) {
  * @param {string} message
  */
 function info(message) {
-  process.stdout.write(`${message}\n`);
+  writeLine(process.stdout, message);
 }
 
 /**
@@ -92,7 +96,15 @@ function info(message) {
  * @param {string} message
  */
 function warn(message) {
-  process.stderr.write(`WARNING: ${message}\n`);
+  writeLine(process.stderr, `WARNING: ${message}`);
+}
+
+function printUsage(message, options = {}) {
+	writeLine(options.stderr ? process.stderr : process.stdout, message);
+}
+
+function printJson(value) {
+	writeLine(process.stdout, JSON.stringify(value, null, 2));
 }
 
 module.exports = {
@@ -100,4 +112,6 @@ module.exports = {
   die,
   info,
   warn,
+  printUsage,
+  printJson,
 };

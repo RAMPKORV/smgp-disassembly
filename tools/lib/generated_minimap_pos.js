@@ -1,16 +1,15 @@
 'use strict';
 
-const {
-	generateMinimapPairsFromTrack,
-	sampleClosedPath,
-} = require('./minimap_analysis');
-const { buildGeneratedMinimapPreview } = require('./minimap_render');
-
 function clampSignedByte(value) {
 	return Math.max(-128, Math.min(127, Math.round(value)));
 }
 
 function buildGeneratedMinimapPosPairs(track) {
+	const { buildGeneratedMinimapPreview } = require('./minimap_render');
+	const {
+		generateMinimapPairsFromTrack,
+		sampleClosedPath,
+	} = require('./minimap_analysis');
 	const preview = buildGeneratedMinimapPreview(track);
 	let centerline = Array.isArray(preview.centerline_points)
 		? preview.centerline_points.map(([x, y]) => [x, y])

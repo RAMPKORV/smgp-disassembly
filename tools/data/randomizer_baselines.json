@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "seeds": {
+    "SMGP-1-01-42": {
+      "aggregate": {
+        "track_count": 19,
+        "candidate_marker_mean_distance": 0,
+        "candidate_marker_hit_percent": 100,
+        "preview_self_intersections": 2.37,
+        "preview_branch_pixel_count": 497.16,
+        "curve_map_sign_match_percent": 77,
+        "curve_map_strength_error": 0.0033,
+        "generated_marker_offroad_count": 19,
+        "candidate_marker_offroad_count": 0,
+        "curve_map_left_right_mismatch_count": 6,
+        "curve_map_phase_mismatch_count": 16,
+        "curve_map_strength_mismatch_count": 0
+      },
+      "tracks": {
+        "san_marino": {
+          "track_length": 7040,
+          "curve_count": 14,
+          "straight_count": 14,
+          "longest_straight_length": 161,
+          "ultra_sharp_curve_count": 0,
+          "sign_data_count": 20,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 110,
+          "preview_transform": "flipxy",
+          "preview_tile_count": 55,
+          "preview_self_intersections": 4,
+          "preview_branch_pixel_count": 736,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 90.18,
+          "active_flags": [
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad",
+            "too_fat"
+          ],
+          "minimap_anchor_pairs": [
+            [63, 45],
+            [55, 18],
+            [16, 16],
+            [32, 26],
+            [63, 12],
+            [59, 45]
+          ]
+        },
+        "brazil": {
+          "track_length": 6976,
+          "curve_count": 17,
+          "straight_count": 18,
+          "longest_straight_length": 65,
+          "ultra_sharp_curve_count": 2,
+          "sign_data_count": 17,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 109,
+          "preview_transform": "identity",
+          "preview_tile_count": 32,
+          "preview_self_intersections": 2,
+          "preview_branch_pixel_count": 470,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 59.44,
+          "active_flags": [
+            "generated_marker_offroad",
+            "too_fat"
+          ],
+          "minimap_anchor_pairs": [
+            [42, 10],
+            [2, 17],
+            [37, 19],
+            [65, 46],
+            [76, 33],
+            [44, 10]
+          ]
+        },
+        "portugal": {
+          "track_length": 6592,
+          "curve_count": 17,
+          "straight_count": 15,
+          "longest_straight_length": 73,
+          "ultra_sharp_curve_count": 0,
+          "sign_data_count": 17,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 103,
+          "preview_transform": "flipxy",
+          "preview_tile_count": 25,
+          "preview_self_intersections": 3,
+          "preview_branch_pixel_count": 440,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 80.5,
+          "active_flags": [
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad"
+          ],
+          "minimap_anchor_pairs": [
+            [49, 21],
+            [39, 40],
+            [37, 38],
+            [45, 14],
+            [41, 8],
+            [47, 22]
+          ]
+        },
+        "monaco": {
+          "track_length": 6144,
+          "curve_count": 15,
+          "straight_count": 15,
+          "longest_straight_length": 108,
+          "ultra_sharp_curve_count": 0,
+          "sign_data_count": 16,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 96,
+          "preview_transform": "flipxy",
+          "preview_tile_count": 40,
+          "preview_self_intersections": 6,
+          "preview_branch_pixel_count": 617,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 48.39,
+          "active_flags": [
+            "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad",
+            "too_fat"
+          ],
+          "minimap_anchor_pairs": [
+            [40, 29],
+            [71, 12],
+            [38, 48],
+            [18, 48],
+            [64, 45],
+            [37, 29]
+          ]
+        }
+      }
+    },
+    "SMGP-1-01-12345": {
+      "aggregate": {
+        "track_count": 19,
+        "candidate_marker_mean_distance": 0,
+        "candidate_marker_hit_percent": 100,
+        "preview_self_intersections": 1.89,
+        "preview_branch_pixel_count": 475.53,
+        "curve_map_sign_match_percent": 69.98,
+        "curve_map_strength_error": 0.0035,
+        "generated_marker_offroad_count": 19,
+        "candidate_marker_offroad_count": 0,
+        "curve_map_left_right_mismatch_count": 7,
+        "curve_map_phase_mismatch_count": 11,
+        "curve_map_strength_mismatch_count": 0
+      },
+      "tracks": {
+        "san_marino": {
+          "track_length": 7040,
+          "curve_count": 19,
+          "straight_count": 16,
+          "longest_straight_length": 77,
+          "ultra_sharp_curve_count": 1,
+          "sign_data_count": 20,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 110,
+          "preview_transform": "flipxy",
+          "preview_tile_count": 15,
+          "preview_self_intersections": 1,
+          "preview_branch_pixel_count": 210,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 45.57,
+          "active_flags": [
+            "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad"
+          ],
+          "minimap_anchor_pairs": [
+            [39, 16],
+            [48, 24],
+            [51, 42],
+            [45, 37],
+            [49, 17],
+            [40, 16]
+          ]
+        },
+        "brazil": {
+          "track_length": 6976,
+          "curve_count": 21,
+          "straight_count": 20,
+          "longest_straight_length": 52,
+          "ultra_sharp_curve_count": 1,
+          "sign_data_count": 20,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 109,
+          "preview_transform": "identity",
+          "preview_tile_count": 49,
+          "preview_self_intersections": 1,
+          "preview_branch_pixel_count": 580,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 56.07,
+          "active_flags": [
+            "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad",
+            "too_fat"
+          ],
+          "minimap_anchor_pairs": [
+            [69, 22],
+            [55, 6],
+            [30, 37],
+            [6, 23],
+            [31, 48],
+            [67, 23]
+          ]
+        },
+        "portugal": {
+          "track_length": 6592,
+          "curve_count": 23,
+          "straight_count": 22,
+          "longest_straight_length": 80,
+          "ultra_sharp_curve_count": 0,
+          "sign_data_count": 20,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 103,
+          "preview_transform": "identity",
+          "preview_tile_count": 40,
+          "preview_self_intersections": 1,
+          "preview_branch_pixel_count": 480,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 37.5,
+          "active_flags": [
+            "curve_map_left_right_mismatch",
+            "generated_marker_offroad",
+            "pair_desync",
+            "too_fat"
+          ],
+          "minimap_anchor_pairs": [
+            [29, 12],
+            [25, 37],
+            [30, 37],
+            [63, 51],
+            [65, 15],
+            [32, 12]
+          ]
+        },
+        "monaco": {
+          "track_length": 6144,
+          "curve_count": 18,
+          "straight_count": 18,
+          "longest_straight_length": 68,
+          "ultra_sharp_curve_count": 2,
+          "sign_data_count": 16,
+          "sign_tileset_count": 2,
+          "minimap_pos_count": 96,
+          "preview_transform": "flipy",
+          "preview_tile_count": 24,
+          "preview_self_intersections": 1,
+          "preview_branch_pixel_count": 327,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 49.38,
+          "active_flags": [
+            "curve_map_left_right_mismatch",
+            "generated_marker_offroad"
+          ],
+          "minimap_anchor_pairs": [
+            [35, 12],
+            [44, 2],
+            [56, 24],
+            [57, 51],
+            [47, 36],
+            [37, 12]
+          ]
+        }
+      }
+    }
+  }
+}

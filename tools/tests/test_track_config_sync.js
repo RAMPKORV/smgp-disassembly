@@ -12,6 +12,7 @@ const path = require('path');
 const { REPO_ROOT } = require('../lib/rom.js');
 const { readJson } = require('../lib/json.js');
 const { buildSyncedTrackConfig, TRACK_NAMES } = require('../sync_track_config.js');
+const { setRuntimeSafeRandomized } = require('../randomizer/track_metadata');
 
 let passed = 0;
 let failed = 0;
@@ -53,7 +54,7 @@ test('buildSyncedTrackConfig rewrites track length line from JSON', () => {
 
 test('buildSyncedTrackConfig keeps stock minimap labels even for randomized workspace tracks', () => {
 	const mutated = JSON.parse(JSON.stringify(tracksJson));
-	mutated.tracks[0]._runtime_safe_randomized = true;
+	setRuntimeSafeRandomized(mutated.tracks[0], true);
 	const result = buildSyncedTrackConfig(asmLines, mutated);
 	assert.ok(result.content.includes('\tdc.l\tMinimap_map_San_Marino ; San Marino tile mapping for minimap'));
 	assert.ok(result.content.includes('\tdc.l\tMinimap_tiles_San_Marino ; San Marino tiles used for minimap'));
@@ -61,8 +62,8 @@ test('buildSyncedTrackConfig keeps stock minimap labels even for randomized work
 
 test('buildSyncedTrackConfig preserves shared Monaco arcade stock minimap map label names', () => {
 	const mutated = JSON.parse(JSON.stringify(tracksJson));
-	mutated.tracks[17]._runtime_safe_randomized = true;
-	mutated.tracks[18]._runtime_safe_randomized = true;
+	setRuntimeSafeRandomized(mutated.tracks[17], true);
+	setRuntimeSafeRandomized(mutated.tracks[18], true);
 	const result = buildSyncedTrackConfig(asmLines, mutated);
 	assert.ok(result.content.includes('\tdc.l\tMinimap_map_Monaco_arcade ; Monaco (Arcade main) tile mapping for minimap'));
 	assert.ok(result.content.includes('\tdc.l\tMinimap_map_Monaco_arcade ; Monaco (Arcade Wet Condition) tile mapping for minimap'));

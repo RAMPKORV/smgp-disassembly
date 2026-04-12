@@ -347,6 +347,55 @@ const dryResult = spawnSync(
   { encoding: 'utf8' }
 );
 
+const dryRunTracks = 'san_marino portugal';
+const dryRunTracksResult = spawnSync(
+  'node',
+  [path.join(REPO_ROOT, 'tools', 'hack_workdir.js'), dryRunSeed, '--dry-run', '--tracks', dryRunTracks],
+  { encoding: 'utf8' }
+);
+
+const dryRunRelativeOutput = 'build/roms/custom_test_randomized.bin';
+const dryRunRelativeResult = spawnSync(
+  'node',
+  [path.join(REPO_ROOT, 'tools', 'hack_workdir.js'), dryRunSeed, '--dry-run', '--output', dryRunRelativeOutput],
+  { encoding: 'utf8' }
+);
+
+const dryRunAbsoluteWorkspace = path.join(os.tmpdir(), 'smgp-hack-workdir-dryrun');
+const dryRunAbsoluteOutput = path.join(os.tmpdir(), 'smgp-hack-workdir-output.bin');
+const dryRunAbsoluteResult = spawnSync(
+  'node',
+  [
+    path.join(REPO_ROOT, 'tools', 'hack_workdir.js'),
+    dryRunSeed,
+    '--dry-run',
+    '--workspace', dryRunAbsoluteWorkspace,
+    '--output', dryRunAbsoluteOutput,
+  ],
+  { encoding: 'utf8' }
+);
+
+const templateSeed = 'SMGP-1-01-99';
+const templateWorkspaceA = path.join(os.tmpdir(), 'smgp-hack-workdir-template-a');
+const templateWorkspaceB = path.join(os.tmpdir(), 'smgp-hack-workdir-template-b');
+fs.rmSync(templateWorkspaceA, { recursive: true, force: true });
+fs.rmSync(templateWorkspaceB, { recursive: true, force: true });
+const templateRun1 = spawnSync(
+  'node',
+  [path.join(REPO_ROOT, 'tools', 'hack_workdir.js'), templateSeed, '--dry-run'],
+  { encoding: 'utf8' }
+);
+const templateRun2 = spawnSync(
+  'node',
+  [path.join(REPO_ROOT, 'tools', 'hack_workdir.js'), templateSeed, '--workspace', templateWorkspaceA, '--output', path.join(os.tmpdir(), 'smgp-template-a.bin'), '--keep', '--force'],
+  { encoding: 'utf8', timeout: 120000 }
+);
+const templateRun3 = spawnSync(
+  'node',
+  [path.join(REPO_ROOT, 'tools', 'hack_workdir.js'), templateSeed, '--workspace', templateWorkspaceA, '--output', path.join(os.tmpdir(), 'smgp-template-b.bin'), '--keep', '--force'],
+  { encoding: 'utf8', timeout: 120000 }
+);
+
 test('--dry-run exits with code 0', () => {
   assert.strictEqual(dryResult.status, 0, `stderr: ${dryResult.stderr}`);
 });
@@ -363,6 +412,47 @@ test('--dry-run does NOT create the workspace directory', () => {
     !fs.existsSync(dryRunWs),
     `workspace dir should not exist after --dry-run: ${dryRunWs}`
   );
+});
+
+test('--dry-run prints default output path for hack workspace builds', () => {
+  assert.ok(
+    (dryResult.stdout || '').includes(path.join('build', 'roms', `out_${dryRunSeed}.bin`)),
+    `expected default output path in stdout: ${dryResult.stdout}`
+  );
+});
+
+test('--tracks affects default output filename suffix', () => {
+  assert.strictEqual(dryRunTracksResult.status, 0, `stderr: ${dryRunTracksResult.stderr}`);
+  assert.ok(
+    (dryRunTracksResult.stdout || '').includes(`out_${dryRunSeed}_san_marino_portugal.bin`),
+    `expected tracks suffix in stdout: ${dryRunTracksResult.stdout}`
+  );
+});
+
+test('relative --output resolves under repo root', () => {
+  assert.strictEqual(dryRunRelativeResult.status, 0, `stderr: ${dryRunRelativeResult.stderr}`);
+  assert.ok(
+    (dryRunRelativeResult.stdout || '').includes(path.join(REPO_ROOT, dryRunRelativeOutput)),
+    `expected resolved repo-root output path in stdout: ${dryRunRelativeResult.stdout}`
+  );
+});
+
+test('absolute --workspace and --output are preserved verbatim', () => {
+  assert.strictEqual(dryRunAbsoluteResult.status, 0, `stderr: ${dryRunAbsoluteResult.stderr}`);
+  const output = dryRunAbsoluteResult.stdout || '';
+  assert.ok(output.includes(`Workspace : ${dryRunAbsoluteWorkspace}`), `missing workspace path in stdout: ${output}`);
+  assert.ok(output.includes(`Output    : ${dryRunAbsoluteOutput}`), `missing output path in stdout: ${output}`);
+});
+
+test('workspace template cache is reused on subsequent runs', () => {
+  assert.strictEqual(templateRun2.status, 0, `stderr: ${templateRun2.stderr}`);
+  assert.strictEqual(templateRun3.status, 0, `stderr: ${templateRun3.stderr}`);
+  assert.ok((templateRun3.stdout || '').includes('Reused cached workspace template.'), `expected template reuse in stdout: ${templateRun3.stdout}`);
+});
+
+test('--force refreshes existing workspace instead of hard deleting it', () => {
+  assert.ok((templateRun3.stdout || '').includes('Refreshing existing workspace:'), `expected refresh message in stdout: ${templateRun3.stdout}`);
+  assert.ok((templateRun3.stdout || '').includes('Refreshed mutable workspace inputs only.'), `expected mutable refresh message in stdout: ${templateRun3.stdout}`);
 });
 
 // ---------------------------------------------------------------------------

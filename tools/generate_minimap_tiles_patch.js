@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseArgs, die, info } = require('./lib/cli');
+const { formatDcB } = require('./lib/asm_patch_helpers');
 const { loadTracksData, findTrack } = require('./lib/minimap_analysis');
 const { buildGeneratedMinimapPreview } = require('./lib/minimap_render');
 const { encodeTinyGraphics } = require('./minimap_graphics_codec');
@@ -34,15 +35,6 @@ function buildTileAtlas(preview) {
 	return tiles;
 }
 
-function formatDcB(bytes) {
-	const lines = [];
-	for (let i = 0; i < bytes.length; i += 32) {
-		const chunk = bytes.slice(i, i + 32);
-		lines.push(`\tdc.b\t${Array.from(chunk).map(v => `$${v.toString(16).toUpperCase().padStart(2, '0')}`).join(', ')}`);
-	}
-	return lines.join('\n');
-}
-
 function replaceLabelBlock(asmText, label, replacementBlock) {
 	const lines = asmText.split(/\r?\n/);
 	const labelLine = `${label}:`;
@@ -66,7 +58,7 @@ function main() {
 	const tiles = buildTileAtlas(preview);
 	const encoded = encodeTinyGraphics(tiles);
 	const asmText = fs.readFileSync(asmPath, 'utf8');
-	const updated = replaceLabelBlock(asmText, label, formatDcB(encoded));
+	const updated = replaceLabelBlock(asmText, label, formatDcB(encoded).join('\n'));
 	fs.writeFileSync(asmPath, updated, 'utf8');
 	info(`Patched ${label} in ${path.relative(process.cwd(), asmPath)}`);
 	info(`Tile count: ${tiles.length}`);

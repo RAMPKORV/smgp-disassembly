@@ -22,6 +22,13 @@
 
 const path = require('path');
 const {
+	TILESET_SIGN_ID_MAP,
+	TUNNEL_TILESET_OFFSET,
+	cyclicTrackDistance,
+	getSignRuntimeRowSpan,
+	isAllowedSignIdForTileset,
+} = require('./sign_utils');
+const {
 	getCurveOpeningStraightSteps,
 	getCurveClosingStraightSteps,
 	getFirstCurveSegment,
@@ -34,6 +41,11 @@ const {
 	getVisualSlopeClosingFlatSteps,
 	visualSlopeLoopAligns,
 } = require('./track_randomizer');
+const {
+	getAssignedHorizonOverride,
+	isRuntimeSafeRandomized,
+	preservesOriginalSignCadence,
+} = require('./track_metadata');
 
 const CURVE_RAM_LIMIT = 0x800;
 const VISUAL_SLOPE_RAM_LIMIT = 0x1000;
@@ -64,43 +76,6 @@ function _err(errors, trackName, field, message) {
 
 function _signedByteOk(v) {
   return Number.isInteger(v) && v >= -128 && v <= 127;
-}
-
-function cyclicTrackDistance(a, b, trackLength) {
-	const diff = Math.abs(a - b);
-	if (!Number.isInteger(trackLength) || trackLength <= 0) return diff;
-	return Math.min(diff, trackLength - diff);
-}
-
-const TILESET_SIGN_ID_MAP = new Map([
-	[0,  new Set([28, 29])],
-	[8,  new Set([28, 29])],
-	[16, new Set([4, 5])],
-	[24, new Set([16, 17])],
-	[32, new Set([20, 21])],
-	[40, new Set([24, 25])],
-	[48, new Set([32, 33])],
-	[56, new Set([36, 37])],
-	[64, new Set([40, 41])],
-	[72, new Set([44, 45])],
-	[80, new Set([12, 13])],
-	[88, new Set([2, 50])],
-]);
-
-const SIGN_SEQUENCE_SLOT_COUNT = new Map([
-	[0, 1], [1, 1], [2, 2], [4, 2], [5, 2], [6, 4], [7, 4],
-	[8, 2], [9, 2], [10, 4], [11, 4], [12, 2], [13, 2], [14, 4], [15, 4],
-	[16, 2], [17, 2], [18, 4], [19, 4], [20, 2], [21, 2], [22, 4], [23, 4],
-	[24, 2], [25, 2], [26, 4], [27, 4], [28, 1], [29, 1], [30, 1], [31, 1],
-	[32, 2], [33, 2], [34, 4], [35, 4], [36, 2], [37, 2], [38, 4], [39, 4],
-	[40, 2], [41, 2], [42, 4], [43, 4], [44, 2], [45, 2], [46, 4], [47, 4],
-	[48, 1], [49, 1], [50, 1],
-]);
-
-function getSignRuntimeRowSpan(signId, count) {
-	const sequenceSlots = SIGN_SEQUENCE_SLOT_COUNT.get(signId) || 1;
-	const repeatCount = Math.max(1, count | 0);
-	return Math.max(1, sequenceSlots * repeatCount);
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +187,7 @@ function _validateCurveRle(track, errors) {
       `decompressed curve stream ${expectedSteps} bytes exceeds RAM budget ${CURVE_RAM_LIMIT}`);
   }
 
-	if (track._runtime_safe_randomized === true && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveHasSafeRaceStart(segs)) {
+	if (isRuntimeSafeRandomized(track) && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveHasSafeRaceStart(segs)) {
 		const opening = getCurveOpeningStraightSteps(segs);
 		const firstCurve = getFirstCurveSegment(segs);
 		const length = firstCurve?.length || 0;
@@ -222,7 +197,7 @@ function _validateCurveRle(track, errors) {
 			`race-start curve must begin with at least 48 straight steps and a gentle first background displacement (got opening=${opening}, first_curve_len=${length}, first_curve_bg_disp=${bgDisp}, first_curve_rate=${startupRate})`);
 	}
 
-	if (track._runtime_safe_randomized === true && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveBgLoopAligns(segs, tl)) {
+	if (isRuntimeSafeRandomized(track) && Array.isArray(segs) && segs.some(seg => seg.type === 'curve') && !curveBgLoopAligns(segs, tl)) {
 		const opening = getCurveOpeningStraightSteps(segs);
 		const closing = getCurveClosingStraightSteps(segs);
 		_err(errors, name, 'curve_rle_segments',
@@ -338,7 +313,7 @@ function _validateSlopeRle(track, errors) {
 			_err(errors, name, 'slope_rle_segments',
 				`decoded background vertical displacement is outside stock-safe envelope (global ${globalMin}..${globalMax}, first128 ${startMin}..${startMax})`);
 		}
-		if (track._runtime_safe_randomized === true && !visualSlopeLoopAligns(init, segs)) {
+		if (isRuntimeSafeRandomized(track) && !visualSlopeLoopAligns(init, segs)) {
 			const closingFlat = getVisualSlopeClosingFlatSteps(segs);
 			const finalOffset = decodedOffsets.length > 0 ? decodedOffsets[decodedOffsets.length - 1] : init;
 			_err(errors, name, 'slope_rle_segments',
@@ -497,10 +472,8 @@ function _validateSignCompatibility(track, errors) {
 	const signData = track.sign_data;
 	const signTileset = track.sign_tileset;
 	const isArcadeWet = Number.isInteger(track.index) && track.index === 18;
-	const preserveOriginalSignCadence = track._preserve_original_sign_cadence !== false;
-	const assignedHorizon = Number.isInteger(track._assigned_horizon_override)
-		? track._assigned_horizon_override
-		: (Number.isInteger(track.horizon_override) ? track.horizon_override : 0);
+	const preserveOriginalSignCadence = preservesOriginalSignCadence(track);
+	const assignedHorizon = getAssignedHorizonOverride(track);
 
 	if (!Array.isArray(signData) || !Array.isArray(signTileset) || signTileset.length === 0) return;
 
@@ -520,15 +493,15 @@ function _validateSignCompatibility(track, errors) {
 		}
 		const activeTileset = signTileset[Math.min(tilesetIndex, signTileset.length - 1)].tileset_offset;
 		const allowedIds = TILESET_SIGN_ID_MAP.get(activeTileset);
-		if (isArcadeWet && activeTileset === 88) continue;
+		if (isArcadeWet && activeTileset === TUNNEL_TILESET_OFFSET) continue;
 		const nextTileset = signTileset[Math.min(tilesetIndex + 1, signTileset.length - 1)];
-		const nearTunnelEntry = nextTileset && nextTileset.tileset_offset === 88 && (nextTileset.distance - rec.distance) <= 96;
+		const nearTunnelEntry = nextTileset && nextTileset.tileset_offset === TUNNEL_TILESET_OFFSET && (nextTileset.distance - rec.distance) <= 96;
 		if (nearTunnelEntry && (rec.sign_id === 49 || rec.sign_id === 50 || rec.sign_id === 2)) continue;
-		if (allowedIds && !allowedIds.has(rec.sign_id)) {
+		if (allowedIds && !isAllowedSignIdForTileset(activeTileset, rec.sign_id, { isArcadeWet })) {
 			_err(errors, name, 'sign_data',
 				`record ${i}: sign_id=${rec.sign_id} is not valid for active sign_tileset offset ${activeTileset}`);
 		}
-		if (Number.isInteger(rec.count) && rec.count > 4 && !(activeTileset === 88 && rec.sign_id === 2) && !preserveOriginalSignCadence) {
+		if (Number.isInteger(rec.count) && rec.count > 4 && !(activeTileset === TUNNEL_TILESET_OFFSET && rec.sign_id === 2) && !preserveOriginalSignCadence) {
 			_err(errors, name, 'sign_data',
 				`record ${i}: count=${rec.count} is too dense for stable randomizer output (expected <= 4)`);
 		}
@@ -543,7 +516,7 @@ function _validateSignCompatibility(track, errors) {
 				`records ${i-1}/${i}: tileset changes only ${gap} units apart (< 1500 DMA safety target)`);
 		}
 	}
-	if (track._runtime_safe_randomized === true && signTileset.length > 1) {
+	if (isRuntimeSafeRandomized(track) && signTileset.length > 1) {
 		const wrapGap = signTileset[0].distance + (track.track_length || 0) - signTileset[signTileset.length - 1].distance;
 		if (wrapGap < 1500) {
 			_err(errors, name, 'sign_tileset',
@@ -551,7 +524,7 @@ function _validateSignCompatibility(track, errors) {
 		}
 	}
 
-	if (track._runtime_safe_randomized === true) {
+	if (isRuntimeSafeRandomized(track)) {
 		for (let i = 0; i < signData.length; i++) {
 			const rec = signData[i];
 			const count = Number.isInteger(rec.count) ? rec.count : 1;

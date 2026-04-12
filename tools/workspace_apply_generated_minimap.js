@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 
 const { parseArgs, die, info } = require('./lib/cli');
+const { assertWorkspacePath, assertWorkspaceContainsTarget } = require('./lib/workspace_guard');
+const { getTracks, requireTracksDataShape } = require('./randomizer/track_model');
 
 function ensureFile(filePath, label) {
 	if (!fs.existsSync(filePath)) die(`${label} not found: ${filePath}`);
@@ -12,23 +14,39 @@ function ensureFile(filePath, label) {
 
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
-		flags: ['--all'],
+		flags: ['--all', '--allow-root-mutation'],
 		options: ['--workspace', '--track', '--source-json'],
 	});
 
 	const workspaceArg = args.options['--workspace'];
 	if (!workspaceArg) die('missing required option: --workspace');
 	const workspacePath = path.resolve(workspaceArg);
+	const allowRootMutation = args.flags['--allow-root-mutation'];
 	const sourceJson = path.resolve(args.options['--source-json'] || path.join(process.cwd(), 'tools', 'data', 'tracks.json'));
+	try {
+		assertWorkspacePath(workspacePath, { allowRootMutation });
+	} catch (err) {
+		die(err.message);
+	}
 
 	ensureFile(workspacePath, 'workspace');
 	ensureFile(sourceJson, 'source tracks json');
 
 	const targetJson = path.join(workspacePath, 'tools', 'data', 'tracks.json');
+	try {
+		assertWorkspaceContainsTarget(workspacePath, targetJson, 'workspace tracks json', { allowRootMutation });
+	} catch (err) {
+		die(err.message);
+	}
 	ensureFile(targetJson, 'workspace tracks json');
 	const sourceToolPath = path.join(process.cwd(), 'tools', 'write_generated_minimap_pos.js');
 	ensureFile(sourceToolPath, 'source generator tool');
 	const workspaceGeneratorPath = path.join(workspacePath, 'tools', 'write_generated_minimap_pos.js');
+	try {
+		assertWorkspaceContainsTarget(workspacePath, workspaceGeneratorPath, 'workspace generator tool', { allowRootMutation });
+	} catch (err) {
+		die(err.message);
+	}
 	if (!fs.existsSync(workspaceGeneratorPath)) {
 		fs.copyFileSync(sourceToolPath, workspaceGeneratorPath);
 		info(`Copied ${path.relative(process.cwd(), sourceToolPath)} -> ${path.relative(process.cwd(), workspaceGeneratorPath)}`);
@@ -39,9 +57,14 @@ function main() {
 
 	const { execFileSync } = require('child_process');
 	if (args.flags['--all']) {
-		const tracksData = JSON.parse(fs.readFileSync(sourceJson, 'utf8'));
-		for (const track of tracksData.tracks || []) {
+		const tracksData = requireTracksDataShape(JSON.parse(fs.readFileSync(sourceJson, 'utf8')));
+		for (const track of getTracks(tracksData)) {
 			const targetBin = path.join(workspacePath, 'data', 'tracks', track.slug, 'minimap_pos.bin');
+			try {
+				assertWorkspaceContainsTarget(workspacePath, targetBin, 'workspace minimap_pos output', { allowRootMutation });
+			} catch (err) {
+				die(err.message);
+			}
 			execFileSync('node', [
 				sourceToolPath,
 				'--track', track.slug,
@@ -58,6 +81,11 @@ function main() {
 
 	const trackSlug = args.options['--track'] || 'san_marino';
 	const targetBin = path.join(workspacePath, 'data', 'tracks', trackSlug, 'minimap_pos.bin');
+	try {
+		assertWorkspaceContainsTarget(workspacePath, targetBin, 'workspace minimap_pos output', { allowRootMutation });
+	} catch (err) {
+		die(err.message);
+	}
 	execFileSync('node', [
 		sourceToolPath,
 		'--track', trackSlug,

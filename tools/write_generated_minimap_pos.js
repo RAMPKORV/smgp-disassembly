@@ -8,6 +8,8 @@ const { parseArgs, die, info } = require('./lib/cli');
 const { loadTracksData, findTrack, TRACKS_JSON } = require('./lib/minimap_analysis');
 const { buildGeneratedMinimapPosPairs } = require('./lib/generated_minimap_pos');
 const { encodeMinimapPos } = require('./inject_track_data');
+const { buildGeneratedMinimapOutput } = require('./lib/minimap_result_model');
+const { getTrackMinimapTrailing } = require('./randomizer/track_model');
 
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
@@ -22,21 +24,13 @@ function main() {
 	if (!track) die(`track not found: ${trackArg}`);
 
 	const generated = { pairs: buildGeneratedMinimapPosPairs(track) };
-	const trailing = Array.isArray(track.minimap_pos_trailing) ? track.minimap_pos_trailing : [];
+	const trailing = getTrackMinimapTrailing(track);
 	const jsonOut = args.options['--out'] ? path.resolve(args.options['--out']) : null;
 	const binOut = args.options['--bin-out'] ? path.resolve(args.options['--bin-out']) : null;
 
 	if (jsonOut) {
 		fs.mkdirSync(path.dirname(jsonOut), { recursive: true });
-		fs.writeFileSync(jsonOut, JSON.stringify({
-			track: {
-				index: track.index,
-				name: track.name,
-				slug: track.slug,
-				track_length: track.track_length,
-			},
-			generated,
-		}, null, 2) + '\n', 'utf8');
+		fs.writeFileSync(jsonOut, JSON.stringify(buildGeneratedMinimapOutput(track, generated, { includeTrackLength: true }), null, 2) + '\n', 'utf8');
 		info(`Wrote ${path.relative(process.cwd(), jsonOut)}`);
 	}
 
@@ -47,14 +41,7 @@ function main() {
 	}
 
 	if (!jsonOut && !binOut || args.flags['--json']) {
-		process.stdout.write(JSON.stringify({
-			track: {
-				index: track.index,
-				name: track.name,
-				slug: track.slug,
-			},
-			generated,
-		}, null, 2) + '\n');
+		process.stdout.write(JSON.stringify(buildGeneratedMinimapOutput(track, generated, { includeTrackLength: false }), null, 2) + '\n');
 	}
 }
 

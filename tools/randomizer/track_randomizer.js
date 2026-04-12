@@ -20,79 +20,63 @@
 
 const fs   = require('fs');
 const path = require('path');
-
-// ---------------------------------------------------------------------------
-// PRNG (xorshift32)
-// ---------------------------------------------------------------------------
-class XorShift32 {
-  constructor(seed) {
-    this.state = (seed !== 0) ? (seed >>> 0) : 1;
-  }
-
-  next() {
-    let x = this.state;
-    x ^= (x << 13) & 0xFFFFFFFF;
-    x ^= (x >>> 17);
-    x ^= (x << 5) & 0xFFFFFFFF;
-    this.state = x >>> 0;
-    return this.state;
-  }
-
-  randInt(lo, hi) {
-    const span = hi - lo + 1;
-    return lo + (this.next() % span);
-  }
-
-  randFloat() {
-    return (this.next() & 0xFFFFFF) / 0x1000000;
-  }
-
-  choice(items) {
-    return items[this.next() % items.length];
-  }
-
-  weightedChoice(items, weights) {
-    const total = weights.reduce((a, b) => a + b, 0);
-    let r = this.next() % total;
-    for (let i = 0; i < items.length; i++) {
-      r -= weights[i];
-      if (r < 0) return items[i];
-    }
-    return items[items.length - 1];
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Module ID constants
-// ---------------------------------------------------------------------------
-const MOD_TRACK_CURVES  = 1;
-const MOD_TRACK_SLOPES  = 2;
-const MOD_TRACK_SIGNS   = 3;
-const MOD_TRACK_MINIMAP = 4;
-const MOD_TRACK_CONFIG  = 5;
-const MOD_TEAMS         = 6;
-const MOD_AI            = 7;
-const MOD_CHAMPIONSHIP  = 8;
-
-function deriveSubseed(masterSeed, moduleId) {
-  let x = ((masterSeed >>> 0) ^ ((moduleId * 0x9E3779B9) >>> 0)) >>> 0;
-  x ^= (x << 13) & 0xFFFFFFFF;
-  x ^= (x >>> 17);
-  x ^= (x << 5) & 0xFFFFFFFF;
-  x = x >>> 0;
-  return x !== 0 ? x : 1;
-}
-
-// ---------------------------------------------------------------------------
-// Flag constants
-// ---------------------------------------------------------------------------
-const FLAG_TRACKS       = 0x01;
-const FLAG_TRACK_CONFIG = 0x02;
-const FLAG_TEAMS        = 0x04;
-const FLAG_AI           = 0x08;
-const FLAG_CHAMPIONSHIP = 0x10;
-const FLAG_SIGNS        = 0x20;
-const FLAG_ALL          = 0x3F;
+const {
+	XorShift32,
+	MOD_TRACK_CURVES,
+	MOD_TRACK_SLOPES,
+	MOD_TRACK_SIGNS,
+	MOD_TRACK_MINIMAP,
+	MOD_TRACK_CONFIG,
+	MOD_TEAMS,
+	MOD_AI,
+	MOD_CHAMPIONSHIP,
+	deriveSubseed,
+	FLAG_TRACKS,
+	FLAG_TRACK_CONFIG,
+	FLAG_TEAMS,
+	FLAG_AI,
+	FLAG_CHAMPIONSHIP,
+	FLAG_SIGNS,
+	FLAG_ALL,
+	parseSeed,
+} = require('./randomizer_shared');
+const {
+	CHAMPIONSHIP_ART_SETS,
+	CHAMPIONSHIP_TRACK_NAMES,
+	_shuffleList,
+	randomizeArtConfig,
+	buildTrackConfigAsm,
+	injectArtConfig,
+} = require('./art_config');
+const { makeTrackPipeline, pickTrackLength } = require('./track_pipeline');
+const {
+	cyclicTrackDistance,
+	getActiveTilesetOffset,
+	getActiveTilesetRecord,
+	getSignRuntimeRowSpan,
+	pickSignIdForTileset,
+	SIGN_ID_POOL,
+	SIGN_TILESET_OFFSETS,
+	STANDARD_SIGN_TILESET_OFFSETS,
+	HORIZON_SIGN_TILESET_OFFSETS,
+	SIGN_TILESET_MIN_SPACING,
+	SAFE_SIGN_TILESET_GUARD_DISTANCE,
+	LEFT_SIGN_IDS,
+	RIGHT_SIGN_IDS,
+	SPECIAL_SIGN_IDS,
+	TILESET_SIGN_ID_MAP,
+	TUNNEL_TILESET_OFFSET,
+	TUNNEL_ENTRY_SIGN_ID,
+	TUNNEL_INTERIOR_SIGN_ID,
+	TUNNEL_EXIT_SIGN_ID,
+} = require('./sign_utils');
+const {
+	buildGeneratedPreviewSummary,
+} = require('../lib/minimap_result_model');
+const {
+	getAssignedHorizonOverride,
+	setGeneratedMinimapPreview,
+} = require('./track_metadata');
 
 // ---------------------------------------------------------------------------
 // Statistical constants
@@ -148,52 +132,11 @@ const PHYS_FLAT =  0;
 const PHYS_DOWN = -1;
 const PHYS_UP   =  1;
 
-const SIGN_ID_POOL = [
-  0, 1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20,
-  21, 22, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 36, 37,
-  39, 40, 41, 44, 45, 46, 48, 49, 50,
-];
-
-const SIGN_TILESET_OFFSETS = Array.from({ length: 12 }, (_, i) => i * 8);  // 0,8,...,88
-const STANDARD_SIGN_TILESET_OFFSETS = SIGN_TILESET_OFFSETS.filter(offset => offset !== 80 && offset !== 88);
-const HORIZON_SIGN_TILESET_OFFSETS = SIGN_TILESET_OFFSETS.filter(offset => offset !== 88);
-const SIGN_TILESET_MIN_SPACING = 1500;
-
 const SIGN_COUNT_VALUES = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 15, 24];
-
-const TILESET_SIGN_ID_MAP = new Map([
-	[0,  [28, 29]],
-	[8,  [28, 29]],
-	[16, [4, 5]],
-	[24, [16, 17]],
-	[32, [20, 21]],
-	[40, [24, 25]],
-	[48, [32, 33]],
-	[56, [36, 37]],
-	[64, [40, 41]],
-	[72, [44, 45]],
-	[80, [12, 13]],
-	[88, [2, 50]],
-]);
 
 const SAFE_SIGN_COUNT_VALUES = [1, 2, 3, 4];
 const SAFE_SIGN_SPACING_MIN = 160;
 const SAFE_SIGN_SPACING_MAX = 420;
-const SAFE_SIGN_TILESET_GUARD_DISTANCE = 256;
-
-const LEFT_SIGN_IDS = new Set([4, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48]);
-const RIGHT_SIGN_IDS = new Set([5, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]);
-const SPECIAL_SIGN_IDS = new Set([48, 49, 50]);
-
-const SIGN_SEQUENCE_SLOT_COUNT = new Map([
-	[0, 1], [1, 1], [2, 2], [4, 2], [5, 2], [6, 4], [7, 4],
-	[8, 2], [9, 2], [10, 4], [11, 4], [12, 2], [13, 2], [14, 4], [15, 4],
-	[16, 2], [17, 2], [18, 4], [19, 4], [20, 2], [21, 2], [22, 4], [23, 4],
-	[24, 2], [25, 2], [26, 4], [27, 4], [28, 1], [29, 1], [30, 1], [31, 1],
-	[32, 2], [33, 2], [34, 4], [35, 4], [36, 2], [37, 2], [38, 4], [39, 4],
-	[40, 2], [41, 2], [42, 4], [43, 4], [44, 2], [45, 2], [46, 4], [47, 4],
-	[48, 1], [49, 1], [50, 1],
-]);
 
 const SIGN_SPACING_MIN  = 100;
 const SIGN_SPACING_MAX  = 500;
@@ -201,10 +144,6 @@ const SIGN_FINISH_ZONE  = 120;
 
 const CHICANE_MIN_STRAIGHT = 112;
 const SHARP_COMPLEX_MIN_STRAIGHT = 128;
-const TUNNEL_TILESET_OFFSET = 88;
-const TUNNEL_ENTRY_SIGN_ID = 49;
-const TUNNEL_INTERIOR_SIGN_ID = 2;
-const TUNNEL_EXIT_SIGN_ID = 50;
 const TUNNEL_SECTION_MIN = 1500;
 const TUNNEL_SECTION_MAX = 2200;
 
@@ -759,28 +698,6 @@ function buildPathIntersections(points, minIndexGap = 6) {
 
 function buildSpecialRoadFeatures(rng, trackLength, curveSegments) {
 	return [];
-}
-
-function getActiveTilesetOffset(records, distance) {
-	if (!Array.isArray(records) || records.length === 0) return 8;
-	let active = records[0].tileset_offset;
-	for (const record of records) {
-		if (record.distance > distance) break;
-		active = record.tileset_offset;
-	}
-	return active;
-}
-
-function cyclicTrackDistance(a, b, trackLength) {
-	const diff = Math.abs(a - b);
-	if (!Number.isInteger(trackLength) || trackLength <= 0) return diff;
-	return Math.min(diff, trackLength - diff);
-}
-
-function getSignRuntimeRowSpan(signId, count) {
-	const sequenceSlots = SIGN_SEQUENCE_SLOT_COUNT.get(signId) || 1;
-	const repeatCount = Math.max(1, count | 0);
-	return Math.max(1, sequenceSlots * repeatCount);
 }
 
 function isNearTilesetTransition(trackLength, tilesetRecords, distance, guardDistance = SAFE_SIGN_TILESET_GUARD_DISTANCE) {
@@ -1852,37 +1769,12 @@ function generatePhysSlopeRle(rng, trackLength, slopeSegments) {
 // ---------------------------------------------------------------------------
 
 
-function getActiveTilesetRecord(signTileset, distance) {
-	if (!Array.isArray(signTileset) || signTileset.length === 0) return null;
-	let index = 0;
-	while (index + 1 < signTileset.length && signTileset[index + 1].distance <= distance) {
-		index++;
-	}
-	return signTileset[index] || null;
-}
-function pickSignIdForTileset(rng, tilesetOffset, directionalHint = 0) {
-	const allowedBase = TILESET_SIGN_ID_MAP.get(tilesetOffset) || SIGN_ID_POOL;
-	const allowed = allowedBase.filter(id => !SPECIAL_SIGN_IDS.has(id));
-	if (directionalHint < 0) {
-		const left = allowed.filter(id => LEFT_SIGN_IDS.has(id));
-		if (left.length > 0) return rng.choice(left);
-	}
-	if (directionalHint > 0) {
-		const right = allowed.filter(id => RIGHT_SIGN_IDS.has(id));
-		if (right.length > 0) return rng.choice(right);
-	}
-	const neutral = allowed.filter(id => !LEFT_SIGN_IDS.has(id) && !RIGHT_SIGN_IDS.has(id));
-	return rng.choice(neutral.length > 0 ? neutral : allowed);
-}
-
 function generateSignData(rng, trackLength, curveSegments, tilesetRecords) {
   return buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecords);
 }
 
 function getAllowedSignTilesetOffsets(track) {
-	const horizonOverride = Number.isInteger(track?._assigned_horizon_override)
-		? track._assigned_horizon_override
-		: (Number.isInteger(track?.horizon_override) ? track.horizon_override : 0);
+	const horizonOverride = getAssignedHorizonOverride(track);
 	return horizonOverride ? HORIZON_SIGN_TILESET_OFFSETS : STANDARD_SIGN_TILESET_OFFSETS;
 }
 
@@ -1898,14 +1790,9 @@ function generateMinimap(track) {
 	const { buildGeneratedMinimapPosPairs } = require('../lib/generated_minimap_pos');
 	const preview = require('../lib/minimap_render').buildGeneratedMinimapPreview(track);
 	const pairs = buildGeneratedMinimapPosPairs(track);
-	track._generated_minimap_preview = {
-		preview_slug: preview.slug,
-		transform: preview.transform,
-		match_percent: preview.match_percent,
-		preview_match_percent: preview.match_percent,
-		thickness_aware_match_percent: preview.match_percent,
-		sample_count: pairs.length,
-	};
+	const previewSummary = buildGeneratedPreviewSummary(preview);
+	previewSummary.sample_count = pairs.length;
+	setGeneratedMinimapPreview(track, previewSummary);
 	return [pairs, track.minimap_pos_trailing || []];
 }
 
@@ -1936,467 +1823,25 @@ function compareGeneratedPreviewConstraints(a, b) {
 	return 0;
 }
 
-// ---------------------------------------------------------------------------
-// RAND-006: Art and config assignment
-// ---------------------------------------------------------------------------
+const trackPipeline = makeTrackPipeline({
+	generateCurveRle,
+	normalizeCurveBgDisplacement,
+	decompressCurveSegments,
+	generateSlopeRle,
+	generatePhysSlopeRle,
+	buildSpecialRoadFeatures,
+	generateSignTileset,
+	enforceWrapSafeTilesetRecords,
+	applySpecialRoadTilesetRecords,
+	generateSignData,
+	applySpecialRoadSignRecords,
+	generateMinimap,
+	evaluateGeneratedPreviewConstraints,
+	compareGeneratedPreviewConstraints,
+});
 
-const CHAMPIONSHIP_ART_SETS = [
-  { art_name: 'San_Marino',    horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'San_Marino_bg_palette',       sideline_label: 'San_Marino_sideline_style',
-    road_label: 'San_Marino_road_style',             finish_label: 'San_Marino_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_San_Marino',     bg_tilemap_label: 'Track_bg_tilemap_San_Marino',
-    minimap_tiles_label: 'Minimap_tiles_San_Marino', minimap_map_label: 'Minimap_map_San_Marino' },
-  { art_name: 'Brazil',        horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Brazil_bg_palette',           sideline_label: 'Brazil_sideline_style',
-    road_label: 'Brazil_road_style',                 finish_label: 'Brazil_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Brazil',         bg_tilemap_label: 'Track_bg_tilemap_Brazil',
-    minimap_tiles_label: 'Minimap_tiles_Brazil',     minimap_map_label: 'Minimap_map_Brazil' },
-  { art_name: 'France',        horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'France_bg_palette',           sideline_label: 'France_sideline_style',
-    road_label: 'France_road_style',                 finish_label: 'France_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_France',         bg_tilemap_label: 'Track_bg_tilemap_France',
-    minimap_tiles_label: 'Minimap_tiles_France',     minimap_map_label: 'Minimap_map_France' },
-  { art_name: 'Hungary',       horizon_override: 0, steering: '$002c002e',
-    bg_palette_label: 'Hungary_bg_palette',          sideline_label: 'Hungary_sideline_style',
-    road_label: 'Hungary_road_style',                finish_label: 'Hungary_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Hungary',        bg_tilemap_label: 'Track_bg_tilemap_Hungary',
-    minimap_tiles_label: 'Minimap_tiles_Hungary',    minimap_map_label: 'Minimap_map_Hungary' },
-  { art_name: 'West_Germany',  horizon_override: 1, steering: '$002B002B',
-    bg_palette_label: 'West_Germany_bg_palette',     sideline_label: 'West_Germany_sideline_style',
-    road_label: 'West_Germany_road_style',           finish_label: 'West_Germany_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_West_Germany',   bg_tilemap_label: 'Track_bg_tilemap_West_Germany',
-    minimap_tiles_label: 'Minimap_tiles_West_Germany', minimap_map_label: 'Minimap_map_West_Germany' },
-  { art_name: 'Usa',           horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Usa_bg_palette',              sideline_label: 'Usa_sideline_style',
-    road_label: 'Usa_road_style',                    finish_label: 'Usa_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Usa',            bg_tilemap_label: 'Track_bg_tilemap_Usa',
-    minimap_tiles_label: 'Minimap_tiles_USA',        minimap_map_label: 'Minimap_map_USA' },
-  { art_name: 'Canada',        horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Canada_bg_palette',           sideline_label: 'Canada_sideline_style',
-    road_label: 'Canada_road_style',                 finish_label: 'Canada_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Canada',         bg_tilemap_label: 'Track_bg_tilemap_Canada',
-    minimap_tiles_label: 'Minimap_tiles_Canada',     minimap_map_label: 'Minimap_map_Canada' },
-  { art_name: 'Great_Britain', horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Great_Britain_bg_palette',    sideline_label: 'Great_Britain_sideline_style',
-    road_label: 'Great_Britain_road_style',          finish_label: 'Great_Britain_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Great_Britain',  bg_tilemap_label: 'Track_bg_tilemap_Great_Britain',
-    minimap_tiles_label: 'Minimap_tiles_Great_Britain', minimap_map_label: 'Minimap_map_Great_Britain' },
-  { art_name: 'Italy',         horizon_override: 1, steering: '$002B002B',
-    bg_palette_label: 'Italy_bg_palette-2',          sideline_label: 'Italy_sideline_style',
-    road_label: 'Italy_road_style',                  finish_label: 'Italy_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Italy',          bg_tilemap_label: 'Track_bg_tilemap_Italy',
-    minimap_tiles_label: 'Minimap_tiles_Italy',      minimap_map_label: 'Minimap_map_Italy' },
-  { art_name: 'Portugal',      horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Portugal_bg_palette',         sideline_label: 'Portugal_sideline_style',
-    road_label: 'Portugal_road_style',               finish_label: 'Portugal_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Portugal',       bg_tilemap_label: 'Track_bg_tilemap_Portugal',
-    minimap_tiles_label: 'Minimap_tiles_Portugal',   minimap_map_label: 'Minimap_map_Portugal' },
-  { art_name: 'Spain',         horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Spain_bg_palette',            sideline_label: 'Spain_sideline_style',
-    road_label: 'Spain_road_style',                  finish_label: 'Spain_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Spain',          bg_tilemap_label: 'Track_bg_tilemap_Spain',
-    minimap_tiles_label: 'Minimap_tiles_Spain',      minimap_map_label: 'Minimap_map_Spain' },
-  { art_name: 'Mexico',        horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Mexico_bg_palette',           sideline_label: 'Mexico_sideline_style',
-    road_label: 'Mexico_road_style',                 finish_label: 'Mexico_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Mexico',         bg_tilemap_label: 'Track_bg_tilemap_Mexico',
-    minimap_tiles_label: 'Minimap_tiles_Mexico',     minimap_map_label: 'Minimap_map_Mexico' },
-  { art_name: 'Japan',         horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Japan_bg_palette',            sideline_label: 'Japan_sideline_style',
-    road_label: 'Japan_road_style',                  finish_label: 'Japan_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Japan',          bg_tilemap_label: 'Track_bg_tilemap_Japan',
-    minimap_tiles_label: 'Minimap_tiles_Japan',      minimap_map_label: 'Minimap_map_Japan' },
-  { art_name: 'Belgium',       horizon_override: 1, steering: '$002B002B',
-    bg_palette_label: 'Belgium_bg_palette',          sideline_label: 'Belgium_sideline_style',
-    road_label: 'Belgium_road_style',                finish_label: 'Belgium_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Belgium',        bg_tilemap_label: 'Track_bg_tilemap_Belgium',
-    minimap_tiles_label: 'Minimap_tiles_Belgium',    minimap_map_label: 'Minimap_map_Belgium' },
-  { art_name: 'Australia',     horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Australia_bg_palette',        sideline_label: 'Australia_sideline_style',
-    road_label: 'Australia_road_style',              finish_label: 'Australia_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Australia',      bg_tilemap_label: 'Track_bg_tilemap_Australia',
-    minimap_tiles_label: 'Minimap_tiles_Australia',  minimap_map_label: 'Minimap_map_Australia' },
-  { art_name: 'Monaco',        horizon_override: 0, steering: '$002B002B',
-    bg_palette_label: 'Monaco_bg_palette',           sideline_label: 'Monaco_sideline_style',
-    road_label: 'Monaco_road_style',                 finish_label: 'Monaco_finish_line_style',
-    bg_tiles_label: 'Track_bg_tiles_Monaco',         bg_tilemap_label: 'Track_bg_tilemap_Monaco',
-    minimap_tiles_label: 'Minimap_tiles_Monaco',     minimap_map_label: 'Minimap_map_Monaco' },
-];
-
-const CHAMPIONSHIP_TRACK_NAMES = [
-  'San Marino', 'Brazil', 'France', 'Hungary', 'West Germany',
-  'USA', 'Canada', 'Great Britain', 'Italy', 'Portugal',
-  'Spain', 'Mexico', 'Japan', 'Belgium', 'Australia', 'Monaco',
-];
-
-function _shuffleList(items, rng) {
-  const lst = items.slice();
-  for (let i = lst.length - 1; i > 0; i--) {
-    const j = rng.next() % (i + 1);
-    [lst[i], lst[j]] = [lst[j], lst[i]];
-  }
-  return lst;
-}
-
-function randomizeArtConfig(masterSeed, verbose = false) {
-  const rng = new XorShift32(deriveSubseed(masterSeed, MOD_TRACK_CONFIG));
-  const shuffled = _shuffleList(CHAMPIONSHIP_ART_SETS, rng);
-  if (verbose) {
-    for (let i = 0; i < shuffled.length; i++) {
-      const origName = CHAMPIONSHIP_TRACK_NAMES[i];
-      process.stdout.write(`  Slot ${String(i).padStart(2)} (${origName.padEnd(15)}) <- art set: ${shuffled[i].art_name}\n`);
-    }
-  }
-  return shuffled;
-}
-
-function _steeringComment(steeringVal) {
-  const s = steeringVal.toLowerCase().replace(/\$/g, '');
-  if (s.length === 8) {
-    try {
-      const straight = parseInt(s.slice(0, 4), 16);
-      const curve    = parseInt(s.slice(4), 16);
-      return `straight=$${s.slice(0,4).toUpperCase()} (${straight}), curve=$${s.slice(4).toUpperCase()} (${curve})`;
-    } catch (e) { /* fall through */ }
-  }
-  return steeringVal;
-}
-
-function buildTrackConfigAsm(artAssignment, originalAsmPath) {
-  const content = fs.readFileSync(originalAsmPath, 'utf8');
-  const lines = content.split('\n').map(l => l + '\n');
-  // Last element may be empty if file ended with newline
-  // We'll work with lines-with-newlines for position tracking
-
-  // Locate Track_data: label
-  let trackDataStart = null;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].trim() === 'Track_data:') {
-      trackDataStart = i;
-      break;
-    }
-  }
-  if (trackDataStart === null) {
-    throw new Error(`Could not find "Track_data:" label in ${originalAsmPath}`);
-  }
-
-  const LINES_PER_BLOCK = 20;
-
-  // Find block starts by "; <Track Name>" comment lines
-  const blockStarts = {};
-  for (let i = 0; i < lines.length; i++) {
-    const stripped = lines[i].trim();
-    if (stripped.startsWith(';') && !stripped.startsWith(';;')) {
-      const candidate = stripped.slice(1).trim();
-      if (CHAMPIONSHIP_TRACK_NAMES.includes(candidate)) {
-        blockStarts[candidate] = i;
-      }
-    }
-  }
-
-  const missing = CHAMPIONSHIP_TRACK_NAMES.filter(n => !(n in blockStarts));
-  if (missing.length > 0) {
-    throw new Error(`Only found ${Object.keys(blockStarts).length}/16 championship track blocks. Missing: ${missing.join(', ')}`);
-  }
-
-  function extractDcLabel(line) {
-    const parts = line.split('\t');
-    if (parts.length >= 3) {
-      return parts[2].split(';')[0].trim();
-    }
-    return '';
-  }
-
-  const newLines = lines.slice();
-
-  for (let slotIdx = 0; slotIdx < CHAMPIONSHIP_TRACK_NAMES.length; slotIdx++) {
-    const trackName = CHAMPIONSHIP_TRACK_NAMES[slotIdx];
-    const art = artAssignment[slotIdx];
-    const blockStart = blockStarts[trackName];
-
-    const blockLines = [];
-    for (let j = 0; j < LINES_PER_BLOCK; j++) {
-      blockLines.push((newLines[blockStart + j] || '\n').replace(/\r?\n$/, ''));
-    }
-
-		const signDataLabel    = extractDcLabel(blockLines[11]);
-		const signTilesetLabel = extractDcLabel(blockLines[12]);
-		const minimapPosLabel  = extractDcLabel(blockLines[13]);
-		const minimapTilesLabel = extractDcLabel(blockLines[1]);
-		const minimapMapLabel = extractDcLabel(blockLines[4]);
-		const curveDataLabel   = extractDcLabel(blockLines[14]);
-    const slopeDataLabel   = extractDcLabel(blockLines[15]);
-    const physSlopeLabel   = extractDcLabel(blockLines[16]);
-    const lapTimePtrVal    = extractDcLabel(blockLines[17]);
-    const lapTargetsLabel  = extractDcLabel(blockLines[18]);
-    const trackLengthVal   = extractDcLabel(blockLines[10]);
-    const steeringLabel    = blockLines.length > 19 ? extractDcLabel(blockLines[19]) : art.steering;
-
-    let lapTimeComment;
-    if (lapTimePtrVal === 'Track_lap_time_records') {
-      lapTimeComment = 'base = $FFFFFD00, +$08 per track';
-    } else {
-      const offset = lapTimePtrVal.replace('$FFFFFD', '');
-      lapTimeComment = `Track_lap_time_records + $${offset}`;
-    }
-
-    const h = art.horizon_override;
-    const horizonFlagStr  = h ? '$0001' : '$0000';
-    const horizonComment  = h ? '1 = special sky colour patch applied each frame' : '0 = default sky';
-
-		const useExistingMinimapLabels = false;
-		const newBlock = [
-		  `; ${trackName}\n`,
-		  `\tdc.l\t${useExistingMinimapLabels ? minimapTilesLabel : art.minimap_tiles_label} ; ${trackName} tiles used for minimap\n`,
-		  `\tdc.l\t${art.bg_tiles_label} ; ${trackName} tiles used for background\n`,
-		  `\tdc.l\t${art.bg_tilemap_label} ; ${trackName} background tile mapping\n`,
-		  `\tdc.l\t${useExistingMinimapLabels ? minimapMapLabel : art.minimap_map_label} ; ${trackName} tile mapping for minimap\n`,
-      `\tdc.l\t${art.bg_palette_label} ; ${trackName} background palette\n`,
-      `\tdc.l\t${art.sideline_label} ; ${trackName} sideline style\n`,
-      `\tdc.l\t${art.road_label} ; ${trackName} road style data\n`,
-      `\tdc.l\t${art.finish_label} ; ${trackName} finish line style\n`,
-      `\tdc.w\t${horizonFlagStr} ; horizon override flag (${horizonComment})\n`,
-      `\tdc.w\t${trackLengthVal} ; track length\n`,
-      `\tdc.l\t${signDataLabel} ; ${trackName} signs data\n`,
-      `\tdc.l\t${signTilesetLabel} ; ${trackName} tileset for signs\n`,
-      `\tdc.l\t${minimapPosLabel} ; ${trackName} map for minimap position\n`,
-      `\tdc.l\t${curveDataLabel} ; ${trackName} curve data\n`,
-      `\tdc.l\t${slopeDataLabel} ; ${trackName} slope data (visual; decoded to Visual_slope_data)\n`,
-      `\tdc.l\t${physSlopeLabel} ; ${trackName} physical slope data (decoded to Physical_slope_data; hill RPM modifier)\n`,
-      `\tdc.l\t${lapTimePtrVal} ; ${trackName} BCD lap-time record pointer (${lapTimeComment})\n`,
-      `\tdc.l\t${lapTargetsLabel} ; ${trackName} per-lap target time table (15 \u00d7 3-byte BCD entries)\n`,
-      `\tdc.l\t${art.steering} ; steering divisors: ${_steeringComment(art.steering)}\n`,
-    ];
-
-    newLines.splice(blockStart, LINES_PER_BLOCK, ...newBlock);
-  }
-
-  return newLines.join('');
-}
-
-function injectArtConfig(artAssignment, repoRoot, dryRun = false, verbose = false) {
-  const asmPath = path.join(repoRoot, 'src', 'track_config_data.asm');
-  if (!fs.existsSync(asmPath)) {
-    throw new Error(`track_config_data.asm not found: ${asmPath}`);
-  }
-
-  const newContent = buildTrackConfigAsm(artAssignment, asmPath);
-
-  if (dryRun) {
-    if (verbose) process.stdout.write('  [dry-run] Would rewrite src/track_config_data.asm with new art assignment.\n');
-    return true;
-  }
-
-  fs.writeFileSync(asmPath, newContent, 'utf8');
-  if (verbose) process.stdout.write(`  Rewrote ${asmPath} with shuffled art assignment.\n`);
-  return true;
-}
-
-// ---------------------------------------------------------------------------
-// Track length picker
-// ---------------------------------------------------------------------------
-
-function pickTrackLength(rng, isPrelim = false) {
-  if (isPrelim) {
-    const raw = rng.randInt(2000, 3500);
-    return Math.floor(raw / TRACK_LENGTH_STEP) * TRACK_LENGTH_STEP || TRACK_LENGTH_STEP;
-  }
-  const raw = rng.randInt(
-    Math.floor(TRACK_LENGTH_MIN / TRACK_LENGTH_STEP),
-    Math.floor(TRACK_LENGTH_MAX / TRACK_LENGTH_STEP)
-  );
-  return raw * TRACK_LENGTH_STEP;
-}
-
-// ---------------------------------------------------------------------------
-// Public entry point: randomize a single track
-// ---------------------------------------------------------------------------
-
-function randomizeOneTrack(track, masterSeed, verbose = false) {
-	const slug = track.slug || '?';
-	const originalLength = track.track_length;
-	track._preserve_original_sign_cadence = false;
-	track._runtime_safe_randomized = true;
-	if (!Array.isArray(track._original_minimap_pos)) {
-		track._original_minimap_pos = JSON.parse(JSON.stringify(track.minimap_pos || []));
-	}
-
-  if (verbose) process.stdout.write(`  Randomizing track: ${track.name} (${slug})\n`);
-
-	const trackIdx = track.index || 0;
-	if (!Number.isInteger(track._assigned_horizon_override)) {
-		track._assigned_horizon_override = Number.isInteger(track.horizon_override) ? track.horizon_override : 0;
-	}
-	const perTrackSeed = ((masterSeed >>> 0) ^ ((trackIdx * 0x6B5B9C11) >>> 0)) >>> 0;
-
-	const template = JSON.parse(JSON.stringify(track));
-
-	function buildAttempt(attemptIndex) {
-		const candidate = JSON.parse(JSON.stringify(template));
-		const attemptSeed = (perTrackSeed ^ (((attemptIndex + 1) * 0x45D9F3B) >>> 0)) >>> 0;
-		const rngCurves  = new XorShift32(deriveSubseed(attemptSeed, MOD_TRACK_CURVES));
-		const rngSlopes  = new XorShift32(deriveSubseed(attemptSeed, MOD_TRACK_SLOPES));
-		const rngSigns   = new XorShift32(deriveSubseed(attemptSeed, MOD_TRACK_SIGNS));
-
-		const newLength = originalLength;
-		candidate.track_length = newLength;
-
-		const curveSegs = generateCurveRle(rngCurves, newLength, candidate);
-		const normalizedCurveSegs = normalizeCurveBgDisplacement(curveSegs, { protectStartupCurve: true, trackLength: newLength });
-		candidate.curve_rle_segments = normalizedCurveSegs;
-		candidate.curve_decompressed = decompressCurveSegments(normalizedCurveSegs);
-
-		const [initBgDisp, slopeSegs] = generateSlopeRle(rngSlopes, newLength, normalizedCurveSegs);
-		const physSegs = generatePhysSlopeRle(rngSlopes, newLength, slopeSegs);
-		candidate.slope_initial_bg_disp = initBgDisp;
-		candidate.slope_rle_segments = slopeSegs;
-		candidate.phys_slope_rle_segments = physSegs;
-
-		const slopeDecomp = [];
-		for (const seg of slopeSegs) {
-			if (seg.type === 'flat' || seg.type === 'slope') {
-				for (let i = 0; i < seg.length; i++) slopeDecomp.push(seg.slope_byte);
-			} else if (seg.type === 'terminator') {
-				slopeDecomp.push(0xFF);
-			}
-		}
-		candidate.slope_decompressed = slopeDecomp;
-
-		const physDecomp = [];
-		for (const seg of physSegs) {
-			if (seg.type === 'segment') {
-				for (let i = 0; i < seg.length; i++) physDecomp.push(seg.phys_byte);
-			}
-		}
-		candidate.phys_slope_decompressed = physDecomp;
-
-		const specialRoadFeatures = buildSpecialRoadFeatures(rngSigns, newLength, normalizedCurveSegs);
-		const [baseTilesetRecords, tilesetTrailing] = generateSignTileset(rngSigns, newLength, normalizedCurveSegs, candidate);
-		const tilesetRecords = enforceWrapSafeTilesetRecords(newLength, applySpecialRoadTilesetRecords(baseTilesetRecords, specialRoadFeatures));
-		const baseSignRecords = generateSignData(rngSigns, newLength, normalizedCurveSegs, tilesetRecords);
-		const signRecords = applySpecialRoadSignRecords(baseSignRecords, specialRoadFeatures);
-		candidate.sign_data = signRecords;
-		candidate.sign_tileset = tilesetRecords;
-		candidate.sign_tileset_trailing = tilesetTrailing;
-		candidate._generated_special_road_features = specialRoadFeatures;
-
-		const [minimapPairs, minimapTrailing] = generateMinimap(candidate);
-		candidate.minimap_pos = minimapPairs;
-		candidate.minimap_pos_trailing = minimapTrailing;
-
-		return {
-			candidate,
-			constraints: evaluateGeneratedPreviewConstraints(candidate),
-			curveCounts: {
-				straight: curveSegs.filter(s => s.type === 'straight').length,
-				curve: curveSegs.filter(s => s.type === 'curve').length,
-				slopeFlat: slopeSegs.filter(s => s.type === 'flat').length,
-				slope: slopeSegs.filter(s => s.type === 'slope').length,
-				signs: signRecords.length,
-				tilesets: tilesetRecords.length,
-			},
-		};
-	}
-
-	let bestAttempt = null;
-	for (let attemptIndex = 0; attemptIndex < 2; attemptIndex++) {
-		const attempt = buildAttempt(attemptIndex);
-		if (!bestAttempt || compareGeneratedPreviewConstraints(attempt.constraints, bestAttempt.constraints) < 0) {
-			bestAttempt = attempt;
-		}
-		if (attempt.constraints.passes) break;
-	}
-
-	for (const key of Object.keys(track)) delete track[key];
-	Object.assign(track, bestAttempt.candidate);
-
-	if (verbose) {
-		process.stdout.write(`    track_length = ${track.track_length} (fixed original budget)\n`);
-		process.stdout.write(`    curve: ${bestAttempt.curveCounts.straight} straight + ${bestAttempt.curveCounts.curve} curve segments\n`);
-		process.stdout.write(`    slope: ${bestAttempt.curveCounts.slopeFlat} flat + ${bestAttempt.curveCounts.slope} slope segments\n`);
-		process.stdout.write(`    signs: ${bestAttempt.curveCounts.signs} records, ${bestAttempt.curveCounts.tilesets} tileset entries\n`);
-		const previewInfo = track._generated_minimap_preview || {};
-		process.stdout.write(
-			`    minimap: ${track.minimap_pos.length} pairs (need ${track.track_length >> 6}), ` +
-			`canon ${previewInfo.match_percent || 0}% / preview ${previewInfo.preview_match_percent || 0}% / thick ${previewInfo.thickness_aware_match_percent || 0}%\n`
-		);
-	}
-
-	return track;
-}
-
-// ---------------------------------------------------------------------------
-// Public entry point: randomize all tracks
-// ---------------------------------------------------------------------------
-
-function randomizeTracks(tracksData, masterSeed, trackSlugs = null, verbose = false) {
-  const tracks = tracksData.tracks;
-	const artAssignment = randomizeArtConfig(masterSeed, false);
-	for (let slotIdx = 0; slotIdx < CHAMPIONSHIP_TRACK_NAMES.length && slotIdx < tracks.length; slotIdx++) {
-		const track = tracks[slotIdx];
-		if (!track) continue;
-		track._assigned_art_name = artAssignment[slotIdx]?.art_name || track.name;
-		track._assigned_horizon_override = Number.isInteger(artAssignment[slotIdx]?.horizon_override)
-			? artAssignment[slotIdx].horizon_override
-			: (Number.isInteger(track.horizon_override) ? track.horizon_override : 0);
-	}
-  for (const track of tracks) {
-    if (trackSlugs !== null && !trackSlugs.has(track.slug)) continue;
-    randomizeOneTrack(track, masterSeed, verbose);
-  }
-
-	const monacoArcadeMain = tracks.find(track => track.index === 17);
-	const monacoArcadeWet = tracks.find(track => track.index === 18);
-	if (monacoArcadeMain && monacoArcadeWet) {
-		const sharedFields = [
-			'track_length',
-			'curve_rle_segments',
-			'curve_decompressed',
-			'slope_initial_bg_disp',
-			'slope_rle_segments',
-			'slope_decompressed',
-			'phys_slope_rle_segments',
-			'phys_slope_decompressed',
-			'sign_data',
-			'sign_tileset',
-			'sign_tileset_trailing',
-			'minimap_pos',
-			'minimap_pos_trailing',
-			'_generated_minimap_preview',
-			'_preserve_original_sign_cadence',
-		];
-		for (const field of sharedFields) {
-			const value = monacoArcadeMain[field];
-			monacoArcadeWet[field] = (value && typeof value === 'object')
-				? JSON.parse(JSON.stringify(value))
-				: value;
-		}
-		if (verbose) {
-			process.stdout.write('  Synced Monaco (Arcade Wet) shared track data to Monaco (Arcade Main)\n');
-		}
-	}
-
-  return tracksData;
-}
-
-// ---------------------------------------------------------------------------
-// Seed parsing
-// ---------------------------------------------------------------------------
-
-const SEED_RE = /^SMGP-(\d+)-([0-9A-Fa-f]+)-(\d+)$/;
-
-function parseSeed(seedStr) {
-  const m = SEED_RE.exec(seedStr.trim());
-  if (!m) {
-    throw new Error(
-      `Invalid seed format: ${JSON.stringify(seedStr)}  (expected SMGP-<v>-<flags_hex>-<decimal>)`
-    );
-  }
-  const version = parseInt(m[1], 10);
-  const flags   = parseInt(m[2], 16);
-  const seed    = parseInt(m[3], 10);
-  return [version, flags, seed];
-}
+const randomizeOneTrack = trackPipeline.randomizeOneTrack;
+const randomizeTracks = trackPipeline.randomizeTracks;
 
 // ---------------------------------------------------------------------------
 // CLI entry point

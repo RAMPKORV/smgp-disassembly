@@ -1,12 +1,20 @@
 'use strict';
 
 const { buildGeneratedMinimapPreview } = require('./minimap_render');
+const { formatDcB } = require('./asm_patch_helpers');
+const {
+	MINIMAP_PANEL_TILES_H,
+	MINIMAP_PANEL_TILES_W,
+	MINIMAP_TILE_INDEX_MASK,
+	MINIMAP_TILE_SIZE_PX,
+} = require('./minimap_layout');
 const { resolvePreviewSlug } = require('./minimap_analysis');
 const { getMinimapPreview } = require('./minimap_preview');
 const { encodeTinyGraphics } = require('../minimap_graphics_codec');
 const { encodeLiteralTilemap } = require('../minimap_map_codec');
 
 const generatedAssetsCache = new WeakMap();
+const PRESERVED_EXTERNAL_CELL_INDEX_CONFIG = Object.freeze({});
 
 function buildAssetsCacheKey(track) {
 	return JSON.stringify([
@@ -22,47 +30,61 @@ function sanitizeLabelFragment(value) {
 		.replace(/_+/g, '_') || 'Track';
 }
 
-function formatHexByte(value) {
-	return `$${(value & 0xFF).toString(16).toUpperCase().padStart(2, '0')}`;
-}
-
-function formatDcB(bytes) {
-	const lines = [];
-	for (let i = 0; i < bytes.length; i += 32) {
-		const chunk = bytes.slice(i, i + 32);
-		lines.push(`\tdc.b\t${Array.from(chunk).map(formatHexByte).join(', ')}`);
-	}
-	return lines;
-}
-
-function buildPreservedExternalCellIndexSet(previewSlug, stockWords, stockLocalTileCount) {
-	return new Set();
+function resolvePreservedExternalCellIndexSet(previewSlug, config = PRESERVED_EXTERNAL_CELL_INDEX_CONFIG) {
+	if (!previewSlug || !config || typeof config !== 'object') return new Set();
+	const values = config[previewSlug];
+	return Array.isArray(values) ? new Set(values) : new Set();
 }
 
 function isBlankTileRows(rows) {
 	return rows.every(row => row.every(value => value === 0));
 }
 
-function buildTilesAndWordsFromPreview(preview, stockPreview = null, previewSlug = '') {
+function buildTileSignature(rows) {
+	return rows.map(row => row.join(',')).join('/');
+}
+
+function flipTileRows(rows, hFlip, vFlip) {
+	const sourceRows = vFlip ? rows.slice().reverse() : rows;
+	return sourceRows.map(row => hFlip ? row.slice().reverse() : row.slice());
+}
+
+function registerTileVariants(tileIndexBySignature, rows, word) {
+	const variants = [
+		{ rows, flags: 0 },
+		{ rows: flipTileRows(rows, true, false), flags: 0x1000 },
+		{ rows: flipTileRows(rows, false, true), flags: 0x0800 },
+		{ rows: flipTileRows(rows, true, true), flags: 0x1800 },
+	];
+	for (const variant of variants) {
+		const signature = buildTileSignature(variant.rows);
+		if (!tileIndexBySignature.has(signature)) {
+			tileIndexBySignature.set(signature, word | variant.flags);
+		}
+	}
+}
+
+function buildTilesAndWordsFromPreview(preview, stockPreview = null, previewSlug = '', options = {}) {
 	const tiles = [];
 	const words = [];
 	const tileIndexBySignature = new Map();
 	const stockWords = Array.isArray(stockPreview?.words) ? stockPreview.words : null;
 	const stockTiles = Array.isArray(stockPreview?.tiles) ? stockPreview.tiles : null;
-	const stockLocalTileCount = Array.isArray(stockTiles) ? stockTiles.length : 0;
-	const preservedExternalCellIndices = buildPreservedExternalCellIndexSet(previewSlug, stockWords, stockLocalTileCount);
+	const preservedExternalCellIndices = options.preservedExternalCellIndices instanceof Set
+		? options.preservedExternalCellIndices
+		: resolvePreservedExternalCellIndexSet(previewSlug, options.preservedExternalCellIndexConfig);
 
-	for (let tileY = 0; tileY < 11; tileY++) {
-		for (let tileX = 0; tileX < 7; tileX++) {
-			const cellIndex = (tileY * 7) + tileX;
+	for (let tileY = 0; tileY < MINIMAP_PANEL_TILES_H; tileY++) {
+		for (let tileX = 0; tileX < MINIMAP_PANEL_TILES_W; tileX++) {
+			const cellIndex = (tileY * MINIMAP_PANEL_TILES_W) + tileX;
 			const stockWord = stockWords && cellIndex < stockWords.length ? (stockWords[cellIndex] & 0xFFFF) : null;
 
 			const rows = [];
-			for (let y = 0; y < 8; y++) {
+			for (let y = 0; y < MINIMAP_TILE_SIZE_PX; y++) {
 				const row = [];
-				for (let x = 0; x < 8; x++) {
-					const px = tileX * 8 + x;
-					const py = tileY * 8 + y;
+				for (let x = 0; x < MINIMAP_TILE_SIZE_PX; x++) {
+					const px = tileX * MINIMAP_TILE_SIZE_PX + x;
+					const py = tileY * MINIMAP_TILE_SIZE_PX + y;
 					row.push(preview.pixels[(py * preview.width) + px] || 0);
 				}
 				rows.push(row);
@@ -76,7 +98,7 @@ function buildTilesAndWordsFromPreview(preview, stockPreview = null, previewSlug
 				continue;
 			}
 
-			const signature = rows.map(row => row.join(',')).join('/');
+			const signature = buildTileSignature(rows);
 			const isBlankTile = isBlankTileRows(rows);
 
 			if (isBlankTile) {
@@ -89,13 +111,28 @@ function buildTilesAndWordsFromPreview(preview, stockPreview = null, previewSlug
 			}
 
 			tiles.push(rows);
-			const generatedWord = tiles.length & 0x07FF;
+			const generatedWord = tiles.length & MINIMAP_TILE_INDEX_MASK;
 			words.push(generatedWord);
-			tileIndexBySignature.set(signature, generatedWord);
+			registerTileVariants(tileIndexBySignature, rows, generatedWord);
 		}
 	}
 
 	return { tiles, words };
+}
+
+function buildGeneratedMinimapAssetsFromPreviews(preview, stockPreview, previewSlug = '', options = {}) {
+	const generated = buildTilesAndWordsFromPreview(preview, stockPreview, previewSlug, options);
+	const tiles = generated.tiles.slice();
+	const words = generated.words.slice();
+	const maxWord = words.reduce((max, word) => Math.max(max, word & 0xFFFF), 0);
+	const bitWidth = Math.max(1, Math.ceil(Math.log2(Math.max(2, maxWord + 1))));
+	return {
+		preview,
+		tiles,
+		words,
+		tile_bytes: Buffer.from(encodeTinyGraphics(tiles)),
+		map_bytes: Buffer.from(encodeLiteralTilemap(words, bitWidth)),
+	};
 }
 
 function buildGeneratedMinimapAssets(track) {
@@ -105,30 +142,7 @@ function buildGeneratedMinimapAssets(track) {
 	const preview = buildGeneratedMinimapPreview(track);
 	const previewSlug = resolvePreviewSlug(track);
 	const stockPreview = getMinimapPreview(previewSlug);
-	const generated = buildTilesAndWordsFromPreview(preview, stockPreview, previewSlug);
-	let tiles = generated.tiles.slice();
-	const words = generated.words.slice();
-	if (tiles.length > stockPreview.tiles.length) {
-		const trimmedWords = words.map(word => {
-			const rawTileIndex = word & 0x07FF;
-			if (rawTileIndex > stockPreview.tiles.length) return 0;
-			return word;
-		});
-		while (tiles.length > stockPreview.tiles.length) tiles.pop();
-		for (let i = 0; i < words.length; i++) words[i] = trimmedWords[i];
-	}
-	while (tiles.length < stockPreview.tiles.length) {
-		tiles.push(stockPreview.tiles[tiles.length]);
-	}
-	const maxWord = words.reduce((max, word) => Math.max(max, word & 0xFFFF), 0);
-	const bitWidth = Math.max(1, Math.ceil(Math.log2(Math.max(2, maxWord + 1))));
-	const result = {
-		preview,
-		tiles,
-		words,
-		tile_bytes: Buffer.from(encodeTinyGraphics(tiles)),
-		map_bytes: Buffer.from(encodeLiteralTilemap(words, bitWidth)),
-	};
+	const result = buildGeneratedMinimapAssetsFromPreviews(preview, stockPreview, previewSlug);
 	generatedAssetsCache.set(track, { key: cacheKey, value: result });
 	return result;
 }
@@ -175,6 +189,8 @@ module.exports = {
 	sanitizeLabelFragment,
 	formatDcB,
 	buildTilesAndWordsFromPreview,
+	resolvePreservedExternalCellIndexSet,
+	buildGeneratedMinimapAssetsFromPreviews,
 	buildGeneratedMinimapAssets,
 	buildGeneratedMinimapLabelStem,
 	buildGeneratedMinimapLabelMap,

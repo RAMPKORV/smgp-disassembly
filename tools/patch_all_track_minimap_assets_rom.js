@@ -5,12 +5,13 @@ const fs = require('fs');
 const path = require('path');
 
 const { parseArgs, die, info } = require('./lib/cli');
+const { patchRomEnd } = require('./lib/asm_patch_helpers');
 const { patchRomChecksum } = require('./patch_rom_checksum');
+const { assertSafeRomPath } = require('./lib/workspace_guard');
 const { loadTracksData } = require('./lib/minimap_analysis');
 const { buildGeneratedMinimapAssets } = require('./lib/generated_minimap_assets');
 const { patchTrackMinimapTilesPointer } = require('./generated_minimap_runtime');
-
-const ROM_END_OFFSET = 0x01A4;
+const { getTracks } = require('./randomizer/track_model');
 
 function writeAlignedBlock(rom, cursor, bytes) {
 	const start = (cursor + 1) & ~1;
@@ -25,16 +26,18 @@ function buildTrackAssetBytes(track) {
 	};
 }
 
-function patchRomEnd(buffer) {
-	buffer.writeUInt32BE(buffer.length - 1, ROM_END_OFFSET);
-}
-
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
+		flags: ['--allow-root-mutation'],
 		options: ['--rom', '--input'],
 	});
 
 	const romPath = path.resolve(args.options['--rom'] || 'out.bin');
+	try {
+		assertSafeRomPath(romPath, { allowRootMutation: args.flags['--allow-root-mutation'] });
+	} catch (err) {
+		die(err.message);
+	}
 	if (!fs.existsSync(romPath)) die(`ROM not found: ${romPath}`);
 
 	const tracksData = loadTracksData(args.options['--input'] || undefined);
@@ -42,7 +45,7 @@ function main() {
 
 	const trackAssets = [];
 	let totalBytes = 0;
-	for (const track of tracksData.tracks || []) {
+	for (const track of getTracks(tracksData)) {
 		const { tileBytes } = buildTrackAssetBytes(track);
 		trackAssets.push({ track, tileBytes });
 		totalBytes += ((tileBytes.length + 1) & ~1);

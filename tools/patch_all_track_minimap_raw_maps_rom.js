@@ -7,14 +7,31 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 
 const { parseArgs, die, info } = require('./lib/cli');
+const {
+	alignEven,
+	encodeJsrAbsoluteLong,
+	formatDcL,
+	formatHexLong,
+	patchRomEnd,
+	writeLongBE,
+	writeWordBE,
+} = require('./lib/asm_patch_helpers');
+const {
+	MINIMAP_PANEL_CELL_COUNT,
+	MINIMAP_PANEL_TILES_H,
+	MINIMAP_PANEL_TILES_W,
+	MINIMAP_TILE_INDEX_MASK,
+} = require('./lib/minimap_layout');
 const { patchRomChecksum } = require('./patch_rom_checksum');
 const { loadTracksData } = require('./lib/minimap_analysis');
 const { buildGeneratedMinimapAssets } = require('./lib/generated_minimap_assets');
+const { getTracks } = require('./randomizer/track_model');
 const {
 	TRACK_DATA_ADDR,
 	TRACK_ENTRY_SIZE,
 	MINIMAP_MAP_PTR_OFFSET,
 } = require('./generated_minimap_runtime');
+const { assertSafeRomPath } = require('./lib/workspace_guard');
 
 const PREVIEW_MAP_JSR_ADDR = 0x000058FA;
 const HUD_MAP_JSR_ADDR = 0x000011EC;
@@ -25,34 +42,15 @@ const DECOMPRESS_TILEMAP_TO_BUFFER_ADDR = 0x00000AB0;
 const TILEMAP_WORK_BUF_ADDR = 0x00FFEA00;
 const TRACK_PREVIEW_INDEX_ADDR = 0xFFFFFF28;
 
-const MAP_WIDTH = 7;
-const MAP_HEIGHT = 11;
-const MAP_WORD_COUNT = MAP_WIDTH * MAP_HEIGHT;
+const MAP_WIDTH = MINIMAP_PANEL_TILES_W;
+const MAP_HEIGHT = MINIMAP_PANEL_TILES_H;
+const MAP_WORD_COUNT = MINIMAP_PANEL_CELL_COUNT;
 const DEFAULT_BASE_ADDR = 0x00013DBE;
-
-function writeWordBE(buffer, offset, value) {
-	buffer.writeUInt16BE(value & 0xFFFF, offset);
-}
-
-function writeLongBE(buffer, offset, value) {
-	buffer.writeUInt32BE(value >>> 0, offset);
-}
-
-function encodeJsrAbsoluteLong(address) {
-	const out = Buffer.alloc(6);
-	writeWordBE(out, 0, 0x4EB9);
-	writeLongBE(out, 2, address);
-	return out;
-}
 
 function encodeRts() {
 	const out = Buffer.alloc(2);
 	writeWordBE(out, 0, 0x4E75);
 	return out;
-}
-
-function alignEven(value) {
-	return (value + 1) & ~1;
 }
 
 function appendBlock(chunks, cursor, bytes) {
@@ -72,7 +70,7 @@ function buildPreviewRawMap(track) {
 		throw new Error(`unexpected minimap word count for ${track.slug}: ${assets.words ? assets.words.length : 'null'}`);
 	}
 	const out = Buffer.alloc(MAP_WORD_COUNT * 2);
-	for (let i = 0; i < assets.words.length; i++) writeWordBE(out, i * 2, assets.words[i] & 0x07FF);
+	for (let i = 0; i < assets.words.length; i++) writeWordBE(out, i * 2, assets.words[i] & MINIMAP_TILE_INDEX_MASK);
 	return out;
 }
 
@@ -83,22 +81,10 @@ function buildHudRawMap(track) {
 	}
 	const out = Buffer.alloc(MAP_WORD_COUNT * 2);
 	for (let i = 0; i < assets.words.length; i++) {
-		const word = assets.words[i] & 0x07FF;
+		const word = assets.words[i] & MINIMAP_TILE_INDEX_MASK;
 		writeWordBE(out, i * 2, word === 0 ? 0 : (0x8000 | word));
 	}
 	return out;
-}
-
-function formatHexLong(value) {
-	return `$${(value >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
-}
-
-function formatDcL(values) {
-	const lines = [];
-	for (let i = 0; i < values.length; i += 4) {
-		lines.push(`\tdc.l\t${values.slice(i, i + 4).map(formatHexLong).join(', ')}`);
-	}
-	return lines;
 }
 
 function buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs) {
@@ -189,10 +175,6 @@ function readTrackCompressedMapPointer(rom, trackIndex) {
 	return rom.readUInt32BE(entryAddr + MINIMAP_MAP_PTR_OFFSET);
 }
 
-function patchRomEnd(buffer) {
-	buffer.writeUInt32BE(buffer.length - 1, 0x01A4);
-}
-
 function findFreeRegion(rom, length, preferredStart = DEFAULT_BASE_ADDR) {
 	const required = alignEven(length);
 	for (let start = alignEven(preferredStart); start + required <= rom.length; start += 2) {
@@ -210,18 +192,23 @@ function findFreeRegion(rom, length, preferredStart = DEFAULT_BASE_ADDR) {
 
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
-		flags: ['--reuse-free-space'],
+		flags: ['--reuse-free-space', '--allow-root-mutation'],
 		options: ['--rom', '--input', '--base-addr'],
 	});
 
 	const romPath = path.resolve(args.options['--rom'] || 'out.bin');
+	try {
+		assertSafeRomPath(romPath, { allowRootMutation: args.flags['--allow-root-mutation'] });
+	} catch (err) {
+		die(err.message);
+	}
 	if (!fs.existsSync(romPath)) die(`ROM not found: ${romPath}`);
 
 	const asm68kPath = path.resolve('asm68k.exe');
 	if (!fs.existsSync(asm68kPath)) die(`assembler not found: ${asm68kPath}`);
 
 	const tracksData = loadTracksData(args.options['--input'] || undefined);
-	const tracks = Array.isArray(tracksData?.tracks) ? tracksData.tracks.slice().sort((a, b) => a.index - b.index) : [];
+	const tracks = getTracks(tracksData).slice().sort((a, b) => a.index - b.index);
 	if (tracks.length === 0) die('no tracks found');
 
 	const sourceRom = fs.readFileSync(romPath);

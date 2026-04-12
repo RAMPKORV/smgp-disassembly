@@ -18,6 +18,16 @@ const fs   = require('fs');
 const path = require('path');
 const { parseArgs, die, info } = require('./lib/cli');
 const { REPO_ROOT } = require('./lib/rom');
+const {
+	getTracks,
+	getTrackMinimapPairs,
+	getTrackMinimapTrailing,
+	getTrackSignData,
+	getTrackSignTileset,
+	getTrackSignTilesetTrailing,
+	requireInjectableTrackShape,
+	requireTracksDataShape,
+} = require('./randomizer/track_model');
 
 // ---------------------------------------------------------------------------
 // Curve RLE encoder
@@ -214,15 +224,16 @@ function encodeMinimapPos(pairs, trailingBytes = null) {
  * @returns {object}
  */
 function injectTrack(track, dataDir, dryRun = false, verbose = false) {
+  requireInjectableTrackShape(track);
   const slug     = track.slug;
   const trackDir = path.join(dataDir, slug);
 
   const curveBytes   = encodeCurveRle(track.curve_rle_segments);
   const slopeBytes   = encodeSlopeRle(track.slope_initial_bg_disp, track.slope_rle_segments);
   const physBytes    = encodePhysSlopeRle(track.phys_slope_rle_segments);
-  const signBytes    = encodeSignData(track.sign_data);
-  const tilesetBytes = encodeSignTileset(track.sign_tileset, track.sign_tileset_trailing);
-  const minimapBytes = encodeMinimapPos(track.minimap_pos, track.minimap_pos_trailing);
+  const signBytes    = encodeSignData(getTrackSignData(track));
+  const tilesetBytes = encodeSignTileset(getTrackSignTileset(track), getTrackSignTilesetTrailing(track));
+  const minimapBytes = encodeMinimapPos(getTrackMinimapPairs(track), getTrackMinimapTrailing(track));
 
   const files = {
     'curve_data.bin':      curveBytes,
@@ -293,8 +304,8 @@ function main() {
 
   if (!fs.existsSync(inputPath)) die(`input JSON not found: ${inputPath}`);
 
-  const jsonData = JSON.parse(fs.readFileSync(inputPath, 'utf8'));
-  let tracks = jsonData.tracks;
+  const jsonData = requireTracksDataShape(JSON.parse(fs.readFileSync(inputPath, 'utf8')));
+  let tracks = getTracks(jsonData);
 
   // --tracks accepts space-separated slugs as a single string (from CLI)
   if (tracksArg) {

@@ -168,10 +168,10 @@ Track_data:
 	dc.l	Great_Britain_lap_targets; Canada per-lap target time table (15 × 3-byte BCD entries)
 	dc.l	$002B002B ; steering divisors: straight=$002B, curve=$002B
 ; Great Britain
-	dc.l	Minimap_tiles_Great_Britain  ; Great Britain tiles used for minimap
+	dc.l	Minimap_tiles_Great_Britain ; Great Britain tiles used for minimap
 	dc.l	Track_bg_tiles_Great_Britain  ; Great Britain tiles used for background
 	dc.l	Track_bg_tilemap_Great_Britain  ; Great Britain background tile mapping
-	dc.l	Minimap_map_Great_Britain  ; Great Britain tile mapping for minimap
+	dc.l	Minimap_map_Great_Britain ; Great Britain tile mapping for minimap
 	dc.l	Great_Britain_bg_palette  ; Great Britain background palette
 	dc.l	Great_Britain_sideline_style ; Great Britain sideline style
 	dc.l	Great_Britain_road_style  ; Great Britain road style data

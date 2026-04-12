@@ -178,3 +178,12 @@ the ROM -- it supports breakpoints, memory/register inspection, and step executi
 - **Before claiming the root tree is canonical, actually run `verify.bat` and report the result.** Do not infer success from partial shell output.
 - **When preserving a broken or experimental state, checkpoint it first on a commit/branch, then restore the root tree to a verified commit. Never leave `master` non-bit-perfect between steps.**
 - **Master operating model:** keep `master` bit-perfect-buildable while still allowing randomizer tooling on `master`. Randomized ROM generation must default to workspace-only flows (`tools/hack_workdir.js` / workspace-safe `tools/randomize.js`) and must not mutate the root source tree unless explicitly using a debugging-only in-root mode.
+
+## Randomizer Refactor Workflow
+
+- Prefer the workspace-safe flow for randomizer/tooling changes; do not use in-root mutation unless you are deliberately debugging a root-only issue.
+- Before structural or algorithmic refactors, add direct tests first and freeze any compact baselines you need.
+- Use the fast test tier during iteration, then run a real workspace build before claiming tool-flow changes are safe.
+- In-root debug runs now create an explicit checkpoint under `build/checkpoints/in_root_debug/`; clear it with `node tools/restore_tracks.js --verify` before starting another in-root session.
+- Close every randomizer refactor checkpoint with canonical PowerShell verify.
+- See `docs/randomizer_refactor_workflow.md` for the expected command loop.

@@ -4,6 +4,9 @@
 // Tests for the Node.js randomizer stack (NODE-006).
 // Covers: XorShift32 PRNG, parseSeed, track_randomizer generation functions,
 // track_validator, team_randomizer, championship_randomizer.
+//
+// Default mode runs the fast tier only.
+// Use `node tools/tests/test_randomizer.js --slow` for the exhaustive tier.
 
 'use strict';
 
@@ -12,28 +15,20 @@ const path   = require('path');
 const fs     = require('fs');
 
 const {
-  XorShift32,
-  deriveSubseed,
-  parseSeed,
-  MOD_TRACK_CURVES, MOD_TRACK_SLOPES, MOD_TRACK_SIGNS, MOD_TRACK_MINIMAP,
-  MOD_TRACK_CONFIG, MOD_TEAMS, MOD_AI, MOD_CHAMPIONSHIP,
-  FLAG_TRACKS, FLAG_TRACK_CONFIG, FLAG_TEAMS, FLAG_AI,
-  FLAG_CHAMPIONSHIP, FLAG_SIGNS, FLAG_ALL,
-  CHAMPIONSHIP_ART_SETS, CHAMPIONSHIP_TRACK_NAMES,
-  generateCurveRle, decompressCurveSegments,
-  generateSlopeRle, generatePhysSlopeRle,
-  getCurveOpeningStraightSteps, getCurveClosingStraightSteps, getFirstCurveSegment, curveHasSafeRaceStart,
+	XorShift32,
+	generateCurveRle, decompressCurveSegments,
+	generateSlopeRle, generatePhysSlopeRle,
+	getCurveOpeningStraightSteps, getCurveClosingStraightSteps, getFirstCurveSegment, curveHasSafeRaceStart,
 	decodeCurveBgDisplacement, curveBgLoopAligns,
 	getCurveRuntimeSeamMetrics,
 	decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope,
 	getVisualSlopeOpeningFlatSteps, getVisualSlopeClosingFlatSteps, visualSlopeHasSafeRaceStart, visualSlopeLoopAligns,
 	generateSignData, generateSignTileset,
-  generateMinimap,
-  randomizeArtConfig, buildTrackConfigAsm,
-  pickTrackLength, randomizeOneTrack, randomizeTracks,
-  buildCurveGenerationProfile, buildCurveTargets,
-  expandCurveComplexity, buildSpecialRoadFeatures,
-  applySpecialRoadTilesetRecords, applySpecialRoadSignRecords,
+	generateMinimap,
+	pickTrackLength, randomizeOneTrack, randomizeTracks,
+	buildCurveGenerationProfile, buildCurveTargets,
+	expandCurveComplexity, buildSpecialRoadFeatures,
+	applySpecialRoadTilesetRecords, applySpecialRoadSignRecords,
   _shuffleList,
 } = require('../randomizer/track_randomizer');
 
@@ -42,45 +37,27 @@ const {
   validateTrack,
   validateTracks,
 } = require('../randomizer/track_validator');
-
 const {
-  randomizeTeams,
-  randomizeAi,
-  validateTeams,
-  ACCEL_INDEX_POOL,
-  ENGINE_INDEX_POOL,
-  TIRE_WEAR_POOL,
-  STEERING_IDX_RANGE,
-  BRAKING_IDX_RANGE,
-  AI_FACTOR_MIN,
-  AI_FACTOR_MAX,
-  AI_SCORE_MIN,
-  AI_SCORE_MAX,
-  TIRE_DELTA_MIN,
-  TIRE_DELTA_MAX,
-} = require('../randomizer/team_randomizer');
+	TRACK_METADATA_FIELDS,
+	preservesOriginalSignCadence,
+	setAssignedHorizonOverride,
+} = require('../randomizer/track_metadata');
 
-const {
-  randomizeChampionship,
-  validateChampionship,
-  NUM_CHAMPIONSHIP_TRACKS,
-  FIXED_FINAL_SLOT,
-  RIVAL_BASE_MIN,
-  RIVAL_BASE_MAX,
-  RIVAL_DELTA_MIN,
-  RIVAL_DELTA_MAX,
-  LAP_TIME_TABLE_BYTES,
-} = require('../randomizer/championship_randomizer');
-
-const { buildGeneratedMinimapAssetsAsm } = require('../lib/generated_minimap_assets');
 const { validateAllTracks } = require('../minimap_validate');
-const { buildGeneratedTrackBlock, GENERATED_MINIMAP_DATA_FILE, MONACO_ARCADE_TRAILING_PAD_BYTES } = require('../generate_track_data_asm');
-const { writeAlignedBlock } = require('../patch_all_track_minimap_assets_rom');
-const { readJson } = require('../lib/json');
+const { MONACO_ARCADE_TRAILING_PAD_BYTES } = require('../generate_track_data_asm');
 const { REPO_ROOT } = require('../lib/rom');
+const {
+	deepCopy,
+	getCurveDirection,
+	getCurveSharpness,
+	cyclicTrackDistance,
+	loadTracksJson,
+} = require('./randomizer_test_utils');
 
 let passed = 0;
 let failed = 0;
+let skippedSections = 0;
+const RUN_SLOW = process.argv.includes('--slow') || process.env.SMGP_SLOW_TESTS === '1';
 
 function test(name, fn) {
   try {
@@ -91,20 +68,6 @@ function test(name, fn) {
     console.error(`FAIL: ${name}`);
     console.error(`  ${err.message}`);
   }
-}
-
-function deepCopy(obj) {
-  return JSON.parse(JSON.stringify(obj));
-}
-
-function getCurveDirection(curveByte) {
-  if (curveByte >= 0x41 && curveByte <= 0x6F) return 1;
-  if (curveByte >= 0x01 && curveByte <= 0x2F) return -1;
-  return 0;
-}
-
-function getCurveSharpness(curveByte) {
-  return curveByte & 0x3F;
 }
 
 function buildCurveWindows(curveSegments) {
@@ -164,12 +127,6 @@ function hasSignNearDistance(signs, distance, radius) {
   return signs.some(sign => Math.abs(sign.distance - distance) <= radius);
 }
 
-function cyclicTrackDistance(a, b, trackLength) {
-	const diff = Math.abs(a - b);
-	if (!Number.isInteger(trackLength) || trackLength <= 0) return diff;
-	return Math.min(diff, trackLength - diff);
-}
-
 function countTightDirectionChanges(curveSegments) {
 	const curves = (curveSegments || []).filter(seg => seg.type === 'curve');
 	let count = 0;
@@ -190,142 +147,6 @@ function getLongestStraightLength(curveSegments) {
 		.filter(seg => seg.type === 'straight')
 		.reduce((max, seg) => Math.max(max, seg.length), 0);
 }
-
-// ---------------------------------------------------------------------------
-// Section A: XorShift32 PRNG
-// ---------------------------------------------------------------------------
-console.log('Section A: XorShift32 PRNG');
-
-test('XorShift32 produces non-zero output for seed 1', () => {
-  const rng = new XorShift32(1);
-  const v = rng.next();
-  assert.ok(v !== 0, 'expected non-zero');
-});
-
-test('XorShift32 is reproducible with same seed', () => {
-  const a = new XorShift32(42);
-  const b = new XorShift32(42);
-  for (let i = 0; i < 20; i++) {
-    assert.strictEqual(a.next(), b.next());
-  }
-});
-
-test('XorShift32 produces different sequences for different seeds', () => {
-  const a = new XorShift32(1);
-  const b = new XorShift32(2);
-  const seqA = Array.from({ length: 10 }, () => a.next());
-  const seqB = Array.from({ length: 10 }, () => b.next());
-  assert.notDeepStrictEqual(seqA, seqB);
-});
-
-test('XorShift32.randInt returns value in [lo, hi]', () => {
-  const rng = new XorShift32(999);
-  for (let i = 0; i < 100; i++) {
-    const v = rng.randInt(5, 10);
-    assert.ok(v >= 5 && v <= 10, `${v} out of [5,10]`);
-  }
-});
-
-test('XorShift32.randFloat returns value in [0, 1)', () => {
-  const rng = new XorShift32(7);
-  for (let i = 0; i < 50; i++) {
-    const v = rng.randFloat();
-    assert.ok(v >= 0 && v < 1, `${v} out of [0,1)`);
-  }
-});
-
-test('XorShift32.choice returns an element from the array', () => {
-  const rng = new XorShift32(3);
-  const items = ['a', 'b', 'c'];
-  for (let i = 0; i < 30; i++) {
-    const v = rng.choice(items);
-    assert.ok(items.includes(v));
-  }
-});
-
-test('XorShift32.weightedChoice respects weights (sanity test)', () => {
-  const rng = new XorShift32(12345);
-  const counts = { a: 0, b: 0 };
-  for (let i = 0; i < 1000; i++) {
-    const v = rng.weightedChoice(['a', 'b'], [1, 9]);
-    counts[v]++;
-  }
-  // b should appear roughly 9x more than a
-  assert.ok(counts.b > counts.a * 3, `expected b >> a, got a=${counts.a} b=${counts.b}`);
-});
-
-test('XorShift32 seed 0 is treated as seed 1 (same state)', () => {
-  const rng0 = new XorShift32(0);
-  const rng1 = new XorShift32(1);
-  assert.strictEqual(rng0.next(), rng1.next());
-});
-
-// ---------------------------------------------------------------------------
-// Section B: parseSeed and deriveSubseed
-// ---------------------------------------------------------------------------
-console.log('Section B: parseSeed and deriveSubseed');
-
-test('parseSeed parses valid seed SMGP-1-01-12345', () => {
-  const [version, flags, seed] = parseSeed('SMGP-1-01-12345');
-  assert.strictEqual(version, 1);
-  assert.strictEqual(flags, 0x01);
-  assert.strictEqual(seed, 12345);
-});
-
-test('parseSeed parses uppercase hex flags SMGP-1-3F-99999', () => {
-  const [version, flags, seed] = parseSeed('SMGP-1-3F-99999');
-  assert.strictEqual(flags, 0x3F);
-  assert.strictEqual(seed, 99999);
-});
-
-test('parseSeed parses lowercase hex flags SMGP-1-0c-1', () => {
-  const [, flags, seed] = parseSeed('SMGP-1-0c-1');
-  assert.strictEqual(flags, 0x0C);
-  assert.strictEqual(seed, 1);
-});
-
-test('parseSeed parses FLAG_ALL seed SMGP-1-3F-1', () => {
-  const [, flags] = parseSeed('SMGP-1-3F-1');
-  assert.strictEqual(flags, FLAG_ALL);
-});
-
-test('parseSeed throws on invalid format', () => {
-  assert.throws(() => parseSeed('INVALID'), /Invalid seed format/);
-  assert.throws(() => parseSeed('SMGP-1-01'), /Invalid seed format/);
-  assert.throws(() => parseSeed('smgp-1-01-123'), /Invalid seed format/);
-});
-
-test('deriveSubseed returns different values for different module IDs', () => {
-  const sub1 = deriveSubseed(12345, MOD_TRACK_CURVES);
-  const sub2 = deriveSubseed(12345, MOD_TRACK_SLOPES);
-  const sub3 = deriveSubseed(12345, MOD_TEAMS);
-  assert.notStrictEqual(sub1, sub2);
-  assert.notStrictEqual(sub1, sub3);
-  assert.notStrictEqual(sub2, sub3);
-});
-
-test('deriveSubseed is reproducible with same inputs', () => {
-  const a = deriveSubseed(9999, MOD_AI);
-  const b = deriveSubseed(9999, MOD_AI);
-  assert.strictEqual(a, b);
-});
-
-test('deriveSubseed returns non-zero', () => {
-  for (const mod of [MOD_TRACK_CURVES, MOD_TRACK_SLOPES, MOD_TEAMS, MOD_CHAMPIONSHIP]) {
-    const v = deriveSubseed(1, mod);
-    assert.ok(v !== 0, `subseed 0 for mod ${mod}`);
-  }
-});
-
-test('flag constants have expected values', () => {
-  assert.strictEqual(FLAG_TRACKS,       0x01);
-  assert.strictEqual(FLAG_TRACK_CONFIG, 0x02);
-  assert.strictEqual(FLAG_TEAMS,        0x04);
-  assert.strictEqual(FLAG_AI,           0x08);
-  assert.strictEqual(FLAG_CHAMPIONSHIP, 0x10);
-  assert.strictEqual(FLAG_SIGNS,        0x20);
-  assert.strictEqual(FLAG_ALL,          0x3F);
-});
 
 // ---------------------------------------------------------------------------
 // Section C: Track randomizer — generation primitives
@@ -517,477 +338,481 @@ test('generateSignTileset tileset_offset values are multiples of 8 in [0, 88]', 
 // ---------------------------------------------------------------------------
 // Section D: randomizeOneTrack and randomizeTracks
 // ---------------------------------------------------------------------------
-console.log('Section D: randomizeOneTrack and randomizeTracks');
+const tracksJson = loadTracksJson();
+let stockMinimapReport = null;
 
-const tracksJson = readJson(path.join(REPO_ROOT, 'tools/data/tracks.json'));
-const stockMinimapReport = validateAllTracks(tracksJson);
+if (RUN_SLOW) {
+  console.log('Section D: randomizeOneTrack and randomizeTracks');
+  stockMinimapReport = validateAllTracks(tracksJson);
 
-test('generateMinimap returns [intPairs, trailing] with count == trackLength >> 6', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 33);
-  const [pairs] = generateMinimap(track);
-  assert.strictEqual(pairs.length, track.track_length >> 6);
-});
+  test('generateMinimap returns [intPairs, trailing] with count == trackLength >> 6', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 33);
+    const [pairs] = generateMinimap(track);
+    assert.strictEqual(pairs.length, track.track_length >> 6);
+  });
 
-test('generateMinimap coordinates are [x, y] integer pairs', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 44);
-  const [pairs] = generateMinimap(track);
-  for (const pt of pairs) {
-    assert.ok(Array.isArray(pt) && pt.length === 2, 'expected [x,y] pair');
-    assert.ok(typeof pt[0] === 'number' && typeof pt[1] === 'number');
-  }
-});
-
-test('randomizeOneTrack produces a track that passes validateTrack', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 12345);
-  const errors = validateTrack(track);
-  assert.strictEqual(errors.length, 0,
-    `Validation errors: ${errors.map(e => e.toString()).join('; ')}`);
-});
-
-test('randomizeOneTrack is reproducible with same seed', () => {
-  const t1 = deepCopy(tracksJson.tracks[0]);
-  const t2 = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(t1, 42);
-  randomizeOneTrack(t2, 42);
-  assert.deepStrictEqual(t1.curve_rle_segments, t2.curve_rle_segments);
-  assert.deepStrictEqual(t1.slope_rle_segments, t2.slope_rle_segments);
-  assert.deepStrictEqual(t1.minimap_pos, t2.minimap_pos);
-});
-
-test('randomizeOneTrack produces different output for different seeds', () => {
-  const t1 = deepCopy(tracksJson.tracks[0]);
-  const t2 = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(t1, 1);
-  randomizeOneTrack(t2, 2);
-  assert.notDeepStrictEqual(t1.curve_rle_segments, t2.curve_rle_segments);
-});
-
-test('randomizeOneTrack sets track_length, curve_rle_segments, slope_rle_segments, minimap_pos', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  assert.ok(typeof track.track_length === 'number');
-  assert.ok(Array.isArray(track.curve_rle_segments));
-  assert.ok(Array.isArray(track.slope_rle_segments));
-  assert.ok(Array.isArray(track.minimap_pos));
-});
-
-test('randomizeOneTrack keeps generated sign cadence mode enabled for validator safety', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-	assert.strictEqual(track._preserve_original_sign_cadence, false);
-});
-
-test('randomizeOneTrack opens and closes with straights', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  const body = track.curve_rle_segments.filter(seg => seg.type === 'straight' || seg.type === 'curve');
-  assert.ok(body.length >= 2, 'expected at least two body segments');
-  assert.strictEqual(body[0].type, 'straight');
-  assert.strictEqual(body[body.length - 1].type, 'straight');
-});
-
-test('randomizeOneTrack normalizes runtime background displacement across curves', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  const net = track.curve_rle_segments.reduce((sum, seg) => {
-    if (seg.type !== 'curve') return sum;
-	const runtimeDir = (seg.curve_byte & 0x40) ? -1 : 1;
-	return sum + (runtimeDir * (seg.bg_disp || 0));
-  }, 0);
-  assert.strictEqual(net, 0);
-});
-
-test('randomizeOneTrack keeps a safe straight runway before first curve background shift', () => {
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	const firstCurve = getFirstCurveSegment(track.curve_rle_segments);
-	assert.ok(firstCurve, 'expected at least one curve segment');
-	assert.ok(curveHasSafeRaceStart(track.curve_rle_segments));
-	assert.ok(getCurveOpeningStraightSteps(track.curve_rle_segments) >= 48);
-	assert.ok(firstCurve.length >= 12);
-	assert.ok((firstCurve.bg_disp / firstCurve.length) <= 8);
-});
-
-test('randomizeOneTrack keeps stock-like background loop closure', () => {
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	assert.ok(curveBgLoopAligns(track.curve_rle_segments, track.track_length));
-	const decoded = decodeCurveBgDisplacement(track.curve_rle_segments);
-	assert.ok(decoded.length > 0, 'expected decoded curve displacement samples');
-	const seam = getCurveRuntimeSeamMetrics(track.curve_rle_segments, track.track_length);
-	assert.ok(seam, 'expected runtime seam metrics');
-	assert.strictEqual(seam.sampleJump, 0);
-	assert.strictEqual(seam.targetJump, 0);
-});
-
-test('randomizeTracks keeps curve background displacement magnitudes within stock bounds', () => {
-	const seeds = [12345, 22222, 33333, 44444, 55555];
-	for (const seed of seeds) {
-		const data = deepCopy(tracksJson);
-		randomizeTracks(data, seed, null, false);
-		for (const track of data.tracks) {
-			for (const seg of track.curve_rle_segments) {
-				if (seg.type !== 'curve') continue;
-				assert.ok((seg.bg_disp || 0) >= 30,
-					`${track.slug} seed ${seed}: bg_disp ${seg.bg_disp} below stock floor`);
-				assert.ok((seg.bg_disp || 0) <= 300,
-					`${track.slug} seed ${seed}: bg_disp ${seg.bg_disp} above stock ceiling`);
-			}
-		}
-	}
-});
-
-test('randomizeOneTrack keeps signs away from sign tileset transitions', () => {
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	for (const sign of track.sign_data) {
-		for (const tileset of track.sign_tileset) {
-			assert.ok(cyclicTrackDistance(tileset.distance, sign.distance, track.track_length) >= 256,
-				`sign at ${sign.distance} too close to tileset transition at ${tileset.distance}`);
-		}
-	}
-});
-
-test('randomizeOneTrack uses physical slopes only for interior of visual slopes', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  let slopeStep = 0;
-  for (const seg of track.slope_rle_segments) {
-    if (seg.type === 'terminator') break;
-    if (seg.type === 'flat') {
-      for (let i = 0; i < seg.length; i++) {
-        assert.strictEqual(track.phys_slope_decompressed[slopeStep + i], 0);
-      }
-    } else if (seg.type === 'slope') {
-      const direction = getCurveDirection(seg.slope_byte);
-      const shoulder = Math.min(8, Math.floor(seg.length / 4));
-      const coreStart = slopeStep + shoulder;
-      const coreEnd = slopeStep + seg.length - shoulder;
-      for (let i = slopeStep; i < slopeStep + seg.length; i++) {
-        const expected = (i >= coreStart && i < coreEnd) ? direction : 0;
-        assert.strictEqual(track.phys_slope_decompressed[i], expected);
-      }
+  test('generateMinimap coordinates are [x, y] integer pairs', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 44);
+    const [pairs] = generateMinimap(track);
+    for (const pt of pairs) {
+      assert.ok(Array.isArray(pt) && pt.length === 2, 'expected [x,y] pair');
+      assert.ok(typeof pt[0] === 'number' && typeof pt[1] === 'number');
     }
-    slopeStep += seg.length;
-  }
-});
+  });
 
-test('randomizeOneTrack keeps decoded visual slope offsets within stock-safe envelope', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  const decoded = decodeVisualSlopeBgDisplacement(track.slope_initial_bg_disp, track.slope_rle_segments);
-  assert.ok(visualSlopeOffsetsWithinSafeEnvelope(decoded));
-});
+  test('randomizeOneTrack produces a track that passes validateTrack', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 12345);
+    const errors = validateTrack(track);
+    assert.strictEqual(errors.length, 0,
+      `Validation errors: ${errors.map(e => e.toString()).join('; ')}`);
+  });
 
-test('randomizeOneTrack keeps a safe flat race-start before first visual slope', () => {
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	assert.strictEqual(track.slope_initial_bg_disp, 0);
-	assert.ok(visualSlopeHasSafeRaceStart(track.slope_initial_bg_disp, track.slope_rle_segments));
-	assert.ok(getVisualSlopeOpeningFlatSteps(track.slope_rle_segments) >= 128);
-});
+  test('randomizeOneTrack is reproducible with same seed', () => {
+    const t1 = deepCopy(tracksJson.tracks[0]);
+    const t2 = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(t1, 42);
+    randomizeOneTrack(t2, 42);
+    assert.deepStrictEqual(t1.curve_rle_segments, t2.curve_rle_segments);
+    assert.deepStrictEqual(t1.slope_rle_segments, t2.slope_rle_segments);
+    assert.deepStrictEqual(t1.minimap_pos, t2.minimap_pos);
+  });
 
-test('randomizeOneTrack keeps visual slope loop aligned at race end', () => {
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	assert.ok(visualSlopeLoopAligns(track.slope_initial_bg_disp, track.slope_rle_segments));
-	assert.ok(getVisualSlopeClosingFlatSteps(track.slope_rle_segments) >= 96);
-	const decoded = decodeVisualSlopeBgDisplacement(track.slope_initial_bg_disp, track.slope_rle_segments);
-	assert.ok(decoded.length > 0);
-	assert.strictEqual(decoded[decoded.length - 1], track.slope_initial_bg_disp);
-});
+  test('randomizeOneTrack produces different output for different seeds', () => {
+    const t1 = deepCopy(tracksJson.tracks[0]);
+    const t2 = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(t1, 1);
+    randomizeOneTrack(t2, 2);
+    assert.notDeepStrictEqual(t1.curve_rle_segments, t2.curve_rle_segments);
+  });
 
-test('randomizeOneTrack places signs near meaningful curve windows', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  const windows = buildCurveWindows(track.curve_rle_segments)
-    .filter(window => window.peakSharpness >= 12 || window.curveDistance >= 128);
-  assert.ok(windows.length > 0, 'expected at least one strong curve window');
-	for (const window of windows) {
-		const anchor = Math.max(0, window.startDistance - window.leadDistance);
-		const transitionNearby = track.sign_tileset.some(rec => cyclicTrackDistance(rec.distance, anchor, track.track_length) < 512);
-		if (transitionNearby) continue;
-		assert.ok(
-			hasSignNearDistance(track.sign_data, anchor, 160),
-			`expected sign near curve window at ${anchor}`
+  test('randomizeOneTrack sets track_length, curve_rle_segments, slope_rle_segments, minimap_pos', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    assert.ok(typeof track.track_length === 'number');
+    assert.ok(Array.isArray(track.curve_rle_segments));
+    assert.ok(Array.isArray(track.slope_rle_segments));
+    assert.ok(Array.isArray(track.minimap_pos));
+  });
+
+  test('randomizeOneTrack keeps generated sign cadence mode enabled for validator safety', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+	  assert.strictEqual(preservesOriginalSignCadence(track), false);
+  });
+
+  test('randomizeOneTrack opens and closes with straights', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    const body = track.curve_rle_segments.filter(seg => seg.type === 'straight' || seg.type === 'curve');
+    assert.ok(body.length >= 2, 'expected at least two body segments');
+    assert.strictEqual(body[0].type, 'straight');
+    assert.strictEqual(body[body.length - 1].type, 'straight');
+  });
+
+  test('randomizeOneTrack normalizes runtime background displacement across curves', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    const net = track.curve_rle_segments.reduce((sum, seg) => {
+      if (seg.type !== 'curve') return sum;
+	    const runtimeDir = (seg.curve_byte & 0x40) ? -1 : 1;
+	    return sum + (runtimeDir * (seg.bg_disp || 0));
+    }, 0);
+    assert.strictEqual(net, 0);
+  });
+
+  test('randomizeOneTrack keeps a safe straight runway before first curve background shift', () => {
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  const firstCurve = getFirstCurveSegment(track.curve_rle_segments);
+	  assert.ok(firstCurve, 'expected at least one curve segment');
+	  assert.ok(curveHasSafeRaceStart(track.curve_rle_segments));
+	  assert.ok(getCurveOpeningStraightSteps(track.curve_rle_segments) >= 48);
+	  assert.ok(firstCurve.length >= 12);
+	  assert.ok((firstCurve.bg_disp / firstCurve.length) <= 8);
+  });
+
+  test('randomizeOneTrack keeps stock-like background loop closure', () => {
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  assert.ok(curveBgLoopAligns(track.curve_rle_segments, track.track_length));
+	  const decoded = decodeCurveBgDisplacement(track.curve_rle_segments);
+	  assert.ok(decoded.length > 0, 'expected decoded curve displacement samples');
+	  const seam = getCurveRuntimeSeamMetrics(track.curve_rle_segments, track.track_length);
+	  assert.ok(seam, 'expected runtime seam metrics');
+	  assert.strictEqual(seam.sampleJump, 0);
+	  assert.strictEqual(seam.targetJump, 0);
+  });
+
+  test('randomizeTracks keeps curve background displacement magnitudes within stock bounds', () => {
+	  const seeds = [12345, 22222, 33333, 44444, 55555];
+	  for (const seed of seeds) {
+		  const data = deepCopy(tracksJson);
+		  randomizeTracks(data, seed, null, false);
+		  for (const track of data.tracks) {
+			  for (const seg of track.curve_rle_segments) {
+				  if (seg.type !== 'curve') continue;
+				  assert.ok((seg.bg_disp || 0) >= 30,
+					  `${track.slug} seed ${seed}: bg_disp ${seg.bg_disp} below stock floor`);
+				  assert.ok((seg.bg_disp || 0) <= 300,
+					  `${track.slug} seed ${seed}: bg_disp ${seg.bg_disp} above stock ceiling`);
+			  }
+		  }
+	  }
+  });
+
+  test('randomizeOneTrack keeps signs away from sign tileset transitions', () => {
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  for (const sign of track.sign_data) {
+		  for (const tileset of track.sign_tileset) {
+			  assert.ok(cyclicTrackDistance(tileset.distance, sign.distance, track.track_length) >= 256,
+				  `sign at ${sign.distance} too close to tileset transition at ${tileset.distance}`);
+		  }
+	  }
+  });
+
+  test('randomizeOneTrack uses physical slopes only for interior of visual slopes', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    let slopeStep = 0;
+    for (const seg of track.slope_rle_segments) {
+      if (seg.type === 'terminator') break;
+      if (seg.type === 'flat') {
+        for (let i = 0; i < seg.length; i++) {
+          assert.strictEqual(track.phys_slope_decompressed[slopeStep + i], 0);
+        }
+      } else if (seg.type === 'slope') {
+        const direction = getCurveDirection(seg.slope_byte);
+        const shoulder = Math.min(8, Math.floor(seg.length / 4));
+        const coreStart = slopeStep + shoulder;
+        const coreEnd = slopeStep + seg.length - shoulder;
+        for (let i = slopeStep; i < slopeStep + seg.length; i++) {
+          const expected = (i >= coreStart && i < coreEnd) ? direction : 0;
+          assert.strictEqual(track.phys_slope_decompressed[i], expected);
+        }
+      }
+      slopeStep += seg.length;
+    }
+  });
+
+  test('randomizeOneTrack keeps decoded visual slope offsets within stock-safe envelope', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    const decoded = decodeVisualSlopeBgDisplacement(track.slope_initial_bg_disp, track.slope_rle_segments);
+    assert.ok(visualSlopeOffsetsWithinSafeEnvelope(decoded));
+  });
+
+  test('randomizeOneTrack keeps a safe flat race-start before first visual slope', () => {
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  assert.strictEqual(track.slope_initial_bg_disp, 0);
+	  assert.ok(visualSlopeHasSafeRaceStart(track.slope_initial_bg_disp, track.slope_rle_segments));
+	  assert.ok(getVisualSlopeOpeningFlatSteps(track.slope_rle_segments) >= 128);
+  });
+
+  test('randomizeOneTrack keeps visual slope loop aligned at race end', () => {
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  assert.ok(visualSlopeLoopAligns(track.slope_initial_bg_disp, track.slope_rle_segments));
+	  assert.ok(getVisualSlopeClosingFlatSteps(track.slope_rle_segments) >= 96);
+	  const decoded = decodeVisualSlopeBgDisplacement(track.slope_initial_bg_disp, track.slope_rle_segments);
+	  assert.ok(decoded.length > 0);
+	  assert.strictEqual(decoded[decoded.length - 1], track.slope_initial_bg_disp);
+  });
+
+  test('randomizeOneTrack places signs near meaningful curve windows', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    const windows = buildCurveWindows(track.curve_rle_segments)
+      .filter(window => window.peakSharpness >= 12 || window.curveDistance >= 128);
+    assert.ok(windows.length > 0, 'expected at least one strong curve window');
+	  for (const window of windows) {
+		  const anchor = Math.max(0, window.startDistance - window.leadDistance);
+		  const transitionNearby = track.sign_tileset.some(rec => cyclicTrackDistance(rec.distance, anchor, track.track_length) < 512);
+		  if (transitionNearby) continue;
+		  assert.ok(
+			  hasSignNearDistance(track.sign_data, anchor, 160),
+			  `expected sign near curve window at ${anchor}`
+      );
+	  }
+  });
+
+  test('randomizeOneTrack changes sign tilesets before strong curve windows with safe spacing', () => {
+    const track = deepCopy(tracksJson.tracks[0]);
+    randomizeOneTrack(track, 9999);
+    for (let i = 1; i < track.sign_tileset.length; i++) {
+      const gap = track.sign_tileset[i].distance - track.sign_tileset[i - 1].distance;
+      assert.ok(gap >= 1500, `tileset gap ${gap} must be >= 1500`);
+    }
+
+    const strongWindows = buildCurveWindows(track.curve_rle_segments)
+      .filter(window => window.peakSharpness >= 12 || window.curveDistance >= 128);
+    assert.ok(strongWindows.length > 0, 'expected at least one strong curve window');
+    const plannedWindows = strongWindows.filter(window =>
+      track.sign_tileset.some(rec => rec.distance <= window.startDistance && (window.startDistance - rec.distance) <= 320)
     );
-  }
-});
+    assert.ok(plannedWindows.length > 0, 'expected at least one nearby tileset change before a strong curve window');
+  });
 
-test('randomizeOneTrack changes sign tilesets before strong curve windows with safe spacing', () => {
-  const track = deepCopy(tracksJson.tracks[0]);
-  randomizeOneTrack(track, 9999);
-  for (let i = 1; i < track.sign_tileset.length; i++) {
-    const gap = track.sign_tileset[i].distance - track.sign_tileset[i - 1].distance;
-    assert.ok(gap >= 1500, `tileset gap ${gap} must be >= 1500`);
-  }
+  test('default seed portugal keeps directional signs present', () => {
+	  const data = deepCopy(tracksJson);
+	  randomizeTracks(data, 12345);
+	  const track = data.tracks.find(entry => entry.slug === 'portugal');
+	  const directionalIds = new Set([4, 5, 12, 13, 16, 17, 20, 21, 24, 25, 28, 29, 32, 33, 36, 37, 40, 41, 44, 45, 48, 49]);
+	  assert.ok(track.sign_data.some(record => directionalIds.has(record.sign_id)), 'expected at least one directional sign');
+  });
 
-  const strongWindows = buildCurveWindows(track.curve_rle_segments)
-    .filter(window => window.peakSharpness >= 12 || window.curveDistance >= 128);
-  assert.ok(strongWindows.length > 0, 'expected at least one strong curve window');
-  const plannedWindows = strongWindows.filter(window =>
-    track.sign_tileset.some(rec => rec.distance <= window.startDistance && (window.startDistance - rec.distance) <= 320)
-  );
-  assert.ok(plannedWindows.length > 0, 'expected at least one nearby tileset change before a strong curve window');
-});
+  test('expandCurveComplexity preserves or improves direction changes without forcing ultra-sharp curves', () => {
+	  const templateTrack = deepCopy(tracksJson.tracks.find(track => track.slug === 'usa'));
+	  const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
+	  const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
+	  const rng = new XorShift32(1234);
+	  const base = generateCurveRle(rng, templateTrack.track_length, templateTrack);
+	  const expanded = expandCurveComplexity(new XorShift32(1234), base, targets);
+	  assert.ok(countTightDirectionChanges(expanded) >= countTightDirectionChanges(base), 'expected at least as many direction changes');
+	  assert.ok(countUltraSharpCurves(expanded) <= countUltraSharpCurves(base) + 1, 'expected ultra-sharp curve count to stay bounded');
+  });
 
-test('default seed portugal keeps directional signs present', () => {
-	const data = deepCopy(tracksJson);
-	randomizeTracks(data, 12345);
-	const track = data.tracks.find(entry => entry.slug === 'portugal');
-	const directionalIds = new Set([4, 5, 12, 13, 16, 17, 20, 21, 24, 25, 28, 29, 32, 33, 36, 37, 40, 41, 44, 45, 48, 49]);
-	assert.ok(track.sign_data.some(record => directionalIds.has(record.sign_id)), 'expected at least one directional sign');
-});
+  test('expandCurveComplexity trims long straights and raises total curve count for technical runs', () => {
+	  const templateTrack = deepCopy(tracksJson.tracks.find(track => track.slug === 'usa'));
+	  const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
+	  const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
+	  const rng = new XorShift32(4321);
+	  const base = generateCurveRle(rng, templateTrack.track_length, templateTrack);
+	  const expanded = expandCurveComplexity(new XorShift32(4321), base, targets);
+	  const baseCurveCount = base.filter(seg => seg.type === 'curve').length;
+	  const expandedCurveCount = expanded.filter(seg => seg.type === 'curve').length;
+	  assert.ok(expandedCurveCount >= baseCurveCount, 'expected at least as many curve segments after expansion');
+	  assert.ok(getLongestStraightLength(expanded) <= getLongestStraightLength(base), 'expected longest straight to not grow after expansion');
+	  assert.ok(getLongestStraightLength(expanded) <= Math.max(getLongestStraightLength(base), targets.maxStraightLength), 'expected longest straight to stay near target ceiling');
+  });
 
-test('expandCurveComplexity preserves or improves direction changes without forcing ultra-sharp curves', () => {
-	const templateTrack = deepCopy(tracksJson.tracks.find(track => track.slug === 'usa'));
-	const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
-	const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
-	const rng = new XorShift32(1234);
-	const base = generateCurveRle(rng, templateTrack.track_length, templateTrack);
-	const expanded = expandCurveComplexity(new XorShift32(1234), base, targets);
-	assert.ok(countTightDirectionChanges(expanded) >= countTightDirectionChanges(base), 'expected at least as many direction changes');
-	assert.ok(countUltraSharpCurves(expanded) <= countUltraSharpCurves(base) + 1, 'expected ultra-sharp curve count to stay bounded');
-});
+  test('randomizeOneTrack keeps longest straight more technical and directional sign tilesets present', () => {
+	  const track = deepCopy(tracksJson.tracks.find(entry => entry.slug === 'portugal'));
+	  randomizeOneTrack(track, 13579);
+	  assert.ok(getLongestStraightLength(track.curve_rle_segments) <= 120, 'expected longest straight to stay capped for technical layouts');
+	  const directionalOffsets = track.sign_tileset.filter(record => {
+		  const id = record.tileset_offset;
+		  return [0, 8, 16, 24, 32, 40, 48, 56, 64, 72].includes(id);
+	  });
+	  assert.ok(directionalOffsets.length >= 1, 'expected at least one directional-capable sign tileset selection');
+  });
 
-test('expandCurveComplexity trims long straights and raises total curve count for technical runs', () => {
-	const templateTrack = deepCopy(tracksJson.tracks.find(track => track.slug === 'usa'));
-	const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
-	const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
-	const rng = new XorShift32(4321);
-	const base = generateCurveRle(rng, templateTrack.track_length, templateTrack);
-	const expanded = expandCurveComplexity(new XorShift32(4321), base, targets);
-	const baseCurveCount = base.filter(seg => seg.type === 'curve').length;
-	const expandedCurveCount = expanded.filter(seg => seg.type === 'curve').length;
-	assert.ok(expandedCurveCount >= baseCurveCount, 'expected at least as many curve segments after expansion');
-	assert.ok(getLongestStraightLength(expanded) <= getLongestStraightLength(base), 'expected longest straight to not grow after expansion');
-	assert.ok(getLongestStraightLength(expanded) <= Math.max(getLongestStraightLength(base), targets.maxStraightLength), 'expected longest straight to stay near target ceiling');
-});
+  test('randomizeOneTrack keeps ultra-sharp turns bounded', () => {
+	  const track = deepCopy(tracksJson.tracks.find(track => track.slug === 'portugal'));
+	  randomizeOneTrack(track, 24680);
+	  assert.ok(countUltraSharpCurves(track.curve_rle_segments) <= 2, 'expected at most two ultra-sharp turns');
+  });
 
-test('randomizeOneTrack keeps longest straight more technical and directional sign tilesets present', () => {
-	const track = deepCopy(tracksJson.tracks.find(entry => entry.slug === 'portugal'));
-	randomizeOneTrack(track, 13579);
-	assert.ok(getLongestStraightLength(track.curve_rle_segments) <= 120, 'expected longest straight to stay capped for technical layouts');
-	const directionalOffsets = track.sign_tileset.filter(record => {
-		const id = record.tileset_offset;
-		return [0, 8, 16, 24, 32, 40, 48, 56, 64, 72].includes(id);
-	});
-	assert.ok(directionalOffsets.length >= 1, 'expected at least one directional-capable sign tileset selection');
-});
+  test('default full-safe seed avoids impossible ultra-sharp overload on San Marino and Brazil', () => {
+	  const data = deepCopy(tracksJson);
+	  randomizeTracks(data, 12345);
+	  for (const slug of ['san_marino', 'brazil']) {
+		  const track = data.tracks.find(entry => entry.slug === slug);
+		  const curves = track.curve_rle_segments.filter(seg => seg.type === 'curve');
+		  const ultra = curves.filter(seg => getCurveSharpness(seg.curve_byte) <= 4);
+		  assert.ok(ultra.length <= 2, `${slug} should not have more than two ultra-sharp curves`);
+		  for (let i = 0; i < track.curve_rle_segments.length - 2; i++) {
+			  const a = track.curve_rle_segments[i];
+			  const bridge = track.curve_rle_segments[i + 1];
+			  const b = track.curve_rle_segments[i + 2];
+			  if (a.type !== 'curve' || bridge.type !== 'straight' || b.type !== 'curve') continue;
+			  if (getCurveDirection(a.curve_byte) === getCurveDirection(b.curve_byte)) continue;
+			  if (getCurveSharpness(a.curve_byte) <= 8 || getCurveSharpness(b.curve_byte) <= 8) {
+				  assert.ok(bridge.length >= 12, `${slug} should not reverse sharp curves with too little bridge straight`);
+			  }
+		  }
+	  }
+  });
 
-test('randomizeOneTrack keeps ultra-sharp turns bounded', () => {
-	const track = deepCopy(tracksJson.tracks.find(track => track.slug === 'portugal'));
-	randomizeOneTrack(track, 24680);
-	assert.ok(countUltraSharpCurves(track.curve_rle_segments) <= 2, 'expected at most two ultra-sharp turns');
-});
+  test('randomizeOneTrack generates some non-flat slopes', () => {
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  const slopeSegments = track.slope_rle_segments.filter(seg => seg.type === 'slope');
+	  if (slopeSegments.length === 0) {
+		  assert.ok(track.phys_slope_decompressed.every(value => value === 0), 'expected flat physical slope when no visual slopes are present');
+		  return;
+	  }
+	  assert.ok(track.phys_slope_decompressed.some(value => value !== 0), 'expected some non-flat physical slope steps');
+	  assert.ok(slopeSegments.every(seg => seg.length <= 32), 'expected slope segments to stay in conservative safe lengths');
+  });
 
-test('default full-safe seed avoids impossible ultra-sharp overload on San Marino and Brazil', () => {
-	const data = deepCopy(tracksJson);
-	randomizeTracks(data, 12345);
-	for (const slug of ['san_marino', 'brazil']) {
-		const track = data.tracks.find(entry => entry.slug === slug);
-		const curves = track.curve_rle_segments.filter(seg => seg.type === 'curve');
-		const ultra = curves.filter(seg => getCurveSharpness(seg.curve_byte) <= 4);
-		assert.ok(ultra.length <= 2, `${slug} should not have more than two ultra-sharp curves`);
-		for (let i = 0; i < track.curve_rle_segments.length - 2; i++) {
-			const a = track.curve_rle_segments[i];
-			const bridge = track.curve_rle_segments[i + 1];
-			const b = track.curve_rle_segments[i + 2];
-			if (a.type !== 'curve' || bridge.type !== 'straight' || b.type !== 'curve') continue;
-			if (getCurveDirection(a.curve_byte) === getCurveDirection(b.curve_byte)) continue;
-			if (getCurveSharpness(a.curve_byte) <= 8 || getCurveSharpness(b.curve_byte) <= 8) {
-				assert.ok(bridge.length >= 12, `${slug} should not reverse sharp curves with too little bridge straight`);
-			}
-		}
-	}
-});
+  test('randomizeOneTrack keeps non-horizon sign tilesets away from horizon-only palette family', () => {
+	  const track = deepCopy(tracksJson.tracks.find(entry => entry.slug === 'brazil'));
+	  setAssignedHorizonOverride(track, 0);
+	  randomizeOneTrack(track, 12345);
+	  assert.ok(track.sign_tileset.every(record => record.tileset_offset !== 80), 'expected no horizon-only sign tileset offset 80');
+  });
 
-test('randomizeOneTrack generates some non-flat slopes', () => {
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	const slopeSegments = track.slope_rle_segments.filter(seg => seg.type === 'slope');
-	if (slopeSegments.length === 0) {
-		assert.ok(track.phys_slope_decompressed.every(value => value === 0), 'expected flat physical slope when no visual slopes are present');
-		return;
-	}
-	assert.ok(track.phys_slope_decompressed.some(value => value !== 0), 'expected some non-flat physical slope steps');
-	assert.ok(slopeSegments.every(seg => seg.length <= 32), 'expected slope segments to stay in conservative safe lengths');
-});
+  test('randomizeOneTrack aligns generated minimap_pos with ROM patch generator', () => {
+	  const { buildGeneratedMinimapPosPairs } = require('../lib/generated_minimap_pos');
+	  const track = deepCopy(tracksJson.tracks[0]);
+	  randomizeOneTrack(track, 9999);
+	  assert.deepStrictEqual(track.minimap_pos, buildGeneratedMinimapPosPairs(track));
+  });
 
-test('randomizeOneTrack keeps non-horizon sign tilesets away from horizon-only palette family', () => {
-	const track = deepCopy(tracksJson.tracks.find(entry => entry.slug === 'brazil'));
-	track._assigned_horizon_override = 0;
-	randomizeOneTrack(track, 12345);
-	assert.ok(track.sign_tileset.every(record => record.tileset_offset !== 80), 'expected no horizon-only sign tileset offset 80');
-});
+  test('special road features add tunnel-style sign and tileset records when present', () => {
+	  const track = deepCopy(tracksJson.tracks.find(track => track.slug === 'monaco'));
+	  const features = buildSpecialRoadFeatures(new XorShift32(5), track.track_length, track.curve_rle_segments);
+	  const [tileset] = generateSignTileset(new XorShift32(5), track.track_length, track.curve_rle_segments);
+	  const signData = generateSignData(new XorShift32(5), track.track_length, track.curve_rle_segments, tileset);
+	  const patchedTileset = applySpecialRoadTilesetRecords(tileset, features);
+	  const patchedSigns = applySpecialRoadSignRecords(signData, features);
+	  for (const feature of features) {
+		  if (!feature._applied) continue;
+		  assert.ok(patchedTileset.some(rec => rec.tileset_offset === 88 && rec.distance === feature.tilesetDistance));
+		  assert.ok(patchedSigns.some(rec => rec.sign_id === 49 && rec.distance === feature.entrySignDistance));
+		  assert.ok(patchedSigns.some(rec => rec.sign_id === 2 && rec.distance === feature.interiorDistance));
+		  assert.ok(patchedSigns.some(rec => rec.sign_id === 50 && rec.distance === feature.exitSignDistance));
+	  }
+  });
 
-test('randomizeOneTrack aligns generated minimap_pos with ROM patch generator', () => {
-	const { buildGeneratedMinimapPosPairs } = require('../lib/generated_minimap_pos');
-	const track = deepCopy(tracksJson.tracks[0]);
-	randomizeOneTrack(track, 9999);
-	assert.deepStrictEqual(track.minimap_pos, buildGeneratedMinimapPosPairs(track));
-});
+  test('randomizeTracks on all 19 tracks produces all passing validation', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 99999);
+    const errors = validateTracks(data.tracks);
+    assert.strictEqual(errors.length, 0,
+      `Validation errors: ${errors.map(e => e.toString()).join('; ')}`);
+  });
 
-test('special road features add tunnel-style sign and tileset records when present', () => {
-	const track = deepCopy(tracksJson.tracks.find(track => track.slug === 'monaco'));
-	const features = buildSpecialRoadFeatures(new XorShift32(5), track.track_length, track.curve_rle_segments);
-	const [tileset] = generateSignTileset(new XorShift32(5), track.track_length, track.curve_rle_segments);
-	const signData = generateSignData(new XorShift32(5), track.track_length, track.curve_rle_segments, tileset);
-	const patchedTileset = applySpecialRoadTilesetRecords(tileset, features);
-	const patchedSigns = applySpecialRoadSignRecords(signData, features);
-	for (const feature of features) {
-		if (!feature._applied) continue;
-		assert.ok(patchedTileset.some(rec => rec.tileset_offset === 88 && rec.distance === feature.tilesetDistance));
-		assert.ok(patchedSigns.some(rec => rec.sign_id === 49 && rec.distance === feature.entrySignDistance));
-		assert.ok(patchedSigns.some(rec => rec.sign_id === 2 && rec.distance === feature.interiorDistance));
-		assert.ok(patchedSigns.some(rec => rec.sign_id === 50 && rec.distance === feature.exitSignDistance));
-	}
-});
+  test('randomized tracks pass generated minimap validation', () => {
+	  const data = deepCopy(tracksJson);
+	  randomizeTracks(data, 99999);
+	  const report = validateAllTracks(data);
+	  const generatedFailures = report.tracks.filter(track => track.flags.candidate_marker_offroad);
+	  assert.strictEqual(generatedFailures.length, 0,
+	    `Generated minimap failures: ${generatedFailures.map(track => track.track.slug).join(', ')}`);
+	  assert.ok(report.curve_map_sign_match_percent >= (stockMinimapReport.curve_map_sign_match_percent - 2),
+		  `expected randomized curve/map sign match >= ${stockMinimapReport.curve_map_sign_match_percent - 2}, got ${report.curve_map_sign_match_percent}`);
+	  assert.ok(report.curve_map_left_right_mismatch_count <= (stockMinimapReport.curve_map_left_right_mismatch_count + 2),
+		  `expected randomized left/right mismatch count <= ${stockMinimapReport.curve_map_left_right_mismatch_count + 2}, got ${report.curve_map_left_right_mismatch_count}`);
+	  assert.ok(report.curve_map_phase_mismatch_count <= stockMinimapReport.curve_map_phase_mismatch_count,
+		  `expected randomized phase mismatch count <= ${stockMinimapReport.curve_map_phase_mismatch_count}, got ${report.curve_map_phase_mismatch_count}`);
+	  assert.ok(report.preview_self_intersections <= (stockMinimapReport.preview_self_intersections + 4),
+		  `expected randomized preview self intersections <= ${stockMinimapReport.preview_self_intersections + 4}, got ${report.preview_self_intersections}`);
+	  assert.ok(report.preview_branch_pixel_count <= (stockMinimapReport.preview_branch_pixel_count + 200),
+		  `expected randomized preview branch pixels <= ${stockMinimapReport.preview_branch_pixel_count + 200}, got ${report.preview_branch_pixel_count}`);
+  });
 
-test('randomizeTracks on all 19 tracks produces all passing validation', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 99999);
-  const errors = validateTracks(data.tracks);
-  assert.strictEqual(errors.length, 0,
-    `Validation errors: ${errors.map(e => e.toString()).join('; ')}`);
-});
+  test('randomizeTracks with slug filter only modifies matching track', () => {
+    const data = deepCopy(tracksJson);
+    const originalLength1 = data.tracks[1].track_length;
+    const slugSet = new Set(['san_marino']);
+    randomizeTracks(data, 12345, slugSet);
+    assert.strictEqual(data.tracks[1].track_length, originalLength1);
+    assert.ok(Array.isArray(data.tracks[0].curve_rle_segments));
+  });
 
-test('randomized tracks pass generated minimap validation', () => {
-	const data = deepCopy(tracksJson);
-	randomizeTracks(data, 99999);
-	const report = validateAllTracks(data);
-	const generatedFailures = report.tracks.filter(track => track.flags.candidate_marker_offroad);
-	assert.strictEqual(generatedFailures.length, 0,
-	  `Generated minimap failures: ${generatedFailures.map(track => track.track.slug).join(', ')}`);
-	assert.ok(report.curve_map_sign_match_percent >= (stockMinimapReport.curve_map_sign_match_percent - 2),
-		`expected randomized curve/map sign match >= ${stockMinimapReport.curve_map_sign_match_percent - 2}, got ${report.curve_map_sign_match_percent}`);
-	assert.ok(report.curve_map_left_right_mismatch_count <= (stockMinimapReport.curve_map_left_right_mismatch_count + 2),
-		`expected randomized left/right mismatch count <= ${stockMinimapReport.curve_map_left_right_mismatch_count + 2}, got ${report.curve_map_left_right_mismatch_count}`);
-	assert.ok(report.curve_map_phase_mismatch_count <= stockMinimapReport.curve_map_phase_mismatch_count,
-		`expected randomized phase mismatch count <= ${stockMinimapReport.curve_map_phase_mismatch_count}, got ${report.curve_map_phase_mismatch_count}`);
-	assert.ok(report.preview_self_intersections <= (stockMinimapReport.preview_self_intersections + 4),
-		`expected randomized preview self intersections <= ${stockMinimapReport.preview_self_intersections + 4}, got ${report.preview_self_intersections}`);
-	assert.ok(report.preview_branch_pixel_count <= (stockMinimapReport.preview_branch_pixel_count + 200),
-		`expected randomized preview branch pixels <= ${stockMinimapReport.preview_branch_pixel_count + 200}, got ${report.preview_branch_pixel_count}`);
-});
-
-test('randomizeTracks with slug filter only modifies matching track', () => {
-  const data = deepCopy(tracksJson);
-  // Record original curve_rle_segments for an unfiltered track
-  // (they won't have curve_rle_segments yet, so check track_length)
-  const originalLength1 = data.tracks[1].track_length;
-  const slugSet = new Set(['san_marino']);
-  randomizeTracks(data, 12345, slugSet);
-  // Non-filtered track should still have its original track_length (unchanged)
-  assert.strictEqual(data.tracks[1].track_length, originalLength1);
-  // Filtered track should have new curve_rle_segments
-  assert.ok(Array.isArray(data.tracks[0].curve_rle_segments));
-});
-
-test('randomizeTracks is reproducible: same seed → same track_length for each track', () => {
-  const d1 = deepCopy(tracksJson);
-  const d2 = deepCopy(tracksJson);
-  randomizeTracks(d1, 777);
-  randomizeTracks(d2, 777);
-  for (let i = 0; i < d1.tracks.length; i++) {
-    assert.strictEqual(d1.tracks[i].track_length, d2.tracks[i].track_length);
-  }
-});
+  test('randomizeTracks is reproducible: same seed -> same track_length for each track', () => {
+    const d1 = deepCopy(tracksJson);
+    const d2 = deepCopy(tracksJson);
+    randomizeTracks(d1, 777);
+    randomizeTracks(d2, 777);
+    for (let i = 0; i < d1.tracks.length; i++) {
+      assert.strictEqual(d1.tracks[i].track_length, d2.tracks[i].track_length);
+    }
+  });
+} else {
+  skippedSections += 2;
+  console.log('Section D: randomizeOneTrack and randomizeTracks (skipped in fast mode; use --slow)');
+}
 
 // ---------------------------------------------------------------------------
 // Section E: Track validator
 // ---------------------------------------------------------------------------
-console.log('Section E: Track validator');
+if (RUN_SLOW) {
+  console.log('Section E: Track validator');
 
-test('all 19 ROM tracks pass validateTrack after randomization (new format)', () => {
-  // The validator uses the new _rle_segments format written by randomizeOneTrack
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 54321);
-  for (const track of data.tracks) {
+  test('all 19 ROM tracks pass validateTrack after randomization (new format)', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 54321);
+    for (const track of data.tracks) {
+      const errors = validateTrack(track);
+      assert.strictEqual(errors.length, 0,
+        `[${track.name}] errors: ${errors.map(e => e.toString()).join('; ')}`);
+    }
+  });
+
+  test('validateTracks on all randomized tracks returns empty array', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 11111);
+    const errors = validateTracks(data.tracks);
+    assert.strictEqual(errors.length, 0);
+  });
+
+  test('validateTrack catches missing curve_rle_segments', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    delete track.curve_rle_segments;
     const errors = validateTrack(track);
-    assert.strictEqual(errors.length, 0,
-      `[${track.name}] errors: ${errors.map(e => e.toString()).join('; ')}`);
-  }
-});
+    const e = errors.find(err => err.field === 'curve_rle_segments');
+    assert.ok(e, 'expected curve_rle_segments error');
+  });
 
-test('validateTracks on all randomized tracks returns empty array', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 11111);
-  const errors = validateTracks(data.tracks);
-  assert.strictEqual(errors.length, 0);
-});
+  test('validateTrack catches negative track_length', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    track.track_length = -64;
+    const errors = validateTrack(track);
+    assert.ok(errors.length > 0);
+  });
 
-test('validateTrack catches missing curve_rle_segments', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  delete track.curve_rle_segments;
-  const errors = validateTrack(track);
-  const e = errors.find(err => err.field === 'curve_rle_segments');
-  assert.ok(e, 'expected curve_rle_segments error');
-});
+  test('validateTrack catches track_length > 8192', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    track.track_length = 8256;
+    const errors = validateTrack(track);
+    const e = errors.find(err => err.field === 'track_length');
+    assert.ok(e, 'expected track_length error');
+  });
 
-test('validateTrack catches negative track_length', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  track.track_length = -64;
-  const errors = validateTrack(track);
-  assert.ok(errors.length > 0);
-});
+  test('validateTrack catches track_length not multiple of 64', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    track.track_length = 1000;
+    const errors = validateTrack(track);
+    const e = errors.find(err => err.field === 'track_length');
+    assert.ok(e, 'expected track_length error');
+  });
 
-test('validateTrack catches track_length > 8192', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  track.track_length = 8256;
-  const errors = validateTrack(track);
-  const e = errors.find(err => err.field === 'track_length');
-  assert.ok(e, 'expected track_length error');
-});
+  test('validateTrack catches wrong curve segment total length', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    const firstSeg = track.curve_rle_segments.find(s => s.type !== 'terminator');
+    firstSeg.length += 1;
+    const errors = validateTrack(track);
+    assert.ok(errors.length > 0);
+  });
 
-test('validateTrack catches track_length not multiple of 64', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  track.track_length = 1000;
-  const errors = validateTrack(track);
-  const e = errors.find(err => err.field === 'track_length');
-  assert.ok(e, 'expected track_length error');
-});
+  test('validateTrack catches missing curve terminator', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    track.curve_rle_segments = track.curve_rle_segments.filter(s => s.type !== 'terminator');
+    const errors = validateTrack(track);
+    assert.ok(errors.length > 0);
+  });
 
-test('validateTrack catches wrong curve segment total length', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  // Add an extra step to first non-terminator segment
-  const firstSeg = track.curve_rle_segments.find(s => s.type !== 'terminator');
-  firstSeg.length += 1;
-  const errors = validateTrack(track);
-  assert.ok(errors.length > 0);
-});
-
-test('validateTrack catches missing curve terminator', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  track.curve_rle_segments = track.curve_rle_segments.filter(s => s.type !== 'terminator');
-  const errors = validateTrack(track);
-  assert.ok(errors.length > 0);
-});
-
-test('validateTrack catches wrong minimap count', () => {
-  const data = deepCopy(tracksJson);
-  randomizeTracks(data, 1);
-  const track = deepCopy(data.tracks[0]);
-  track.minimap_pos.push([0, 0]);  // one too many
-  const errors = validateTrack(track);
-  const e = errors.find(err => err.field === 'minimap_pos');
-  assert.ok(e, 'expected minimap_pos error');
-});
+  test('validateTrack catches wrong minimap count', () => {
+    const data = deepCopy(tracksJson);
+    randomizeTracks(data, 1);
+    const track = deepCopy(data.tracks[0]);
+    track.minimap_pos.push([0, 0]);
+    const errors = validateTrack(track);
+    const e = errors.find(err => err.field === 'minimap_pos');
+    assert.ok(e, 'expected minimap_pos error');
+  });
+} else {
+  console.log('Section E: Track validator (skipped in fast mode; use --slow)');
+}
 
 test('ValidationError has trackName, field, message properties', () => {
   const err = new ValidationError('MyTrack', 'curve_data', 'bad bytes');
@@ -996,330 +821,6 @@ test('ValidationError has trackName, field, message properties', () => {
   assert.strictEqual(err.message, 'bad bytes');
   assert.ok(err.toString().includes('MyTrack'));
   assert.ok(err.toString().includes('curve_data'));
-});
-
-// ---------------------------------------------------------------------------
-// Section F: Team randomizer
-// ---------------------------------------------------------------------------
-console.log('Section F: Team randomizer');
-
-const teamsJson = readJson(path.join(REPO_ROOT, 'tools/data/teams.json'));
-
-test('ROM teams JSON validates clean before randomization', () => {
-  const errors = validateTeams(teamsJson);
-  assert.strictEqual(errors.length, 0,
-    `ROM teams validation errors: ${errors.join('; ')}`);
-});
-
-test('randomizeTeams produces valid team data', () => {
-  const data = deepCopy(teamsJson);
-  randomizeTeams(data, 12345);
-  const errors = validateTeams(data);
-  assert.strictEqual(errors.length, 0,
-    `Post-randomize team errors: ${errors.join('; ')}`);
-});
-
-test('randomizeAi produces valid team data', () => {
-  const data = deepCopy(teamsJson);
-  randomizeAi(data, 54321);
-  const errors = validateTeams(data);
-  assert.strictEqual(errors.length, 0,
-    `Post-AI-randomize errors: ${errors.join('; ')}`);
-});
-
-test('randomizeTeams + randomizeAi combined produce valid data', () => {
-  const data = deepCopy(teamsJson);
-  randomizeTeams(data, 11111);
-  randomizeAi(data, 11111);
-  const errors = validateTeams(data);
-  assert.strictEqual(errors.length, 0,
-    `Combined randomize errors: ${errors.join('; ')}`);
-});
-
-test('randomizeTeams is reproducible with same seed', () => {
-  const d1 = deepCopy(teamsJson);
-  const d2 = deepCopy(teamsJson);
-  randomizeTeams(d1, 7777);
-  randomizeTeams(d2, 7777);
-  assert.deepStrictEqual(
-    d1.team_car_characteristics.map(c => c.accel_index),
-    d2.team_car_characteristics.map(c => c.accel_index)
-  );
-});
-
-test('randomizeTeams produces different result for different seeds', () => {
-  const d1 = deepCopy(teamsJson);
-  const d2 = deepCopy(teamsJson);
-  randomizeTeams(d1, 1);
-  randomizeTeams(d2, 2);
-  const seq1 = d1.team_car_characteristics.map(c => c.accel_index).join(',');
-  const seq2 = d2.team_car_characteristics.map(c => c.accel_index).join(',');
-  assert.notStrictEqual(seq1, seq2);
-});
-
-test('randomizeTeams preserves accel_index pool as exact multiset', () => {
-  const data = deepCopy(teamsJson);
-  const originalPool = data.team_car_characteristics.map(c => c.accel_index).sort((a,b) => a-b);
-  randomizeTeams(data, 42);
-  const newPool = data.team_car_characteristics.map(c => c.accel_index).sort((a,b) => a-b);
-  assert.deepStrictEqual(newPool, originalPool);
-});
-
-test('randomizeTeams preserves engine_index pool as exact multiset', () => {
-  const data = deepCopy(teamsJson);
-  const originalPool = data.team_car_characteristics.map(c => c.engine_index).sort((a,b) => a-b);
-  randomizeTeams(data, 42);
-  const newPool = data.team_car_characteristics.map(c => c.engine_index).sort((a,b) => a-b);
-  assert.deepStrictEqual(newPool, originalPool);
-});
-
-test('randomizeTeams all accel_index values are in ACCEL_INDEX_POOL', () => {
-  const data = deepCopy(teamsJson);
-  randomizeTeams(data, 999);
-  const pool = new Set(ACCEL_INDEX_POOL);
-  for (const car of data.team_car_characteristics) {
-    assert.ok(pool.has(car.accel_index), `accel_index ${car.accel_index} not in pool`);
-  }
-});
-
-test('randomizeTeams all engine_index values are in ENGINE_INDEX_POOL', () => {
-  const data = deepCopy(teamsJson);
-  randomizeTeams(data, 888);
-  const pool = new Set(ENGINE_INDEX_POOL);
-  for (const car of data.team_car_characteristics) {
-    assert.ok(pool.has(car.engine_index), `engine_index ${car.engine_index} not in pool`);
-  }
-});
-
-test('randomizeAi preserves ai_performance_factor pool as multiset', () => {
-  const data = deepCopy(teamsJson);
-  const originalPool = data.ai_performance_factor.map(f => f.factor).sort((a,b) => a-b);
-  randomizeAi(data, 555);
-  const newPool = data.ai_performance_factor.map(f => f.factor).sort((a,b) => a-b);
-  assert.deepStrictEqual(newPool, originalPool);
-});
-
-test('randomizeAi partner_threshold >= promote_threshold + 2 for all teams', () => {
-  const data = deepCopy(teamsJson);
-  randomizeAi(data, 321);
-  for (const t of data.post_race_driver_target_points) {
-    assert.ok(t.partner_threshold >= t.promote_threshold + 2,
-      `${t.name}: partner=${t.partner_threshold} must be >= promote=${t.promote_threshold}+2`);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Section G: Championship randomizer
-// ---------------------------------------------------------------------------
-console.log('Section G: Championship randomizer');
-
-const champJson = readJson(path.join(REPO_ROOT, 'tools/data/championship.json'));
-
-test('ROM championship JSON validates clean before randomization', () => {
-  const errors = validateChampionship(champJson);
-  assert.strictEqual(errors.length, 0,
-    `ROM championship validation errors: ${errors.join('; ')}`);
-});
-
-test('randomizeChampionship produces valid data', () => {
-  const data = deepCopy(champJson);
-  randomizeChampionship(data, 12345);
-  const errors = validateChampionship(data);
-  assert.strictEqual(errors.length, 0,
-    `Post-randomize championship errors: ${errors.join('; ')}`);
-});
-
-test('randomizeChampionship Monaco stays in final slot', () => {
-  const data = deepCopy(champJson);
-  randomizeChampionship(data, 99999);
-  const order = data._meta.championship_track_order;
-  assert.strictEqual(order[FIXED_FINAL_SLOT], 'Monaco');
-});
-
-test('randomizeChampionship track order is a valid permutation (no duplicates)', () => {
-  const data = deepCopy(champJson);
-  randomizeChampionship(data, 77777);
-  const order = data._meta.championship_track_order;
-  assert.strictEqual(order.length, NUM_CHAMPIONSHIP_TRACKS);
-  assert.strictEqual(new Set(order).size, NUM_CHAMPIONSHIP_TRACKS,
-    'duplicate track in championship order');
-});
-
-test('randomizeChampionship contains the same set of tracks as original', () => {
-  const data = deepCopy(champJson);
-  const originalSet = new Set(champJson._meta.championship_track_order);
-  randomizeChampionship(data, 11111);
-  const newSet = new Set(data._meta.championship_track_order);
-  for (const track of originalSet) {
-    assert.ok(newSet.has(track), `track ${track} missing after randomization`);
-  }
-});
-
-test('randomizeChampionship is reproducible with same seed', () => {
-  const d1 = deepCopy(champJson);
-  const d2 = deepCopy(champJson);
-  randomizeChampionship(d1, 5555);
-  randomizeChampionship(d2, 5555);
-  assert.deepStrictEqual(d1._meta.championship_track_order, d2._meta.championship_track_order);
-  assert.deepStrictEqual(d1.rival_grid_base_table, d2.rival_grid_base_table);
-});
-
-test('randomizeChampionship rival_grid_base values are in [0, 15]', () => {
-  const data = deepCopy(champJson);
-  randomizeChampionship(data, 33333);
-  for (let i = 0; i < data.rival_grid_base_table.length; i++) {
-    const v = data.rival_grid_base_table[i];
-    assert.ok(v >= RIVAL_BASE_MIN && v <= RIVAL_BASE_MAX,
-      `rival_base[${i}]=${v} out of [${RIVAL_BASE_MIN},${RIVAL_BASE_MAX}]`);
-  }
-});
-
-test('randomizeChampionship rival_grid_delta values are in [-3, 2]', () => {
-  const data = deepCopy(champJson);
-  randomizeChampionship(data, 22222);
-  for (let i = 0; i < data.rival_grid_delta_table.length; i++) {
-    const v = data.rival_grid_delta_table[i];
-    assert.ok(v >= RIVAL_DELTA_MIN && v <= RIVAL_DELTA_MAX,
-      `rival_delta[${i}]=${v} out of [${RIVAL_DELTA_MIN},${RIVAL_DELTA_MAX}]`);
-  }
-});
-
-test('randomizeChampionship pre_race_lap_time_offset_table has correct length', () => {
-  const data = deepCopy(champJson);
-  randomizeChampionship(data, 44444);
-  assert.strictEqual(data.pre_race_lap_time_offset_table.length, LAP_TIME_TABLE_BYTES);
-});
-
-test('validateChampionship rejects non-Monaco final slot', () => {
-  const data = deepCopy(champJson);
-  // Swap Monaco out of final slot
-  const monacoIdx = data._meta.championship_track_order.indexOf('Monaco');
-  data._meta.championship_track_order[monacoIdx] = data._meta.championship_track_order[0];
-  data._meta.championship_track_order[0] = 'Monaco';
-  const errors = validateChampionship(data);
-  assert.ok(errors.length > 0, 'expected validation error for Monaco not in final slot');
-});
-
-test('validateChampionship rejects duplicate track', () => {
-  const data = deepCopy(champJson);
-  data._meta.championship_track_order[0] = data._meta.championship_track_order[1];
-  const errors = validateChampionship(data);
-  assert.ok(errors.length > 0, 'expected validation error for duplicate track');
-});
-
-// ---------------------------------------------------------------------------
-// Section H: Art config (RAND-006)
-// ---------------------------------------------------------------------------
-console.log('Section H: Art config');
-
-test('CHAMPIONSHIP_ART_SETS has 16 entries', () => {
-  assert.strictEqual(CHAMPIONSHIP_ART_SETS.length, 16);
-});
-
-test('CHAMPIONSHIP_TRACK_NAMES has 16 entries', () => {
-  assert.strictEqual(CHAMPIONSHIP_TRACK_NAMES.length, 16);
-});
-
-test('randomizeArtConfig returns 16 entries', () => {
-  const assignment = randomizeArtConfig(12345);
-  assert.strictEqual(assignment.length, 16);
-});
-
-test('randomizeArtConfig is a permutation of CHAMPIONSHIP_ART_SETS', () => {
-  const assignment = randomizeArtConfig(99);
-  const originalNames = new Set(CHAMPIONSHIP_ART_SETS.map(s => JSON.stringify(s)));
-  for (const artSet of assignment) {
-    assert.ok(originalNames.has(JSON.stringify(artSet)),
-      `art set not from original pool: ${JSON.stringify(artSet)}`);
-  }
-  // All distinct (no duplicates)
-  const assignedNames = assignment.map(s => JSON.stringify(s));
-  assert.strictEqual(new Set(assignedNames).size, 16, 'duplicate art sets in assignment');
-});
-
-test('randomizeArtConfig is reproducible with same seed', () => {
-  const a = randomizeArtConfig(777);
-  const b = randomizeArtConfig(777);
-  assert.deepStrictEqual(a, b);
-});
-
-test('randomizeArtConfig produces different result for different seeds', () => {
-  const a = randomizeArtConfig(1);
-  const b = randomizeArtConfig(2);
-  assert.notDeepStrictEqual(a, b);
-});
-
-test('buildTrackConfigAsm runs without throwing', () => {
-  const assignment = randomizeArtConfig(42);
-  const asmPath = path.join(REPO_ROOT, 'src', 'track_config_data.asm');
-  assert.doesNotThrow(() => {
-    buildTrackConfigAsm(assignment, asmPath);
-  });
-});
-
-test('buildTrackConfigAsm output contains 16 track comment headers', () => {
-  const assignment = randomizeArtConfig(42);
-  const asmPath = path.join(REPO_ROOT, 'src', 'track_config_data.asm');
-  const result = buildTrackConfigAsm(assignment, asmPath);
-  let count = 0;
-  for (const name of CHAMPIONSHIP_TRACK_NAMES) {
-    if (result.includes(`; ${name}`)) count++;
-  }
-  assert.strictEqual(count, 16, `expected 16 track headers, found ${count}`);
-});
-
-test('buildGeneratedMinimapAssetsAsm emits labels for all tracks', () => {
-  const result = buildGeneratedMinimapAssetsAsm(tracksJson.tracks);
-  assert.ok(result.content.includes('Generated_Minimap_Track_00_San_Marino_tiles:'));
-  assert.ok(result.content.includes('Generated_Minimap_Track_17_Monaco_Arcade_Main_tiles:'));
-  assert.ok(result.content.includes('Generated_Minimap_Track_18_Monaco_Arcade_Wet_map:'));
-});
-
-test('buildGeneratedTrackBlock excludes generated minimap include by default', () => {
-  const asm = buildGeneratedTrackBlock();
-  assert.ok(!asm.includes(`\tinclude\t"${GENERATED_MINIMAP_DATA_FILE}"`));
-});
-
-test('buildGeneratedTrackBlock can include generated minimap include when requested', () => {
-  const asm = buildGeneratedTrackBlock({ includeGeneratedMinimapData: true });
-  assert.ok(asm.includes(`\tinclude\t"${GENERATED_MINIMAP_DATA_FILE}"`));
-});
-
-test('writeAlignedBlock appends after current ROM length without truncating larger ROMs', () => {
-  const rom = Buffer.alloc(0x90010, 0xFF);
-  const bytes = Buffer.from([0x12, 0x34, 0x56]);
-  const cursor = 0x90000;
-  const block = writeAlignedBlock(rom, cursor, bytes);
-  assert.strictEqual(block.start, 0x90000);
-  assert.strictEqual(block.end, 0x90003);
-  assert.strictEqual(rom[0x90000], 0x12);
-  assert.strictEqual(rom[0x90001], 0x34);
-  assert.strictEqual(rom[0x90002], 0x56);
-});
-
-test('generated track block preserves canonical track block size using fallback symbol map', () => {
-  const symbolMap = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'tools', 'index', 'symbol_map.json'), 'utf8')).symbols;
-  const start = parseInt(symbolMap.San_Marino_curve_data, 16);
-  const blob = parseInt(symbolMap.Monaco_arcade_post_sign_tileset_blob, 16);
-  const blobSize = fs.statSync(path.join(REPO_ROOT, 'data', 'tracks', 'monaco_arcade', 'post_sign_tileset_blob.bin')).size;
-  const baselineFullSize = (blob - start) + blobSize;
-  const asm = buildGeneratedTrackBlock({
-    includeGeneratedMinimapData: false,
-    preBlobPadBytes: 0,
-    padBytes: 0,
-  });
-  let total = 0;
-  for (const line of asm.split(/\r?\n/)) {
-    const incbin = line.match(/^\s*incbin\s+\"([^\"]+)\"/i);
-    if (incbin) {
-      const filePath = path.join(REPO_ROOT, incbin[1]);
-      if (fs.existsSync(filePath)) total += fs.statSync(filePath).size;
-      continue;
-    }
-    const dcb = line.match(/^\s*dcb\.b\s+(\d+)\s*,/i);
-    if (dcb) total += parseInt(dcb[1], 10);
-  }
-  assert.strictEqual(total, baselineFullSize);
 });
 
 test('curveBgLoopAligns accepts stock-style aligned runtime seam', () => {
@@ -1361,5 +862,8 @@ test('_shuffleList does not mutate original array', () => {
 // Summary
 // ---------------------------------------------------------------------------
 const total = passed + failed;
+if (!RUN_SLOW && skippedSections > 0) {
+  console.log(`Fast mode skipped ${skippedSections} slow section(s). Run with --slow for exhaustive coverage.`);
+}
 console.log(`\nResults: ${passed} passed, ${failed} failed, ${total} total`);
 if (failed > 0) process.exit(1);

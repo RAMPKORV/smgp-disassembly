@@ -16,8 +16,20 @@ const fs     = require('fs');
 const path   = require('path');
 
 const { ValidationError, validateTrack, validateTracks } = require('../randomizer/track_validator');
+const {
+	isRuntimeSafeRandomized,
+	setAssignedHorizonOverride,
+	setPreserveOriginalSignCadence,
+	setRuntimeSafeRandomized,
+} = require('../randomizer/track_metadata');
 
 const { REPO_ROOT } = require('../lib/rom');
+const {
+	hasError,
+	hasMessage,
+	makeValidTrack,
+} = require('./randomizer_test_utils');
+const { wraparoundUnsafeTrack } = require('./minimap_synthetic_fixtures');
 const TRACKS_JSON = path.join(REPO_ROOT, 'tools', 'data', 'tracks.json');
 
 let passed = 0;
@@ -34,49 +46,6 @@ function test(name, fn) {
   }
 }
 
-function hasError(errors, fieldFragment) {
-  return errors.some(e => e.field && e.field.includes(fieldFragment));
-}
-
-function hasMessage(errors, messageFragment) {
-  return errors.some(e => e.message && e.message.includes(messageFragment));
-}
-
-// ---------------------------------------------------------------------------
-// Minimal valid track factory
-// ---------------------------------------------------------------------------
-function makeValidTrack(trackLength = 4096) {
-  const steps        = trackLength / 4;
-  const minimapCount = trackLength >> 6;
-
-  return {
-    name:   'Test Track',
-    slug:   'test_track',
-    index:  0,
-    track_length: trackLength,
-    slope_initial_bg_disp: 0,
-    curve_rle_segments: [
-      { type: 'straight', length: steps, curve_byte: 0 },
-      { type: 'terminator', curve_byte: 0xFF, length: 0, _raw: [0xFF, 0x00] },
-    ],
-    slope_rle_segments: [
-      { type: 'flat', length: steps, slope_byte: 0, bg_vert_disp: 0 },
-      { type: 'terminator', length: 0, slope_byte: 0xFF, _raw: [0xFF, 0x00] },
-    ],
-    phys_slope_rle_segments: [
-      { type: 'segment', length: steps, phys_byte: 0 },
-      { type: 'terminator', length: 0, phys_byte: 0, _raw: [0x80, 0x00, 0x00] },
-    ],
-    sign_data: [
-	  { distance: 500, count: 3, sign_id: 28 },
-    ],
-    sign_tileset: [
-      { distance: 0, tileset_offset: 8 },
-    ],
-    minimap_pos: Array.from({ length: minimapCount }, (_, i) => [i % 80, (i * 3) % 80]),
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Section A: All 19 ROM tracks must pass
 // ---------------------------------------------------------------------------
@@ -88,7 +57,7 @@ function sectionA() {
   if (!fs.existsSync(TRACKS_JSON)) return;
 
   const data   = JSON.parse(fs.readFileSync(TRACKS_JSON, 'utf8'));
-  for (const track of data.tracks.filter(track => !track._runtime_safe_randomized)) {
+  for (const track of data.tracks.filter(track => !isRuntimeSafeRandomized(track))) {
     const name = track.name || track.slug || '?';
     test(`ROM track passes: ${name}`, () => {
       const errors = validateTrack(track);
@@ -206,7 +175,7 @@ function sectionB() {
 	  { type: 'straight', length: (4096 / 4) - 56, curve_byte: 0 },
 	  { type: 'terminator', curve_byte: 0xFF, length: 0, _raw: [0xFF, 0x00] },
 	];
-	t._runtime_safe_randomized = true;
+	setRuntimeSafeRandomized(t, true);
 	const errs = validateTrack(t);
 	assert.ok(hasError(errs, 'curve_rle_segments'),
 	  `expected error on curve_rle_segments, got: ${JSON.stringify(errs)}`);
@@ -222,7 +191,7 @@ function sectionB() {
 	  { type: 'straight', length: (4096 / 4) - 60, curve_byte: 0 },
 	  { type: 'terminator', curve_byte: 0xFF, length: 0, _raw: [0xFF, 0x00] },
 	];
-	t._runtime_safe_randomized = true;
+	setRuntimeSafeRandomized(t, true);
 	const errs = validateTrack(t);
 	assert.ok(hasError(errs, 'curve_rle_segments'),
 	  `expected error on curve_rle_segments, got: ${JSON.stringify(errs)}`);
@@ -239,9 +208,9 @@ function sectionB() {
 	t.sign_data = [
 	  { distance: 980, count: 1, sign_id: 0 },
 	];
-	t._assigned_horizon_override = 0;
-	t._runtime_safe_randomized = true;
-	t._preserve_original_sign_cadence = false;
+	setAssignedHorizonOverride(t, 0);
+	setRuntimeSafeRandomized(t, true);
+	setPreserveOriginalSignCadence(t, false);
 	const errs = validateTrack(t);
 	assert.ok(hasError(errs, 'sign_data'),
 	  `expected error on sign_data, got: ${JSON.stringify(errs)}`);
@@ -250,13 +219,9 @@ function sectionB() {
   });
 
   test('B-09e wraparound sign tileset gap fails when last transition is too close to start', () => {
-	const t = makeValidTrack(4096);
-	t.sign_tileset = [
-	  { distance: 0, tileset_offset: 8 },
-	  { distance: 3900, tileset_offset: 16 },
-	];
-	t._runtime_safe_randomized = true;
-	t._preserve_original_sign_cadence = false;
+	const t = wraparoundUnsafeTrack(4096);
+	setRuntimeSafeRandomized(t, true);
+	setPreserveOriginalSignCadence(t, false);
 	const errs = validateTrack(t);
 	assert.ok(hasError(errs, 'sign_tileset'),
 	  `expected error on sign_tileset, got: ${JSON.stringify(errs)}`);

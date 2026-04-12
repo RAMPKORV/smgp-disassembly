@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { parseArgs, die, info } = require('./lib/cli');
+const { assertSafeRomPath } = require('./lib/workspace_guard');
 const {
 	loadTracksData,
 	findTrack,
@@ -13,6 +14,7 @@ const { buildGeneratedMinimapPosPairs } = require('./lib/generated_minimap_pos')
 const { encodeMinimapPos } = require('./inject_track_data');
 const { patchRomChecksum } = require('./patch_rom_checksum');
 const { TRACK_DATA_ADDR, TRACK_ENTRY_SIZE } = require('./generated_minimap_runtime');
+const { getTracks } = require('./randomizer/track_model');
 
 const SIGN_DATA_PTR_OFFSET = 0x24;
 const SIGN_TILESET_PTR_OFFSET = 0x28;
@@ -42,17 +44,22 @@ function readTrackMinimapPosPointer(rom, trackIndex) {
 
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
-		flags: ['--all'],
+		flags: ['--all', '--allow-root-mutation'],
 		options: ['--rom', '--track', '--input'],
 	});
 
 	const romPath = path.resolve(args.options['--rom'] || 'out.bin');
+	try {
+		assertSafeRomPath(romPath, { allowRootMutation: args.flags['--allow-root-mutation'] });
+	} catch (err) {
+		die(err.message);
+	}
 	if (!fs.existsSync(romPath)) die(`ROM not found: ${romPath}`);
 
 	const tracksData = loadTracksData(args.options['--input'] || undefined);
 	const trackArg = args.options['--track'] || 'san_marino';
 	const selectedTracks = args.flags['--all']
-		? tracksData.tracks
+		? getTracks(tracksData)
 		: [findTrack(trackArg, tracksData)];
 	if (selectedTracks.some(track => !track)) die(`track not found: ${trackArg}`);
 

@@ -5,6 +5,26 @@ const path = require('path');
 
 const { REPO_ROOT } = require('./rom');
 const { getMinimapPreview } = require('./minimap_preview');
+const {
+	buildAnalysisMetrics,
+	buildGeneratedPairSummary,
+	buildMinimapAnalysisAggregateReport,
+	buildPreviewSpaceFitSummary,
+	buildPreviewUsageTrackSummary,
+	buildPreviewVocabularyOccurrence,
+	buildPreviewVocabularyTrackSummary,
+	buildTrackAnalysisEntry,
+	buildTrackSummary,
+} = require('./minimap_result_model');
+const {
+	findTrackByIdentifier,
+	getTrackCurveSegments,
+	getTrackMinimapPairs,
+	getTrackSignData,
+	getTracks,
+	requireTrackShape,
+	requireTracksDataShape,
+} = require('../randomizer/track_model');
 const TRACKS_JSON = path.join(REPO_ROOT, 'tools', 'data', 'tracks.json');
 const previewPointsCache = new Map();
 
@@ -67,7 +87,7 @@ function buildTilePixelSignature(tile) {
 
 function groupPreviewTileUsage(tracksData = null) {
 	const data = tracksData || loadTracksData();
-	const tracks = Array.isArray(data.tracks) ? data.tracks : [];
+	const tracks = getTracks(data);
 	const groups = new Map();
 
 	for (const track of tracks) {
@@ -75,12 +95,7 @@ function groupPreviewTileUsage(tracksData = null) {
 		const preview = getMinimapPreview(previewSlug);
 		const signature = buildLocalTileUsageSignature(preview);
 		const existing = groups.get(signature);
-		const summary = {
-			track_index: track.index,
-			track_slug: track.slug,
-			preview_slug: previewSlug,
-			used_local_tile_count: preview.used_local_tile_count,
-		};
+		const summary = buildPreviewUsageTrackSummary(track, previewSlug, preview);
 
 		if (existing) {
 			existing.tracks.push(summary);
@@ -106,7 +121,7 @@ function groupPreviewTileUsage(tracksData = null) {
 
 function analyzePreviewTileVocabulary(tracksData = null) {
 	const data = tracksData || loadTracksData();
-	const tracks = Array.isArray(data.tracks) ? data.tracks : [];
+	const tracks = getTracks(data);
 	const signatureMap = new Map();
 	const perTrack = [];
 
@@ -132,23 +147,12 @@ function analyzePreviewTileVocabulary(tracksData = null) {
 				signatureMap.set(signature, entry);
 			}
 
-			entry.occurrences.push({
-				track_index: track.index,
-				track_slug: track.slug,
-				preview_slug: previewSlug,
-				local_tile_index: tileIndex,
-			});
+			entry.occurrences.push(buildPreviewVocabularyOccurrence(track, previewSlug, tileIndex));
 			entry.preview_slugs.add(previewSlug);
 			entry.track_indices.add(track.index);
 		}
 
-		perTrack.push({
-			track_index: track.index,
-			track_slug: track.slug,
-			preview_slug: previewSlug,
-			used_local_tile_count: preview.used_local_tile_count,
-			unique_tile_signature_count: seenInTrack.size,
-		});
+		perTrack.push(buildPreviewVocabularyTrackSummary(track, previewSlug, preview, seenInTrack.size));
 	}
 
 	const sharedGroups = Array.from(signatureMap.values())
@@ -187,37 +191,18 @@ function analyzePreviewTileVocabulary(tracksData = null) {
 }
 
 function loadTracksData(jsonPath = TRACKS_JSON) {
-  const resolvedPath = jsonPath || TRACKS_JSON;
-  return JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+	const resolvedPath = jsonPath || TRACKS_JSON;
+	return requireTracksDataShape(JSON.parse(fs.readFileSync(resolvedPath, 'utf8')));
 }
 
 function findTrack(identifier, tracksData = null) {
-  const data = tracksData || loadTracksData();
-  const tracks = Array.isArray(data.tracks) ? data.tracks : [];
-
-  if (typeof identifier === 'number') {
-    return tracks.find(track => track.index === identifier) || null;
-  }
-
-  if (typeof identifier === 'string') {
-    if (/^\d+$/.test(identifier)) {
-      return tracks.find(track => track.index === parseInt(identifier, 10)) || null;
-    }
-    return tracks.find(track => track.slug === identifier || track.name === identifier) || null;
-  }
-
-  if (identifier && typeof identifier === 'object') {
-    return identifier;
-  }
-
-  return null;
+	const data = tracksData || loadTracksData();
+	return findTrackByIdentifier(data, identifier);
 }
 
 function resolvePreviewSlug(track) {
-  if (!track || typeof track.index !== 'number') {
-    throw new Error('resolvePreviewSlug requires a track object with an index');
-  }
-  return PREVIEW_SLUG_BY_TRACK_INDEX[track.index] || track.slug;
+	requireTrackShape(track, 'track');
+	return PREVIEW_SLUG_BY_TRACK_INDEX[track.index] || track.slug;
 }
 
 function dedupeAdjacentPairs(pairs) {
@@ -719,10 +704,10 @@ function projectSignsToMinimap(track, canonicalPoints) {
   const points = canonicalPoints || [];
   if (points.length === 0) return result;
 
-  for (const sign of track.sign_data || []) {
-    const sampleIndex = clamp(sign.distance >> 6, 0, points.length - 1);
-    const point = points[sampleIndex];
-    result.push({
+	for (const sign of getTrackSignData(track)) {
+		const sampleIndex = clamp(sign.distance >> 6, 0, points.length - 1);
+		const point = points[sampleIndex];
+		result.push({
       distance: sign.distance,
       sign_id: sign.sign_id,
       count: sign.count,
@@ -768,7 +753,7 @@ function smoothPath(points, passes = 1) {
 }
 
 function buildDerivedPath(track, options = {}) {
-	const segments = Array.isArray(track.curve_rle_segments) ? track.curve_rle_segments : [];
+	const segments = getTrackCurveSegments(track);
 	const points = [];
 	let angle = Math.PI / 2;
 	let x = 0;
@@ -835,10 +820,10 @@ function analyzeTrackMinimap(track) {
     throw new Error('analyzeTrackMinimap requires a track object');
   }
 
-  const previewSlug = resolvePreviewSlug(track);
-  const preview = getMinimapPreview(previewSlug);
-  const rawMinimapPoints = Array.isArray(track.minimap_pos) ? track.minimap_pos : [];
-  const canonicalPoints = dedupeAdjacentPairs(track.minimap_pos || []);
+	const previewSlug = resolvePreviewSlug(track);
+	const preview = getMinimapPreview(previewSlug);
+	const rawMinimapPoints = getTrackMinimapPairs(track);
+	const canonicalPoints = dedupeAdjacentPairs(rawMinimapPoints);
   const canonicalPolyline = densifyPolyline(canonicalPoints);
   const previewPoints = getPreviewOccupiedPoints(preview);
   const previewBounds = getBounds(previewPoints);
@@ -877,88 +862,47 @@ function analyzeTrackMinimap(track) {
   const canonicalBounds = getBounds(canonicalPoints);
   const warningThreshold = 90;
 
-  return {
-    track: {
-      index: track.index,
-      name: track.name,
-      slug: track.slug,
-      preview_slug: previewSlug,
-      track_length: track.track_length,
-      minimap_point_count: canonicalPoints.length,
-      minimap_runtime_sample_count: runtimeSampleCount,
-    },
-    canonical: {
-      points: canonicalPoints,
-      polyline: canonicalPolyline,
-      bounds: canonicalBounds,
-      preview_space: {
-        transform: canonicalToPreviewFit.name,
-        match_percent: canonicalToPreviewFit.matchPercent,
-        symmetric_mean_distance: canonicalToPreviewFit.symmetricMean,
-        canonical_to_preview_mean: canonicalToPreviewFit.canonicalToPreviewMean,
-        canonical_to_preview_max: canonicalToPreviewFit.canonicalToPreviewMax,
-        preview_to_canonical_mean: canonicalToPreviewFit.previewToCanonicalMean,
-        preview_to_canonical_max: canonicalToPreviewFit.previewToCanonicalMax,
-        normalized_error: canonicalToPreviewFit.normalizedError,
-        bounds: getBounds(canonicalToPreviewFit.transformedCanonicalPoints),
-        sampled_points: canonicalPreviewSamples.map(point => [roundTo(point[0]), roundTo(point[1])]),
-        thickness_aware: {
-			match_percent: canonicalThicknessAware.matchPercent,
-			symmetric_mean_distance: canonicalThicknessAware.symmetricMean,
-			raster_to_preview_mean: canonicalThicknessAware.rasterToPreviewMean,
-			raster_to_preview_max: canonicalThicknessAware.rasterToPreviewMax,
-			preview_to_raster_mean: canonicalThicknessAware.previewToRasterMean,
-			preview_to_raster_max: canonicalThicknessAware.previewToRasterMax,
-			normalized_error: canonicalThicknessAware.normalizedError,
-			tolerance: canonicalThicknessAware.tolerance,
+	const canonicalPreviewSpace = buildPreviewSpaceFitSummary(
+		canonicalToPreviewFit,
+		canonicalPreviewSamples.map(point => [roundTo(point[0]), roundTo(point[1])]),
+		canonicalThicknessAware
+	);
+	canonicalPreviewSpace.bounds = getBounds(canonicalToPreviewFit.transformedCanonicalPoints);
+
+	const derivedPathPreviewSpace = buildPreviewSpaceFitSummary(
+		derivedPreviewFit,
+		derivedPreviewSamples.map(point => [roundTo(point[0]), roundTo(point[1])]),
+		derivedThicknessAware
+	);
+	derivedPathPreviewSpace.bounds = getBounds(derivedPreviewFit.transformedCanonicalPoints);
+
+	return buildTrackAnalysisEntry({
+		track: buildTrackSummary(track, {
+			includeTrackIndex: true,
+			includeTrackLength: true,
+			previewSlug,
+			minimapPointCount: canonicalPoints.length,
+			minimapRuntimeSampleCount: runtimeSampleCount,
+		}),
+		canonical: {
+			points: canonicalPoints,
+			polyline: canonicalPolyline,
+			bounds: canonicalBounds,
+			preview_space: canonicalPreviewSpace,
 		},
-      },
-    },
-    preview: {
-      width: preview.width,
-      height: preview.height,
-      pixels: preview.pixels,
-      occupied_points: previewPoints,
-      transformed_points: bestFit.transformedPreviewPoints,
-      bounds: getBounds(bestFit.transformedPreviewPoints),
-    },
-    signs: signPoints,
-    derived_path: derivedPath,
-    derived_path_preview_space: {
-      transform: derivedPreviewFit.name,
-      match_percent: derivedPreviewFit.matchPercent,
-      symmetric_mean_distance: derivedPreviewFit.symmetricMean,
-      canonical_to_preview_mean: derivedPreviewFit.canonicalToPreviewMean,
-      canonical_to_preview_max: derivedPreviewFit.canonicalToPreviewMax,
-      preview_to_canonical_mean: derivedPreviewFit.previewToCanonicalMean,
-      preview_to_canonical_max: derivedPreviewFit.previewToCanonicalMax,
-      normalized_error: derivedPreviewFit.normalizedError,
-      bounds: getBounds(derivedPreviewFit.transformedCanonicalPoints),
-      sampled_points: derivedPreviewSamples.map(point => [roundTo(point[0]), roundTo(point[1])]),
-      thickness_aware: {
-		match_percent: derivedThicknessAware.matchPercent,
-		symmetric_mean_distance: derivedThicknessAware.symmetricMean,
-		raster_to_preview_mean: derivedThicknessAware.rasterToPreviewMean,
-		raster_to_preview_max: derivedThicknessAware.rasterToPreviewMax,
-		preview_to_raster_mean: derivedThicknessAware.previewToRasterMean,
-		preview_to_raster_max: derivedThicknessAware.previewToRasterMax,
-		normalized_error: derivedThicknessAware.normalizedError,
-		tolerance: derivedThicknessAware.tolerance,
-	  },
-    },
-    metrics: {
-      transform: bestFit.name,
-      match_percent: bestFit.matchPercent,
-      warning_threshold: warningThreshold,
-      significant_mismatch: bestFit.matchPercent < warningThreshold,
-      symmetric_mean_distance: bestFit.symmetricMean,
-      preview_to_canonical_mean: bestFit.previewToCanonicalMean,
-      preview_to_canonical_max: bestFit.previewToCanonicalMax,
-      canonical_to_preview_mean: bestFit.canonicalToPreviewMean,
-      canonical_to_preview_max: bestFit.canonicalToPreviewMax,
-      normalized_error: bestFit.normalizedError,
-    },
-  };
+		preview: {
+			width: preview.width,
+			height: preview.height,
+			pixels: preview.pixels,
+			occupied_points: previewPoints,
+			transformed_points: bestFit.transformedPreviewPoints,
+			bounds: getBounds(bestFit.transformedPreviewPoints),
+		},
+		signs: signPoints,
+		derivedPath,
+		derivedPathPreviewSpace,
+		metrics: buildAnalysisMetrics(bestFit, warningThreshold),
+	});
 }
 
 function generateMinimapPairsFromTrack(track) {
@@ -968,9 +912,10 @@ function generateMinimapPairsFromTrack(track) {
 
 	const { buildGeneratedMinimapPreview } = require('./minimap_render');
 	const previewSlug = resolvePreviewSlug(track);
-	const canonicalPoints = dedupeAdjacentPairs(track.minimap_pos || []);
-	const sampleCount = Array.isArray(track.minimap_pos) && track.minimap_pos.length > 0
-		? track.minimap_pos.length
+	const minimapPairs = getTrackMinimapPairs(track);
+	const canonicalPoints = dedupeAdjacentPairs(minimapPairs);
+	const sampleCount = minimapPairs.length > 0
+		? minimapPairs.length
 		: Math.max(1, track.track_length >> 6);
 	const generatedPreview = buildGeneratedMinimapPreview(track);
 	let generatedCenterline = Array.isArray(generatedPreview.centerline_points)
@@ -990,7 +935,7 @@ function generateMinimapPairsFromTrack(track) {
 		generatedCenterline = derivedCanonicalFit.transformedSourcePoints;
 	}
 	const sampled = sampleClosedPath(generatedCenterline, sampleCount);
-	const aligned = alignClosedSampleSequence(track.minimap_pos || [], sampled);
+	const aligned = alignClosedSampleSequence(minimapPairs, sampled);
 	const rounded = aligned.map(point => [
 		clamp(Math.round(point[0]), -128, 127),
 		clamp(Math.round(point[1]), -128, 127),
@@ -1007,40 +952,37 @@ function generateMinimapPairsFromTrack(track) {
 		{ roadTolerance: 1.5, roadHitThreshold: 1.5, centerlineHitThreshold: 1.75 }
 	);
 
-	return {
+	return buildGeneratedPairSummary({
 		preview_slug: previewSlug,
 		transform: generatedPreview.transform,
 		match_percent: generatedPreview.match_percent,
 		thickness_aware_match_percent: alignment.road.hit_percent,
 		preview_match_percent: generatedPreview.match_percent,
-		sample_count: sampleCount,
 		road_alignment_mean_distance: alignment.road.mean_distance,
 		road_alignment_max_distance: alignment.road.max_distance,
 		road_alignment_hit_percent: alignment.road.hit_percent,
 		centerline_alignment_mean_distance: alignment.centerline.mean_distance,
 		centerline_alignment_max_distance: alignment.centerline.max_distance,
 		pairs: rounded,
-	};
+	}, rounded);
 }
 
 function analyzeAllTracks(tracksData = null) {
-  const data = tracksData || loadTracksData();
-  const tracks = Array.isArray(data.tracks) ? data.tracks : [];
-  const analyses = tracks.map(track => analyzeTrackMinimap(track));
-  const matchPercents = analyses.map(entry => entry.metrics.match_percent);
-  const averageMatch = matchPercents.length
-    ? roundTo(matchPercents.reduce((sum, value) => sum + value, 0) / matchPercents.length, 2)
-    : 0;
+	const data = tracksData || loadTracksData();
+	const tracks = getTracks(data);
+	const analyses = tracks.map(track => analyzeTrackMinimap(track));
+	const matchPercents = analyses.map(entry => entry.metrics.match_percent);
+	const averageMatch = matchPercents.length
+		? roundTo(matchPercents.reduce((sum, value) => sum + value, 0) / matchPercents.length, 2)
+		: 0;
 
-  return {
-    generated_at: new Date().toISOString(),
-    track_count: analyses.length,
-    average_match_percent: averageMatch,
-    significant_mismatch_count: analyses.filter(entry => entry.metrics.significant_mismatch).length,
-    preview_tile_usage_groups: groupPreviewTileUsage(data),
-    preview_tile_vocabulary: analyzePreviewTileVocabulary(data),
-    tracks: analyses,
-  };
+	return buildMinimapAnalysisAggregateReport(analyses, {
+		generatedAt: new Date().toISOString(),
+		averageMatchPercent: averageMatch,
+		significantMismatchCount: analyses.filter(entry => entry.metrics.significant_mismatch).length,
+		previewTileUsageGroups: groupPreviewTileUsage(data),
+		previewTileVocabulary: analyzePreviewTileVocabulary(data),
+	});
 }
 
 module.exports = {

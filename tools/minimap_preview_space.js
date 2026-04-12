@@ -8,6 +8,7 @@ const {
 	TRACKS_JSON,
 } = require('./lib/minimap_analysis');
 const { parseArgs, die, info } = require('./lib/cli');
+const { buildMinimapAnalysisSummary } = require('./lib/minimap_result_model');
 
 function formatFit(label, fit) {
 	return [
@@ -34,12 +35,7 @@ function main() {
 	if (!track) die(`track not found: ${trackArg}`);
 
 	const analysis = analyzeTrackMinimap(track);
-	const result = {
-		track: analysis.track,
-		canonical_to_preview: analysis.canonical.preview_space,
-		derived_to_preview: analysis.derived_path_preview_space,
-		preview_metrics: analysis.metrics,
-	};
+	const result = buildMinimapAnalysisSummary(analysis);
 
 	if (args.flags['--json']) {
 		process.stdout.write(JSON.stringify(result, null, 2) + '\n');

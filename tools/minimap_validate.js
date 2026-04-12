@@ -20,7 +20,9 @@ const {
 } = require('./lib/minimap_analysis');
 const { getMinimapPreview } = require('./lib/minimap_preview');
 const { buildGeneratedMinimapPreview } = require('./lib/minimap_render');
+const { buildGeneratedPairSummary, buildPreviewSummary, buildValidationReportEntry } = require('./lib/minimap_result_model');
 const { decompressCurveSegments } = require('./randomizer/track_randomizer');
+const { getTrackMinimapPairs, getTracks } = require('./randomizer/track_model');
 
 function getOccupiedPoints(preview) {
 	const points = [];
@@ -91,8 +93,9 @@ function collectAlignmentMetrics(track, mode = 'stock') {
 	const previewPoints = mode === 'generated'
 		? getOccupiedPointsFromPixels(preview.road_pixels || preview.pixels, preview.width, preview.height)
 		: getPreviewOccupiedPoints(preview);
-	const sampleCount = Array.isArray(track.minimap_pos) && track.minimap_pos.length > 0
-		? track.minimap_pos.length
+	const minimapPairs = getTrackMinimapPairs(track);
+	const sampleCount = minimapPairs.length > 0
+		? minimapPairs.length
 		: Math.max(1, track.track_length >> 6);
 	const samplePoints = buildPreviewSpaceSamples(track, previewPoints, sampleCount);
 	const centerlinePoints = mode === 'generated'
@@ -103,7 +106,7 @@ function collectAlignmentMetrics(track, mode = 'stock') {
 		: { roadTolerance: 0.6, roadHitThreshold: 0.6, centerlineHitThreshold: 0.75 });
 
 	return {
-		preview_slug: previewSlug,
+		...buildPreviewSummary(previewSlug, preview),
 		preview,
 		sample_points: samplePoints,
 		alignment,
@@ -123,7 +126,7 @@ function collectCandidateAlignmentMetrics(track) {
 
 	return {
 		preview,
-		generated,
+		generated: buildGeneratedPairSummary(generated, samplePoints),
 		sample_points: samplePoints,
 		alignment,
 	};
@@ -260,10 +263,29 @@ function evaluateCurveMapAgreement(track, preview) {
 	};
 }
 
+function buildFlagsFromMetrics(metrics, generatedPairsLength) {
+	const tightTurnLimit = Math.max(6, Math.floor((generatedPairsLength || 0) / 12));
+	return {
+		too_sparse: metrics.occupied_ratio < 0.08,
+		too_dense: metrics.occupied_ratio > 0.55,
+		too_tall: metrics.preview_aspect_ratio > 3.2,
+		too_wide: metrics.preview_aspect_ratio < 0.32,
+		too_thin: metrics.width_proxy < 3.6,
+		too_fat: metrics.width_proxy > 9.5,
+		pair_desync: metrics.pair_follow_mean > 4,
+		generated_marker_offroad: metrics.generated_marker_mean_distance > 1.25 || metrics.generated_marker_hit_percent < 90,
+		candidate_marker_offroad: metrics.candidate_marker_mean_distance > 1.25 || metrics.candidate_marker_hit_percent < 90,
+		curve_map_left_right_mismatch: metrics.curve_map_sign_match_percent < 58,
+		curve_map_phase_mismatch: Math.abs(metrics.curve_map_best_shift_ratio) > 0.08 && metrics.curve_map_phase_gain > 0.08,
+		curve_map_strength_mismatch: metrics.curve_map_strength_error > 0.008,
+		many_tight_turns: metrics.tight_turn_count > tightTurnLimit,
+	};
+}
+
 function validateTrack(track, tracksData) {
 	const preview = buildGeneratedMinimapPreview(track);
 	const occupied = getOccupiedPoints(preview);
-	const generatedPairs = Array.isArray(track.minimap_pos) ? track.minimap_pos : [];
+	const generatedPairs = getTrackMinimapPairs(track);
 	const derivedPath = buildDerivedPath(track);
 	const canonicalFit = fitPathToTarget(densifyPolyline(derivedPath.points || []), densifyPolyline(dedupeAdjacentPairs(generatedPairs)));
 	const sampled = sampleClosedPath(canonicalFit.transformedSourcePoints, generatedPairs.length || Math.max(1, (track.track_length || 0) >> 6));
@@ -279,59 +301,42 @@ function validateTrack(track, tracksData) {
 	const candidateAlignment = collectCandidateAlignmentMetrics(track);
 	const curveMap = evaluateCurveMapAgreement(track, preview);
 
-	return {
-		track: { slug: track.slug, name: track.name, track_length: track.track_length },
-		metrics: {
-			preview_match_percent: preview.match_percent,
-			occupied_ratio: Number(occupiedRatio.toFixed(4)),
-			preview_bounds: bounds,
-			preview_aspect_ratio: Number(aspect.toFixed(3)),
-			width_proxy: Number(widthProxy.toFixed(3)),
-			generated_pair_area: Number(area.toFixed(2)),
-			pair_follow_mean: Number(pairFit.mean.toFixed(3)),
-			pair_follow_max: Number(pairFit.max.toFixed(3)),
-			tight_turn_count: tightTurns,
-			preview_self_intersections: preview.self_intersections,
-			preview_branch_pixel_count: preview.branch_pixel_count,
-			preview_lower_tail_clearance: preview.lower_tail_clearance,
-			stock_marker_mean_distance: stockAlignment.alignment.road.mean_distance,
-			stock_marker_max_distance: stockAlignment.alignment.road.max_distance,
-			stock_marker_hit_percent: stockAlignment.alignment.road.hit_percent,
-			generated_marker_mean_distance: generatedAlignment.alignment.road.mean_distance,
-			generated_marker_max_distance: generatedAlignment.alignment.road.max_distance,
-			generated_marker_hit_percent: generatedAlignment.alignment.road.hit_percent,
-			candidate_marker_mean_distance: candidateAlignment.alignment.road.mean_distance,
-			candidate_marker_max_distance: candidateAlignment.alignment.road.max_distance,
-			candidate_marker_hit_percent: candidateAlignment.alignment.road.hit_percent,
-			curve_map_zero_shift_corr: Number(curveMap.zero_shift_corr.toFixed(3)),
-			curve_map_best_shift_corr: Number(curveMap.best_shift_corr.toFixed(3)),
-			curve_map_best_shift_ratio: Number(curveMap.best_shift_ratio.toFixed(4)),
-			curve_map_phase_gain: Number(curveMap.phase_gain.toFixed(3)),
-			curve_map_sign_match_percent: Number(curveMap.sign_match_percent.toFixed(2)),
-			curve_map_strength_error: Number(curveMap.strength_error.toFixed(4)),
-		},
-		alignment: {
-			stock: stockAlignment.alignment,
-			generated: generatedAlignment.alignment,
-			candidate: candidateAlignment.alignment,
-			candidate_pairs: candidateAlignment.generated.pairs,
-		},
-		flags: {
-			too_sparse: occupiedRatio < 0.08,
-			too_dense: occupiedRatio > 0.55,
-			too_tall: aspect > 3.2,
-			too_wide: aspect < 0.32,
-			too_thin: widthProxy < 3.6,
-			too_fat: widthProxy > 9.5,
-			pair_desync: pairFit.mean > 4,
-			generated_marker_offroad: generatedAlignment.alignment.road.mean_distance > 1.25 || generatedAlignment.alignment.road.hit_percent < 90,
-			candidate_marker_offroad: candidateAlignment.alignment.road.mean_distance > 1.25 || candidateAlignment.alignment.road.hit_percent < 90,
-			curve_map_left_right_mismatch: curveMap.sign_match_percent < 58,
-			curve_map_phase_mismatch: Math.abs(curveMap.best_shift_ratio) > 0.08 && curveMap.phase_gain > 0.08,
-			curve_map_strength_mismatch: curveMap.strength_error > 0.008,
-			many_tight_turns: tightTurns > Math.max(6, Math.floor(generatedPairs.length / 12)),
-		},
+	const metrics = {
+		preview_match_percent: preview.match_percent,
+		occupied_ratio: Number(occupiedRatio.toFixed(4)),
+		preview_bounds: bounds,
+		preview_aspect_ratio: Number(aspect.toFixed(3)),
+		width_proxy: Number(widthProxy.toFixed(3)),
+		generated_pair_area: Number(area.toFixed(2)),
+		pair_follow_mean: Number(pairFit.mean.toFixed(3)),
+		pair_follow_max: Number(pairFit.max.toFixed(3)),
+		tight_turn_count: tightTurns,
+		preview_self_intersections: preview.self_intersections,
+		preview_branch_pixel_count: preview.branch_pixel_count,
+		preview_lower_tail_clearance: preview.lower_tail_clearance,
+		stock_marker_mean_distance: stockAlignment.alignment.road.mean_distance,
+		stock_marker_max_distance: stockAlignment.alignment.road.max_distance,
+		stock_marker_hit_percent: stockAlignment.alignment.road.hit_percent,
+		generated_marker_mean_distance: generatedAlignment.alignment.road.mean_distance,
+		generated_marker_max_distance: generatedAlignment.alignment.road.max_distance,
+		generated_marker_hit_percent: generatedAlignment.alignment.road.hit_percent,
+		candidate_marker_mean_distance: candidateAlignment.alignment.road.mean_distance,
+		candidate_marker_max_distance: candidateAlignment.alignment.road.max_distance,
+		candidate_marker_hit_percent: candidateAlignment.alignment.road.hit_percent,
+		curve_map_zero_shift_corr: Number(curveMap.zero_shift_corr.toFixed(3)),
+		curve_map_best_shift_corr: Number(curveMap.best_shift_corr.toFixed(3)),
+		curve_map_best_shift_ratio: Number(curveMap.best_shift_ratio.toFixed(4)),
+		curve_map_phase_gain: Number(curveMap.phase_gain.toFixed(3)),
+		curve_map_sign_match_percent: Number(curveMap.sign_match_percent.toFixed(2)),
+		curve_map_strength_error: Number(curveMap.strength_error.toFixed(4)),
 	};
+
+	return buildValidationReportEntry(track, metrics, {
+		stock: stockAlignment.alignment,
+		generated: generatedAlignment.alignment,
+		candidate: candidateAlignment.alignment,
+		candidate_pairs: candidateAlignment.generated.pairs,
+	}, buildFlagsFromMetrics(metrics, generatedPairs.length));
 }
 
 function average(entries, select) {
@@ -340,7 +345,7 @@ function average(entries, select) {
 }
 
 function validateAllTracks(tracksData) {
-	const tracks = Array.isArray(tracksData?.tracks) ? tracksData.tracks : [];
+	const tracks = getTracks(tracksData);
 	const reports = tracks.map(track => validateTrack(track, tracksData));
 	return {
 		track_count: reports.length,
@@ -418,6 +423,17 @@ if (require.main === module) {
 }
 
 module.exports = {
+	buildCurveTurnProfile,
+	buildCenterlineTurnProfile,
+	buildFlagsFromMetrics,
+	buildPreviewSpaceSamplesFromPairs,
+	countTightTurns,
+	evaluateCurveMapAgreement,
+	findBestCircularShift,
+	normalizeAngleDelta,
+	pearsonCorrelation,
+	polygonArea,
+	rotateArray,
 	validateTrack,
 	validateAllTracks,
 };

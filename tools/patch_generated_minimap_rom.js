@@ -6,6 +6,7 @@ const path = require('path');
 const { parseArgs, die, info } = require('./lib/cli');
 const { encodeTinyGraphics } = require('./minimap_graphics_codec');
 const { patchRomChecksum } = require('./patch_rom_checksum');
+const { assertSafeRomPath } = require('./lib/workspace_guard');
 
 const HUD_TILES_DATA_ADDR = 0x050C20;
 const HUD_TILES_DATA_MAX = 0x0511B8 - 0x050C20;
@@ -141,8 +142,16 @@ function assertFits(size, max, name) {
 }
 
 function main() {
-	const args = parseArgs(process.argv.slice(2), { options: ['--rom', '--runtime-asm'] });
+	const args = parseArgs(process.argv.slice(2), {
+		flags: ['--allow-root-mutation'],
+		options: ['--rom', '--runtime-asm'],
+	});
 	const romPath = path.resolve(args.options['--rom'] || 'out.bin');
+	try {
+		assertSafeRomPath(romPath, { allowRootMutation: args.flags['--allow-root-mutation'] });
+	} catch (err) {
+		die(err.message);
+	}
 	const runtimeAsmPath = path.resolve(args.options['--runtime-asm'] || path.join('src', 'generated_minimap_preview_data.asm'));
 	if (!fs.existsSync(romPath)) die(`ROM not found: ${romPath}`);
 	if (!fs.existsSync(runtimeAsmPath)) die(`Runtime preview ASM not found: ${runtimeAsmPath}`);

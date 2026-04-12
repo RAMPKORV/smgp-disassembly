@@ -197,17 +197,24 @@ consistent.
 node tools/randomize.js SEED [--dry-run] [--verbose]
 ```
 
-| Option       | Description                                        |
-|--------------|----------------------------------------------------|
-| `SEED`       | Seed string in `SMGP-v-flags-decimal` format       |
-| `--dry-run`  | Validate but do not write any files or ROM         |
-| `--verbose`  | Print per-module detail                            |
+| Option       | Description                                                    |
+|--------------|----------------------------------------------------------------|
+| `SEED`       | Seed string in `SMGP-v-flags-decimal` format                   |
+| `--dry-run`  | Validate but do not write any files or ROM                     |
+| `--tracks`   | Restrict randomization to selected track slugs                 |
+| `--input`    | Use an alternate tracks JSON input                             |
+| `--no-build` | Skip the in-root ROM build step                                |
+| `--in-root`  | Debug-only mode that mutates the repo root with a checkpoint   |
+| `--verbose`  | Print per-module detail                                        |
 
-The script backs up `tools/data/tracks.json` to `tools/data/tracks.orig.json`
-before overwriting it.  Use `tools/restore_tracks.js` to restore.
+By default, `tools/randomize.js` forwards to the workspace-safe flow and does
+not mutate the repo root.  Explicit `--in-root` runs create an in-root
+checkpoint under `build/checkpoints/in_root_debug/`; use
+`tools/restore_tracks.js` to restore and clear it.
 
-**Output:** Modified `out.bin` in the repo root.  Not bit-identical to `orig.bin`
-(the `verify.bat` SHA256 check will fail — this is expected).
+**Output:** Workspace-safe runs write a randomized ROM under `build/roms/` by
+default.  Explicit in-root builds modify repo-root `out.bin`, which is expected
+to differ from `orig.bin` until restored.
 
 ### 6.2 `tools/restore_tracks.js` — Restore original data
 
@@ -216,8 +223,9 @@ node tools/restore_tracks.js [--verify]
 ```
 
 Restores `tools/data/tracks.json` from its backup and re-injects original
-track binaries.  `--verify` additionally runs `verify.bat` to confirm the ROM
-is bit-perfect again.
+track binaries.  It first restores any active in-root checkpoint and then falls
+back to legacy `*.orig.*` backups if present.  `--verify` additionally runs
+`verify.bat` to confirm the ROM is bit-perfect again.
 
 ### 6.3 `tools/hack_workdir.js` — Isolated build workspace
 
@@ -228,7 +236,8 @@ node tools/hack_workdir.js --list
 
 Copies the project to a temporary directory under `build/workspaces/<seed>/`,
 runs the randomizer there, assembles the ROM, and copies the output binary
-without touching the original source tree.
+without touching the original source tree.  This is the recommended flow for
+normal seed testing and refactor validation.
 
 | Option       | Description                                              |
 |--------------|----------------------------------------------------------|

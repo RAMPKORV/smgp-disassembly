@@ -8,6 +8,7 @@ const { parseArgs, die, info } = require('./lib/cli');
 const { REPO_ROOT } = require('./lib/rom');
 const { injectTrack } = require('./inject_track_data');
 const { buildSyncedTrackConfig } = require('./sync_track_config');
+const { TRACK_METADATA_FIELDS } = require('./randomizer/track_metadata');
 
 const COMPONENT_FIELDS = new Map([
 	['curves', [
@@ -25,12 +26,12 @@ const COMPONENT_FIELDS = new Map([
 		'sign_data',
 		'sign_tileset',
 		'sign_tileset_trailing',
-		'_preserve_original_sign_cadence',
+		TRACK_METADATA_FIELDS.preserveOriginalSignCadence,
 	]],
 	['minimap', [
 		'minimap_pos',
 		'minimap_pos_trailing',
-		'_generated_minimap_preview',
+		TRACK_METADATA_FIELDS.generatedMinimapPreview,
 	]],
 ]);
 

@@ -3,6 +3,7 @@
 
 const { parseArgs, die, info } = require('./lib/cli');
 const { loadTracksData, findTrack, generateMinimapPairsFromTrack, TRACKS_JSON } = require('./lib/minimap_analysis');
+const { buildGeneratedMinimapOutput } = require('./lib/minimap_result_model');
 
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
@@ -20,14 +21,7 @@ function main() {
 
 	const generated = generateMinimapPairsFromTrack(track);
 	if (args.flags['--json']) {
-		process.stdout.write(JSON.stringify({
-			track: {
-				index: track.index,
-				name: track.name,
-				slug: track.slug,
-			},
-			generated,
-		}, null, 2) + '\n');
+		process.stdout.write(JSON.stringify(buildGeneratedMinimapOutput(track, generated, { includeTrackLength: false }), null, 2) + '\n');
 		return;
 	}
 

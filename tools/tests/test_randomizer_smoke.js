@@ -13,9 +13,10 @@
 //
 // Section C: Build a randomized ROM via the isolated hack workspace flow
 //            (only runs without --no-build).
-//            8 tests: workspace created, hack builder ran, exit code 0,
-//            output ROM written, workspace ROM present, correct ROM size,
-//            ROM end header padded correctly, log written.
+//            12 tests: workspace created, hack builder ran, exit code 0,
+//            output ROM written, workspace ROM present, expected ROM growth,
+//            ROM end header matches actual size, log written, root-tree safety,
+//            and same-seed determinism.
 //
 // Usage:
 //   node tools/tests/test_randomizer_smoke.js            # all sections
@@ -24,16 +25,18 @@
 'use strict';
 
 const assert       = require('assert');
+const crypto       = require('crypto');
 const fs           = require('fs');
 const os           = require('os');
 const path         = require('path');
 const { spawnSync } = require('child_process');
 
-const { readJson }       = require('../lib/json.js');
 const { REPO_ROOT }      = require('../lib/rom.js');
 const trackRandomizer    = require('../randomizer/track_randomizer.js');
+const { getTrackMinimapPairs, getTracks, requireTracksDataShape } = require('../randomizer/track_model.js');
 const { validateTrack, validateTracks } = require('../randomizer/track_validator.js');
 const { injectTrack }    = require('../inject_track_data.js');
+const { deepCopy, loadTracksJson } = require('./randomizer_test_utils.js');
 
 const EXPECTED_ROM_SIZE = 524288;
 
@@ -54,6 +57,18 @@ function test(name, fn) {
   }
 }
 
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function snapshotExistingFiles(filePaths) {
+  return filePaths.map(filePath => ({
+    filePath,
+    exists: fs.existsSync(filePath),
+    hash: fs.existsSync(filePath) ? sha256File(filePath) : null,
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // Parse --no-build flag
 // ---------------------------------------------------------------------------
@@ -69,17 +84,17 @@ const WORKSPACE_SEED_STR = 'SMGP-1-01-12345';
 const [, , FIXED_SEED_INT] = trackRandomizer.parseSeed(FIXED_SEED_STR);
 
 // Load real tracks.json and deep-clone so we don't mutate the on-disk version
-const realTracksData = readJson(path.join(REPO_ROOT, 'tools', 'data', 'tracks.json'));
-// Deep clone via JSON round-trip so we operate on a fresh copy
-const tracksData = JSON.parse(JSON.stringify(realTracksData));
+const realTracksData = loadTracksJson();
+const tracksData = requireTracksDataShape(deepCopy(realTracksData));
 
 // Randomize all 19 tracks in-place on the clone
 trackRandomizer.randomizeTracks(tracksData, FIXED_SEED_INT, null, false);
 
-const allErrors = validateTracks(tracksData.tracks);
+const randomizedTracks = getTracks(tracksData);
+const allErrors = validateTracks(randomizedTracks);
 
 // 2 tests per track (19 tracks = 38 tests) + 1 aggregate
-for (const track of tracksData.tracks) {
+for (const track of randomizedTracks) {
   const trackName = track.name || track.slug || '?';
   const trackErrors = validateTrack(track);
 
@@ -92,7 +107,7 @@ for (const track of tracksData.tracks) {
 
   test(`track "${trackName}": minimap pair count == track_length>>6`, () => {
     const expected = track.track_length >> 6;
-    const actual   = Array.isArray(track.minimap_pos) ? track.minimap_pos.length : -1;
+    const actual   = getTrackMinimapPairs(track).length;
     assert.strictEqual(actual, expected,
       `minimap_pos.length=${actual}, expected track_length(${track.track_length})>>6=${expected}`);
   });
@@ -155,7 +170,7 @@ for (const entry of fs.readdirSync(realTracksDir, { withFileTypes: true })) {
 
 // Inject all 19 randomized tracks into the isolated copy
 const injectErrors = [];
-for (const track of tracksData.tracks) {
+for (const track of randomizedTracks) {
   try {
     injectTrack(track, tmpTracksDir, false, false);
   } catch (err) {
@@ -164,7 +179,7 @@ for (const track of tracksData.tracks) {
 }
 
 // 19 per-track tests (one per track: all 6 bin files exist after inject)
-for (const track of tracksData.tracks) {
+for (const track of randomizedTracks) {
   const slug = track.slug;
   const trackDir = path.join(tmpTracksDir, slug);
 
@@ -202,7 +217,18 @@ if (!NO_BUILD) {
   const tmpRootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smgp-smoke-ws-'));
   const tmpWsDir = path.join(tmpRootDir, 'workspace');
   const tmpRomPath = path.join(tmpRootDir, 'randomized.bin');
+  const tmpRootDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'smgp-smoke-ws-'));
+  const tmpWsDir2 = path.join(tmpRootDir2, 'workspace');
+  const tmpRomPath2 = path.join(tmpRootDir2, 'randomized.bin');
   const hackWorkdirScript = path.join(REPO_ROOT, 'tools', 'hack_workdir.js');
+  const rootSentinelPaths = [
+    path.join(REPO_ROOT, 'tools', 'data', 'tracks.json'),
+    path.join(REPO_ROOT, 'src', 'track_config_data.asm'),
+    path.join(REPO_ROOT, 'src', 'road_and_track_data.asm'),
+    path.join(REPO_ROOT, 'data', 'tracks', 'san_marino', 'curve_data.bin'),
+    path.join(REPO_ROOT, 'data', 'tracks', 'monaco_arcade', 'minimap_pos.bin'),
+  ];
+  const rootSentinelSnapshot = snapshotExistingFiles(rootSentinelPaths);
 
   test('Section C: isolated workspace was created', () => {
     assert.ok(fs.existsSync(tmpRootDir), 'temp root dir does not exist');
@@ -215,6 +241,12 @@ if (!NO_BUILD) {
   });
 
   const buildOutput = (buildResult.stdout || '') + (buildResult.stderr || '');
+  const buildResult2 = spawnSync('node', [hackWorkdirScript, WORKSPACE_SEED_STR, '--workspace', tmpWsDir2, '--output', tmpRomPath2, '--keep'], {
+    cwd:      REPO_ROOT,
+    encoding: 'utf8',
+    timeout:  120000,
+  });
+  const buildOutput2 = (buildResult2.stdout || '') + (buildResult2.stderr || '');
 
   test('Section C: hack workspace builder ran (no spawnSync error)', () => {
     assert.ok(buildResult.error === undefined,
@@ -236,20 +268,20 @@ if (!NO_BUILD) {
       'out.bin not found in workspace after build');
   });
 
-  test('Section C: out.bin size is exactly 524288 bytes', () => {
+  test('Section C: out.bin size is at least the canonical ROM size', () => {
     const romPath = tmpRomPath;
     assert.ok(fs.existsSync(romPath), 'out.bin not found in workspace after build');
     const actualSize = fs.statSync(romPath).size;
-    assert.strictEqual(actualSize, EXPECTED_ROM_SIZE,
-      `out.bin size=${actualSize}, expected ${EXPECTED_ROM_SIZE}`);
+    assert.ok(actualSize >= EXPECTED_ROM_SIZE,
+      `out.bin size=${actualSize}, expected at least ${EXPECTED_ROM_SIZE}`);
   });
 
-  test('Section C: ROMEndLoc matches padded ROM size', () => {
+  test('Section C: ROMEndLoc matches actual workspace ROM size', () => {
     const romPath = tmpRomPath;
     const rom = fs.readFileSync(romPath);
     const romEnd = rom.readUInt32BE(0x1A4);
-    assert.strictEqual(romEnd, EXPECTED_ROM_SIZE - 1,
-      `ROMEndLoc=0x${romEnd.toString(16)}, expected 0x${(EXPECTED_ROM_SIZE - 1).toString(16)}`);
+    assert.strictEqual(romEnd, rom.length - 1,
+      `ROMEndLoc=0x${romEnd.toString(16)}, expected 0x${(rom.length - 1).toString(16)}`);
   });
 
   test('Section C: randomizer log was written in workspace', () => {
@@ -257,8 +289,41 @@ if (!NO_BUILD) {
       'randomizer.log not found in workspace after build');
   });
 
+  test('Section C: workspace build reports timing breakdown', () => {
+    assert.ok(buildOutput.includes('Timing:'), `expected timing line in output:\n${buildOutput}`);
+  });
+
+  test('Section C: root-tree sentinel files remain unchanged', () => {
+    for (const entry of rootSentinelSnapshot) {
+      assert.strictEqual(fs.existsSync(entry.filePath), entry.exists, `${entry.filePath} existence changed`);
+      if (entry.exists) {
+        assert.strictEqual(sha256File(entry.filePath), entry.hash, `${entry.filePath} hash changed`);
+      }
+    }
+  });
+
+  test('Section C: second same-seed workspace build exit code is 0', () => {
+    assert.strictEqual(buildResult2.status, 0,
+      `exit code ${buildResult2.status}\noutput:\n${buildOutput2.slice(0, 500)}`);
+  });
+
+  test('Section C: same-seed workspace builds produce identical ROM hashes', () => {
+    assert.ok(fs.existsSync(tmpRomPath), `missing first ROM: ${tmpRomPath}`);
+    assert.ok(fs.existsSync(tmpRomPath2), `missing second ROM: ${tmpRomPath2}`);
+    assert.strictEqual(sha256File(tmpRomPath), sha256File(tmpRomPath2));
+  });
+
+  test('Section C: same-seed workspace builds produce identical randomized track JSON', () => {
+    const first = path.join(tmpWsDir, 'tools', 'data', 'tracks.json');
+    const second = path.join(tmpWsDir2, 'tools', 'data', 'tracks.json');
+    assert.ok(fs.existsSync(first), `missing first randomized tracks.json: ${first}`);
+    assert.ok(fs.existsSync(second), `missing second randomized tracks.json: ${second}`);
+    assert.strictEqual(sha256File(first), sha256File(second));
+  });
+
   // Cleanup workspace
   fs.rmSync(tmpRootDir, { recursive: true, force: true });
+  fs.rmSync(tmpRootDir2, { recursive: true, force: true });
 } else {
   // Skip tests but keep counts honest — just record them as "not run"
   console.log('  (Section C skipped — 8 build tests not run)');
