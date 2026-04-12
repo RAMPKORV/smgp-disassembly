@@ -1,4 +1,25 @@
 Update_race_position:
+; Per-frame placement update called from the race loop.
+; No-op during warm-up or practice.
+;
+; Arcade mode (Use_world_championship_tracks = 0):
+;   Counts how many of the 15 AI cars (Rival_car_place_score array, $40 apart)
+;   have a place-score > Player_place_score; the result D1 is the player's grid
+;   rank (0 = 1st). Triggers Player_eliminated and the "lapped" object when the
+;   player falls more than 2 positions behind Current_placement.
+;   Tracks the leader (highest score) in Best_ai_car_ptr/Rival_ai_car_ptr and the
+;   second-place car in Second_ai_car_ptr; updates rival portrait anim data ptr.
+;   Awards placement-bonus points via Award_race_position_points when
+;   Placement_award_pending is set.
+;
+; Championship mode (Use_world_championship_tracks = 1, Has_rival_flag = 0):
+;   Same rank loop over 15 AI cars, stores result in Player_grid_position, and
+;   draws the position ordinal HUD tile via Draw_placement_ordinal_to_vdp.
+;
+; Rival mode (Use_world_championship_tracks = 1, Has_rival_flag = 1):
+;   Computes both Player_grid_position and Rival_grid_position separately
+;   by comparing each against the 14 non-rival AI cars, then draws both
+;   ordinals to the HUD.
 	MOVE.w	Warm_up.w, D0
 	OR.w	Practice_mode.w, D0
 	BEQ.b	Update_race_position_Check_arcade
@@ -349,6 +370,14 @@ Decrement_lap_time_Return:
 	RTS
 ;Award_race_position_points
 Award_race_position_points:
+; Add placement bonus points to Race_time_bcd (the accumulated time/score used
+; for standing selection in championship mode).
+; Called when Placement_award_pending is set (arcade mode only).
+;
+; Inputs:  Player_grid_position (0 = 1st), Current_placement
+; Output:  Race_time_bcd incremented by Race_placement_bonus_table[Player_grid_position]
+;
+; Only awards if Player_grid_position < Current_placement (i.e. player moved up).
 	MOVE.w	Player_grid_position.w, D0
 	CMP.w	Current_placement.w, D0
 	BCC.b	Decrement_lap_time_Return
@@ -372,6 +401,9 @@ Advance_lap_checkpoint_Add:
 	MOVEQ	#1, D2
 	BRA.b	Award_race_position_points_Add
 Race_placement_bonus_table:
+; BCD bonus awarded per grid position (index = Player_grid_position, 0-based).
+; 13 entries; position 0 (1st) gives $14 points, position 12 (13th) gives $02.
+; Used by Award_race_position_points and added to Race_time_bcd via Bcd_add_loop.
 	dc.w	$0014
 	dc.w	$0013
 	dc.w	$0012
@@ -386,6 +418,10 @@ Race_placement_bonus_table:
 	dc.w	$0003
 	dc.w	$0002
 Curve_displacement_table:
+; 48 signed-word lateral displacement values indexed by curve sharpness byte
+; (lower 6 bits of curve data byte, values 1–47). Entry 0 is a guard ($0001).
+; Used by the driving model to compute road X displacement from curve sharpness.
+; Sharpness 1 = extreme (large displacement $24D4), sharpness 47 = soft ($0105).
 	dc.w	$0001
 	dc.w	$24D4
 	dc.w	$1B8C
@@ -494,6 +530,22 @@ Update_pit_prompt_Return:
 	RTS
 ;Update_tire_wear_counter
 Update_tire_wear_counter:
+; Championship-mode per-frame tire wear simulation.
+; No-op outside championship/arcade mode.
+;
+; Three wear channels: steering, engine, and acceleration.
+; Each channel subtracts its wear rate from a durability accumulator each frame.
+; When the accumulator underflows, $14 is added back (20-unit tick), a degrade
+; flag bit is set in D7, and the relevant performance index is decremented by 2:
+;   Steering channel: Track_steering_index decremented (harder to steer)
+;   Engine channel:   Team_car_engine_data decremented (lower top speed)
+;   Accel channel:    Team_car_acceleration decremented (slower acceleration)
+; All indices clamp to 0 (minimum performance, not worse).
+;
+; When any channel degrades, Tire_wear_degrade_level is updated and
+; Overtake_flag is set to $16 (triggers tire smoke/squeal feedback).
+; When the acceleration channel degrades (D7 = 2), Load_team_car_data is called
+; to re-resolve the engine/accel tables for the new degraded indices.
 	TST.w	Use_world_championship_tracks.w
 	BEQ.w	Update_tire_wear_counter_Return
 	TST.w	Track_index_arcade_mode.w
@@ -1294,6 +1346,40 @@ Apply_lateral_offset_clamped_Write:
 	MOVE.w	D0, $12(A0)
 	RTS
 Init_rival_ai_car:
+; Initialise the rival car AI object for championship mode.
+; Called once at race start; A0 = rival car object slot.
+;
+; Speed and acceleration parameters are read from Ai_placement_data_champ
+; (5 bytes per entry, indexed by Rival_team & $0F):
+;   Bytes 0-1: max speed high word (big-endian byte pair)
+;   Bytes 2-3: acceleration word
+;   Byte  4:   speed scale index → $2B(A0) (indexes Bg_ai_car_speed_scale_table)
+;
+; The player-vs-rival team match-up applies signed word adjustments from
+; Ai_placement_champ_offsets (indexed by (player_group - rival_group) × 16):
+;   Words 0,1 → added to max speed and acceleration respectively.
+;
+; Shift type bonuses are applied to max speed:
+;   Auto (Shift_type = 0): no bonus
+;   4-speed (Shift_type = 1): +$16
+;   7-speed (Shift_type = 2): +$16 +$44
+;
+; Player_state_flags bit 3 (team-level advantage flag):
+;   If set, max speed += $0A, acceleration += $0C, speed scale = 8,
+;   initial speed = $32, rival flag ($3C) set to $FF.
+;
+; Track 3 (Hungary) applies a -6 acceleration penalty.
+;
+; Object fields set:
+;   $30(A0) = max speed
+;   $32(A0) = max speed × 128 (fixed-point threshold for speed integration)
+;   $34(A0) = acceleration
+;   $2B(A0) = speed scale index
+;   (A0)    = frame handler: Update_rival_ai_car_Frame
+;   $36(A0) = initial lateral X (copy of $12)
+;   $1E(A0) = initial track position (copy of $1A)
+;   $22(A0) = $FFFF (lap count, pre-decremented at first wrap)
+;   $24(A0) = 3 (render type)
 	MOVE.b	Player_team.w, D0
 	ANDI.w	#$000F, D0
 	LSR.w	#2, D0
@@ -1710,6 +1796,29 @@ Advance_rival_track_position_Live_check:
 	BRA.w	Advance_ai_check_collision
 ;Check_ai_collision_with_player
 Check_ai_collision_with_player:
+; Detect and respond to a lateral collision between an AI car and the player.
+; Called from the background and rival AI update paths when the car is on-screen.
+; A0 = AI car object slot.
+;
+; No-op if: the AI car is already in a post-collision oscillation ($10(A0) != 0),
+;           or if Replay_steer_override is set (warm-up/AI inject active).
+;
+; Collision detection:
+;   Player X window: [Horizontal_position - $40, Horizontal_position + $40].
+;   If AI car $12(A0) is within this window, a collision is detected.
+;
+; Overlap classification (D6 = lateral push, D0 = speed penalty):
+;   Left side (AI to the left):  D6 = -3, D0 = 7 (light push left)
+;   Right side (AI to the right): D6 = +3, D0 = 9 (light push right)
+;   Centre overlap:              D6 =  0, D0 = 8 (centred)
+;
+; On collision:
+;   Sets Overtake_flag (if not already set), Ai_x_delta, Ai_overtake_ready.
+;   If $25(A0) (sign-pass flag) is set: writes Ai_x_delta based on relative
+;     positions and sets Ai_speed_delta = Player_speed / 4.
+;   Otherwise (normal road car): triggers AI oscillation ($11, $14), allocates
+;     a smoke aux object, resets rival's max speed/accel to arcade start-grid
+;     values, and computes Ai_speed_delta from relative speed delta.
 	TST.b	$10(A0)
 	BNE.b	Check_ai_collision_with_player_Return
 	TST.w	Replay_steer_override.w
@@ -2027,6 +2136,39 @@ Compute_rival_screen_x_Queue:
 	JMP	Queue_object_for_sprite_buffer
 ;Compute_ai_position_and_depth_sort
 Compute_ai_position_and_depth_sort:
+; Determine whether an AI car is ahead of or behind the player, compute its
+; screen-row index (D0) and depth-sort insertion key (D7), and maintain
+; the leader/second-place pointers for Update_race_position.
+; A0 = AI car object slot.
+;
+; Track-distance comparison:
+;   D1 = AI_dist - Player_dist.  If 0 ≤ D1 < $A2 → car is ahead (close).
+;   Wrap: add Track_length and re-test.  If still ≥ $A2 → try behind direction.
+;   D2 = Player_dist - AI_dist.  If 0 ≤ D2 < $92 → car is behind.
+;   Otherwise the car is off-screen; sets $E(A0) = $FFFF, D7 = 0, returns.
+;
+; Ahead path (car ahead of player):
+;   Inserts AI $1E score into Depth_sort_buf (15-entry insertion-sorted list,
+;   lowest score first). Companion pointer written to $20(A1) (object address).
+;   Updates Depth_sort_value / Depth_sort_leader_ptr (car furthest ahead) and
+;   Depth_sort_prev / Depth_sort_prev_ptr (second furthest).
+;   If within 4 units ahead, sets A6 += 2 (used as collision candidate flag).
+;   Screen-row offset D4 = $91 - D2 (distance from player → row index into
+;   Ai_screen_y_table). D7 = 8 + screen-row index word.
+;
+; Behind path (car behind player):
+;   Same insertion sort into Depth_sort_buf.
+;   If within $1C units behind, sets nudge inhibit $3D(A0) = $FF.
+;   If within 4 units behind, sets A6 += 1 (collision candidate).
+;   D4 = $A1 - D1 → row index; D7 = 4 (base dispatch index for behind path).
+;
+; Output:
+;   D0  = screen row index (word offset into road-row tables)
+;   D7  = dispatch index into Ai_screen_x_dispatch_table (0=hidden, 4=behind, 8=ahead)
+;   D3  = $8000 if ahead, 0 if behind (passed to screen-X routines)
+;   D4  = screen-Y row index (byte offset into Ai_screen_y_table)
+;   A6  = 0 (no collision), 1 (behind/close), 2 (ahead/close), 3 (both)
+;   $E(A0) = row word (used by rival speed-clamp check in Compute_rival_screen_x)
 	MOVEA.w	#0, A6
 	MOVE.w	Track_length.w, D5
 	MOVE.w	$1A(A0), D1

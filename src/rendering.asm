@@ -422,6 +422,31 @@ Update_road_graphics_Dirty:
 	MOVE.w	#$FFFF, Tileset_dirty_flag.w
 	RTS
 Advance_player_distance:
+; Advance the player's track position by one frame and handle lap wrap-around.
+; Called from Race_loop up to four times per frame depending on game state.
+;
+; Steps:
+;  1. Call Compute_curve_speed_factor to derive a speed scaling factor based on
+;     the current curve sharpness (tighter curves reduce effective speed).
+;  2. Multiply the factor by Player_speed to get a fixed-point distance delta.
+;  3. Add the delta to the player object's 32-bit fixed-point position ($1E(A0)).
+;  4. Add the object's previous integer advance ($1A(A0)) to produce the new
+;     candidate integer track position in D0.
+;  5. Compare D0.w against Track_length.  If it wraps, subtract Track_length
+;     and increment Laps_completed; also add Track_length to Total_distance.
+;  6. Store the result back to $1A(A0) and update Player_distance.
+;  7. If arcade mode is active (Use_world_championship_tracks && Track_index_arcade_mode),
+;     re-evaluate which background colour zone the player is in by comparing
+;     Player_distance against four zone thresholds and updating Background_zone_index.
+;     If the zone changes, set Road_scroll_update_mode = 2 to trigger a scroll rebuild.
+;
+; Inputs:
+;  Player_speed.w    = current player speed (integer pixels/frame)
+;  Player_distance.w = current track position (integer part, updated by this routine)
+;  Track_length.w    = length of the current track in steps
+; Outputs:
+;  Player_distance.w updated; Laps_completed incremented on wrap;
+;  Background_zone_index / Road_scroll_update_mode updated in arcade mode.
 	LEA	Player_obj.w, A0
 	JSR	Compute_curve_speed_factor
 	MULU.w	Player_speed.w, D0
@@ -762,6 +787,10 @@ Update_slope_data_Ycenter_next:
 Update_slope_data_Rts:
 	RTS
 Road_tile_offset_table:
+; 26 signed word offsets used when writing the road header row during the
+; retire-flash (end-of-race animation) sequence.  Values count down from
+; +$0004 to $FFEE, producing a shrinking road-tile row for the retirement
+; visual effect.  Also used as the normal road-row header table.
 	dc.w	$0004
 	dc.w	$0003
 	dc.w	$0002
@@ -789,6 +818,12 @@ Road_tile_offset_table:
 	dc.w	$FFE9
 	dc.w	$FFE8
 Slope_scale_factors:
+; 40 unsigned word perspective-scale factors, one per road scanline row.
+; Used by Scale_curveslope_entry to convert integrated slope displacements
+; into screen-space pixel offsets.  Values increase toward the bottom of the
+; screen (nearer rows get larger multipliers).  Index 0 = most-distant row.
+; Factor 0 means the row is omitted (displacement not scaled/visible).
+; Derived from a reciprocal-perspective formula: factor ≈ $1000 * (1/row_scale).
 	dc.w	$1000
 	dc.w	$0000
 	dc.w	$0000
@@ -830,6 +865,11 @@ Slope_scale_factors:
 	dc.w	$9303
 	dc.w	$BB90
 Curve_interp_segment_counts:
+; 6 word segment-count values for Interpolate_curveslope_segment when processing
+; main road scanlines (96 rows).  Each entry specifies how many screen-space
+; scanline rows one scaled curve/slope step expands to.  Values are ordered
+; from most-distant (smallest = 28) to nearest (largest = 4), reflecting
+; perspective foreshortening of track steps toward the horizon.
 	dc.w	$001C
 	dc.w	$0010
 	dc.w	$000A
@@ -837,6 +877,10 @@ Curve_interp_segment_counts:
 	dc.w	$0006
 	dc.w	$0004
 Bg_interp_segment_counts:
+; 34 word segment-count values for Interpolate_curveslope_segment when
+; processing background parallax scanlines (34 rows, approx. sky region).
+; Denser distribution than Curve_interp_segment_counts — mostly 0s and 1s
+; since background rows are fewer and the curve effect is subtler.
 	dc.w	$0003
 	dc.w	$0002
 	dc.w	$0003
@@ -936,6 +980,30 @@ Integrate_curveslope_Sentinel:
 	RTS
 ;Interpolate_curveslope_segment
 Interpolate_curveslope_segment:
+; Linearly interpolate one segment of scaled curve or slope displacement values
+; into the per-scanline output buffer at A6.
+;
+; The caller supplies a segment-count array at A4 that specifies how many output
+; entries each interpolation step should produce.  For each call:
+;  1. Read the segment count from (A4)+.  If zero, return immediately (RTS, carry
+;     clear) — segment has no output rows.
+;  2. If count == 1, copy the value at (A5) directly to -(A6), decrement D3 and
+;     return.  Guard against sentinel $8000 — if (A5) == $8000 return carry set.
+;  3. Otherwise, interpolate from D2 (previous end-value) to (A5) (new end-value):
+;     a. Guard: if (A5) == $8000, return carry set.
+;     b. Compute step = (end - start) / count using Divide_fractional.
+;     c. Emit `count` words descending into -(A6) by subtracting the step
+;        each iteration.  D3 counts total scanlines remaining (decremented).
+;     d. Update D2 = new end-value for the next call.
+;
+; Register contract (maintained across multiple calls within one frame):
+;  A4 = segment count table pointer (advances by 2 per call)
+;  A5 = scaled displacement value array (does NOT advance; caller steps A5 -= 2
+;       after each successful call)
+;  A6 = output buffer pointer (predecrement word writes)
+;  D2 = previous segment end-value (updated to current (A5) on success)
+;  D3 = scanlines remaining in output buffer
+; Returns: carry clear on success, carry set on sentinel ($8000) hit.
 	MOVE.w	(A4)+, D6
 	BEQ.b	Interpolate_curveslope_Rts
 	CMPI.w	#1, D6
@@ -982,6 +1050,24 @@ Interpolate_curveslope_Sentinel:
 	RTS
 ;Scale_curveslope_entry
 Scale_curveslope_entry:
+; Multiply one integrated curve or slope displacement value by its perspective
+; scale factor, writing the scaled result back in place.
+;
+; The integrated displacement table (at A5) holds signed 16-bit values produced
+; by Integrate_curveslope.  A6 points to a parallel table of unsigned 16-bit
+; scale factors (from Slope_scale_factors).  For each call:
+;  1. Read the unscaled displacement word from (A5).
+;  2. If zero or $8000 (sentinel), skip the multiply and advance both pointers.
+;  3. Otherwise sign-save and negate to get an absolute value, read the scale
+;     factor from (A6)+, multiply unsigned (MULU), and clamp to $8000 if the
+;     result >= $01000000.  Restore sign, write back to (A5)+.
+;
+; This converts raw integrated displacements to screen-space pixel offsets using
+; pre-computed reciprocal-perspective coefficients in Slope_scale_factors.
+;
+; Register contract:
+;  A5 = integrated displacement array (advances by 2 per call)
+;  A6 = scale factor table pointer (advances by 2 per call, or 4 if skipped)
 	MOVE.w	(A5), D1
 	BEQ.b	Scale_curveslope_Skip_advance
 	CMPI.w	#$8000, D1
@@ -1246,6 +1332,18 @@ Update_road_tile_scroll_next_row:
 	DBF	D2, Update_road_tile_scroll_curve_row
 	RTS
 Flush_vdp_mode_and_signs:
+; Flush pending VDP mode changes and sign tileset DMA, then return.
+; Called once per frame from Race_loop (step 17) after road scroll update.
+;
+; Steps:
+;  1. If Road_column_update_state == 2, call Set_vdp_mode_h32_variant_b to
+;     switch the VDP to the H32 column mode needed for tunnel sections.
+;  2. If Road_scroll_updated_flag is non-zero (scroll table was rebuilt this
+;     frame), DMA the 6-word H-scroll shadow register block to the VDP using
+;     a pre-built D5/D6/D7 register set and a DMA length of $4D000083, then
+;     clear Road_scroll_updated_flag and return.
+;  3. Otherwise, tail-call Send_sign_tileset_to_VDP (in core.asm) to stream
+;     the next frame of sign tile animation data to VRAM.
 	CMPI.w	#2, Road_column_update_state.w
 	BNE.b	Flush_vdp_mode_and_signs_Check
 	JSR	Set_vdp_mode_h32_variant_b
@@ -1262,6 +1360,23 @@ Flush_vdp_mode_and_signs_Check:
 Flush_vdp_mode_and_signs_Skip:
 	JMP	Send_sign_tileset_to_VDP
 Upload_tilemap_rows_to_vdp:
+; Write up to 7 modified tilemap rows from Tilemap_work_buf to VDP VRAM.
+; Called once per frame from Race_loop (step 18) after road scroll is complete.
+;
+; Tilemap_row_upload_queue holds 7 × 10-byte slot descriptors.  Each descriptor:
+;   word  0: dirty flag (non-zero = row needs upload)
+;   word  1: primary row width in tiles - 1 (DBF count)
+;   word  2: secondary row width in tiles - 1 (or 0 for single-strip rows)
+;   word  3: slot index (high byte) used in DMA command address computation
+;   word  4: VRAM X-column offset for the strip
+;
+; For each dirty slot the routine builds a VDP DMA write command using the
+; slot index and a base command word of $49800003, writes both rows of the
+; 4-strip tilemap block (96 × 4 rows = 4 × 24 tiles wide), and clears the
+; dirty flag.  Writes are done directly via VDP_data_port (no DMA staging).
+;
+; The 7 slots correspond to the 7 curve-interpolated road rows managed by
+; Update_road_tile_scroll.
 	MOVE.l	#$49800003, D0
 	LEA	Tilemap_row_upload_queue.w, A0
 	LEA	VDP_data_port, A1
@@ -1304,17 +1419,36 @@ Upload_tilemap_rows_to_vdp_Next_slot:
 	RTS
 ;Fill_table_stride_loop
 Fill_table_stride_loop:
+; Write a repeating long-word value to a table at a fixed stride.
+; Used by Update_road_tile_scroll to paint left and right guard-rail tile
+; entries at their computed column positions across the H-scroll table.
+;
+; Inputs:
+;  A0  = base of target table (Road_hscroll_buf)
+;  D0  = repeat count (DBF: executes D0+1 times)
+;  D2  = initial byte offset into A0 (updated each iteration: D2 += D5)
+;  D3  = long-word tile ID value to write (e.g. $04420442 for kerb tile)
+;  D4  = AND mask applied to D2 each iteration (keeps offset in-bounds)
+;  D5  = signed stride increment added to D2 after each write
 	AND.w	D4, D2
 	MOVE.l	D3, (A0,D2.w)
 	ADD.w	D5, D2
 	DBF	D0, Fill_table_stride_loop
 	RTS
 Arcade_bg_scroll_row_data:
+; 10 bytes of palette/colour row data used for arcade-mode background horizon.
+; Written to Palette_buffer+$76 when Track_horizon_override_flag is set.
 	dc.b	$02, $C6, $02, $A2, $00, $62, $02, $68, $02, $22
 Default_bg_scroll_row_data:
+; 10 bytes of palette/colour row data used for the default (non-arcade) horizon.
+; Written to Palette_buffer+$76 when entering Update_road_graphics_Bg_load.
 	dc.b	$00, $00, $00, $00, $08, $88, $08, $88
 	dc.w	$0888
 Blank_bg_scroll_row_data:
+; 96 bytes of blank scroll row data (alternating $FF40 / $0000 word pairs) used
+; when Special_road_blank_bg_flag is set.  $FF40 is the transparent/blank tile
+; index; $0000 is a zero H-scroll displacement.  Written to Palette_buffer+$76
+; via Update_road_graphics_Edge_write when the background should be suppressed.
 	dc.w	$FF40
 	dc.b	$00, $00
 	dc.w	$FF40
@@ -1341,8 +1475,13 @@ Blank_bg_scroll_row_data:
 	dc.b	$00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40
 	dc.b	$00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00, $FF, $40, $00, $00
 Arcade_placement_seq_v1:
+; Packed distance sequence used in arcade-mode sign placement variant 1.
+; Word 0 = entry count (14 entries).  Remaining bytes are paired (hi, lo)
+; distance offsets written to Road_sign_rotation_index table for sign rotation.
 	dc.w	$000E
 	dc.b	$00, $0C, $00, $0B, $00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05
 Arcade_placement_seq_v2:
+; Packed distance sequence for arcade-mode sign placement variant 2.
+; Word 0 = entry count (11 entries).  Format same as Arcade_placement_seq_v1.
 	dc.w	$000B
 	dc.b	$00, $0A, $00, $09, $00, $08, $00, $07, $00, $06, $00, $05, $00, $03, $00, $02

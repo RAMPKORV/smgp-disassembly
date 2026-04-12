@@ -1,9 +1,26 @@
 **/.ipynb_checkpoints
 *.L68
 *.S68
-*.bin
+
+# ROM binaries in root (build outputs, reference ROM, comparison artifacts)
+/*.bin
+
+# Assembler listing files
 *.lst
-build
+
+# Build workspace (hack_workdir.js temp dirs)
+build/
+
+# Randomizer backup files
+tools/data/tracks.orig.json
+
+# Node.js
+node_modules/
+package-lock.json
+
+# IDE
 .idea
 sega_genesis_checksum_utility.py
 nul
+*.iml
+

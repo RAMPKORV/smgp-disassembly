@@ -3628,16 +3628,28 @@ Select_post_race_message_Swap_set:
 	BSET.b	#7, Rival_team.w
 	BRA.b	Select_post_race_message_New_partner
 Post_race_driver_target_points:
-	dc.b	$02
-	dc.b	$05
-	dc.b	$02, $05, $02, $05, $02, $05, $02, $05, $03, $06
-	dc.b	$04
-	dc.b	$07, $05, $08, $06, $09, $06, $0A, $07, $0A
-	dc.b	$07, $0B, $08, $0C
-	dc.b	$08, $0C
-	dc.b	$08
-	dc.b	$0C
-	dc.b	$08, $0D
+; Per-team race finish position thresholds for post-race dialogue selection.
+; Indexed as: Post_race_driver_target_points[team_number * 2]
+; Byte 0 (even): promote_threshold — finish at or above this position → promotion message
+; Byte 1 (odd):  partner_threshold  — finish at or above this position → partner message
+; (positions 1=1st ... higher value = worse finish required)
+; 16 teams × 2 bytes = 32 bytes
+	dc.b	$02, $05 ; team 0:  Madonna    (promote ≤ 2nd, partner ≤ 5th)
+	dc.b	$02, $05 ; team 1:  Firenze    (promote ≤ 2nd, partner ≤ 5th)
+	dc.b	$02, $05 ; team 2:  Millions   (promote ≤ 2nd, partner ≤ 5th)
+	dc.b	$02, $05 ; team 3:  Bestowal   (promote ≤ 2nd, partner ≤ 5th)
+	dc.b	$02, $05 ; team 4:  Blanche    (promote ≤ 2nd, partner ≤ 5th)
+	dc.b	$03, $06 ; team 5:  Tyrant     (promote ≤ 3rd, partner ≤ 6th)
+	dc.b	$04, $07 ; team 6:  Losel      (promote ≤ 4th, partner ≤ 7th)
+	dc.b	$05, $08 ; team 7:  May        (promote ≤ 5th, partner ≤ 8th)
+	dc.b	$06, $09 ; team 8:  Bullets    (promote ≤ 6th, partner ≤ 9th)
+	dc.b	$06, $0A ; team 9:  Dardan     (promote ≤ 6th, partner ≤ 10th)
+	dc.b	$07, $0A ; team 10: Linden     (promote ≤ 7th, partner ≤ 10th)
+	dc.b	$07, $0B ; team 11: Minarae    (promote ≤ 7th, partner ≤ 11th)
+	dc.b	$08, $0C ; team 12: Rigel      (promote ≤ 8th, partner ≤ 12th)
+	dc.b	$08, $0C ; team 13: Comet      (promote ≤ 8th, partner ≤ 12th)
+	dc.b	$08, $0C ; team 14: Orchis     (promote ≤ 8th, partner ≤ 12th)
+	dc.b	$08, $0D ; team 15: Zero Force (promote ≤ 8th, partner ≤ 13th)
 ;Load_font_tiles_to_work_buffer
 Load_font_tiles_to_work_buffer:
 	LEA	Dialogue_tilemap_buf.w, A1
@@ -4420,17 +4432,22 @@ Ai_performance_table:
 ; Teams 0-3 (top): high base scores; teams 12-15 (bottom): near-zero scores.
 ; Indexed as: Ai_performance_table[team * 8 + rng_low_3bits]
 ; 16 teams × 8 entries = 128 bytes
-	dc.b	$06, $06, $06, $06, $09, $09, $09, $09, $01, $02, $03, $04, $06, $06, $09, $09, $01, $02, $02, $03, $04, $06, $06, $09, $01, $01, $02, $03, $03, $04, $06, $09
-	dc.b	$00, $01, $02, $02, $03, $04, $04, $06, $00, $00, $01, $01, $02, $03, $03, $09, $00, $00, $01, $01, $02, $02, $03
-	dc.b	$03
-	dc.b	$00
-	dc.b	$00
-	dc.b	$00
-	dc.b	$01, $01
-	dc.b	$01, $02, $02, $00, $00, $00, $00, $00, $00, $00, $02, $00, $00, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $00, $00, $00, $00, $00
-	dc.b	$00, $01, $01, $00, $02, $02, $03, $06, $09, $09, $09, $00, $00, $00, $01, $01, $01, $01, $01, $01, $01
-	dc.b	$01
-	dc.b	$01, $02, $02, $03, $03, $00, $00, $00, $00, $01, $01, $01, $01
+	dc.b	$06, $06, $06, $06, $09, $09, $09, $09 ; team 0: Madonna
+	dc.b	$01, $02, $03, $04, $06, $06, $09, $09 ; team 1: Firenze
+	dc.b	$01, $02, $02, $03, $04, $06, $06, $09 ; team 2: Millions
+	dc.b	$01, $01, $02, $03, $03, $04, $06, $09 ; team 3: Bestowal
+	dc.b	$00, $01, $02, $02, $03, $04, $04, $06 ; team 4: Blanche
+	dc.b	$00, $00, $01, $01, $02, $03, $03, $09 ; team 5: Tyrant
+	dc.b	$00, $00, $01, $01, $02, $02, $03, $03 ; team 6: Losel
+	dc.b	$00, $00, $00, $01, $01, $01, $02, $02 ; team 7: May
+	dc.b	$00, $00, $00, $00, $00, $00, $00, $02 ; team 8: Bullets
+	dc.b	$00, $00, $01, $01, $01, $01, $01, $01 ; team 9: Dardan
+	dc.b	$01, $01, $01, $01, $01, $01, $01, $01 ; team 10: Linden
+	dc.b	$00, $00, $00, $00, $00, $00, $01, $01 ; team 11: Minarae
+	dc.b	$00, $02, $02, $03, $06, $09, $09, $09 ; team 12: Rigel (wild card — high peak scores)
+	dc.b	$00, $00, $00, $01, $01, $01, $01, $01 ; team 13: Comet
+	dc.b	$01, $01, $01, $01, $02, $02, $03, $03 ; team 14: Orchis
+	dc.b	$00, $00, $00, $00, $01, $01, $01, $01 ; team 15: Zero Force
 InitialDriversAndTeamMap:
 ; Copied into Player_team..Drivers_and_teams_map at championship start (year 1).
 ; Byte 0: Player_team ($1B = team 11 / Minarae, no rival flag set)

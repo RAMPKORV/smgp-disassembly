@@ -65,7 +65,7 @@ smgp_full.asm          Concatenated single-file reference (~44,500 lines)
 notes.txt              Reverse-engineering notes (memory map, data formats)
 todos.json             Project task/roadmap tracking
 labels.json            Label reference count data
-tools/                 Python analysis/formatting utilities (not part of ROM build)
+  tools/                 Node.js analysis/editing/randomizer utilities (not part of ROM build)
 build.bat              Windows build script
 verify.bat             SHA256 build verification
 asm68k.exe             Bundled assembler binary
@@ -139,13 +139,15 @@ Constants are split across 4 files, grouped by domain:
 - `sound_constants.asm` -- Audio engine addresses, music/SFX IDs
 - `game_constants.asm` -- Menu states, shift types, control types
 
-## Code Style - Python Tools
+## Code Style - Node.js Tools
 
-The `tools/` directory contains analysis utilities (not part of ROM build):
-- **snake_case** for functions and variables
-- **UPPER_SNAKE_CASE** for constants
-- Shebang: `#!/usr/bin/env python3`
-- Standard PEP 8 conventions, no type hints, no docstrings
+The `tools/` directory uses Node.js/JavaScript tooling only (not part of ROM build):
+- **NEVER use Python** for new or updated tooling in this project
+- **NEVER add `.py` files or Jupyter notebooks**; replace existing Python tooling with Node.js scripts
+- Use JavaScript with Node.js for automation, extract/inject scripts, editors, randomizers, linters, and tests
+- Prefer the Node.js standard library; keep dependencies minimal and justified
+- Use **snake_case** for filenames when it matches existing tool naming
+- Use **camelCase** for functions/variables and **UPPER_SNAKE_CASE** for constants inside JavaScript code
 
 ## Git Conventions
 
@@ -168,6 +170,7 @@ the ROM -- it supports breakpoints, memory/register inspection, and step executi
 5. **Modular source structure.** `smgp.asm` is an include hub. Edit the individual module files under `src/`, not the concatenated `smgp_full.asm`.
 6. **Tooling language policy.** This project uses Node.js tooling and NEVER Python. Do not create or extend Python scripts; port any needed tooling to JavaScript instead.
 
+
 ## Tooling Guardrails
 
 - **Do not guess at Windows batch/PowerShell invocation.** In this environment, run canonical build verification via PowerShell:
@@ -187,3 +190,4 @@ the ROM -- it supports breakpoints, memory/register inspection, and step executi
 - In-root debug runs now create an explicit checkpoint under `build/checkpoints/in_root_debug/`; clear it with `node tools/restore_tracks.js --verify` before starting another in-root session.
 - Close every randomizer refactor checkpoint with canonical PowerShell verify.
 - See `docs/randomizer_refactor_workflow.md` for the expected command loop.
+
