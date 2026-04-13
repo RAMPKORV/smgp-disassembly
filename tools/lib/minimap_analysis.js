@@ -1,5 +1,10 @@
 'use strict';
 
+const {
+	buildClosedPathSegments: buildTrackGeometryClosedPathSegments,
+	sampleClosedPath: sampleTrackGeometryClosedPath,
+} = require('../randomizer/track_geometry');
+
 const fs = require('fs');
 const path = require('path');
 
@@ -474,56 +479,11 @@ function averageNearestDistanceWithTolerance(fromPoints, toPoints, tolerance = 0
 }
 
 function buildClosedPathSegments(points) {
-	if (!points || points.length < 2) return [];
-	const segments = [];
-	let totalLength = 0;
-
-	for (let i = 0; i < points.length; i++) {
-		const start = points[i];
-		const end = points[(i + 1) % points.length];
-		const dx = end[0] - start[0];
-		const dy = end[1] - start[1];
-		const length = Math.sqrt((dx * dx) + (dy * dy));
-		if (length === 0) continue;
-		segments.push({
-			start,
-			end,
-			startDistance: totalLength,
-			length,
-		});
-		totalLength += length;
-	}
-
-	return { segments, totalLength };
+	return buildTrackGeometryClosedPathSegments(points);
 }
 
 function sampleClosedPath(points, sampleCount) {
-	if (!points || points.length === 0 || sampleCount <= 0) return [];
-	if (points.length === 1) {
-		return Array.from({ length: sampleCount }, () => [points[0][0], points[0][1]]);
-	}
-
-	const path = buildClosedPathSegments(points);
-	if (!path.segments.length || path.totalLength <= 0) return [];
-
-	const result = [];
-	for (let i = 0; i < sampleCount; i++) {
-		const targetDistance = (path.totalLength * i) / sampleCount;
-		let segment = path.segments[path.segments.length - 1];
-		for (const candidate of path.segments) {
-			if (targetDistance < candidate.startDistance + candidate.length) {
-				segment = candidate;
-				break;
-			}
-		}
-		const t = segment.length <= 0 ? 0 : (targetDistance - segment.startDistance) / segment.length;
-		result.push([
-			segment.start[0] + (segment.end[0] - segment.start[0]) * t,
-			segment.start[1] + (segment.end[1] - segment.start[1]) * t,
-		]);
-	}
-
-	return result;
+	return sampleTrackGeometryClosedPath(points, sampleCount);
 }
 
 function alignClosedSampleSequence(referencePairs, candidatePairs) {

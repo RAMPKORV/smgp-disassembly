@@ -28,6 +28,7 @@ const { chooseStartIndex, styleRoadPreview } = require('../lib/minimap_raster');
 const { resolvePreviewSlug } = require('../lib/minimap_analysis');
 const { getCourseSelectReservedLocalTileIndices } = require('../lib/course_select_preview_tiles');
 const { getTracks, requireTracksDataShape } = require('../randomizer/track_model');
+const { setGeneratedGeometryState } = require('../randomizer/track_metadata');
 const { randomizeTracks } = require('../randomizer/track_randomizer');
 
 const PREVIEW_WIDTH = 56;
@@ -283,6 +284,55 @@ test('generated preview start line stays on a narrow near-vertical road section'
 		}
 		assert.ok(longestRun <= 6, `${slug} start line too wide for clean finish marker: ${longestRun}`);
 	}
+});
+
+test('buildGeneratedMinimapAssets prefers transient preview projection when present', () => {
+	const track = { slug: 'san_marino', name: 'San Marino', index: 0, track_length: 256, minimap_pos: [[0, 0], [0, 0], [0, 0], [0, 0]] };
+	const tile = createBlankTile();
+	tile[0][0] = 1;
+	const preview = createPreview();
+	stampTile(preview, 0, 0, tile);
+	setGeneratedGeometryState(track, {
+		projections: {
+			minimap_preview: preview,
+		},
+	});
+	const assets = buildGeneratedMinimapAssets(track);
+	assert.strictEqual(assets.tiles.length, 1);
+	assert.strictEqual(assets.words[0], 1);
+});
+
+test('buildGeneratedMinimapPreview can rasterize directly from geometry resampled_centerline', () => {
+	const track = { slug: 'san_marino', name: 'San Marino', index: 0, track_length: 256, minimap_pos: [[0, 0], [0, 0], [0, 0], [0, 0]] };
+	setGeneratedGeometryState(track, {
+		resampled_centerline: [[10, 10], [30, 10], [40, 24], [36, 44], [20, 60], [8, 40]],
+	});
+	const preview = buildGeneratedMinimapPreview(track);
+	assert.strictEqual(preview.transform, 'geometry_identity');
+	assert.ok(preview.centerline_points.length > 0);
+	assert.ok(preview.road_pixels.some(Boolean));
+	const assets = buildGeneratedMinimapAssets(track);
+	assert.ok(assets.words.some(word => word !== 0));
+});
+
+test('buildGeneratedMinimapPreview marks underpass branch distinctly for crossing geometry', () => {
+	const track = { slug: 'san_marino', name: 'San Marino', index: 0, track_length: 256, minimap_pos: [[0, 0], [0, 0], [0, 0], [0, 0]] };
+	setGeneratedGeometryState(track, {
+		resampled_centerline: [[10, 10], [30, 10], [40, 24], [30, 38], [10, 38], [0, 24]],
+		projections: {
+			slope: {
+				grade_separated_crossing: {
+					classification: 'grade_separated_crossing',
+					lower_branch: { start_index: 1, end_index: 3 },
+				},
+			},
+		},
+	});
+	const preview = buildGeneratedMinimapPreview(track);
+	assert.strictEqual(preview.crossing_classification, 'grade_separated_crossing');
+	assert.ok(preview.pixels.some(value => value === 1));
+	const assets = buildGeneratedMinimapAssets(track);
+	assert.ok(assets.words.some(word => word !== 0));
 });
 
 const total = passed + failed;

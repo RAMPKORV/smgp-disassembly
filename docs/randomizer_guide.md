@@ -138,18 +138,27 @@ SMGP-1-1F-4294967295 all modules, maximum seed
 
 ### 5.1 TRACKS (`0x01`) — Track curve/slope/sign/minimap
 
-Generates entirely new track layouts for all 19 tracks:
+Generates entirely new track layouts for all 19 tracks using a map-first
+geometry pipeline:
 
-- **Curves** — Random sequences of straight and curved segments.  Track length
-  is drawn from [4000, 7500] steps (matching original distribution).  Curves are
-  weighted toward moderate sharpness (curve byte 20–40).  Every curve is
-  followed by a mandatory short straight.
-- **Slopes** — Visual slope: mostly flat, with occasional gentle rises or dips.
-  Physical slope: derived from visual slope, encoded as –1/0/+1.
-- **Signs** — Road signs placed at 100–500 unit intervals using the 39 observed
-  sign IDs.  Tileset changes every ~1500 units.
-- **Minimap** — Top-down path integrated from the curve sequence, sampled every
-  64 track steps.
+- **Geometry** — Sample points inside the minimap canvas, build a closed loop,
+  smooth/resample it, and keep that centerline as the source of truth.
+- **Curves** — Project curve bytes/RLE from geometry instead of treating curve
+  data as the shape authority.
+- **Slopes** — Non-crossing tracks stay mostly flat; crossing-enabled tracks
+  derive lower/upper branch separation from geometry so the lower branch reads
+  as an underpass.
+- **Signs** — Core sign spacing still follows stock-style runtime-safe rules,
+  while crossing tracks add tunnel/under-bridge handling from transient
+  geometry metadata.
+- **Minimap** — Runtime minimap pairs and generated preview assets both come
+  from geometry, but are validated separately so marker sync and preview
+  packing regressions are caught independently.
+
+Each track also rolls a deterministic 1-in-16 eligibility bit for a rare single
+grade-separated crossing. When selected, the generator injects exactly one
+crossing and rejects the result unless topology validation can confirm the
+derived upper/lower separation.
 
 All generated tracks pass `track_validator.validate_track()` before injection.
 
@@ -322,6 +331,7 @@ node tools/hack_workdir.js SMGP-1-1F-12345 --output smgp_random_12345.bin
 | **Randomized ROMs do not pass `verify.bat`** | `verify.bat` checks against the original SHA256 and will always fail for a randomized ROM.  Use `build.bat` (assembler exit 0) as the correctness gate instead. |
 | **Track art re-use** | Multiple championship tracks may end up sharing the same art set after a shuffle (this is consistent with some original ROM tracks doing the same). |
 | **No prelim-only randomization** | The 3 non-championship (arcade) tracks are always excluded from the championship art shuffle. |
+| **Crossing support is tooling-first** | The rare single-crossing path currently relies on geometry-derived previews and tunnel-style lower-branch handling. If that ever proves unreadable or behaviorally wrong, runtime/ASM work is a later explicit escalation rather than an implied documented bridge system. |
 
 ---
 

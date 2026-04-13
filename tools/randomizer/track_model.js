@@ -1,5 +1,19 @@
 'use strict';
 
+const { TRACK_METADATA_FIELDS } = require('./track_metadata');
+
+const TRANSIENT_TRACK_FIELDS = Object.freeze([
+	TRACK_METADATA_FIELDS.assignedArtName,
+	TRACK_METADATA_FIELDS.assignedHorizonOverride,
+	TRACK_METADATA_FIELDS.generatedGeometryState,
+	TRACK_METADATA_FIELDS.generatedMinimapPreview,
+	TRACK_METADATA_FIELDS.generatedSpecialRoadFeatures,
+	TRACK_METADATA_FIELDS.originalMinimapPos,
+	TRACK_METADATA_FIELDS.preserveOriginalSignCadence,
+	TRACK_METADATA_FIELDS.runtimeSafeRandomized,
+	TRACK_METADATA_FIELDS.topologyReport,
+]);
+
 function requireObject(value, label) {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
 		throw new Error(`${label} must be an object`);
@@ -151,7 +165,26 @@ function findTrackByIdentifier(tracksData, identifier, label = 'tracksData') {
 	return null;
 }
 
+function getTransientTrackFieldNames() {
+	return TRANSIENT_TRACK_FIELDS.slice();
+}
+
+function isTransientTrackField(fieldName) {
+	return TRANSIENT_TRACK_FIELDS.includes(fieldName);
+}
+
+function cloneInjectableTrack(track, label = 'track') {
+	requireObject(track, label);
+	const clone = {};
+	for (const [key, value] of Object.entries(track)) {
+		if (isTransientTrackField(key)) continue;
+		clone[key] = value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+	}
+	return clone;
+}
+
 module.exports = {
+	TRANSIENT_TRACK_FIELDS,
 	requireObject,
 	requireArray,
 	requireSegmentList,
@@ -170,4 +203,7 @@ module.exports = {
 	getTracks,
 	getTrackDisplayName,
 	findTrackByIdentifier,
+	getTransientTrackFieldNames,
+	isTransientTrackField,
+	cloneInjectableTrack,
 };

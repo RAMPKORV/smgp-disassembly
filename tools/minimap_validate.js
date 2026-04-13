@@ -20,9 +20,10 @@ const {
 } = require('./lib/minimap_analysis');
 const { getMinimapPreview } = require('./lib/minimap_preview');
 const { buildGeneratedMinimapPreview } = require('./lib/minimap_render');
-const { buildGeneratedPairSummary, buildPreviewSummary, buildValidationReportEntry } = require('./lib/minimap_result_model');
+const { buildGeneratedPairSummary, buildPreviewSummary, buildValidationReportEntry, buildTopologySummary } = require('./lib/minimap_result_model');
 const { decompressCurveSegments } = require('./randomizer/track_randomizer');
 const { getTrackMinimapPairs, getTracks } = require('./randomizer/track_model');
+const { buildTrackTopologyReport } = require('./randomizer/track_validator');
 
 function getOccupiedPoints(preview) {
 	const points = [];
@@ -296,6 +297,7 @@ function validateTrack(track, tracksData) {
 	const generatedAlignment = collectAlignmentMetrics(track, 'generated');
 	const candidateAlignment = collectCandidateAlignmentMetrics(track);
 	const curveMap = evaluateCurveMapAgreement(track, preview);
+	const topology = buildTopologySummary(buildTrackTopologyReport(track));
 
 	const metrics = {
 		preview_match_percent: preview.match_percent,
@@ -325,6 +327,7 @@ function validateTrack(track, tracksData) {
 		curve_map_phase_gain: Number(curveMap.phase_gain.toFixed(3)),
 		curve_map_sign_match_percent: Number(curveMap.sign_match_percent.toFixed(2)),
 		curve_map_strength_error: Number(curveMap.strength_error.toFixed(4)),
+		topology,
 	};
 
 	return buildValidationReportEntry(track, metrics, {
@@ -360,6 +363,8 @@ function validateAllTracks(tracksData) {
 		curve_map_left_right_mismatch_count: reports.filter(report => report.flags.curve_map_left_right_mismatch).length,
 		curve_map_phase_mismatch_count: reports.filter(report => report.flags.curve_map_phase_mismatch).length,
 		curve_map_strength_mismatch_count: reports.filter(report => report.flags.curve_map_strength_mismatch).length,
+		topology_crossing_count: reports.reduce((sum, report) => sum + (report.topology?.crossing_count || 0), 0),
+		topology_proper_crossing_count: reports.reduce((sum, report) => sum + (report.topology?.proper_crossing_count || 0), 0),
 		tracks: reports,
 	};
 }
@@ -403,6 +408,8 @@ function main() {
 		info(`curve/map left-right mismatches: ${report.curve_map_left_right_mismatch_count}`);
 		info(`curve/map phase mismatches: ${report.curve_map_phase_mismatch_count}`);
 		info(`curve/map strength mismatches: ${report.curve_map_strength_mismatch_count}`);
+		info(`topology crossings: ${report.topology_crossing_count}`);
+		info(`topology proper crossings: ${report.topology_proper_crossing_count}`);
 		return;
 	}
 

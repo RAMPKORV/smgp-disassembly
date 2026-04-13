@@ -5,7 +5,9 @@ const assert = require('assert');
 
 const {
 	XorShift32,
+	CROSSING_SELECTION_ODDS,
 	deriveSubseed,
+	evaluateCrossingEligibility,
 	parseSeed,
 	MOD_TRACK_CURVES,
 	MOD_TRACK_SLOPES,
@@ -151,6 +153,23 @@ test('flag constants have expected values', () => {
 	assert.strictEqual(FLAG_CHAMPIONSHIP, 0x10);
 	assert.strictEqual(FLAG_SIGNS, 0x20);
 	assert.strictEqual(FLAG_ALL, 0x3F);
+});
+
+test('crossing eligibility is deterministic per seed and track slot', () => {
+	const a = evaluateCrossingEligibility(12345, 3);
+	const b = evaluateCrossingEligibility(12345, 3);
+	assert.deepStrictEqual(a, b);
+	assert.strictEqual(a.odds, CROSSING_SELECTION_ODDS);
+});
+
+test('crossing eligibility empirical rate stays close to 1-in-16 over large sample', () => {
+	let hits = 0;
+	const total = 4096;
+	for (let slot = 0; slot < total; slot++) {
+		if (evaluateCrossingEligibility(99999, slot).eligible) hits += 1;
+	}
+	const ratio = hits / total;
+	assert.ok(ratio > 0.04 && ratio < 0.085, `expected crossing ratio near 1/16, got ${ratio}`);
 });
 
 const total = passed + failed;

@@ -6,6 +6,7 @@ const assert = require('assert');
 const generatedMinimapPos = require('../lib/generated_minimap_pos');
 const minimapRender = require('../lib/minimap_render');
 const minimapAnalysis = require('../lib/minimap_analysis');
+const { setGeneratedGeometryState } = require('../randomizer/track_metadata');
 
 let passed = 0;
 let failed = 0;
@@ -97,6 +98,48 @@ test('buildGeneratedMinimapPosPairs is reproducible for same preview and sampler
 			const b = generatedMinimapPos.buildGeneratedMinimapPosPairs(track);
 			assert.deepStrictEqual(a, b);
 		});
+	});
+});
+
+test('buildGeneratedMinimapPosPairs falls back to track_length>>6 sample count when minimap_pos is missing', () => {
+	const track = { slug: 'synthetic', name: 'Synthetic', index: 0, track_length: 320 };
+	const preview = {
+		centerline_points: [[1, 10], [2, 20], [3, 30], [4, 40], [5, 50], [6, 60]],
+		start_index: 0,
+	};
+	let recordedCount = null;
+	withPatched(minimapRender, 'buildGeneratedMinimapPreview', () => preview, () => {
+		withPatched(minimapAnalysis, 'sampleClosedPath', (points, count) => {
+			recordedCount = count;
+			return points.slice(0, count);
+		}, () => {
+			const pairs = generatedMinimapPos.buildGeneratedMinimapPosPairs(track);
+			assert.strictEqual(recordedCount, 5);
+			assert.strictEqual(pairs.length, 5);
+		});
+	});
+});
+
+test('buildGeneratedMinimapPosPairs prefers transient runtime pair projection when present', () => {
+	const track = { slug: 'synthetic', name: 'Synthetic', index: 0, track_length: 256, minimap_pos: [[0, 0], [0, 0], [0, 0], [0, 0]] };
+	setGeneratedGeometryState(track, {
+		projections: {
+			minimap_runtime: {
+				pairs: [[1, 2], [3, 4], [5, 6], [7, 8]],
+			},
+		},
+	});
+	assert.deepStrictEqual(generatedMinimapPos.buildGeneratedMinimapPosPairs(track), [[1, 2], [3, 4], [5, 6], [7, 8]]);
+});
+
+test('buildGeneratedMinimapPosPairs samples directly from geometry resampled_centerline before curve-derived preview fallback', () => {
+	const track = { slug: 'synthetic', name: 'Synthetic', index: 0, track_length: 256, minimap_pos: [[0, 0], [0, 0], [0, 0], [0, 0]] };
+	setGeneratedGeometryState(track, {
+		resampled_centerline: [[1, 10], [2, 20], [3, 30], [4, 40]],
+	});
+	withPatched(minimapAnalysis, 'sampleClosedPath', (points, count) => points.slice(0, count), () => {
+		const pairs = generatedMinimapPos.buildGeneratedMinimapPosPairs(track);
+		assert.deepStrictEqual(pairs, [[10, 1], [20, 2], [30, 3], [40, 4]]);
 	});
 });
 

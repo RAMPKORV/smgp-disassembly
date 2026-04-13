@@ -317,19 +317,30 @@ $FF $FF
 **Consumer:** `Update_minimap` / `Render_minimap` in `src/rendering.asm`.
 
 Flat array of **signed byte pairs (x, y)**.  No explicit length field; the
-array must contain at least `(track_length >> 5) + 1` pairs.
+array must contain exactly `track_length >> 6` pairs.
+
+This count comes from the runtime lookup path in `Compute_minimap_index`
+(`src/race_support.asm`): the game shifts track distance right by 5 and clears
+bit 0 before indexing the byte stream, which advances one `(x, y)` pair every
+64 distance units.
 
 ### Minimum size
 
-| track_length | min pairs | min bytes |
-|-------------|-----------|-----------|
-| 3392        | 107       | 214       |
-| 6144        | 193       | 386       |
-| 7040        | 221       | 442       |
-| 7744        | 243       | 486       |
+| track_length | pairs | bytes |
+|-------------|-------|-------|
+| 3392        | 53    | 106   |
+| 6144        | 96    | 192   |
+| 7040        | 110   | 220   |
+| 7744        | 121   | 242   |
 
 Coordinate range: −128 to +127.  The minimap is rendered in a small rectangle
 on the HUD; (0, 0) is approximately the start/finish line.
+
+For randomized tracks, the runtime pair stream is now derived from the
+transient map-first geometry centerline rather than reconstructed from curve
+bytes. Generated preview/map assets use the same geometry source of truth, but
+preview asset generation remains a separate pipeline with its own regression
+checks so runtime marker behavior and course-select visuals can drift safely.
 
 ---
 
@@ -430,7 +441,18 @@ crashes, visual glitches, or incorrect gameplay.  The track validator
 
 ### Minimap position map
 
-- Must contain at least `(track_length >> 5) + 1` pairs
+- Must contain exactly `track_length >> 6` pairs
+
+### Topology
+
+- A randomized track must have either zero proper self-intersections or exactly
+  one approved grade-separated crossing.
+- Approved crossings are inferred from transient geometry-state and projection
+  metadata; phase 1 does not add new persisted crossing fields to
+  `tools/data/tracks.json`.
+- When a crossing is present, the lower branch must be classified as an
+  underpass/tunnel branch and the derived projection must confirm upper/lower
+  separation.
 
 ### Lap targets
 

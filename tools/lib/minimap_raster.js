@@ -326,8 +326,33 @@ function findHorizontalSpan(mask, width, height, startX, startY) {
 	return candidates[0];
 }
 
+function buildArcIndices(startIndex, endIndex, count) {
+	if (!Number.isInteger(count) || count <= 0) return [];
+	const result = [];
+	let cursor = ((startIndex % count) + count) % count;
+	const target = ((endIndex % count) + count) % count;
+	for (let guard = 0; guard <= count; guard++) {
+		result.push(cursor);
+		if (cursor === target) break;
+		cursor = (cursor + 1) % count;
+	}
+	return result;
+}
+
+function drawUnderpassIndicator(pixels, width, height, centerlinePoints, underpassSegment) {
+	if (!underpassSegment || !Array.isArray(centerlinePoints) || centerlinePoints.length < 2) return;
+	const indices = buildArcIndices(underpassSegment.start_index, underpassSegment.end_index, centerlinePoints.length);
+	if (indices.length < 2) return;
+	for (let i = 0; i < indices.length - 1; i++) {
+		const a = centerlinePoints[indices[i]];
+		const b = centerlinePoints[indices[i + 1]];
+		drawThickLine(pixels, width, height, a[0], a[1], b[0], b[1], 1, 0.35);
+	}
+}
+
 function chooseStartIndex(points, width, height, fillMask = null) {
 	if (!Array.isArray(points) || points.length < 3) return 0;
+	const wrapIndex = index => ((index % points.length) + points.length) % points.length;
 	const mask = fillMask || rasterizeRoadMask(points, width, height, { halfWidth: 1.22, sampleCount: 720 }).pixels;
 	let best = null;
 	const step = Math.max(1, Math.floor(points.length / 48));
@@ -335,8 +360,8 @@ function chooseStartIndex(points, width, height, fillMask = null) {
 		const point = points[index];
 		const span = findHorizontalSpan(mask, width, height, Math.round(point[0]), Math.round(point[1]));
 		if (!span) continue;
-		const prev = points[(index - 1 + points.length) % points.length];
-		const next = points[(index + 1) % points.length];
+		const prev = points[wrapIndex(index - 1)];
+		const next = points[wrapIndex(index + 1)];
 		const vx1 = point[0] - prev[0];
 		const vy1 = point[1] - prev[1];
 		const vx2 = next[0] - point[0];
@@ -351,9 +376,9 @@ function chooseStartIndex(points, width, height, fillMask = null) {
 		let lastTurnSign = 0;
 		let turnSamples = 0;
 		for (let offset = -4; offset <= 4; offset++) {
-			const prevPoint = points[(index + offset - 1 + points.length) % points.length];
-			const curPoint = points[(index + offset + points.length) % points.length];
-			const nextPoint = points[(index + offset + 1 + points.length) % points.length];
+			const prevPoint = points[wrapIndex(index + offset - 1)];
+			const curPoint = points[wrapIndex(index + offset)];
+			const nextPoint = points[wrapIndex(index + offset + 1)];
 			const angle0 = Math.atan2(curPoint[1] - prevPoint[1], curPoint[0] - prevPoint[0]);
 			const angle1 = Math.atan2(nextPoint[1] - curPoint[1], nextPoint[0] - curPoint[0]);
 			let turn = angle1 - angle0;
@@ -381,7 +406,7 @@ function chooseStartIndex(points, width, height, fillMask = null) {
 	return best ? best.index : 0;
 }
 
-function styleRoadPreview(centerlinePoints, width, height, startIndex = null) {
+function styleRoadPreview(centerlinePoints, width, height, startIndex = null, options = {}) {
 	const fillMask = Uint8Array.from(rasterizePolyline(centerlinePoints, width, height, { closePath: true, radius: 1.46 }).pixels);
 	const firstPoint = centerlinePoints[0];
 	const lastPoint = centerlinePoints[centerlinePoints.length - 1];
@@ -418,6 +443,9 @@ function styleRoadPreview(centerlinePoints, width, height, startIndex = null) {
 			drawThickLine(pixels, width, height, point[0] - (nx * 1.5), point[1] - (ny * 1.5), point[0] + (nx * 1.5), point[1] + (ny * 1.5), 1, 0.1);
 		}
 	}
+	if (options.underpass_segment) {
+		drawUnderpassIndicator(pixels, width, height, centerlinePoints, options.underpass_segment);
+	}
 	return {
 		pixels: Array.from(pixels),
 		road_pixels: Array.from(fillMask),
@@ -434,4 +462,5 @@ module.exports = {
 	collapseShortestSegment,
 	chooseStartIndex,
 	styleRoadPreview,
+	buildArcIndices,
 };

@@ -43,9 +43,19 @@ const {
 } = require('./track_randomizer');
 const {
 	getAssignedHorizonOverride,
+	getGeneratedGeometryState,
 	isRuntimeSafeRandomized,
 	preservesOriginalSignCadence,
+	setTrackTopologyReport,
 } = require('./track_metadata');
+const {
+	buildTopologySummary,
+} = require('../lib/minimap_result_model');
+const {
+	countProperSelfIntersections,
+	listSelfIntersections,
+	normalizeClosedPoints,
+} = require('./track_geometry');
 
 const CURVE_RAM_LIMIT = 0x800;
 const VISUAL_SLOPE_RAM_LIMIT = 0x1000;
@@ -76,6 +86,64 @@ function _err(errors, trackName, field, message) {
 
 function _signedByteOk(v) {
   return Number.isInteger(v) && v >= -128 && v <= 127;
+}
+
+function buildTrackTopologyReport(track) {
+	const geometryState = getGeneratedGeometryState(track);
+	const geometryPoints = Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline : null;
+	const sourcePoints = geometryPoints || track?.minimap_pos || [];
+	const normalizedPoints = normalizeClosedPoints(sourcePoints);
+	const intersections = listSelfIntersections(normalizedPoints, { minIndexGap: 0, includeEndpointTouches: true });
+	const properCrossings = intersections.filter(intersection => intersection.proper);
+	const sharedEndpointTouches = intersections.filter(intersection => intersection.sharedEndpoint);
+	const gradeSeparatedCrossing = geometryState?.topology?.single_grade_separated_crossing || null;
+	const crossingProjection = geometryState?.projections?.slope?.grade_separated_crossing || null;
+	const crossingApproved = properCrossings.length === 1
+		&& gradeSeparatedCrossing?.grade_separated === true
+		&& crossingProjection?.separation_ok === true
+		&& crossingProjection?.lower_branch?.tunnel_required === true
+		&& crossingProjection?.upper_branch?.branch_height === 0
+		&& crossingProjection?.lower_branch?.branch_height === -1;
+	return {
+		source: geometryPoints ? 'geometry_state.resampled_centerline' : 'minimap_pos',
+		point_count: normalizedPoints.length,
+		crossing_count: intersections.length,
+		proper_crossing_count: properCrossings.length,
+		shared_endpoint_touch_count: sharedEndpointTouches.length,
+		multiple_crossings: properCrossings.length > 1,
+		eligible_for_single_crossing_rule: properCrossings.length <= 1,
+		crossing_approved: crossingApproved,
+		crossing_classification: crossingApproved
+			? 'single_grade_separated_crossing'
+			: (properCrossings.length > 0 ? 'unapproved_self_intersection' : 'no_crossing'),
+		crossings: intersections.map(intersection => ({
+			segmentA: intersection.segmentA,
+			segmentB: intersection.segmentB,
+			kind: intersection.kind,
+			point: intersection.point ? [intersection.point[0], intersection.point[1]] : null,
+			proper: intersection.proper,
+			sharedEndpoint: intersection.sharedEndpoint,
+			touchesEndpoint: intersection.touchesEndpoint,
+		})),
+	};
+}
+
+function _validateTopology(track, errors) {
+	const name = track.name || '?';
+	const report = buildTrackTopologyReport(track);
+	setTrackTopologyReport(track, buildTopologySummary(report));
+	if (report.source === 'geometry_state.resampled_centerline' && report.proper_crossing_count > 0 && !report.crossing_approved) {
+		_err(errors, name, 'topology',
+			`unapproved self-intersection count ${report.proper_crossing_count} (${report.crossing_classification})`);
+	}
+	if (report.source === 'geometry_state.resampled_centerline' && report.multiple_crossings) {
+		_err(errors, name, 'topology',
+			`multiple self-intersections detected (${report.proper_crossing_count})`);
+	}
+	if (report.source === 'geometry_state.resampled_centerline' && report.proper_crossing_count === 1 && !report.crossing_approved) {
+		_err(errors, name, 'topology', 'single crossing requires derived upper/lower separation and lower-branch underpass handling');
+	}
+	return report;
 }
 
 // ---------------------------------------------------------------------------
@@ -589,6 +657,7 @@ function _validateMinimap(track, errors) {
  */
 function validateTrack(track) {
   const errors = [];
+  _validateTopology(track, errors);
   _validateTrackLength(track, errors);
   _validateCurveRle(track, errors);
   _validateSlopeRle(track, errors);
@@ -666,6 +735,7 @@ if (require.main === module) {
 
 module.exports = {
   ValidationError,
+  buildTrackTopologyReport,
   validateTrack,
   validateTracks,
 };

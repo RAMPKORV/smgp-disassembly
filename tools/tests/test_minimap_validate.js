@@ -143,7 +143,52 @@ test('validateTrack returns normalized report entry shape', () => {
 	assert.ok(Object.prototype.hasOwnProperty.call(report.alignment, 'generated'));
 	assert.ok(Object.prototype.hasOwnProperty.call(report.alignment, 'candidate'));
 	assert.ok(Object.prototype.hasOwnProperty.call(report.alignment.generated.road, 'hit_percent'));
+	assert.ok(report.topology && typeof report.topology.crossing_count === 'number');
 	assert.ok(report.flags && typeof report.flags === 'object');
+});
+
+test('validateTrack surfaces topology summary from transient geometry state', () => {
+	const track = repeatedRightCurveTrack();
+	track.name = 'San Marino';
+	track.slug = 'san_marino';
+	track.index = 0;
+	track.minimap_pos = [[0, 0], [0, 0], [0, 0], [0, 0]];
+	track._generated_geometry_state = {
+		resampled_centerline: [[0, 0], [6, 6], [0, 6], [6, 0]],
+	};
+	const report = validateTrack(track, { tracks: [track] });
+	assert.strictEqual(report.topology.proper_crossing_count, 1);
+	assert.strictEqual(report.topology.eligible_for_single_crossing_rule, true);
+});
+
+test('validateTrack surfaces crossing classification fields when a crossing is approved', () => {
+	const track = repeatedRightCurveTrack();
+	track.name = 'San Marino';
+	track.slug = 'san_marino';
+	track.index = 0;
+	track.minimap_pos = [[0, 0], [0, 0], [0, 0], [0, 0]];
+	track._generated_geometry_state = {
+		resampled_centerline: [[0, 0], [6, 6], [0, 6], [6, 0]],
+		topology: {
+			single_grade_separated_crossing: {
+				grade_separated: true,
+				lower_branch: { start_index: 1, end_index: 2 },
+				upper_branch: { start_index: 3, end_index: 0 },
+			},
+		},
+		projections: {
+			slope: {
+				grade_separated_crossing: {
+					separation_ok: true,
+					lower_branch: { tunnel_required: true, branch_height: -1 },
+					upper_branch: { branch_height: 0 },
+				},
+			},
+		},
+	};
+	const report = validateTrack(track, { tracks: [track] });
+	assert.strictEqual(report.topology.crossing_approved, true);
+	assert.strictEqual(report.topology.crossing_classification, 'single_grade_separated_crossing');
 });
 
 const total = passed + failed;

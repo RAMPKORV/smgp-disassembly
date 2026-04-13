@@ -26,11 +26,15 @@ const {
 	generateSignData, generateSignTileset,
 	generateMinimap,
 	pickTrackLength, randomizeOneTrack, randomizeTracks,
+	evaluateGeometryQuality, compareGeneratedTrackCandidates,
 	buildCurveGenerationProfile, buildCurveTargets,
 	expandCurveComplexity, buildSpecialRoadFeatures,
 	applySpecialRoadTilesetRecords, applySpecialRoadSignRecords,
+	extractGeometryFeatures,
+	evaluateCrossingEligibility,
   _shuffleList,
 } = require('../randomizer/track_randomizer');
+const { projectCenterlineToCurveRle } = require('../randomizer/track_projection');
 
 const {
   ValidationError,
@@ -41,6 +45,7 @@ const {
 	TRACK_METADATA_FIELDS,
 	preservesOriginalSignCadence,
 	setAssignedHorizonOverride,
+	setGeneratedGeometryState,
 } = require('../randomizer/track_metadata');
 
 const { validateAllTracks } = require('../minimap_validate');
@@ -856,6 +861,151 @@ test('_shuffleList does not mutate original array', () => {
   const copy = original.slice();
   _shuffleList(original, rng);
   assert.deepStrictEqual(original, copy);
+});
+
+test('evaluateGeometryQuality prefers zero-crossing correctly-budgeted geometry', () => {
+	const goodTrack = {
+		track_length: 4096,
+		_generated_geometry_state: {
+			loop_points: Array.from({ length: 12 }, (_, index) => [index, index + 1]),
+			resampled_centerline: Array.from({ length: 1024 }, (_, index) => [index % 32, Math.floor(index / 32)]),
+			topology: { crossing_count: 0 },
+			generation_diagnostics: {
+				smoothing: { requested_passes: 2, applied_passes: 2, used_fallback: false },
+				resampling: {
+					requested_sample_count: 1024,
+					produced_sample_count: 1024,
+					start_verticality: 0.9,
+					incoming_angle_delta: 8,
+					outgoing_angle_delta: 10,
+				},
+			},
+		},
+	};
+	const badTrack = {
+		track_length: 4096,
+		_generated_geometry_state: {
+			loop_points: Array.from({ length: 12 }, (_, index) => [index, index + 1]),
+			resampled_centerline: Array.from({ length: 900 }, (_, index) => [index % 30, Math.floor(index / 30)]),
+			topology: { crossing_count: 2 },
+			generation_diagnostics: {
+				smoothing: { requested_passes: 3, applied_passes: 0, used_fallback: true },
+				resampling: {
+					requested_sample_count: 1024,
+					produced_sample_count: 900,
+					start_verticality: 0.2,
+					incoming_angle_delta: 60,
+					outgoing_angle_delta: 70,
+				},
+			},
+		},
+	};
+	const good = evaluateGeometryQuality(goodTrack);
+	const bad = evaluateGeometryQuality(badTrack);
+	assert.strictEqual(good.passes, true);
+	assert.strictEqual(bad.passes, false);
+	assert.ok(good.geometryScore < bad.geometryScore, `expected good geometry score < bad geometry score (${good.geometryScore} vs ${bad.geometryScore})`);
+});
+
+test('compareGeneratedTrackCandidates prioritizes geometry quality before preview sign match', () => {
+	const goodGeometry = {
+		geometryQuality: {
+			passes: true,
+			geometryScore: 10,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.7,
+			tileCount: 30,
+			coverageMatchPercent: 20,
+			signMatchPercent: 65,
+		},
+	};
+	const badGeometryHighSign = {
+		geometryQuality: {
+			passes: false,
+			geometryScore: 200,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.95,
+			tileCount: 20,
+			coverageMatchPercent: 80,
+			signMatchPercent: 99,
+		},
+	};
+	assert.ok(compareGeneratedTrackCandidates(goodGeometry, badGeometryHighSign) < 0);
+});
+
+test('projectCenterlineToCurveRle produces curve segments that satisfy validator shape expectations', () => {
+	const projection = projectCenterlineToCurveRle([[10, 10], [30, 10], [40, 24], [36, 44], [20, 60], [8, 40]], 256);
+	const track = {
+		name: 'Projected Track',
+		slug: 'projected_track',
+		index: 0,
+		track_length: 256,
+		slope_initial_bg_disp: 0,
+		curve_rle_segments: projection.curve_rle_segments,
+		slope_rle_segments: [{ type: 'flat', length: 64, slope_byte: 0, bg_vert_disp: 0 }, { type: 'terminator', length: 0, slope_byte: 0xFF, _raw: [0xFF, 0x00] }],
+		phys_slope_rle_segments: [{ type: 'segment', length: 64, phys_byte: 0 }, { type: 'terminator', length: 0, phys_byte: 0, _raw: [0x80, 0x00, 0x00] }],
+		sign_data: [],
+		sign_tileset: [],
+		minimap_pos: Array.from({ length: 4 }, () => [0, 0]),
+	};
+	const errors = validateTrack(track).filter(error => error.field === 'curve_rle_segments');
+	assert.strictEqual(errors.length, 0, errors.map(error => error.message).join('; '));
+});
+
+test('extractGeometryFeatures exposes turn and straight anchors from transient geometry', () => {
+	const track = {
+		track_length: 256,
+		_generated_geometry_state: {
+			resampled_centerline: [[10, 10], [30, 10], [40, 12], [44, 28], [40, 44], [24, 60], [10, 58], [6, 40]],
+		},
+	};
+	const features = extractGeometryFeatures(track);
+	assert.ok(features.turn_windows.length > 0);
+	assert.ok(features.straight_windows.length > 0);
+	assert.ok(features.special_road_windows.length >= 0);
+});
+
+test('extractGeometryFeatures exposes under-bridge tunnel features from crossing projection', () => {
+	const track = { track_length: 1024 };
+	setGeneratedGeometryState(track, {
+		resampled_centerline: [[10, 10], [30, 10], [40, 24], [36, 44], [20, 60], [8, 40]],
+		projections: {
+			slope: {
+				grade_separated_crossing: {
+					grade_separated: true,
+					crossing_point: [20, 20],
+					lower_branch: {
+						start_distance: 160,
+						end_distance: 416,
+						interior_start_distance: 224,
+						interior_end_distance: 352,
+						tunnel_required: true,
+					},
+					upper_branch: { branch_height: 0 },
+				},
+			},
+		},
+	});
+	const features = extractGeometryFeatures(track);
+	assert.ok(features.special_road_windows.some(feature => feature.type === 'tunnel' && feature.under_bridge === true));
+});
+
+test('randomizeOneTrack carries geometry state and slope crossing projection for crossing-eligible seeds', () => {
+	const chosenSeed = 48;
+	const data = deepCopy(tracksJson);
+	const track = data.tracks[0];
+	randomizeOneTrack(track, chosenSeed, false);
+	const geometryState = track[TRACK_METADATA_FIELDS.generatedGeometryState];
+	assert.ok(geometryState);
+	assert.strictEqual(geometryState.topology.proper_crossing_count, 1);
+	assert.ok(geometryState.projections.slope.grade_separated_crossing);
+	assert.ok(track[TRACK_METADATA_FIELDS.generatedSpecialRoadFeatures].some(feature => feature.type === 'tunnel'));
 });
 
 // ---------------------------------------------------------------------------

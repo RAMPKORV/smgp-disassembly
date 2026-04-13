@@ -48,7 +48,31 @@ function buildValidationReportEntry(track, metrics, alignment, flags) {
 		track: buildTrackSummary(track),
 		metrics,
 		alignment,
+		topology: metrics.topology,
 		flags,
+	};
+}
+
+function buildTopologySummary(report) {
+	if (!report || typeof report !== 'object') return null;
+	return {
+		crossing_count: report.crossing_count,
+		proper_crossing_count: report.proper_crossing_count,
+		shared_endpoint_touch_count: report.shared_endpoint_touch_count,
+		multiple_crossings: report.multiple_crossings,
+		eligible_for_single_crossing_rule: report.eligible_for_single_crossing_rule,
+		crossing_approved: report.crossing_approved === true,
+		crossing_classification: report.crossing_classification || null,
+		crossings: Array.isArray(report.crossings)
+			? report.crossings.map(crossing => ({
+				segmentA: crossing.segmentA,
+				segmentB: crossing.segmentB,
+				kind: crossing.kind,
+				point: crossing.point,
+				proper: crossing.proper,
+				sharedEndpoint: crossing.sharedEndpoint,
+			}))
+			: [],
 	};
 }
 
@@ -177,6 +201,7 @@ module.exports = {
 	buildPreviewSummary,
 	buildGeneratedPairSummary,
 	buildValidationReportEntry,
+	buildTopologySummary,
 	buildGeneratedMinimapOutput,
 	buildMinimapAnalysisSummary,
 	buildPreviewSpaceFitSummary,

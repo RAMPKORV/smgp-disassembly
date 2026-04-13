@@ -4,7 +4,9 @@
 const assert = require('assert');
 
 const {
+	cloneInjectableTrack,
 	findTrackByIdentifier,
+	getTransientTrackFieldNames,
 	getTrackCurveSegments,
 	getTrackDisplayName,
 	getTrackMinimapPairs,
@@ -19,7 +21,9 @@ const {
 	requireSegmentList,
 	requireTrackShape,
 	requireTracksDataShape,
+	isTransientTrackField,
 } = require('../randomizer/track_model');
+const { TRACK_METADATA_FIELDS } = require('../randomizer/track_metadata');
 
 let passed = 0;
 let failed = 0;
@@ -124,6 +128,36 @@ test('sign and trailing helpers return validated arrays', () => {
 	assert.strictEqual(getTrackSignTileset(track), track.sign_tileset);
 	assert.strictEqual(getTrackSignTilesetTrailing(track), track.sign_tileset_trailing);
 	assert.strictEqual(getTrackMinimapTrailing(track), track.minimap_pos_trailing);
+});
+
+test('transient field helpers expose geometry and topology metadata as non-injectable', () => {
+	const fields = getTransientTrackFieldNames();
+	assert.ok(fields.includes(TRACK_METADATA_FIELDS.generatedGeometryState));
+	assert.ok(fields.includes(TRACK_METADATA_FIELDS.topologyReport));
+	assert.strictEqual(isTransientTrackField(TRACK_METADATA_FIELDS.generatedGeometryState), true);
+	assert.strictEqual(isTransientTrackField('track_length'), false);
+});
+
+test('cloneInjectableTrack strips transient metadata while preserving injectable fields', () => {
+	const track = {
+		index: 0,
+		slug: 'san_marino',
+		name: 'San Marino',
+		track_length: 4096,
+		curve_rle_segments: [{ type: 'straight', length: 4, curve_byte: 0 }],
+		slope_rle_segments: [{ type: 'flat', length: 4, slope_byte: 0, bg_vert_disp: 0 }],
+		phys_slope_rle_segments: [{ type: 'segment', length: 4, phys_byte: 0 }],
+		sign_data: [],
+		sign_tileset: [],
+		minimap_pos: [[0, 0]],
+		[TRACK_METADATA_FIELDS.generatedGeometryState]: { resampled_centerline: [[1, 2], [3, 4]] },
+		[TRACK_METADATA_FIELDS.topologyReport]: { crossing_count: 1 },
+	};
+	const clone = cloneInjectableTrack(track);
+	assert.strictEqual(clone.track_length, 4096);
+	assert.strictEqual(clone.minimap_pos.length, 1);
+	assert.ok(!Object.prototype.hasOwnProperty.call(clone, TRACK_METADATA_FIELDS.generatedGeometryState));
+	assert.ok(!Object.prototype.hasOwnProperty.call(clone, TRACK_METADATA_FIELDS.topologyReport));
 });
 
 const total = passed + failed;

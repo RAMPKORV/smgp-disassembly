@@ -2,6 +2,7 @@
 
 const { buildGeneratedMinimapPreview } = require('./minimap_render');
 const { formatDcB } = require('./asm_patch_helpers');
+const { getGeneratedGeometryState } = require('../randomizer/track_metadata');
 const {
 	MINIMAP_PANEL_TILES_H,
 	MINIMAP_PANEL_TILES_W,
@@ -16,10 +17,16 @@ const { encodeLiteralTilemap } = require('../minimap_map_codec');
 const generatedAssetsCache = new WeakMap();
 const PRESERVED_EXTERNAL_CELL_INDEX_CONFIG = Object.freeze({});
 
+function getPreviewProjection(track) {
+	return getGeneratedGeometryState(track)?.projections?.minimap_preview || null;
+}
+
 function buildAssetsCacheKey(track) {
+	const previewProjection = getPreviewProjection(track);
 	return JSON.stringify([
 		track?.track_length || 0,
 		track?.curve_rle_segments || [],
+		previewProjection || null,
 	]);
 }
 
@@ -139,7 +146,7 @@ function buildGeneratedMinimapAssets(track) {
 	const cacheKey = buildAssetsCacheKey(track);
 	const cached = generatedAssetsCache.get(track);
 	if (cached && cached.key === cacheKey) return cached.value;
-	const preview = buildGeneratedMinimapPreview(track);
+	const preview = getPreviewProjection(track) || buildGeneratedMinimapPreview(track);
 	const previewSlug = resolvePreviewSlug(track);
 	const stockPreview = getMinimapPreview(previewSlug);
 	const result = buildGeneratedMinimapAssetsFromPreviews(preview, stockPreview, previewSlug);

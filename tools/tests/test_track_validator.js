@@ -15,8 +15,10 @@ const assert = require('assert');
 const fs     = require('fs');
 const path   = require('path');
 
-const { ValidationError, validateTrack, validateTracks } = require('../randomizer/track_validator');
+const { ValidationError, buildTrackTopologyReport, validateTrack, validateTracks } = require('../randomizer/track_validator');
+const { projectCenterlineToSlopeRle } = require('../randomizer/track_projection');
 const {
+	setGeneratedGeometryState,
 	isRuntimeSafeRandomized,
 	setAssignedHorizonOverride,
 	setPreserveOriginalSignCadence,
@@ -393,6 +395,53 @@ function sectionB() {
       `expected error on minimap_pos, got: ${JSON.stringify(errs)}`);
   });
 
+	test('B-20b geometry topology reports one proper crossing and validation rejects it', () => {
+		const t = makeValidTrack(4096);
+		setGeneratedGeometryState(t, {
+			resampled_centerline: [[0, 0], [6, 6], [0, 6], [6, 0]],
+		});
+		const errs = validateTrack(t);
+		assert.ok(hasError(errs, 'topology'), `expected topology error, got: ${JSON.stringify(errs)}`);
+		assert.ok(hasMessage(errs, 'unapproved self-intersection'), `expected topology message, got: ${JSON.stringify(errs)}`);
+	});
+
+	test('B-20c geometry topology rejects multiple crossings', () => {
+		const t = makeValidTrack(4096);
+		setGeneratedGeometryState(t, {
+			resampled_centerline: [[0, -10], [5.878, 8.09], [-9.511, -3.09], [9.511, -3.09], [-5.878, 8.09]],
+		});
+		const errs = validateTrack(t);
+		assert.ok(hasError(errs, 'topology'), `expected topology error, got: ${JSON.stringify(errs)}`);
+	});
+
+	test('B-20d geometry topology accepts one crossing when grade-separated projection is present', () => {
+		const t = makeValidTrack(4096);
+		setGeneratedGeometryState(t, {
+			resampled_centerline: [[0, 0], [6, 6], [0, 6], [6, 0]],
+			topology: {
+				single_grade_separated_crossing: {
+					grade_separated: true,
+					lower_branch: { start_index: 1, end_index: 2 },
+					upper_branch: { start_index: 3, end_index: 0 },
+				},
+			},
+			projections: {
+				slope: {
+					grade_separated_crossing: {
+						separation_ok: true,
+						lower_branch: { tunnel_required: true, branch_height: -1 },
+						upper_branch: { branch_height: 0 },
+					},
+				},
+			},
+		});
+		const errs = validateTrack(t);
+		assert.ok(!hasError(errs, 'topology'), `expected no topology error, got: ${JSON.stringify(errs)}`);
+		const report = buildTrackTopologyReport(t);
+		assert.strictEqual(report.crossing_approved, true);
+		assert.strictEqual(report.crossing_classification, 'single_grade_separated_crossing');
+	});
+
   // B-21: minimap value out of signed byte range
   test('B-21 minimap x out of signed-byte range', () => {
     const t     = makeValidTrack(4096);
@@ -616,6 +665,53 @@ function sectionD() {
     assert.strictEqual(errs.length, 0,
       errs.map(e => `${e.field}: ${e.message}`).join('\n'));
   });
+
+	test('D-11 buildTrackTopologyReport treats stock minimap data as report-only in phase 2', () => {
+		const t = makeValidTrack(4096);
+		t.minimap_pos = [[0, 0], [6, 6], [0, 6], [6, 0]];
+		const report = buildTrackTopologyReport(t);
+		assert.strictEqual(report.source, 'minimap_pos');
+		assert.strictEqual(report.proper_crossing_count, 1);
+		const errs = validateTrack(t);
+		assert.ok(!hasError(errs, 'topology'), `expected no topology error from minimap-only report, got: ${JSON.stringify(errs)}`);
+	});
+
+	test('D-12 projected slope streams satisfy validator envelope checks', () => {
+		const t = makeValidTrack(1024);
+		const projected = projectCenterlineToSlopeRle([[10, 10], [30, 10], [40, 24], [36, 44], [20, 60], [8, 40]], 1024);
+		t.slope_initial_bg_disp = projected.slope_initial_bg_disp;
+		t.slope_rle_segments = projected.slope_rle_segments;
+		t.phys_slope_rle_segments = projected.phys_slope_rle_segments;
+		const errs = validateTrack(t);
+		assert.ok(!hasError(errs, 'slope_rle_segments'), `unexpected visual slope error: ${JSON.stringify(errs)}`);
+		assert.ok(!hasError(errs, 'phys_slope_rle_segments'), `unexpected physical slope error: ${JSON.stringify(errs)}`);
+	});
+
+	test('D-13 topology summary exposes crossing classification fields', () => {
+		const t = makeValidTrack(4096);
+		setGeneratedGeometryState(t, {
+			resampled_centerline: [[0, 0], [6, 6], [0, 6], [6, 0]],
+			topology: {
+				single_grade_separated_crossing: {
+					grade_separated: true,
+					lower_branch: { start_index: 1, end_index: 2 },
+					upper_branch: { start_index: 3, end_index: 0 },
+				},
+			},
+			projections: {
+				slope: {
+					grade_separated_crossing: {
+						separation_ok: true,
+						lower_branch: { tunnel_required: true, branch_height: -1 },
+						upper_branch: { branch_height: 0 },
+					},
+				},
+			},
+		});
+		validateTrack(t);
+		assert.strictEqual(t._track_topology_report.crossing_approved, true);
+		assert.strictEqual(t._track_topology_report.crossing_classification, 'single_grade_separated_crossing');
+	});
 }
 
 // ---------------------------------------------------------------------------

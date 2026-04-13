@@ -75,8 +75,12 @@ const {
 } = require('../lib/minimap_result_model');
 const {
 	getAssignedHorizonOverride,
+	getGeneratedGeometryState,
 	setGeneratedMinimapPreview,
+	setGeneratedSpecialRoadFeatures,
 } = require('./track_metadata');
+const { evaluateCrossingEligibility, CROSSING_SELECTION_ODDS, buildMapFirstGeometryState } = require('./map_first_generator');
+const { projectCenterlineToCurveRle, projectCenterlineToSlopeRle } = require('./track_projection');
 
 // ---------------------------------------------------------------------------
 // Statistical constants
@@ -699,6 +703,158 @@ function buildPathIntersections(points, minIndexGap = 6) {
 
 function buildSpecialRoadFeatures(rng, trackLength, curveSegments) {
 	return [];
+}
+
+function buildTunnelFeatureFromCrossing(trackLength, crossingProjection) {
+	const lower = crossingProjection?.lower_branch || null;
+	if (!lower || !lower.tunnel_required) return [];
+	const entryDistance = Math.max(0, lower.interior_start_distance - 96);
+	const exitDistance = Math.min(Math.max(0, trackLength - 1), lower.interior_end_distance + 96);
+	const interiorDistance = Math.round((lower.interior_start_distance + lower.interior_end_distance) / 2);
+	const tilesetDistance = Math.max(0, lower.interior_start_distance - 64);
+	const restoreDistance = Math.min(Math.max(0, trackLength - 1), lower.interior_end_distance + 64);
+	return [{
+		type: 'tunnel',
+		trackLength,
+		branch: 'lower',
+		crossing_point: crossingProjection.crossing_point || null,
+		startDistance: lower.start_distance,
+		endDistance: lower.end_distance,
+		entrySignDistance: entryDistance,
+		exitSignDistance: exitDistance,
+		interiorDistance,
+		tilesetDistance,
+		restoreDistance,
+		under_bridge: true,
+	}];
+}
+
+function extractGeometryFeatures(track) {
+	const geometryState = getGeneratedGeometryState(track);
+	const centerline = Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline : [];
+	const crossingProjection = geometryState?.projections?.slope?.grade_separated_crossing || null;
+	if (centerline.length < 3 || !Number.isInteger(track?.track_length) || track.track_length <= 0) {
+		return {
+			turn_windows: [],
+			straight_windows: [],
+			special_road_windows: [],
+			crossing: crossingProjection,
+		};
+	}
+
+	const stepDistance = track.track_length / centerline.length;
+	const turn_windows = [];
+	const straight_windows = [];
+	for (let index = 0; index < centerline.length; index++) {
+		const prev = centerline[(index - 1 + centerline.length) % centerline.length];
+		const cur = centerline[index];
+		const next = centerline[(index + 1) % centerline.length];
+		const angle0 = Math.atan2(cur[1] - prev[1], cur[0] - prev[0]);
+		const angle1 = Math.atan2(next[1] - cur[1], next[0] - cur[0]);
+		let turn = angle1 - angle0;
+		while (turn <= -Math.PI) turn += Math.PI * 2;
+		while (turn > Math.PI) turn -= Math.PI * 2;
+		const distance = Math.round(index * stepDistance);
+		const magnitude = Math.abs(turn);
+		if (magnitude >= 0.28) {
+			turn_windows.push({
+				distance,
+				direction: turn > 0 ? 1 : -1,
+				strength: Number(magnitude.toFixed(4)),
+			});
+		} else {
+			straight_windows.push({
+				distance,
+				strength: Number((1 - (magnitude / 0.18)).toFixed(4)),
+			});
+		}
+	}
+
+	const special_road_windows = straight_windows
+		.filter(window => window.strength >= 0.65)
+		.slice(0, 2)
+		.map(window => ({
+			kind: 'straight_candidate',
+			distance: window.distance,
+			strength: window.strength,
+		}));
+	if (crossingProjection?.grade_separated) {
+		special_road_windows.push(...buildTunnelFeatureFromCrossing(track.track_length, crossingProjection));
+	}
+
+	return { turn_windows, straight_windows, special_road_windows, crossing: crossingProjection };
+}
+
+function buildGeometryAwareTilesetPlan(rng, trackLength, geometryFeatures, allowedOffsets, track = null) {
+	const records = [];
+	const turnWindows = Array.isArray(geometryFeatures?.turn_windows) ? geometryFeatures.turn_windows : [];
+	let lastOffset = null;
+	const openingOffset = Number.isInteger(track?.sign_tileset?.[0]?.tileset_offset) && allowedOffsets.includes(track.sign_tileset[0].tileset_offset)
+		? track.sign_tileset[0].tileset_offset
+		: rng.choice(allowedOffsets);
+	records.push({ distance: 0, tileset_offset: openingOffset });
+	lastOffset = openingOffset;
+	for (const window of turnWindows) {
+		if (records.length >= 2) break;
+		const distance = clamp(window.distance - 192, 0, Math.max(0, trackLength - 1));
+		if ((distance - records[records.length - 1].distance) < SIGN_TILESET_MIN_SPACING) continue;
+		let choices = allowedOffsets.filter(offset => offset !== lastOffset);
+		if (window.direction < 0) {
+			const leftChoices = choices.filter(offset => (TILESET_SIGN_ID_MAP.get(offset) || []).some(id => LEFT_SIGN_IDS.has(id)));
+			if (leftChoices.length > 0) choices = leftChoices;
+		} else {
+			const rightChoices = choices.filter(offset => (TILESET_SIGN_ID_MAP.get(offset) || []).some(id => RIGHT_SIGN_IDS.has(id)));
+			if (rightChoices.length > 0) choices = rightChoices;
+		}
+		const offset = rng.choice(choices.length ? choices : allowedOffsets);
+		records.push({ distance, tileset_offset: offset });
+		lastOffset = offset;
+	}
+	return enforceWrapSafeTilesetRecords(trackLength, records.sort((a, b) => a.distance - b.distance));
+}
+
+function buildGeometryDrivenSignPlan(rng, trackLength, geometryFeatures, tilesetRecords) {
+	const turnWindows = Array.isArray(geometryFeatures?.turn_windows) ? geometryFeatures.turn_windows : [];
+	const straightWindows = Array.isArray(geometryFeatures?.straight_windows) ? geometryFeatures.straight_windows : [];
+	const specialRoadWindows = Array.isArray(geometryFeatures?.special_road_windows) ? geometryFeatures.special_road_windows : [];
+	const records = [];
+	let lastDistance = -SAFE_SIGN_SPACING_MIN;
+	const finishCutoff = trackLength - SIGN_FINISH_ZONE;
+
+	function tryAdd(distance, direction, count = 1) {
+		const clampedDistance = clamp(Math.round(distance), 0, finishCutoff - 1);
+		if (clampedDistance <= lastDistance) return;
+		if ((clampedDistance - lastDistance) < SAFE_SIGN_SPACING_MIN) return;
+		const activeTileset = getActiveTilesetRecord(tilesetRecords, clampedDistance);
+		const tilesetOffset = activeTileset ? activeTileset.tileset_offset : 8;
+		const signId = pickSignIdForTileset(rng, tilesetOffset, direction);
+		const safeCount = clamp(count, 1, 4);
+		const runtimeSpanSlots = getSignRuntimeRowSpan(signId, safeCount);
+		const rowEndDistance = clampedDistance + ((runtimeSpanSlots - 1) * 0x10);
+		for (const tilesetRecord of tilesetRecords || []) {
+			if (cyclicTrackDistance(tilesetRecord.distance, clampedDistance, trackLength) < SAFE_SIGN_TILESET_GUARD_DISTANCE) return;
+			if (cyclicTrackDistance(tilesetRecord.distance, rowEndDistance, trackLength) < SAFE_SIGN_TILESET_GUARD_DISTANCE) return;
+		}
+		records.push({ distance: clampedDistance, count: safeCount, sign_id: signId });
+		lastDistance = clampedDistance;
+	}
+
+	for (const window of turnWindows) {
+		tryAdd(window.distance - 192, window.direction, 1);
+	}
+	for (const window of straightWindows) {
+		if (window.strength < 0.8) continue;
+		tryAdd(window.distance, 0, 1);
+	}
+	const protectedDistances = new Set();
+	for (const feature of specialRoadWindows) {
+		if (feature.type !== 'tunnel') continue;
+		for (const distance of [feature.tilesetDistance, feature.restoreDistance, feature.entrySignDistance, feature.interiorDistance, feature.exitSignDistance]) {
+			if (Number.isInteger(distance)) protectedDistances.add(distance);
+		}
+	}
+	const filtered = records.filter(record => !Array.from(protectedDistances).some(distance => cyclicTrackDistance(distance, record.distance, trackLength) < SAFE_SIGN_TILESET_GUARD_DISTANCE));
+	return filtered.sort((a, b) => a.distance - b.distance);
 }
 
 function isNearTilesetTransition(trackLength, tilesetRecords, distance, guardDistance = SAFE_SIGN_TILESET_GUARD_DISTANCE) {
@@ -1777,7 +1933,8 @@ function generatePhysSlopeRle(rng, trackLength, slopeSegments) {
 
 
 function generateSignData(rng, trackLength, curveSegments, tilesetRecords) {
-  return buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecords);
+	const track = arguments.length > 4 ? arguments[4] : null;
+	return buildCurveDrivenSignPlan(rng, trackLength, curveSegments, tilesetRecords);
 }
 
 function getAllowedSignTilesetOffsets(track) {
@@ -1786,6 +1943,10 @@ function getAllowedSignTilesetOffsets(track) {
 }
 
 function generateSignTileset(rng, trackLength, curveSegments = [], track = null) {
+	const geometryFeatures = track ? extractGeometryFeatures(track) : null;
+	if (geometryFeatures && geometryFeatures.special_road_windows.length > 0) {
+		setGeneratedSpecialRoadFeatures(track, geometryFeatures.special_road_windows || []);
+	}
 	return [buildCurveAwareTilesetPlan(rng, trackLength, curveSegments, getAllowedSignTilesetOffsets(track), track), []];
 }
 
@@ -1839,6 +2000,10 @@ const trackPipeline = makeTrackPipeline({
 	generateCurveRle,
 	normalizeCurveBgDisplacement,
 	decompressCurveSegments,
+	buildMapFirstGeometryState,
+	projectCenterlineToCurveRle,
+	projectCenterlineToSlopeRle,
+	curveBgLoopAligns,
 	generateSlopeRle,
 	generatePhysSlopeRle,
 	buildSpecialRoadFeatures,
@@ -1852,6 +2017,8 @@ const trackPipeline = makeTrackPipeline({
 	compareGeneratedPreviewConstraints,
 });
 
+const evaluateGeometryQuality = trackPipeline.evaluateGeometryQuality;
+const compareGeneratedTrackCandidates = trackPipeline.compareGeneratedTrackCandidates;
 const randomizeOneTrack = trackPipeline.randomizeOneTrack;
 const randomizeTracks = trackPipeline.randomizeTracks;
 
@@ -1943,13 +2110,20 @@ module.exports = {
 	decodeVisualSlopeBgDisplacement, visualSlopeOffsetsWithinSafeEnvelope,
 	getVisualSlopeOpeningFlatSteps, getVisualSlopeClosingFlatSteps, visualSlopeHasSafeRaceStart, visualSlopeLoopAligns,
 	generateSignData, generateSignTileset,
-  generateMinimap,
-  randomizeArtConfig, buildTrackConfigAsm, injectArtConfig,
-  pickTrackLength, randomizeOneTrack, randomizeTracks,
+	generateMinimap,
+	randomizeArtConfig, buildTrackConfigAsm, injectArtConfig,
+	pickTrackLength, randomizeOneTrack, randomizeTracks,
+	evaluateGeometryQuality,
+	compareGeneratedTrackCandidates,
 	buildCurveGenerationProfile,
 	buildCurveTargets,
 	expandCurveComplexity,
 	buildSpecialRoadFeatures,
+	projectCenterlineToCurveRle,
+	projectCenterlineToSlopeRle,
+	extractGeometryFeatures,
+	evaluateCrossingEligibility,
+	CROSSING_SELECTION_ODDS,
 	applySpecialRoadTilesetRecords,
 	applySpecialRoadSignRecords,
   _shuffleList,

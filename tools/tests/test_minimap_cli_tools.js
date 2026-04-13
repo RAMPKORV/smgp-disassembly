@@ -43,6 +43,7 @@ test('minimap_validate --json --track outputs normalized per-track report', () =
 	assert.ok(typeof report.metrics.preview_match_percent === 'number');
 	assert.ok(Array.isArray(report.alignment.candidate_pairs));
 	assert.ok(report.flags && typeof report.flags === 'object');
+	assert.ok(typeof report.topology.crossing_classification === 'string' || report.topology.crossing_classification === null);
 });
 
 test('minimap_validate --json --all outputs aggregate validation report', () => {
@@ -53,6 +54,8 @@ test('minimap_validate --json --all outputs aggregate validation report', () => 
 	assert.strictEqual(report.tracks.length, report.track_count);
 	assert.ok(typeof report.curve_map_sign_match_percent === 'number');
 	assert.ok(typeof report.generated_marker_offroad_count === 'number');
+	assert.ok(typeof report.topology_crossing_count === 'number');
+	assert.ok(typeof report.topology_proper_crossing_count === 'number');
 });
 
 test('minimap_generate --json outputs generated pair summary', () => {
@@ -79,6 +82,7 @@ test('minimap_diagnostics --json --track outputs normalized per-track summary', 
 	assert.strictEqual(report.track.slug, 'san_marino');
 	assert.ok(report.canonical_to_preview && typeof report.canonical_to_preview.match_percent === 'number');
 	assert.ok(report.preview_metrics && typeof report.preview_metrics.significant_mismatch === 'boolean');
+	assert.ok(Object.prototype.hasOwnProperty.call(report, 'topology_crossing_count'));
 });
 
 test('minimap_diagnostics --json outputs aggregate report structure', () => {

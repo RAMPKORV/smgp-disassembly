@@ -215,7 +215,7 @@ Primary deliverable.  Generates entirely new track layouts for all 19 tracks
 - **RAND-002** Curve generation: produce random but driveable curve sequences.
 - **RAND-003** Slope generation: generate visual + physical slope profiles.
 - **RAND-004** Sign placement: place road signs at appropriate intervals.
-- **RAND-005** Minimap generation: derive minimap path from curve data.
+- **RAND-005** Minimap generation: the active pipeline derives runtime minimap pairs and generated preview assets from transient geometry-state centerlines, with separate regression gates for runtime marker paths and course-select preview assets.
 - **RAND-006** Art/config assignment: assign road styles and background art.
 
 Each sub-task runs with its own derived PRNG seed (§4).
@@ -249,11 +249,72 @@ Reads from `tools/data/championship.json` (requires EXTR-006).
 - Statistical analysis of original track data (segment length distributions,
   curve-byte distributions, slope delta patterns) to derive generator priors.
 
+### Frozen curve-first assumptions (TRR-001 baseline)
+
+The current compact baselines in `tools/data/randomizer_baselines.json` and
+`tools/data/minimap_validation_snapshots.json` intentionally freeze the
+pre-revamp behaviour below. They are expected to drift once the map-first
+pipeline lands, but only as an explicit, documented change.
+
+- `curve_rle_segments` / `curve_decompressed` are currently treated as the
+  randomized track-shape authority.
+- Runtime `minimap_pos` generation and course-select preview generation both
+  start from curve-derived path reconstruction.
+- Sign placement and special-road planning consume curve windows instead of
+  geometry-derived feature anchors.
+- Candidate scoring historically preferred preview/curve agreement metrics over direct
+  geometry-quality metrics; the active map-first branch now scores topology,
+  resample-budget fit, and seam/start stability first.
+
+### Map-first geometry contract (TRR-003)
+
+Phase 1 of the revamp locks a single transient in-memory geometry object as the
+future source of truth for randomized track shape:
+
+```js
+geometry_state = {
+  canvas: {
+    panel_width: 56,
+    panel_height: 88,
+    margin: 2,
+    width: 52,
+    height: 84,
+  },
+  sampled_points: [...],
+  loop_points: [...],
+  smoothed_centerline: [...],
+  resampled_centerline: [...],
+  topology: {
+    crossing_count: 0,
+    crossing_candidates: [...],
+    eligible_for_grade_separated_crossing: false,
+  },
+  projections: {
+    curve: null,
+    slope: null,
+    minimap_runtime: null,
+    minimap_preview: null,
+    sign_features: null,
+  },
+};
+```
+
+Canvas dimensions are tied directly to `tools/lib/minimap_layout.js`: the
+geometry lives inside the 56x88 minimap panel (`7 * 8` by `11 * 8`) with a
+locked 2-pixel safety margin on each side, leaving a 52x84 drawable region for
+point sampling, smoothing, and preview fitting.
+
 ### Target track length
 
-Pick from the distribution of original track lengths (3392–7744), or generate
-uniformly in [4000, 7500] for non-prelim tracks.  Monaco prelim stays short
-(≤ 3500).
+The current pipeline in `tools/randomizer/track_pipeline.js` keeps each track on
+its original `track.track_length` budget, and phase 1 of the map-first revamp
+keeps that rule. Geometry generation may change shape freely, but downstream
+projection must still emit:
+
+- `track_length >> 2` curve/slope steps for runtime road data.
+- `track_length >> 6` runtime minimap `(x, y)` pairs.
+- Separate runtime `minimap_pos` and course-select preview outputs, each with
+  their own regression gates.
 
 ### Curve generation (RAND-002)
 
@@ -328,20 +389,31 @@ Algorithm:
 
 ### Minimap generation (RAND-005)
 
-The minimap is a top-down projection of the track path.  It must be derived
-from the curve sequence, not generated independently.
+The runtime minimap stream is consumed as a flat array of signed-byte `(x, y)`
+pairs. `Compute_minimap_index` in `src/race_support.asm` shifts track distance
+right by 5 and clears bit 0 before loading two bytes, so the real runtime
+contract is one pair per 64 distance units: `track_length >> 6` total pairs.
 
-Algorithm:
-1. Walk the decompressed curve byte stream step by step.
-2. Maintain current heading `θ` (angle, in fixed-point units).
-3. For straight (byte = $00): advance `(x, y)` by `(cos θ, sin θ)`.
-4. For left curve (byte $01–$2F): add a small negative angle delta to `θ`
-   scaled by sharpness index; advance.
-5. For right curve (byte $41–$6F): add positive angle delta.
-6. Sample `(x, y)` every 32 steps (matching the `track_length >> 5` indexing
-   used by `Update_minimap`).
-7. Normalize to fit within signed-byte range (−128..+127) by scaling.
-8. Ensure at least `(track_length >> 5) + 1` pairs are generated.
+Current implementation status:
+
+1. Generate a closed top-down path from track data.
+2. Sample exactly `track_length >> 6` points along that path.
+3. Encode the result as signed-byte `(x, y)` pairs for `minimap_pos.bin`.
+
+Revamp target:
+
+1. Use the geometry-state centerline as the source of truth for both runtime
+   marker-path generation and course-select preview generation.
+2. Keep runtime `minimap_pos` generation and preview asset generation as
+   separate deliverables with separate regression tests.
+3. Preserve the runtime pair-count contract even after the geometry source of
+   truth changes.
+4. Crossing-enabled seeds roll a deterministic 1-in-16 eligibility bit per
+   master seed and track slot. When selected, the generator injects exactly one
+   grade-separated crossing into the centerline, carries transient lower/upper
+   branch metadata in `geometry_state.topology.single_grade_separated_crossing`,
+   and derives underpass/tunnel handling from projection data instead of adding
+   persisted schema fields to `tools/data/tracks.json`.
 
 ### Art and config assignment (RAND-006)
 
@@ -381,7 +453,8 @@ returns a list of `ValidationError(track_index, field, message)` objects.
 | Sign ID range                   | `sign_data`      | All sign_id in [0, $14]                    |
 | Sign data terminator            | `sign_data`      | Last record has distance = $FFFF           |
 | Sign distances in range         | `sign_data`      | All distances < track_length               |
-| Minimap size                    | `minimap_pos`    | len(pairs) ≥ (track_length >> 5) + 1      |
+| Minimap size                    | `minimap_pos`    | len(pairs) = track_length >> 6            |
+| Geometry topology               | `topology`       | zero proper crossings, or exactly one approved grade-separated crossing |
 | Lap targets sentinel            | `lap_targets`    | Entry 14 = [$99, $00, $00]                 |
 
 ---

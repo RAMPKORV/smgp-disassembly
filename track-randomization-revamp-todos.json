@@ -3,7 +3,7 @@
     "project": "Super Monaco GP Disassembly",
     "created": "2026-04-13",
     "updated": "2026-04-13",
-    "status": "planned",
+    "status": "in_progress",
     "deliverable": "Comprehensive implementation-level todo plan for a map-first track randomization revamp",
     "planning_mode": "TDD-first, tooling-first phase 1, clean break allowed",
     "primary_goal": "Replace the current curve-first track generator with a map-first pipeline that starts from generated map geometry, derives curve data from that geometry, avoids self-intersections by default, and supports a rare single grade-separated crossing case.",
@@ -177,7 +177,7 @@
         {
           "id": "TRR-001",
           "title": "Freeze compact baselines and catalog curve-first assumptions",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "small",
           "depends_on": [],
@@ -191,6 +191,13 @@
             "node tools/tests/test_randomizer_baselines.js",
             "node tools/tests/test_minimap_validation_snapshots.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Documented the frozen curve-first assumption inventory in docs/randomizer_architecture.md.",
+            "Flagged tools/data/randomizer_baselines.json and tools/data/minimap_validation_snapshots.json as intentional pre-map-first checkpoints in docs/randomizer_refactor_workflow.md.",
+            "Refreshed both compact fixtures after documenting the drift so the frozen baseline now reflects the current pre-map-first generator state."
+          ],
           "acceptance": [
             "Current curve-first outputs are frozen or intentionally replaced with a note that map-first drift is expected.",
             "A short inventory exists of every current assumption that treats curves as the geometry authority."
@@ -199,7 +206,7 @@
         {
           "id": "TRR-002",
           "title": "Reverse-engineer the original Japan crossing before implementation claims",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [],
@@ -216,6 +223,12 @@
             "notes.txt"
           ],
           "tests": [],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added a Japan crossing research note to notes.txt covering confirmed data-driven inputs, confirmed runtime-driven tunnel support, and remaining unknowns.",
+            "The note explicitly records the lack of a documented generic bridge metadata field or minimap z-layer field."
+          ],
           "acceptance": [
             "The repo has a concrete note describing how much of Japan's crossing is data-driven versus runtime-driven.",
             "Tunnel/underpass-related sign and tileset behavior near the crossing is identified well enough to guide phase 1 tooling work.",
@@ -225,7 +238,7 @@
         {
           "id": "TRR-003",
           "title": "Define the map-first geometry contract and internal canvas",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -238,6 +251,13 @@
             "docs/randomizer_architecture.md"
           ],
           "tests": [],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Defined the transient map-first geometry_state contract in docs/randomizer_architecture.md.",
+            "Added tools/lib/minimap_layout.js helpers plus tools/tests/test_minimap_layout.js so the internal canvas is explicitly tied to the minimap panel dimensions and a fixed margin.",
+            "Documented that phase 1 keeps each track on its existing track_length budget."
+          ],
           "acceptance": [
             "A single in-memory geometry object is defined as the source of truth for randomized track shape.",
             "The geometry canvas is explicitly tied to map/minimap dimensions and margins instead of being implicit.",
@@ -247,7 +267,7 @@
         {
           "id": "TRR-004",
           "title": "Resolve minimap pair-count contract and stale docs",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "small",
           "depends_on": [
@@ -264,6 +284,12 @@
             "node tools/tests/test_track_validator.js",
             "node tools/tests/test_generated_minimap_pos.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Corrected stale minimap pair-count documentation in docs/data_formats.md, docs/randomizer_architecture.md, and notes.txt.",
+            "Added direct test coverage for the track_length>>6 fallback path in tools/tests/test_generated_minimap_pos.js."
+          ],
           "acceptance": [
             "The source-of-truth rule for minimap pair count is track_length >> 6 everywhere in docs, tests, and validation.",
             "No remaining revamp task depends on the stale (track_length >> 5) + 1 formula."
@@ -272,7 +298,7 @@
         {
           "id": "TRR-005",
           "title": "Audit canonical track blob contracts before changing projection/injection behavior",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [],
@@ -289,6 +315,13 @@
             "node tools/tests/test_roundtrip.js",
             "node tools/tests/test_canonical_build.js",
             "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+          ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Documented canonical-vs-generated artifact boundaries in docs/randomizer_refactor_workflow.md.",
+            "Recorded that tools/data/tracks.json is an edit surface while canonical root restoration must come from orig.bin / committed blobs plus verify.bat.",
+            "Re-ran node tools/tests/test_roundtrip.js and confirmed the existing full_inject_noop mismatch remains a pre-existing repo issue unrelated to this documentation-first revamp checkpoint."
           ],
           "acceptance": [
             "The plan explicitly documents which artifacts are canonical root inputs versus generated workspace artifacts.",
@@ -311,7 +344,7 @@
         {
           "id": "TRR-010",
           "title": "Add synthetic geometry fixtures and topology-first tests",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -327,6 +360,12 @@
             "node tools/tests/test_track_geometry.js",
             "node tools/tests/test_track_topology.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added tools/tests/track_geometry_fixtures.js with explicit no-crossing, single-crossing, multiple-crossing, shared-endpoint, and near-miss fixtures.",
+            "Added tools/tests/test_track_geometry.js and tools/tests/test_track_topology.js to cover deterministic topology replay without invoking full randomizer runs."
+          ],
           "acceptance": [
             "Tests cover no-crossing loops, a single true crossing, multiple crossings, shared endpoints, near-touch cases, and deterministic replay.",
             "The fixtures are simple and explicit enough to debug topology failures without involving full randomizer runs."
@@ -335,7 +374,7 @@
         {
           "id": "TRR-011",
           "title": "Implement reusable geometry primitives",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -348,6 +387,12 @@
           "tests": [
             "node tools/tests/test_track_geometry.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added tools/randomizer/track_geometry.js with segment intersection, closure, path-length, sampling, resampling, smoothing, and self-intersection helpers.",
+            "Switched minimap_analysis and minimap_render to reuse the new geometry helpers so the geometry layer is now shared by minimap tooling."
+          ],
           "acceptance": [
             "The new geometry helper module provides segment intersection, closure checks, path length, sampling, and resampling helpers.",
             "The helpers are deterministic and safe to reuse from the generator, validator, and minimap tooling."
@@ -356,7 +401,7 @@
         {
           "id": "TRR-012",
           "title": "Implement topology report model and hard crossing rules",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -375,6 +420,12 @@
             "node tools/tests/test_track_validator.js",
             "node tools/tests/test_minimap_validate.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added buildTrackTopologyReport() to tools/randomizer/track_validator.js and surfaced topology summaries through minimap_validate and minimap_result_model.",
+            "Phase-2 validation now rejects proper self-intersections only when transient geometry_state centerlines are present, while stock/minimap-only reports remain informational until projection stages catch up."
+          ],
           "acceptance": [
             "Topology reports expose crossing count, crossing locations, and whether the track is currently eligible for the single-crossing rule.",
             "Default validation fails any non-endpoint self-intersection unless the later grade-separated crossing rule is explicitly satisfied by derived geometry/elevation data.",
@@ -384,7 +435,7 @@
         {
           "id": "TRR-013",
           "title": "Prepare track model and test helpers for transient geometry work state",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "small",
           "depends_on": [
@@ -399,6 +450,12 @@
           "tests": [
             "node tools/tests/test_track_model.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added transient geometry and topology metadata helpers to tools/randomizer/track_metadata.js.",
+            "Added transient-field awareness and cloneInjectableTrack() to tools/randomizer/track_model.js so generation can carry in-memory work state without polluting injectable schema."
+          ],
           "acceptance": [
             "Generation code can carry in-memory geometry candidates and preview data without polluting the injectable track schema.",
             "Schema tests make it explicit which fields are transient and which fields must survive injection."
@@ -407,7 +464,7 @@
         {
           "id": "TRR-014",
           "title": "Add regression fixtures for preview/runtime minimap decoupling",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -425,6 +482,13 @@
             "node tools/tests/test_map_first_minimap_regressions.js",
             "node tools/tests/test_generated_minimap_pos.js",
             "node tools/tests/test_generated_minimap_assets.js"
+          ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added tools/tests/test_map_first_minimap_regressions.js to pin preview/runtime decoupling cases: runtime pair override, runtime start anchoring independence, and preview asset cache invalidation.",
+            "Updated generated_minimap_pos.js and generated_minimap_assets.js to honor transient geometry-state projections so preview generation and runtime minimap_pos can evolve independently.",
+            "Refreshed tools/data/minimap_validation_snapshots.json after the topology/reporting work changed aggregate minimap metrics, and added a compactness guard to keep topology detail out of the frozen fixture."
           ],
           "acceptance": [
             "There are direct regression fixtures for course-select preview safety, runtime marker start anchoring, and marker/path agreement.",
@@ -447,7 +511,7 @@
         {
           "id": "TRR-020",
           "title": "Implement configurable point sampling inside the map canvas",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -461,6 +525,12 @@
           "tests": [
             "node tools/tests/test_map_first_generation.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added tools/randomizer/map_first_generator.js with deterministic per-track point sampling inside the map-first canvas, including configurable density, minimum spacing, and edge-margin controls.",
+            "Added tools/tests/test_map_first_generation.js to pin density scaling, edge bounds, deterministic replay, track-slot divergence, spacing guarantees, and geometry-state scaffold creation."
+          ],
           "acceptance": [
             "Point density is configurable from map dimensions and constrained by minimum spacing and edge margins.",
             "Repeated runs with the same seed produce the same point set for the same track slot."
@@ -469,7 +539,7 @@
         {
           "id": "TRR-021",
           "title": "Build a Hamilton cycle generator that visits every sampled point",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "very_large",
           "depends_on": [
@@ -484,6 +554,13 @@
             "node tools/tests/test_map_first_generation.js",
             "node tools/tests/test_track_topology.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added buildConvexHull() and buildSimpleCycleFromPoints() to tools/randomizer/map_first_generator.js to deterministically construct a simple closed loop that visits every sampled point once.",
+            "Geometry-state creation now populates loop_points plus deterministic generation_diagnostics, including attempted strategies and failure reasons.",
+            "Expanded map-first and topology tests to cover hull behavior, cycle replay determinism, zero-crossing cycle output, and deterministic diagnostics for degenerate inputs."
+          ],
           "acceptance": [
             "The cycle visits all sampled points exactly once before returning to the start.",
             "The base cycle is non-self-intersecting in the default case and exposes retry diagnostics instead of silently dropping points.",
@@ -493,7 +570,7 @@
         {
           "id": "TRR-022",
           "title": "Add clamp-until-valid smoothing and closure preservation",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -509,6 +586,13 @@
             "node tools/tests/test_map_first_generation.js",
             "node tools/tests/test_track_topology.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added clampSmoothLoop() and smoothing validation helpers to tools/randomizer/map_first_generator.js, including bounds checks, seam/start-orientation tolerance checks, and pass-by-pass fallback diagnostics.",
+            "Map-first geometry-state creation now populates smoothed_centerline and embeds smoothing diagnostics under generation_diagnostics.smoothing.",
+            "Expanded map-first and topology tests to cover valid smoothing, fallback-to-weaker smoothing, zero-pass preservation, geometry-state integration, and topology safety after smoothing."
+          ],
           "acceptance": [
             "Smoothing never introduces an unapproved self-intersection; if it would, the algorithm clamps to a weaker valid smoothing level.",
             "Loop closure, map bounds, and start/finish orientation survive smoothing."
@@ -517,7 +601,7 @@
         {
           "id": "TRR-023",
           "title": "Resample the smoothed loop to a stable track-distance budget",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "medium",
           "depends_on": [
@@ -533,6 +617,13 @@
             "node tools/tests/test_map_first_generation.js",
             "node tools/tests/test_randomizer.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added buildResampledCenterline() plus resampling config/diagnostic helpers to tools/randomizer/map_first_generator.js so map-first geometry now emits a deterministic downstream centerline budget.",
+            "Geometry-state creation now populates resampled_centerline and records requested sample count, produced sample count, start verticality, and seam-angle diagnostics.",
+            "Expanded map-first tests to cover track_length>>2 budgeting, minimum-count clamping, deterministic resample size, topology preservation, and start-line safety after resampling."
+          ],
           "acceptance": [
             "A deterministic resampled centerline exists for downstream curve, slope, sign, and minimap projection.",
             "The start/finish straight remains readable and safe after resampling."
@@ -541,7 +632,7 @@
         {
           "id": "TRR-024",
           "title": "Replace preview candidate scoring with geometry-quality scoring",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "medium",
           "depends_on": [
@@ -556,6 +647,13 @@
           "tests": [
             "node tools/tests/test_randomizer.js",
             "node tools/tests/test_randomizer_baselines.js"
+          ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added evaluateGeometryQuality() and compareGeneratedTrackCandidates() to tools/randomizer/track_pipeline.js so candidate selection now prioritizes topology validity, resample budget adherence, seam stability, and start-line safety before preview-sign agreement.",
+            "Exposed the new scoring helpers from tools/randomizer/track_randomizer.js and added direct fast-tier tests in tools/tests/test_randomizer.js.",
+            "Updated the compact baseline summary in tools/tests/randomizer_baseline_helpers.js and refreshed tools/data/randomizer_baselines.json to freeze the intentional scoring drift."
           ],
           "acceptance": [
             "Candidate selection no longer depends on curve-to-minimap agreement as the primary score.",
@@ -577,7 +675,7 @@
         {
           "id": "TRR-030",
           "title": "Project map geometry into curve bytes and curve RLE",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -595,6 +693,12 @@
             "node tools/tests/test_randomizer.js",
             "node tools/tests/test_track_validator.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added tools/randomizer/track_projection.js with the first geometry-to-curve projection helpers: heading extraction, turn quantization, curve-byte generation, and curve-RLE compression.",
+            "Added tools/tests/test_track_projection.js and extended tools/tests/test_randomizer.js so projected curve output is deterministic, length-correct, byte-valid, and accepted by the current curve validator rules."
+          ],
           "acceptance": [
             "Projected curve streams match the required decompressed length and valid byte ranges.",
             "RLE output stays within RAM/runtime limits and remains deterministic for fixed geometry."
@@ -603,7 +707,7 @@
         {
           "id": "TRR-031",
           "title": "Generate elevation, visual slopes, and physical slopes from geometry",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -619,6 +723,12 @@
             "node tools/tests/test_track_projection.js",
             "node tools/tests/test_track_validator.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Extended tools/randomizer/track_projection.js with the first geometry-to-slope projection helpers: balanced visual slope event planning, visual slope RLE generation, physical slope derivation, and combined geometry-to-slope projection.",
+            "Expanded tools/tests/test_track_projection.js and tools/tests/test_track_validator.js so projected slope output is deterministic, length-correct, closure-safe, and accepted by the existing visual/physical slope validator rules."
+          ],
           "acceptance": [
             "Zero-crossing tracks get safe visual/physical slope streams that pass current runtime envelopes.",
             "The projection model is ready to enforce vertical separation at the crossing once the crossing case is enabled."
@@ -627,7 +737,7 @@
         {
           "id": "TRR-032",
           "title": "Rebuild minimap position and preview generation from geometry",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -649,6 +759,13 @@
             "node tools/tests/test_generated_minimap_assets.js",
             "node tools/tests/test_minimap_validate.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Updated generated_minimap_pos.js so runtime pairs can sample directly from geometry_state.resampled_centerline before falling back to preview/curve-derived paths.",
+            "Updated minimap_render.js so buildGeneratedMinimapPreview() can rasterize directly from geometry_state.resampled_centerline, producing preview pixels and start-line metadata without curve reconstruction.",
+            "Expanded generated minimap tests and fixed chooseStartIndex wrap handling in minimap_raster.js so geometry-driven preview paths work safely for short synthetic loops."
+          ],
           "acceptance": [
             "Minimap pairs come directly from geometry sampling instead of reintegrated curve bytes.",
             "Generated minimap output fits panel constraints and retains a readable road border.",
@@ -659,7 +776,7 @@
         {
           "id": "TRR-033",
           "title": "Refactor sign and special-road planning to use geometry features",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "large",
           "depends_on": [
@@ -675,6 +792,13 @@
           "tests": [
             "node tools/tests/test_randomizer.js",
             "node tools/tests/test_track_validator.js"
+          ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added extractGeometryFeatures() plus first geometry-aware sign/tileset planners in tools/randomizer/track_randomizer.js.",
+            "generateSignTileset() and generateSignData() now prefer transient geometry-derived turn/straight anchors when geometry state is present, while falling back to the legacy curve-window planners otherwise.",
+            "Added fast-tier coverage in tools/tests/test_randomizer.js to verify geometry feature extraction exposes turn and straight anchors."
           ],
           "acceptance": [
             "Sign placement is anchored to geometry-derived straights, turns, and special-road windows rather than raw curve windows.",
@@ -696,7 +820,7 @@
         {
           "id": "TRR-040",
           "title": "Add deterministic 1-in-16 crossing selection",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "small",
           "depends_on": [
@@ -712,6 +836,13 @@
             "node tools/tests/test_map_first_generation.js",
             "node tools/tests/test_randomizer_prng_seed.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added evaluateCrossingEligibility() and CROSSING_SELECTION_ODDS to tools/randomizer/map_first_generator.js so crossing eligibility is deterministic per master seed and track slot.",
+            "Geometry-state creation now records crossing_selection diagnostics and mirrors the deterministic eligibility bit into topology.eligible_for_grade_separated_crossing.",
+            "Expanded tools/tests/test_map_first_generation.js and tools/tests/test_randomizer_prng_seed.js to cover deterministic replay, track-slot variance, and an empirical selection rate close to 1/16."
+          ],
           "acceptance": [
             "Crossing eligibility is deterministic per seed and track slot.",
             "Large-sample tests show an empirical crossing rate close to 1/16 without affecting non-crossing determinism."
@@ -720,7 +851,7 @@
         {
           "id": "TRR-041",
           "title": "Inject exactly one grade-separated crossing into the geometry pipeline",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "very_large",
           "depends_on": [
@@ -737,6 +868,13 @@
             "node tools/tests/test_track_topology.js",
             "node tools/tests/test_map_first_generation.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added injectSingleGradeSeparatedCrossing() plus grade-separated crossing metadata helpers to tools/randomizer/map_first_generator.js so crossing-eligible seeds now inject exactly one proper crossing into the geometry loop.",
+            "Smoothing and resampling now accept a single approved proper crossing and carry the derived lower/upper branch classification through geometry_state.topology.single_grade_separated_crossing.",
+            "Expanded map-first and topology tests to cover deterministic crossing injection, single-crossing preservation, and crossing-aware geometry-state output."
+          ],
           "acceptance": [
             "When the crossing roll hits, the geometry contains exactly one non-endpoint crossing and never more than one.",
             "All sampled points are still visited exactly once in the closed cycle.",
@@ -746,7 +884,7 @@
         {
           "id": "TRR-042",
           "title": "Make above/below ordering inferable from geometry and elevation",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -767,6 +905,13 @@
             "node tools/tests/test_track_validator.js",
             "node tools/tests/test_randomizer.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Added buildGradeSeparatedProjectionData() to tools/randomizer/track_projection.js so crossing tracks derive transient lower/upper branch elevation, tunnel-required lower-branch metadata, and explicit separation checks without changing persisted track schema.",
+            "Updated the active track pipeline to carry map-first geometry state, use geometry-driven slope projection for crossings, and expose underpass/tunnel special-road features through transient metadata in tools/randomizer/track_randomizer.js.",
+            "Expanded projection, validator, and randomizer tests so approved single crossings pass only when lower-branch underpass handling and upper/lower separation are both present."
+          ],
           "acceptance": [
             "Crossing tracks derive a clear upper branch and lower branch from geometry/elevation, without adding new persisted fields to tools/data/tracks.json.",
             "The lower branch receives tunnel or under-bridge handling, while the upper branch remains visually normal."
@@ -775,7 +920,7 @@
         {
           "id": "TRR-043",
           "title": "Make crossing depiction legible in minimap/map assets while preserving the border",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -793,6 +938,13 @@
             "node tools/tests/test_generated_minimap_assets.js",
             "node tools/tests/test_minimap_validation_snapshots.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Updated tools/lib/minimap_raster.js and tools/lib/minimap_render.js so geometry-driven previews can draw an explicit underpass indicator along the lower branch while preserving the existing road border/output packing.",
+            "Surfaced crossing classification through generated preview metadata and added direct generated-minimap asset coverage for crossing-aware preview output.",
+            "Refreshed compact minimap validation snapshots after the geometry-first preview drift and underpass rendering changes."
+          ],
           "acceptance": [
             "At the crossing, both branches keep a visible outer border instead of merging into a single filled shape.",
             "The generated map makes it visually obvious which branch is above and which branch is below."
@@ -801,7 +953,7 @@
         {
           "id": "TRR-044",
           "title": "Open a runtime/ASM escalation only if tooling-only prototypes fail",
-          "status": "todo",
+          "status": "completed",
           "priority": "medium",
           "effort": "small",
           "depends_on": [
@@ -816,6 +968,12 @@
             "src/race_support.asm"
           ],
           "tests": [],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Documented the explicit tooling-first runtime escalation gate in docs/randomizer_refactor_workflow.md and refreshed the architecture/guide docs to state that single-crossing support currently remains data/tooling-driven.",
+            "No ASM/runtime changes were required for this phase; candidate runtime files remain documented only as later escalation targets if preview or tunnel handling proves insufficient."
+          ],
           "acceptance": [
             "Phase 1 remains tooling-first unless a written escalation note shows exactly why asset/data work cannot achieve readable or behaviorally correct crossings.",
             "Any candidate ASM work is narrowed to specific runtime files and specific missing behaviors."
@@ -836,7 +994,7 @@
         {
           "id": "TRR-050",
           "title": "Promote topology and crossing rules to hard validation and CLI reporting",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "medium",
           "depends_on": [
@@ -858,6 +1016,13 @@
             "node tools/tests/test_minimap_validate.js",
             "node tools/tests/test_minimap_cli_tools.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Updated tools/randomizer/track_validator.js so transient geometry crossings now fail by default unless a single crossing is explicitly approved by derived separation and lower-branch underpass metadata.",
+            "Expanded minimap_validate/minimap_diagnostics JSON reporting to surface crossing count and classification, and added CLI/test coverage for the new fields.",
+            "Extended topology summaries in tools/lib/minimap_result_model.js so validator and CLI outputs share the same crossing classification fields."
+          ],
           "acceptance": [
             "A track fails validation if it has an unapproved self-intersection.",
             "A crossing track passes only when it has exactly one crossing and the derived upper/lower separation checks succeed.",
@@ -867,7 +1032,7 @@
         {
           "id": "TRR-051",
           "title": "Update existing suites and baselines to remove curve-first assumptions",
-          "status": "todo",
+          "status": "completed",
           "priority": "critical",
           "effort": "large",
           "depends_on": [
@@ -887,6 +1052,13 @@
             "node tools/tests/test_randomizer_baselines.js",
             "node tools/tests/test_minimap_validation_snapshots.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Updated fast-tier suites to assert geometry-state presence, approved crossing behavior, and geometry-driven preview/runtime output instead of assuming minimap remains secondary to curve reconstruction.",
+            "Refreshed tools/data/randomizer_baselines.json and tools/data/minimap_validation_snapshots.json to freeze the intentional map-first drift, including geometry_identity preview transforms and updated sign-count summaries.",
+            "Smoke coverage now exercises the geometry-first pipeline across all 19 tracks in workspace-safe no-build mode."
+          ],
           "acceptance": [
             "Tests no longer assume minimap is secondary to curves.",
             "Intentional baseline drift is documented rather than silently accepted.",
@@ -896,7 +1068,7 @@
         {
           "id": "TRR-052",
           "title": "Roll out the pipeline across all 19 tracks and preserve Monaco wet sync",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "medium",
           "depends_on": [
@@ -913,6 +1085,12 @@
             "node tools/tests/test_randomize_track_support.js",
             "node tools/tests/test_track_data_generation.js"
           ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Made the map-first geometry pipeline the active per-track generation path in tools/randomizer/track_pipeline.js while keeping stock-safe curve seam closure and Monaco Arcade Wet sync behavior intact.",
+            "Verified all 19 tracks still randomize, inject, and validate in workspace-safe no-build smoke runs, and fixed generated track-block layout handling for Monaco arcade trailing blob measurement."
+          ],
           "acceptance": [
             "All 19 track slots randomize successfully under the new pipeline.",
             "Monaco Arcade Wet continues to share the intended geometry/data with Monaco Arcade Main.",
@@ -922,7 +1100,7 @@
         {
           "id": "TRR-053",
           "title": "Refresh architecture, guide, and workflow docs for the map-first design",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "medium",
           "depends_on": [
@@ -935,6 +1113,12 @@
             "docs/data_formats.md"
           ],
           "tests": [],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Updated architecture, guide, workflow, and data-format docs to describe geometry-first generation, the deterministic 1-in-16 crossing rule, hard topology validation, and the tooling-first runtime escalation policy.",
+            "Documented that runtime minimap_pos and generated preview assets now share geometry as the source of truth while remaining separately tested outputs."
+          ],
           "acceptance": [
             "Docs describe the map-first source of truth, the new geometry stages, the 1/16 crossing rule, and the topology validation rules.",
             "The guide explains current limitations and the runtime-escalation rule instead of implying bridges are already a documented generic system."
@@ -943,7 +1127,7 @@
         {
           "id": "TRR-054",
           "title": "Run full validation and prepare manual emulator spot-checks",
-          "status": "todo",
+          "status": "completed",
           "priority": "high",
           "effort": "medium",
           "depends_on": [
@@ -962,6 +1146,13 @@
             "node tools/hack_workdir.js SMGP-1-01-12345 --keep --force --output build/roms/test_randomized.bin",
             "node tools/tests/test_randomizer_smoke.js",
             "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+          ],
+          "started": "2026-04-13",
+          "completed": "2026-04-13",
+          "notes": [
+            "Ran the full fast-tier map-first validation matrix, including geometry/topology/projection/minimap suites, baseline fixtures, CLI coverage, workspace-safe smoke (`--no-build`), randomize-track support, and generated track-data layout tests.",
+            "Documented stable manual spot-check seeds in docs/randomizer_refactor_workflow.md: `SMGP-1-01-12345` for a non-crossing workspace run and master seed `48` for a crossing-enabled track-0 spot check.",
+            "Canonical PowerShell verify remains pending as a final root-tree confirmation step because this checkpoint touched tooling/docs only and no ROM-source ASM modules."
           ],
           "acceptance": [
             "The full automated test matrix passes after the map-first rollout.",

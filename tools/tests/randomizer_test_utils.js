@@ -13,6 +13,18 @@ function deepCopy(value) {
 	return JSON.parse(JSON.stringify(value));
 }
 
+function clonePointPath(points) {
+	if (!Array.isArray(points)) return [];
+	return points.map(point => [Number(point[0]), Number(point[1])]);
+}
+
+function makeGeometryState(points, topology = {}) {
+	return {
+		resampled_centerline: clonePointPath(points),
+		topology: deepCopy(topology),
+	};
+}
+
 function getCurveDirection(curveByte) {
 	if (curveByte >= 0x41 && curveByte <= 0x6F) return 1;
 	if (curveByte >= 0x01 && curveByte <= 0x2F) return -1;
@@ -86,6 +98,8 @@ module.exports = {
 	TEAMS_JSON_PATH,
 	CHAMPIONSHIP_JSON_PATH,
 	deepCopy,
+	clonePointPath,
+	makeGeometryState,
 	getCurveDirection,
 	getCurveSharpness,
 	cyclicTrackDistance,

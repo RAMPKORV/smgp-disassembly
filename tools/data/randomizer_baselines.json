@@ -6,14 +6,14 @@
         "track_count": 19,
         "candidate_marker_mean_distance": 0,
         "candidate_marker_hit_percent": 100,
-        "preview_self_intersections": 2.37,
-        "preview_branch_pixel_count": 497.16,
-        "curve_map_sign_match_percent": 77,
-        "curve_map_strength_error": 0.0033,
+        "preview_self_intersections": 0,
+        "preview_branch_pixel_count": 332.84,
+        "curve_map_sign_match_percent": 49.17,
+        "curve_map_strength_error": 0.0066,
         "generated_marker_offroad_count": 19,
         "candidate_marker_offroad_count": 0,
-        "curve_map_left_right_mismatch_count": 6,
-        "curve_map_phase_mismatch_count": 16,
+        "curve_map_left_right_mismatch_count": 19,
+        "curve_map_phase_mismatch_count": 15,
         "curve_map_strength_mismatch_count": 0
       },
       "tracks": {
@@ -23,117 +23,198 @@
           "straight_count": 14,
           "longest_straight_length": 161,
           "ultra_sharp_curve_count": 0,
-          "sign_data_count": 20,
-          "sign_tileset_count": 2,
+          "sign_data_count": 15,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 110,
-          "preview_transform": "flipxy",
-          "preview_tile_count": 55,
-          "preview_self_intersections": 4,
-          "preview_branch_pixel_count": 736,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 27,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 277,
+          "geometry_resampled_count": 1760,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 90.18,
+          "curve_map_sign_match_percent": 46.88,
           "active_flags": [
-            "curve_map_phase_mismatch",
-            "generated_marker_offroad",
-            "too_fat"
+            "curve_map_left_right_mismatch",
+            "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [63, 45],
-            [55, 18],
-            [16, 16],
-            [32, 26],
-            [63, 12],
-            [59, 45]
+            [
+              35,
+              8
+            ],
+            [
+              16,
+              20
+            ],
+            [
+              35,
+              32
+            ],
+            [
+              58,
+              34
+            ],
+            [
+              59,
+              17
+            ],
+            [
+              36,
+              8
+            ]
           ]
         },
         "brazil": {
           "track_length": 6976,
-          "curve_count": 17,
-          "straight_count": 18,
-          "longest_straight_length": 65,
-          "ultra_sharp_curve_count": 2,
+          "curve_count": 16,
+          "straight_count": 16,
+          "longest_straight_length": 109,
+          "ultra_sharp_curve_count": 0,
           "sign_data_count": 17,
-          "sign_tileset_count": 2,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 109,
-          "preview_transform": "identity",
-          "preview_tile_count": 32,
-          "preview_self_intersections": 2,
-          "preview_branch_pixel_count": 470,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 33,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 393,
+          "geometry_resampled_count": 1744,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 59.44,
+          "curve_map_sign_match_percent": 48.03,
           "active_flags": [
+            "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
             "generated_marker_offroad",
-            "too_fat"
+            "pair_desync"
           ],
           "minimap_anchor_pairs": [
-            [42, 10],
-            [2, 17],
-            [37, 19],
-            [65, 46],
-            [76, 33],
-            [44, 10]
+            [
+              49,
+              6
+            ],
+            [
+              19,
+              13
+            ],
+            [
+              24,
+              40
+            ],
+            [
+              56,
+              36
+            ],
+            [
+              75,
+              24
+            ],
+            [
+              50,
+              7
+            ]
           ]
         },
         "portugal": {
           "track_length": 6592,
           "curve_count": 17,
           "straight_count": 15,
-          "longest_straight_length": 73,
+          "longest_straight_length": 96,
           "ultra_sharp_curve_count": 0,
-          "sign_data_count": 17,
-          "sign_tileset_count": 2,
+          "sign_data_count": 11,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 103,
-          "preview_transform": "flipxy",
-          "preview_tile_count": 25,
-          "preview_self_intersections": 3,
-          "preview_branch_pixel_count": 440,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 27,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 299,
+          "geometry_resampled_count": 1648,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 80.5,
+          "curve_map_sign_match_percent": 53.95,
           "active_flags": [
+            "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
             "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [49, 21],
-            [39, 40],
-            [37, 38],
-            [45, 14],
-            [41, 8],
-            [47, 22]
+            [
+              68,
+              9
+            ],
+            [
+              44,
+              8
+            ],
+            [
+              24,
+              24
+            ],
+            [
+              41,
+              31
+            ],
+            [
+              67,
+              25
+            ],
+            [
+              69,
+              10
+            ]
           ]
         },
         "monaco": {
           "track_length": 6144,
-          "curve_count": 15,
-          "straight_count": 15,
-          "longest_straight_length": 108,
+          "curve_count": 12,
+          "straight_count": 12,
+          "longest_straight_length": 192,
           "ultra_sharp_curve_count": 0,
-          "sign_data_count": 16,
-          "sign_tileset_count": 2,
+          "sign_data_count": 11,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 96,
-          "preview_transform": "flipxy",
-          "preview_tile_count": 40,
-          "preview_self_intersections": 6,
-          "preview_branch_pixel_count": 617,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 27,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 340,
+          "geometry_resampled_count": 1536,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 48.39,
+          "curve_map_sign_match_percent": 48.2,
           "active_flags": [
             "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
-            "generated_marker_offroad",
-            "too_fat"
+            "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [40, 29],
-            [71, 12],
-            [38, 48],
-            [18, 48],
-            [64, 45],
-            [37, 29]
+            [
+              36,
+              10
+            ],
+            [
+              18,
+              27
+            ],
+            [
+              38,
+              35
+            ],
+            [
+              65,
+              34
+            ],
+            [
+              64,
+              14
+            ],
+            [
+              37,
+              10
+            ]
           ]
         }
       }
@@ -143,14 +224,14 @@
         "track_count": 19,
         "candidate_marker_mean_distance": 0,
         "candidate_marker_hit_percent": 100,
-        "preview_self_intersections": 1.89,
-        "preview_branch_pixel_count": 475.53,
-        "curve_map_sign_match_percent": 69.98,
-        "curve_map_strength_error": 0.0035,
+        "preview_self_intersections": 0,
+        "preview_branch_pixel_count": 335.84,
+        "curve_map_sign_match_percent": 50.11,
+        "curve_map_strength_error": 0.0066,
         "generated_marker_offroad_count": 19,
         "candidate_marker_offroad_count": 0,
-        "curve_map_left_right_mismatch_count": 7,
-        "curve_map_phase_mismatch_count": 11,
+        "curve_map_left_right_mismatch_count": 19,
+        "curve_map_phase_mismatch_count": 18,
         "curve_map_strength_mismatch_count": 0
       },
       "tracks": {
@@ -158,121 +239,200 @@
           "track_length": 7040,
           "curve_count": 19,
           "straight_count": 16,
-          "longest_straight_length": 77,
+          "longest_straight_length": 96,
           "ultra_sharp_curve_count": 1,
-          "sign_data_count": 20,
-          "sign_tileset_count": 2,
+          "sign_data_count": 17,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 110,
-          "preview_transform": "flipxy",
-          "preview_tile_count": 15,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 210,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 32,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 342,
+          "geometry_resampled_count": 1760,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 45.57,
+          "curve_map_sign_match_percent": 46.36,
           "active_flags": [
             "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
             "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [39, 16],
-            [48, 24],
-            [51, 42],
-            [45, 37],
-            [49, 17],
-            [40, 16]
+            [
+              73,
+              6
+            ],
+            [
+              45,
+              4
+            ],
+            [
+              21,
+              15
+            ],
+            [
+              37,
+              28
+            ],
+            [
+              65,
+              24
+            ],
+            [
+              74,
+              7
+            ]
           ]
         },
         "brazil": {
           "track_length": 6976,
           "curve_count": 21,
           "straight_count": 20,
-          "longest_straight_length": 52,
+          "longest_straight_length": 96,
           "ultra_sharp_curve_count": 1,
-          "sign_data_count": 20,
-          "sign_tileset_count": 2,
+          "sign_data_count": 15,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 109,
-          "preview_transform": "identity",
-          "preview_tile_count": 49,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 580,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 31,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 340,
+          "geometry_resampled_count": 1744,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 56.07,
+          "curve_map_sign_match_percent": 45.51,
           "active_flags": [
             "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
-            "generated_marker_offroad",
-            "too_fat"
+            "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [69, 22],
-            [55, 6],
-            [30, 37],
-            [6, 23],
-            [31, 48],
-            [67, 23]
+            [
+              34,
+              6
+            ],
+            [
+              15,
+              23
+            ],
+            [
+              36,
+              31
+            ],
+            [
+              64,
+              29
+            ],
+            [
+              64,
+              10
+            ],
+            [
+              35,
+              6
+            ]
           ]
         },
         "portugal": {
           "track_length": 6592,
-          "curve_count": 23,
-          "straight_count": 22,
-          "longest_straight_length": 80,
+          "curve_count": 17,
+          "straight_count": 14,
+          "longest_straight_length": 104,
           "ultra_sharp_curve_count": 0,
-          "sign_data_count": 20,
-          "sign_tileset_count": 2,
+          "sign_data_count": 12,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 103,
-          "preview_transform": "identity",
-          "preview_tile_count": 40,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 480,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 28,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 307,
+          "geometry_resampled_count": 1648,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 37.5,
+          "curve_map_sign_match_percent": 51.66,
           "active_flags": [
             "curve_map_left_right_mismatch",
-            "generated_marker_offroad",
-            "pair_desync",
-            "too_fat"
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [29, 12],
-            [25, 37],
-            [30, 37],
-            [63, 51],
-            [65, 15],
-            [32, 12]
+            [
+              51,
+              8
+            ],
+            [
+              26,
+              14
+            ],
+            [
+              26,
+              32
+            ],
+            [
+              51,
+              35
+            ],
+            [
+              70,
+              21
+            ],
+            [
+              52,
+              8
+            ]
           ]
         },
         "monaco": {
           "track_length": 6144,
-          "curve_count": 18,
-          "straight_count": 18,
-          "longest_straight_length": 68,
+          "curve_count": 17,
+          "straight_count": 17,
+          "longest_straight_length": 143,
           "ultra_sharp_curve_count": 2,
-          "sign_data_count": 16,
-          "sign_tileset_count": 2,
+          "sign_data_count": 11,
+          "sign_tileset_count": 3,
           "minimap_pos_count": 96,
-          "preview_transform": "flipy",
-          "preview_tile_count": 24,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 327,
+          "preview_transform": "geometry_identity",
+          "preview_tile_count": 26,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 333,
+          "geometry_resampled_count": 1536,
+          "geometry_crossing_count": 0,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 49.38,
+          "curve_map_sign_match_percent": 54.3,
           "active_flags": [
             "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
             "generated_marker_offroad"
           ],
           "minimap_anchor_pairs": [
-            [35, 12],
-            [44, 2],
-            [56, 24],
-            [57, 51],
-            [47, 36],
-            [37, 12]
+            [
+              67,
+              9
+            ],
+            [
+              41,
+              8
+            ],
+            [
+              22,
+              20
+            ],
+            [
+              43,
+              31
+            ],
+            [
+              69,
+              28
+            ],
+            [
+              68,
+              10
+            ]
           ]
         }
       }

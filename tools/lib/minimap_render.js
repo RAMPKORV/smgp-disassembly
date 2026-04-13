@@ -74,6 +74,8 @@ const {
 } = require('./minimap_analysis');
 
 const previewCache = new WeakMap();
+const { smoothClosedPath } = require('../randomizer/track_geometry');
+const { getGeneratedGeometryState } = require('../randomizer/track_metadata');
 
 function buildPreviewCacheKey(track) {
 	return JSON.stringify([
@@ -84,18 +86,7 @@ function buildPreviewCacheKey(track) {
 }
 
 function smoothClosedPoints(points, passes = 1) {
-	let current = points.slice();
-	for (let pass = 0; pass < passes; pass++) {
-		current = current.map((point, index, array) => {
-			const prev = array[(index - 1 + array.length) % array.length];
-			const next = array[(index + 1) % array.length];
-			return [
-				(prev[0] + point[0] * 2 + next[0]) / 4,
-				(prev[1] + point[1] * 2 + next[1]) / 4,
-			];
-		});
-	}
-	return current;
+	return smoothClosedPath(points, passes);
 }
 
 function blendClosedPaths(primary, secondary, alpha = 0.35) {
@@ -117,6 +108,52 @@ function buildGeneratedMinimapPreview(track) {
 	if (cached && cached.key === cacheKey) return cached.value;
 	const previewSlug = resolvePreviewSlug(track);
 	const preview = getMinimapPreview(previewSlug);
+	const geometryState = getGeneratedGeometryState(track);
+	const geometryCenterline = Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline : null;
+	if (geometryCenterline && geometryCenterline.length > 0) {
+		const fittedPath = fitStyledPathIntoFrame(geometryCenterline, preview.width, preview.height, 2);
+		const startIndex = chooseStartIndex(fittedPath, preview.width, preview.height);
+		const crossingProjection = geometryState?.projections?.slope?.grade_separated_crossing || null;
+		const underpassSegment = crossingProjection?.lower_branch
+			? {
+				start_index: crossingProjection.lower_branch.start_index,
+				end_index: crossingProjection.lower_branch.end_index,
+			}
+			: null;
+		const styled = styleRoadPreview(fittedPath, preview.width, preview.height, startIndex, { underpass_segment: underpassSegment });
+		const bounds = getBounds(fittedPath);
+		const result = {
+			slug: previewSlug,
+			width: preview.width,
+			height: preview.height,
+			pixels: styled.pixels,
+			road_pixels: styled.road_pixels,
+			centerline_points: fittedPath.map(([x, y]) => [Number(x.toFixed(3)), Number(y.toFixed(3))]),
+			start_index: startIndex,
+			seam_index: 0,
+			bounds,
+			transform: 'geometry_identity',
+			curve_sign_match_percent: 0,
+			match_percent: 0,
+			join_clearance: styled.join_clearance,
+			branch_pixel_count: styled.branch_pixels.length,
+			crossing_classification: crossingProjection?.classification || null,
+			lower_tail_clearance: null,
+			self_intersections: countSelfIntersections(fittedPath),
+			tile_count: countUniquePreviewTilesFromPixels(styled.pixels, preview.width, preview.height),
+			start_verticality: (() => {
+				if (!fittedPath.length) return 0;
+				const prev = fittedPath[(startIndex - 1 + fittedPath.length) % fittedPath.length];
+				const cur = fittedPath[startIndex];
+				const next = fittedPath[(startIndex + 1) % fittedPath.length];
+				const len1 = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]) || 1;
+				const len2 = Math.hypot(next[0] - cur[0], next[1] - cur[1]) || 1;
+				return Number((((Math.abs(cur[1] - prev[1]) / len1) + (Math.abs(next[1] - cur[1]) / len2)) / 2).toFixed(3));
+			})(),
+		};
+		previewCache.set(track, { key: cacheKey, value: result });
+		return result;
+	}
 	const stockTileBudget = Array.isArray(preview.tiles) && preview.tiles.length > 0 ? preview.tiles.length : 32;
 	const previewPoints = getPreviewOccupiedPoints(preview);
 	const previewBounds = getBounds(previewPoints);

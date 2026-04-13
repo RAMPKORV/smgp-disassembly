@@ -7,6 +7,7 @@ const { readJson } = require('../lib/json');
 const { REPO_ROOT } = require('../lib/rom');
 const { validateAllTracks } = require('../minimap_validate');
 const { getTrackMinimapPairs, getTrackSignData, getTrackSignTileset } = require('../randomizer/track_model');
+const { getGeneratedGeometryState } = require('../randomizer/track_metadata');
 const { parseSeed, randomizeTracks } = require('../randomizer/track_randomizer');
 
 const DEFAULT_BASELINE_SEEDS = ['SMGP-1-01-42', 'SMGP-1-01-12345'];
@@ -70,6 +71,7 @@ function pickAggregateFields(report) {
 function summarizeTrack(track, reportBySlug) {
 	const report = reportBySlug.get(track.slug);
 	const preview = buildGeneratedMinimapPreview(track);
+	const geometryState = getGeneratedGeometryState(track);
 	const activeFlags = Object.entries(report.flags)
 		.filter(([, enabled]) => enabled)
 		.map(([flag]) => flag)
@@ -87,6 +89,8 @@ function summarizeTrack(track, reportBySlug) {
 		preview_tile_count: preview.tile_count,
 		preview_self_intersections: preview.self_intersections,
 		preview_branch_pixel_count: preview.branch_pixel_count,
+		geometry_resampled_count: Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline.length : 0,
+		geometry_crossing_count: geometryState?.topology?.crossing_count || 0,
 		candidate_marker_mean_distance: round(report.metrics.candidate_marker_mean_distance, 3),
 		candidate_marker_hit_percent: round(report.metrics.candidate_marker_hit_percent, 2),
 		curve_map_sign_match_percent: round(report.metrics.curve_map_sign_match_percent, 2),

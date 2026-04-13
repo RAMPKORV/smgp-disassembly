@@ -51,6 +51,16 @@ test('different seeds produce different validation snapshots', () => {
 	assert.notDeepStrictEqual(a, b);
 });
 
+test('validation snapshot fixture stays compact and excludes topology detail blobs', () => {
+	const actual = buildValidationSnapshotFixture(DEFAULT_VALIDATION_SNAPSHOT_SEEDS, DEFAULT_VALIDATION_SNAPSHOT_TRACKS);
+	for (const seed of Object.values(actual.seeds)) {
+		for (const track of Object.values(seed.tracks)) {
+			assert.ok(!Object.prototype.hasOwnProperty.call(track, 'topology'));
+			assert.ok(!Object.prototype.hasOwnProperty.call(track, 'candidate_pairs'));
+		}
+	}
+});
+
 const total = passed + failed;
 console.log(`\nResults: ${passed} passed, ${failed} failed, ${total} total`);
 if (failed > 0) process.exit(1);

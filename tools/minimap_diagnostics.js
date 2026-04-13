@@ -52,7 +52,10 @@ function main() {
 
 		const analysis = analyzeTrackMinimap(track);
 		if (jsonOnly) {
-			process.stdout.write(JSON.stringify(buildMinimapAnalysisSummary(analysis), null, 2) + '\n');
+			const summary = buildMinimapAnalysisSummary(analysis);
+			summary.topology_crossing_count = analysis.track._track_topology_report?.crossing_count || 0;
+			summary.topology_crossing_classification = analysis.track._track_topology_report?.crossing_classification || null;
+			process.stdout.write(JSON.stringify(summary, null, 2) + '\n');
 			return;
 		}
 

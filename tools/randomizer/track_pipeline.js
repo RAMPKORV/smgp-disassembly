@@ -13,10 +13,13 @@ const {
 	ensureAssignedHorizonOverride,
 	ensureOriginalMinimapPos,
 	getAssignedArtName,
+	getGeneratedGeometryState,
 	getGeneratedMinimapPreview,
+	getGeneratedSpecialRoadFeatures,
+	setGeneratedGeometryState,
+	setGeneratedSpecialRoadFeatures,
 	setAssignedHorizonOverride,
 	setAssignedArtName,
-	setGeneratedSpecialRoadFeatures,
 	setPreserveOriginalSignCadence,
 	setRuntimeSafeRandomized,
 } = require('./track_metadata');
@@ -42,6 +45,10 @@ function makeTrackPipeline(deps) {
 		generateCurveRle,
 		normalizeCurveBgDisplacement,
 		decompressCurveSegments,
+		buildMapFirstGeometryState,
+		projectCenterlineToCurveRle,
+		projectCenterlineToSlopeRle,
+		curveBgLoopAligns,
 		generateSlopeRle,
 		generatePhysSlopeRle,
 		buildSpecialRoadFeatures,
@@ -54,6 +61,68 @@ function makeTrackPipeline(deps) {
 		evaluateGeneratedPreviewConstraints,
 		compareGeneratedPreviewConstraints,
 	} = deps;
+
+	function evaluateGeometryQuality(track) {
+		const geometryState = getGeneratedGeometryState(track);
+		const diagnostics = geometryState?.generation_diagnostics || {};
+		const smoothing = diagnostics.smoothing || {};
+		const resampling = diagnostics.resampling || {};
+		const topology = geometryState?.topology || {};
+		const singleCrossing = topology.single_grade_separated_crossing || null;
+		const resampledCenterline = Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline : [];
+		const loopPoints = Array.isArray(geometryState?.loop_points) ? geometryState.loop_points : [];
+		const requestedPasses = smoothing.requested_passes || 0;
+		const appliedPasses = smoothing.applied_passes || 0;
+		const requestedSampleCount = resampling.requested_sample_count || Math.max(1, (track?.track_length || 0) >> 2);
+		const producedSampleCount = resampling.produced_sample_count || resampledCenterline.length;
+		const sampleCountError = Math.abs(requestedSampleCount - producedSampleCount);
+		const startVerticality = Number.isFinite(resampling.start_verticality) ? resampling.start_verticality : 0;
+		const seamAnglePenalty = Math.max(
+			Number.isFinite(resampling.incoming_angle_delta) ? resampling.incoming_angle_delta : 180,
+			Number.isFinite(resampling.outgoing_angle_delta) ? resampling.outgoing_angle_delta : 180,
+		);
+		const topologyPenalty = (topology.crossing_count || 0) > 1
+			? (topology.crossing_count || 0) * 1000
+			: ((topology.crossing_count || 0) === 1 && !singleCrossing ? 1000 : 0);
+		const fallbackPenalty = smoothing.used_fallback ? ((requestedPasses - appliedPasses) * 10) : 0;
+		const geometryScore = topologyPenalty
+			+ (sampleCountError * 20)
+			+ seamAnglePenalty
+			+ ((1 - Math.min(1, startVerticality)) * 40)
+			+ fallbackPenalty;
+
+		return {
+			geometryScore: Number(geometryScore.toFixed(3)),
+			topologyPenalty,
+			crossingCount: topology.crossing_count || 0,
+			requestedSampleCount,
+			producedSampleCount,
+			sampleCountError,
+			startVerticality: Number(startVerticality.toFixed(3)),
+			seamAnglePenalty: Number(seamAnglePenalty.toFixed(3)),
+			usedSmoothingFallback: smoothing.used_fallback === true,
+			appliedSmoothingPasses: appliedPasses,
+			requestedSmoothingPasses: requestedPasses,
+			loopPointCount: loopPoints.length,
+			resampledPointCount: resampledCenterline.length,
+			passes: ((topology.crossing_count || 0) === 0 || ((topology.crossing_count || 0) === 1 && !!singleCrossing))
+				&& producedSampleCount === requestedSampleCount
+				&& startVerticality >= 0.5
+				&& seamAnglePenalty <= 45,
+		};
+	}
+
+	function compareGeneratedTrackCandidates(a, b) {
+		if (a.geometryQuality.passes !== b.geometryQuality.passes) return a.geometryQuality.passes ? -1 : 1;
+		if (a.geometryQuality.geometryScore !== b.geometryQuality.geometryScore) return a.geometryQuality.geometryScore - b.geometryQuality.geometryScore;
+		if (a.constraints.passes !== b.constraints.passes) return a.constraints.passes ? -1 : 1;
+		if (a.constraints.selfIntersections !== b.constraints.selfIntersections) return a.constraints.selfIntersections - b.constraints.selfIntersections;
+		if (a.constraints.startVerticality !== b.constraints.startVerticality) return b.constraints.startVerticality - a.constraints.startVerticality;
+		if (a.constraints.tileCount !== b.constraints.tileCount) return a.constraints.tileCount - b.constraints.tileCount;
+		if (a.constraints.coverageMatchPercent !== b.constraints.coverageMatchPercent) return b.constraints.coverageMatchPercent - a.constraints.coverageMatchPercent;
+		if (a.constraints.signMatchPercent !== b.constraints.signMatchPercent) return b.constraints.signMatchPercent - a.constraints.signMatchPercent;
+		return 0;
+	}
 
 	function randomizeOneTrack(track, masterSeed, verbose = false) {
 		const slug = track.slug || '?';
@@ -78,17 +147,44 @@ function makeTrackPipeline(deps) {
 
 			const newLength = originalLength;
 			candidate.track_length = newLength;
+			const geometryState = buildMapFirstGeometryState(candidate, attemptSeed, { trackSlot: trackIdx });
+			setGeneratedGeometryState(candidate, geometryState);
+			const centerline = Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline : [];
 
-			const curveSegs = generateCurveRle(rngCurves, newLength, candidate);
+			const legacyCurveSegs = generateCurveRle(rngCurves, newLength, candidate);
+			const projectedCurve = centerline.length > 2
+				? projectCenterlineToCurveRle(centerline, newLength)
+				: null;
+			const projectedCurveSegs = projectedCurve?.curve_rle_segments
+				? normalizeCurveBgDisplacement(projectedCurve.curve_rle_segments, { protectStartupCurve: true, trackLength: newLength })
+				: null;
+			const curveSegs = projectedCurveSegs && curveBgLoopAligns(projectedCurveSegs, newLength)
+				? projectedCurveSegs
+				: legacyCurveSegs;
 			const normalizedCurveSegs = normalizeCurveBgDisplacement(curveSegs, { protectStartupCurve: true, trackLength: newLength });
 			candidate.curve_rle_segments = normalizedCurveSegs;
 			candidate.curve_decompressed = decompressCurveSegments(normalizedCurveSegs);
+			if (geometryState) {
+				geometryState.projections.curve = projectedCurve && curveSegs === projectedCurveSegs ? projectedCurve : null;
+				setGeneratedGeometryState(candidate, geometryState);
+			}
 
-			const [initBgDisp, slopeSegs] = generateSlopeRle(rngSlopes, newLength, normalizedCurveSegs);
-			const physSegs = generatePhysSlopeRle(rngSlopes, newLength, slopeSegs);
+			const projectedSlope = centerline.length > 2
+				? projectCenterlineToSlopeRle(centerline, newLength, {
+					crossingInfo: geometryState?.topology?.single_grade_separated_crossing || null,
+				})
+				: null;
+			const legacySlope = projectedSlope ? null : generateSlopeRle(rngSlopes, newLength, normalizedCurveSegs);
+			const initBgDisp = projectedSlope?.slope_initial_bg_disp ?? legacySlope[0];
+			const slopeSegs = projectedSlope?.slope_rle_segments || legacySlope[1];
+			const physSegs = projectedSlope?.phys_slope_rle_segments || generatePhysSlopeRle(rngSlopes, newLength, slopeSegs);
 			candidate.slope_initial_bg_disp = initBgDisp;
 			candidate.slope_rle_segments = slopeSegs;
 			candidate.phys_slope_rle_segments = physSegs;
+			if (geometryState) {
+				geometryState.projections.slope = projectedSlope || null;
+				setGeneratedGeometryState(candidate, geometryState);
+			}
 
 			const slopeDecomp = [];
 			for (const seg of slopeSegs) {
@@ -108,10 +204,12 @@ function makeTrackPipeline(deps) {
 			}
 			candidate.phys_slope_decompressed = physDecomp;
 
-			const specialRoadFeatures = buildSpecialRoadFeatures(rngSigns, newLength, normalizedCurveSegs);
+			const specialRoadFeatures = getGeneratedSpecialRoadFeatures(candidate).length
+				? getGeneratedSpecialRoadFeatures(candidate)
+				: buildSpecialRoadFeatures(rngSigns, newLength, normalizedCurveSegs);
 			const [baseTilesetRecords, tilesetTrailing] = generateSignTileset(rngSigns, newLength, normalizedCurveSegs, candidate);
 			const tilesetRecords = enforceWrapSafeTilesetRecords(newLength, applySpecialRoadTilesetRecords(baseTilesetRecords, specialRoadFeatures));
-			const baseSignRecords = generateSignData(rngSigns, newLength, normalizedCurveSegs, tilesetRecords);
+			const baseSignRecords = generateSignData(rngSigns, newLength, normalizedCurveSegs, tilesetRecords, candidate);
 			const signRecords = applySpecialRoadSignRecords(baseSignRecords, specialRoadFeatures);
 			candidate.sign_data = signRecords;
 			candidate.sign_tileset = tilesetRecords;
@@ -125,6 +223,7 @@ function makeTrackPipeline(deps) {
 			return {
 				candidate,
 				constraints: evaluateGeneratedPreviewConstraints(candidate),
+				geometryQuality: evaluateGeometryQuality(candidate),
 				curveCounts: {
 					straight: curveSegs.filter(s => s.type === 'straight').length,
 					curve: curveSegs.filter(s => s.type === 'curve').length,
@@ -139,10 +238,10 @@ function makeTrackPipeline(deps) {
 		let bestAttempt = null;
 		for (let attemptIndex = 0; attemptIndex < 2; attemptIndex++) {
 			const attempt = buildAttempt(attemptIndex);
-			if (!bestAttempt || compareGeneratedPreviewConstraints(attempt.constraints, bestAttempt.constraints) < 0) {
+			if (!bestAttempt || compareGeneratedTrackCandidates(attempt, bestAttempt) < 0) {
 				bestAttempt = attempt;
 			}
-			if (attempt.constraints.passes) break;
+			if (attempt.geometryQuality.passes && attempt.constraints.passes) break;
 		}
 
 		for (const key of Object.keys(track)) delete track[key];
@@ -153,6 +252,11 @@ function makeTrackPipeline(deps) {
 			process.stdout.write(`    curve: ${bestAttempt.curveCounts.straight} straight + ${bestAttempt.curveCounts.curve} curve segments\n`);
 			process.stdout.write(`    slope: ${bestAttempt.curveCounts.slopeFlat} flat + ${bestAttempt.curveCounts.slope} slope segments\n`);
 			process.stdout.write(`    signs: ${bestAttempt.curveCounts.signs} records, ${bestAttempt.curveCounts.tilesets} tileset entries\n`);
+			process.stdout.write(
+				`    geometry: score ${bestAttempt.geometryQuality.geometryScore} / crossings ${bestAttempt.geometryQuality.crossingCount} / ` +
+				`resampled ${bestAttempt.geometryQuality.producedSampleCount}/${bestAttempt.geometryQuality.requestedSampleCount} / ` +
+				`start ${bestAttempt.geometryQuality.startVerticality}\n`
+			);
 			const previewInfo = getGeneratedMinimapPreview(track);
 			process.stdout.write(
 				`    minimap: ${track.minimap_pos.length} pairs (need ${track.track_length >> 6}), ` +
@@ -213,6 +317,8 @@ function makeTrackPipeline(deps) {
 	}
 
 	return {
+		evaluateGeometryQuality,
+		compareGeneratedTrackCandidates,
 		pickTrackLength,
 		randomizeOneTrack,
 		randomizeTracks,

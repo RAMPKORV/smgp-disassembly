@@ -6,19 +6,23 @@ const assert = require('assert');
 const {
 	TRACK_METADATA_FIELDS,
 	ensureAssignedHorizonOverride,
+	getGeneratedGeometryState,
 	ensureOriginalMinimapPos,
 	getAssignedArtName,
 	getAssignedHorizonOverride,
 	getGeneratedMinimapPreview,
 	getGeneratedSpecialRoadFeatures,
 	getMinimapGuideSource,
+	getTrackTopologyReport,
 	isRuntimeSafeRandomized,
 	preservesOriginalSignCadence,
 	setAssignedArtName,
 	setAssignedHorizonOverride,
+	setGeneratedGeometryState,
 	setGeneratedMinimapPreview,
 	setGeneratedSpecialRoadFeatures,
 	setPreserveOriginalSignCadence,
+	setTrackTopologyReport,
 	setRuntimeSafeRandomized,
 } = require('../randomizer/track_metadata');
 
@@ -91,6 +95,25 @@ test('generated special road features helper defaults empty and stores array', (
 	assert.deepStrictEqual(getGeneratedSpecialRoadFeatures(track), []);
 	setGeneratedSpecialRoadFeatures(track, [{ kind: 'tunnel' }]);
 	assert.strictEqual(getGeneratedSpecialRoadFeatures(track).length, 1);
+});
+
+test('generated geometry helper stores a cloned transient geometry state', () => {
+	const track = {};
+	const geometryState = { resampled_centerline: [[1, 2], [3, 4]], topology: { crossing_count: 0 } };
+	setGeneratedGeometryState(track, geometryState);
+	const stored = getGeneratedGeometryState(track);
+	assert.deepStrictEqual(stored, geometryState);
+	geometryState.resampled_centerline[0][0] = 99;
+	assert.deepStrictEqual(getGeneratedGeometryState(track).resampled_centerline, [[1, 2], [3, 4]]);
+});
+
+test('track topology helper stores a cloned topology report summary', () => {
+	const track = {};
+	const topology = { crossing_count: 1, proper_crossing_count: 1, eligible_for_single_crossing_rule: true };
+	setTrackTopologyReport(track, topology);
+	assert.deepStrictEqual(getTrackTopologyReport(track), topology);
+	topology.crossing_count = 7;
+	assert.strictEqual(getTrackTopologyReport(track).crossing_count, 1);
 });
 
 const total = passed + failed;

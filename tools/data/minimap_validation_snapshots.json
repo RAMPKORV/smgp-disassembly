@@ -9,69 +9,69 @@
     "SMGP-1-01-42": {
       "aggregate": {
         "track_count": 19,
-        "stock_marker_mean_distance": 1.449,
-        "stock_marker_hit_percent": 38.34,
-        "generated_marker_mean_distance": 1.663,
-        "generated_marker_hit_percent": 38.1,
+        "stock_marker_mean_distance": 3.177,
+        "stock_marker_hit_percent": 30.03,
+        "generated_marker_mean_distance": 0.641,
+        "generated_marker_hit_percent": 52.09,
         "candidate_marker_mean_distance": 0,
         "candidate_marker_hit_percent": 100,
-        "preview_self_intersections": 2.37,
-        "preview_branch_pixel_count": 497.16,
-        "curve_map_sign_match_percent": 77,
-        "curve_map_strength_error": 0.0033,
+        "preview_self_intersections": 0,
+        "preview_branch_pixel_count": 332.84,
+        "curve_map_sign_match_percent": 49.17,
+        "curve_map_strength_error": 0.0066,
         "generated_marker_offroad_count": 19,
         "candidate_marker_offroad_count": 0,
-        "curve_map_left_right_mismatch_count": 6,
-        "curve_map_phase_mismatch_count": 16,
+        "curve_map_left_right_mismatch_count": 19,
+        "curve_map_phase_mismatch_count": 15,
         "curve_map_strength_mismatch_count": 0
       },
       "tracks": {
         "san_marino": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 1.723,
-          "generated_marker_hit_percent": 36.36,
+          "generated_marker_mean_distance": 0.238,
+          "generated_marker_hit_percent": 63.64,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 90.18,
-          "curve_map_best_shift_ratio": -0.1875,
-          "preview_self_intersections": 4,
-          "preview_branch_pixel_count": 736,
+          "curve_map_sign_match_percent": 46.88,
+          "curve_map_best_shift_ratio": 0.0234,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 277,
           "active_flags": [
-            "curve_map_phase_mismatch",
-            "generated_marker_offroad",
-            "too_fat"
+            "curve_map_left_right_mismatch",
+            "generated_marker_offroad"
           ]
         },
         "brazil": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 2.017,
-          "generated_marker_hit_percent": 26.61,
+          "generated_marker_mean_distance": 0.673,
+          "generated_marker_hit_percent": 43.12,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 59.44,
-          "curve_map_best_shift_ratio": -0.0039,
-          "preview_self_intersections": 2,
-          "preview_branch_pixel_count": 470,
-          "active_flags": [
-            "generated_marker_offroad",
-            "too_fat"
-          ]
-        },
-        "monaco": {
-          "preview_match_percent": 0,
-          "generated_marker_mean_distance": 2.54,
-          "generated_marker_hit_percent": 23.96,
-          "candidate_marker_mean_distance": 0,
-          "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 48.39,
-          "curve_map_best_shift_ratio": 0.3984,
-          "preview_self_intersections": 6,
-          "preview_branch_pixel_count": 617,
+          "curve_map_sign_match_percent": 48.03,
+          "curve_map_best_shift_ratio": -0.2305,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 393,
           "active_flags": [
             "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
             "generated_marker_offroad",
-            "too_fat"
+            "pair_desync"
+          ]
+        },
+        "monaco": {
+          "preview_match_percent": 0,
+          "generated_marker_mean_distance": 0.23,
+          "generated_marker_hit_percent": 66.67,
+          "candidate_marker_mean_distance": 0,
+          "candidate_marker_hit_percent": 100,
+          "curve_map_sign_match_percent": 48.2,
+          "curve_map_best_shift_ratio": 0.4492,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 340,
+          "active_flags": [
+            "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad"
           ]
         }
       }
@@ -79,33 +79,33 @@
     "SMGP-1-01-12345": {
       "aggregate": {
         "track_count": 19,
-        "stock_marker_mean_distance": 1.424,
-        "stock_marker_hit_percent": 38.81,
-        "generated_marker_mean_distance": 1.48,
-        "generated_marker_hit_percent": 37.07,
+        "stock_marker_mean_distance": 3.421,
+        "stock_marker_hit_percent": 31.09,
+        "generated_marker_mean_distance": 0.522,
+        "generated_marker_hit_percent": 56.13,
         "candidate_marker_mean_distance": 0,
         "candidate_marker_hit_percent": 100,
-        "preview_self_intersections": 1.89,
-        "preview_branch_pixel_count": 475.53,
-        "curve_map_sign_match_percent": 69.98,
-        "curve_map_strength_error": 0.0035,
+        "preview_self_intersections": 0,
+        "preview_branch_pixel_count": 335.84,
+        "curve_map_sign_match_percent": 50.11,
+        "curve_map_strength_error": 0.0066,
         "generated_marker_offroad_count": 19,
         "candidate_marker_offroad_count": 0,
-        "curve_map_left_right_mismatch_count": 7,
-        "curve_map_phase_mismatch_count": 11,
+        "curve_map_left_right_mismatch_count": 19,
+        "curve_map_phase_mismatch_count": 18,
         "curve_map_strength_mismatch_count": 0
       },
       "tracks": {
         "san_marino": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 1.203,
-          "generated_marker_hit_percent": 40.91,
+          "generated_marker_mean_distance": 0.679,
+          "generated_marker_hit_percent": 42.73,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 45.57,
-          "curve_map_best_shift_ratio": 0.2109,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 210,
+          "curve_map_sign_match_percent": 46.36,
+          "curve_map_best_shift_ratio": -0.1211,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 342,
           "active_flags": [
             "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
@@ -114,33 +114,33 @@
         },
         "brazil": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 1.969,
-          "generated_marker_hit_percent": 30.28,
+          "generated_marker_mean_distance": 0.371,
+          "generated_marker_hit_percent": 47.71,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 56.07,
-          "curve_map_best_shift_ratio": 0.4727,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 580,
+          "curve_map_sign_match_percent": 45.51,
+          "curve_map_best_shift_ratio": 0.4844,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 340,
           "active_flags": [
             "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
-            "generated_marker_offroad",
-            "too_fat"
+            "generated_marker_offroad"
           ]
         },
         "monaco": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 0.877,
-          "generated_marker_hit_percent": 36.46,
+          "generated_marker_mean_distance": 0.111,
+          "generated_marker_hit_percent": 83.33,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 49.38,
-          "curve_map_best_shift_ratio": -0.0664,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 327,
+          "curve_map_sign_match_percent": 54.3,
+          "curve_map_best_shift_ratio": 0.25,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 333,
           "active_flags": [
             "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
             "generated_marker_offroad"
           ]
         }
@@ -149,66 +149,68 @@
     "SMGP-1-01-99999": {
       "aggregate": {
         "track_count": 19,
-        "stock_marker_mean_distance": 1.639,
-        "stock_marker_hit_percent": 35.37,
-        "generated_marker_mean_distance": 1.792,
-        "generated_marker_hit_percent": 34.91,
+        "stock_marker_mean_distance": 3.134,
+        "stock_marker_hit_percent": 30.81,
+        "generated_marker_mean_distance": 0.824,
+        "generated_marker_hit_percent": 48.47,
         "candidate_marker_mean_distance": 0,
         "candidate_marker_hit_percent": 100,
-        "preview_self_intersections": 1.89,
-        "preview_branch_pixel_count": 433.11,
-        "curve_map_sign_match_percent": 76.11,
-        "curve_map_strength_error": 0.0033,
+        "preview_self_intersections": 0.05,
+        "preview_branch_pixel_count": 329.79,
+        "curve_map_sign_match_percent": 49.05,
+        "curve_map_strength_error": 0.0066,
         "generated_marker_offroad_count": 19,
         "candidate_marker_offroad_count": 0,
-        "curve_map_left_right_mismatch_count": 5,
+        "curve_map_left_right_mismatch_count": 19,
         "curve_map_phase_mismatch_count": 14,
         "curve_map_strength_mismatch_count": 0
       },
       "tracks": {
         "san_marino": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 1.533,
-          "generated_marker_hit_percent": 35.45,
+          "generated_marker_mean_distance": 0.518,
+          "generated_marker_hit_percent": 48.18,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 93.71,
-          "curve_map_best_shift_ratio": -0.1367,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 391,
+          "curve_map_sign_match_percent": 53.76,
+          "curve_map_best_shift_ratio": 0.4688,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 316,
           "active_flags": [
+            "curve_map_left_right_mismatch",
             "curve_map_phase_mismatch",
             "generated_marker_offroad"
           ]
         },
         "brazil": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 1.972,
-          "generated_marker_hit_percent": 22.02,
+          "generated_marker_mean_distance": 0.892,
+          "generated_marker_hit_percent": 37.61,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 98.68,
-          "curve_map_best_shift_ratio": 0.4258,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 340,
+          "curve_map_sign_match_percent": 54.17,
+          "curve_map_best_shift_ratio": 0.0625,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 361,
           "active_flags": [
-            "curve_map_phase_mismatch",
+            "curve_map_left_right_mismatch",
             "generated_marker_offroad"
           ]
         },
         "monaco": {
           "preview_match_percent": 0,
-          "generated_marker_mean_distance": 1.789,
-          "generated_marker_hit_percent": 25,
+          "generated_marker_mean_distance": 0.769,
+          "generated_marker_hit_percent": 32.29,
           "candidate_marker_mean_distance": 0,
           "candidate_marker_hit_percent": 100,
-          "curve_map_sign_match_percent": 98.18,
-          "curve_map_best_shift_ratio": -0.0195,
-          "preview_self_intersections": 1,
-          "preview_branch_pixel_count": 556,
+          "curve_map_sign_match_percent": 49.04,
+          "curve_map_best_shift_ratio": -0.2305,
+          "preview_self_intersections": 0,
+          "preview_branch_pixel_count": 285,
           "active_flags": [
-            "generated_marker_offroad",
-            "too_fat"
+            "curve_map_left_right_mismatch",
+            "curve_map_phase_mismatch",
+            "generated_marker_offroad"
           ]
         }
       }
