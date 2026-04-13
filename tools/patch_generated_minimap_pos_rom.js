@@ -75,15 +75,21 @@ function main() {
 		const minimapPtr = trackInfo.minimapPosAddr;
 		const existing = patchedMinimapPtrs.get(minimapPtr);
 		if (existing) {
-			if (!existing.encoded.equals(encoded)) {
+			const sharesMonacoArcadeWetMinimap = existing.track.index === 17 && track.index === 18;
+			const reusedExisting = existing.encoded.equals(encoded);
+			if (!reusedExisting && !sharesMonacoArcadeWetMinimap) {
 				die(`shared minimap_pos pointer conflict at $${minimapPtr.toString(16)} between ${existing.track.slug} and ${track.slug}`);
+			}
+			if (sharesMonacoArcadeWetMinimap && !reusedExisting) {
+				encoded.copy(rom, minimapPtr);
+				existing.encoded = Buffer.from(encoded);
 			}
 			summaries.push({
 				track,
 				entryAddr: trackInfo.entryAddr,
 				minimapPtr,
 				nextPtr: existing.nextPtr,
-				bytesWritten: 0,
+				bytesWritten: sharesMonacoArcadeWetMinimap && !reusedExisting ? encoded.length : 0,
 				firstPair: remappedPairs[0],
 				sharedWith: existing.track.slug,
 			});

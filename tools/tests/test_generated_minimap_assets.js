@@ -330,7 +330,7 @@ test('buildGeneratedMinimapPreview marks underpass branch distinctly for crossin
 	});
 	const preview = buildGeneratedMinimapPreview(track);
 	assert.strictEqual(preview.crossing_classification, 'grade_separated_crossing');
-	assert.ok(preview.pixels.some(value => value === 1));
+	assert.ok(preview.pixels.some(value => value === 0));
 	const assets = buildGeneratedMinimapAssets(track);
 	assert.ok(assets.words.some(word => word !== 0));
 });

@@ -346,7 +346,7 @@ function drawUnderpassIndicator(pixels, width, height, centerlinePoints, underpa
 	for (let i = 0; i < indices.length - 1; i++) {
 		const a = centerlinePoints[indices[i]];
 		const b = centerlinePoints[indices[i + 1]];
-		drawThickLine(pixels, width, height, a[0], a[1], b[0], b[1], 1, 0.35);
+		drawThickLine(pixels, width, height, a[0], a[1], b[0], b[1], 0, 0.22);
 	}
 }
 

@@ -133,11 +133,11 @@ function buildGeneratedTrackBlock(options = {}) {
 	if (preBlobPadBytes > 0) {
 		lines.push(`\tdcb.b\t${preBlobPadBytes}, $00`);
 	}
-	lines.push('Monaco_arcade_post_sign_tileset_blob:');
-	lines.push('\tincbin\t"data/tracks/monaco_arcade/post_sign_tileset_blob.bin"');
 	if (inlineBlobPadBytes > 0) {
 		lines.push(`\tdcb.b\t${inlineBlobPadBytes}, $00`);
 	}
+	lines.push('Monaco_arcade_post_sign_tileset_blob:');
+	lines.push('\tincbin\t"data/tracks/monaco_arcade/post_sign_tileset_blob.bin"');
 	if (padBytes > 0) {
 		lines.push(`\tdcb.b\t${padBytes}, $00`);
 	}

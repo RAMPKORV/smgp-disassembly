@@ -78,10 +78,12 @@ const { smoothClosedPath } = require('../randomizer/track_geometry');
 const { getGeneratedGeometryState } = require('../randomizer/track_metadata');
 
 function buildPreviewCacheKey(track) {
+	const geometryState = getGeneratedGeometryState(track);
 	return JSON.stringify([
 		resolvePreviewSlug(track),
 		track?.track_length || 0,
 		track?.curve_rle_segments || [],
+		geometryState?.projections?.slope?.grade_separated_crossing || null,
 	]);
 }
 

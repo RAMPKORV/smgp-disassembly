@@ -27,7 +27,7 @@ function test(name, fn) {
   }
 }
 
-const content = buildGeneratedTrackBlock();
+const content = buildGeneratedTrackBlock({ keepInlineBlobPadding: false });
 const contentWithGeneratedMinimap = buildGeneratedTrackBlock({ includeGeneratedMinimapData: true });
 
 test('generated block includes every declared track prefix/file combination', () => {
@@ -40,9 +40,10 @@ test('generated block includes every declared track prefix/file combination', ()
 });
 
 test('generated block preserves Monaco arcade trailing blob', () => {
-  assert.ok(content.includes('Monaco_arcade_post_sign_tileset_blob:'), 'missing Monaco arcade trailing blob label');
-  assert.ok(content.includes(`\tdcb.b\t${MONACO_ARCADE_TRAILING_PAD_BYTES}, $00`), 'missing Monaco arcade compatibility pad');
-  assert.ok(content.includes('data/tracks/monaco_arcade/post_sign_tileset_blob.bin'), 'missing Monaco arcade trailing blob incbin');
+  const defaultContent = buildGeneratedTrackBlock();
+	assert.ok(defaultContent.includes('Monaco_arcade_post_sign_tileset_blob:'), 'missing Monaco arcade trailing blob label');
+	assert.ok(defaultContent.includes(`\tdcb.b\t${MONACO_ARCADE_TRAILING_PAD_BYTES}, $00`), 'missing Monaco arcade compatibility pad');
+	assert.ok(defaultContent.includes('data/tracks/monaco_arcade/post_sign_tileset_blob.bin'), 'missing Monaco arcade trailing blob incbin');
 });
 
 test('generated block places Monaco arcade blob label at canonical blob start', () => {
@@ -71,6 +72,15 @@ test('generated block places Monaco arcade blob label at canonical blob start', 
 
 test('generated block excludes generated minimap include by default', () => {
   assert.ok(!content.includes('Generated_minimap_preview_data:'), 'unexpected generated minimap include in default block');
+});
+
+test('generated block keeps Monaco inline compatibility padding before blob label', () => {
+	const defaultContent = buildGeneratedTrackBlock();
+	const inlinePadLine = `\tdcb.b\t${MONACO_ARCADE_TRAILING_PAD_BYTES}, $00`;
+	const inlinePadIndex = defaultContent.indexOf(inlinePadLine);
+	const blobLabelIndex = defaultContent.indexOf('Monaco_arcade_post_sign_tileset_blob:');
+	assert.ok(inlinePadIndex >= 0, 'missing Monaco inline compatibility pad');
+	assert.ok(blobLabelIndex > inlinePadIndex, 'expected blob label after Monaco inline pad');
 });
 
 test('generated block includes generated minimap include when requested', () => {

@@ -29,33 +29,22 @@ function buildGeneratedMinimapPosPairs(track) {
 		return runtimeProjection.pairs.map(([x, y]) => [clampSignedByte(x), clampSignedByte(y)]);
 	}
 
-	const geometryCenterline = getGeneratedGeometryState(track)?.resampled_centerline;
-	if (Array.isArray(geometryCenterline) && geometryCenterline.length > 0) {
+	if (runtimeProjection && Array.isArray(runtimeProjection.centerline_points) && runtimeProjection.centerline_points.length > 0) {
 		const sampleCount = Array.isArray(track?.minimap_pos) && track.minimap_pos.length > 0
 			? track.minimap_pos.length
 			: Math.max(1, (track?.track_length || 0) >> 6);
-		return buildPairsFromCenterline(geometryCenterline, sampleCount, 0);
+		return buildPairsFromCenterline(runtimeProjection.centerline_points, sampleCount, runtimeProjection.start_index);
 	}
 
-	const projectionPreview = runtimeProjection && Array.isArray(runtimeProjection.centerline_points)
-		? runtimeProjection
-		: null;
-	const preview = projectionPreview
-		? projectionPreview
-		: require('./minimap_render').buildGeneratedMinimapPreview(track);
-	let centerline = Array.isArray((projectionPreview || preview).centerline_points)
-		? (projectionPreview || preview).centerline_points.map(([x, y]) => [x, y])
-		: [];
-
-	if (!centerline.length) {
-		return generateMinimapPairsFromTrack(track).pairs;
+	if (track && Array.isArray(track.minimap_pos)) {
+		const preview = require('./minimap_render').buildGeneratedMinimapPreview(track);
+		const previewCenterline = Array.isArray(preview?.centerline_points) ? preview.centerline_points : [];
+		if (previewCenterline.length > 0) {
+			return buildPairsFromCenterline(previewCenterline, track.minimap_pos.length || Math.max(1, (track?.track_length || 0) >> 6), preview.start_index);
+		}
 	}
 
-	const sampleCount = Array.isArray(track?.minimap_pos) && track.minimap_pos.length > 0
-		? track.minimap_pos.length
-		: Math.max(1, (track?.track_length || 0) >> 6);
-
-	return buildPairsFromCenterline(centerline, sampleCount, (projectionPreview || preview).start_index);
+	return generateMinimapPairsFromTrack(track).pairs;
 }
 
 module.exports = {

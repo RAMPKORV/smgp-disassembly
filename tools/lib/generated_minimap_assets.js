@@ -23,10 +23,12 @@ function getPreviewProjection(track) {
 
 function buildAssetsCacheKey(track) {
 	const previewProjection = getPreviewProjection(track);
+	const geometryState = getGeneratedGeometryState(track);
 	return JSON.stringify([
 		track?.track_length || 0,
 		track?.curve_rle_segments || [],
 		previewProjection || null,
+		geometryState?.projections?.slope?.grade_separated_crossing || null,
 	]);
 }
 

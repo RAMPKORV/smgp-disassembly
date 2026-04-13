@@ -55,6 +55,7 @@ const MONACO_INLINE_BLOB_PAD_BYTES = 2399;
 const WORKSPACES = path.join(REPO_ROOT, 'build', 'workspaces');
 const ROM_OUTPUTS = path.join(REPO_ROOT, 'build', 'roms');
 const WORKSPACE_TEMPLATE_DIR = path.join(WORKSPACES, '_template');
+const WORKSPACE_TEMPLATE_VERSION = 2;
 const USAGE_TEXT = [
 	'Usage: node tools/hack_workdir.js SMGP-<v>-<flags_hex>-<decimal> [options]',
 	'       node tools/hack_workdir.js --list [--json]',
@@ -328,6 +329,7 @@ function refreshWorkspaceFromTemplate(templateDir, wsDir, verbose) {
 	const mutablePaths = [
 		['src'],
 		['data', 'tracks'],
+		['tools'],
 		['tools', 'data'],
 	];
 	for (const parts of mutablePaths) {
@@ -346,7 +348,10 @@ function refreshWorkspaceFromTemplate(templateDir, wsDir, verbose) {
 function ensureWorkspaceTemplate(repoRoot, verbose, options = {}) {
 	const useWorkingTreeAsm = options.useWorkingTreeAsm === true;
 	const markerPath = path.join(WORKSPACE_TEMPLATE_DIR, '.template-ready.json');
-	const desiredMarker = JSON.stringify({ asmBase: useWorkingTreeAsm ? 'working-tree' : 'git-head' });
+	const desiredMarker = JSON.stringify({
+		version: WORKSPACE_TEMPLATE_VERSION,
+		asmBase: useWorkingTreeAsm ? 'working-tree' : 'git-head',
+	});
 	if (fs.existsSync(WORKSPACE_TEMPLATE_DIR) && fs.existsSync(markerPath)) {
 		try {
 			if (fs.readFileSync(markerPath, 'utf8').trim() === desiredMarker) return { reused: true };
