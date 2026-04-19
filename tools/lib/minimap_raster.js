@@ -286,14 +286,18 @@ function renderStyledPixelsFromRoadMask(fillMask, width, height, centerlinePoint
 	const outlineMask = subtractMask(dilated, fillMask);
 	const rightWideMask = new Uint8Array(width * height);
 	for (let y = 0; y < height; y++) {
-		let rightmostRoadX = -1;
 		for (let x = 0; x < width; x++) {
-			if (fillMask[(y * width) + x]) rightmostRoadX = x;
+			const index = (y * width) + x;
+			if (!fillMask[index]) continue;
+			let runEnd = x;
+			while (runEnd + 1 < width && fillMask[(y * width) + runEnd + 1]) runEnd += 1;
+			if (runEnd + 2 < width
+				&& outlineMask[(y * width) + runEnd + 1]
+				&& !fillMask[(y * width) + runEnd + 2]) {
+				rightWideMask[(y * width) + runEnd + 2] = 1;
+			}
+			x = runEnd;
 		}
-		if (rightmostRoadX < 0 || rightmostRoadX + 2 >= width) continue;
-		if (!outlineMask[(y * width) + rightmostRoadX + 1]) continue;
-		if (fillMask[(y * width) + rightmostRoadX + 2]) continue;
-		rightWideMask[(y * width) + rightmostRoadX + 2] = 1;
 	}
 	const blackMask = unionMasks(outlineMask, rightWideMask);
 	const pixels = new Uint8Array(width * height);

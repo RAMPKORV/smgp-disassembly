@@ -919,7 +919,7 @@ function emitLegalContourPreview(preview) {
 					&& hasCornerAnchor
 					&& narrowStrip
 					&& (localComponent.length === 1 || simplePath)
-					&& (localComponent.length === 1 || spansOppositeEdges);
+					&& (localComponent.length === 1 || spansOppositeEdges || popcount4(boundaryEdgeMask) === 2);
 				const roadAdjacentStrip = componentTouchesRoad
 					&& !cellContainsRoadOrMarker
 					&& narrowStrip

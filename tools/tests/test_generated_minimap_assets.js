@@ -557,6 +557,31 @@ test('buildAssetPreview preserves the current Brazil right-wall strip and inner 
 	}
 });
 
+test('buildAssetPreview keeps a two-pixel right border for each Canada road segment and preserves the lower-left border', () => {
+	const workspaceTracks = JSON.parse(fs.readFileSync('build/workspaces/SMGP-1-01-12345/tools/data/tracks.json', 'utf8'));
+	const track = getTracks(workspaceTracks).find(entry => entry.index === 6);
+	assert.ok(track, 'expected workspace track index 6');
+	const assetPreview = buildAssetPreview(track, buildGeneratedMinimapPreview(track));
+	for (const y of [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39]) {
+		let runStart = -1;
+		let runEnd = -1;
+		for (let x = 0; x < assetPreview.width; x++) {
+			if (!assetPreview.road_pixels[(y * assetPreview.width) + x]) continue;
+			runStart = x;
+			while (x + 1 < assetPreview.width && assetPreview.road_pixels[(y * assetPreview.width) + x + 1]) x++;
+			runEnd = x;
+			break;
+		}
+		assert.ok(runStart >= 0, `expected left Canada segment road run at row ${y}`);
+		assert.strictEqual(assetPreview.pixels[(y * assetPreview.width) + runStart - 1], 1, `expected left Canada segment left border at row ${y}`);
+		assert.strictEqual(assetPreview.pixels[(y * assetPreview.width) + runEnd + 1], 1, `expected first right border pixel for left Canada segment at row ${y}`);
+		assert.strictEqual(assetPreview.pixels[(y * assetPreview.width) + runEnd + 2], 1, `expected second right border pixel for left Canada segment at row ${y}`);
+	}
+	for (const y of [40, 41, 42]) {
+		assert.strictEqual(assetPreview.pixels[(y * assetPreview.width) + 15], 1, `expected lower-left Canada border pixel at 15,${y}`);
+	}
+});
+
 function orphanBlackComponentCount(pixels, roadPixels, startMarkerPixels = null, width = PREVIEW_WIDTH, height = PREVIEW_HEIGHT) {
 	const seen = new Uint8Array(width * height);
 	let orphanCount = 0;
