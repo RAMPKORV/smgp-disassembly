@@ -34,6 +34,7 @@ const { assertSafeRomPath } = require('./lib/workspace_guard');
 
 const PREVIEW_MAP_JSR_ADDR = 0x000058FA;
 const HUD_MAP_JSR_ADDR = 0x000011EC;
+const PREVIEW_TILE_VDP_CMD_ADDR = 0x000058CE;
 const WRITE_TILEMAP_ROWS_TO_VDP_ADDR = 0x000007DC;
 const DECOMPRESS_PREVIEW_MAP_ADDR = 0x000007BE;
 const DECOMPRESS_HUD_MAP_ADDR = 0x000007CE;
@@ -45,6 +46,15 @@ const MAP_WIDTH = MINIMAP_PANEL_TILES_W;
 const MAP_HEIGHT = MINIMAP_PANEL_TILES_H;
 const MAP_WORD_COUNT = MINIMAP_PANEL_CELL_COUNT;
 const DEFAULT_BASE_ADDR = 0x00013DBE;
+const CHAMPIONSHIP_PREVIEW_TILE_INDEX = 0x0400;
+const CHAMPIONSHIP_PREVIEW_TILE_VDP_CMD = 0x40000002;
+
+function offsetTileWord(word, tileOffset) {
+	const value = word & 0xFFFF;
+	const tileIndex = value & 0x07FF;
+	if (tileIndex === 0) return value;
+	return (value & 0xF800) | ((tileIndex + tileOffset) & 0x07FF);
+}
 
 function encodeRts() {
 	const out = Buffer.alloc(2);
@@ -69,7 +79,7 @@ function buildPreviewRawMap(track, assetsOverride = null) {
 		throw new Error(`unexpected minimap word count for ${track.slug}: ${assets.words ? assets.words.length : 'null'}`);
 	}
 	const out = Buffer.alloc(MAP_WORD_COUNT * 2);
-	for (let i = 0; i < assets.words.length; i++) writeWordBE(out, i * 2, assets.words[i] & 0xFFFF);
+	for (let i = 0; i < assets.words.length; i++) writeWordBE(out, i * 2, offsetTileWord(assets.words[i], CHAMPIONSHIP_PREVIEW_TILE_INDEX - 1));
 	return out;
 }
 
@@ -102,7 +112,7 @@ function buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs) {
 		'\tADD.w\tD0, D0',
 		'\tLEA\tPreview_raw_map_ptr_table(PC), A3',
 		'\tMOVEA.l\t0(A3,D0.w), A6',
-		'\tMOVE.w\t#1, D1',
+		'\tMOVEQ\t#0, D1',
 		'\tMOVE.l\t#$01000000, D3',
 		'\tJSR\tWrite_tilemap_rows_to_vdp',
 		'\tRTS',
@@ -308,6 +318,7 @@ function main() {
 	const rom = reuseFreeSpace ? chunks[0] : Buffer.concat(chunks, cursor);
 	encodeJsrAbsoluteLong(previewHelperAddr).copy(rom, PREVIEW_MAP_JSR_ADDR);
 	encodeJsrAbsoluteLong(hudHelperAddr).copy(rom, HUD_MAP_JSR_ADDR);
+	writeLongBE(rom, PREVIEW_TILE_VDP_CMD_ADDR, CHAMPIONSHIP_PREVIEW_TILE_VDP_CMD);
 	if (!reuseFreeSpace) patchRomEnd(rom);
 
 	fs.writeFileSync(romPath, rom);

@@ -10,7 +10,7 @@ const GAMEPLAY_ASM = path.join(REPO_ROOT, 'src', 'gameplay.asm');
 const TRACK_PREVIEW_TILEMAP_LABEL = 'Track_preview_tilemap_data';
 const TRACK_PREVIEW_TILEMAP_STRIDE = 0x3B;
 const TRACK_PREVIEW_WORD_BASE = 0x2032;
-const MINIMAP_VRAM_TILE_BASE = 65;
+const COURSE_SELECT_PREVIEW_TILE_VRAM_BASE = 2;
 
 let trackPreviewTilemapBytesCache = null;
 
@@ -119,7 +119,7 @@ function derivePackedTilemapLocalRefOffsets(bytes, options = {}) {
 	const localRefOffsets = [];
 	const minimapVramTileBase = Number.isInteger(options.minimapVramTileBase)
 		? options.minimapVramTileBase
-		: MINIMAP_VRAM_TILE_BASE;
+		: COURSE_SELECT_PREVIEW_TILE_VRAM_BASE;
 	const localTileLimit = Number.isInteger(options.localTileCount) && options.localTileCount > 0
 		? options.localTileCount
 		: MINIMAP_PANEL_CELL_COUNT;
@@ -142,7 +142,7 @@ function patchPackedTilemapLocalRefsToBlank(bytes, options = {}) {
 	return patched;
 }
 
-function getCourseSelectReservedLocalTileIndices(trackIndex, stockTileCount, minimapVramTileBase = MINIMAP_VRAM_TILE_BASE) {
+function getCourseSelectReservedLocalTileIndices(trackIndex, stockTileCount, minimapVramTileBase = COURSE_SELECT_PREVIEW_TILE_VRAM_BASE) {
 	const reserved = new Set();
 	if (!Number.isInteger(trackIndex) || trackIndex < 0) return reserved;
 	const localTileLimit = Number.isInteger(stockTileCount) && stockTileCount > 0
@@ -157,7 +157,7 @@ function getCourseSelectReservedLocalTileIndices(trackIndex, stockTileCount, min
 }
 
 module.exports = {
-	MINIMAP_VRAM_TILE_BASE,
+	COURSE_SELECT_PREVIEW_TILE_VRAM_BASE,
 	TRACK_PREVIEW_TILEMAP_STRIDE,
 	TRACK_PREVIEW_WORD_BASE,
 	decodePackedTilemapWordRefs,

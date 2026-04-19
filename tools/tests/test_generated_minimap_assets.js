@@ -2,6 +2,7 @@
 'use strict';
 
 const assert = require('assert');
+const fs = require('fs');
 const { loadTracksJson } = require('./randomizer_test_utils');
 const {
 	createBlankTile,
@@ -24,7 +25,6 @@ const {
 	buildTilesAndWordsFromPreview,
 	resolvePreservedExternalCellIndexSet,
 	buildGeneratedMinimapAssets,
-	COURSE_SELECT_PREVIEW_TILE_BUDGET,
 	buildAssetPreview,
 	emitLegalContourPreview,
 	applyStockOccupancyMask,
@@ -43,7 +43,7 @@ const {
 	getTrackPreviewTilemapEntryBytes,
 } = require('../lib/course_select_preview_tiles');
 const { getTracks } = require('../randomizer/track_model');
-const { setGeneratedGeometryState, setRuntimeSafeRandomized } = require('../randomizer/track_metadata');
+const { setGeneratedGeometryState } = require('../randomizer/track_metadata');
 
 const PREVIEW_WIDTH = 56;
 const PREVIEW_HEIGHT = 88;
@@ -205,8 +205,8 @@ test('raw minimap map builders preserve tile flip bits', () => {
 	const assets = buildGeneratedMinimapAssetsFromPreviews(preview, null, 'synthetic');
 	const previewRaw = buildPreviewRawMap({ slug: 'synthetic' }, assets);
 	const hudRaw = buildHudRawMap({ slug: 'synthetic' }, assets);
-	assert.strictEqual(previewRaw.readUInt16BE(0), 0x0001);
-	assert.strictEqual(previewRaw.readUInt16BE(2), 0x0801);
+	assert.strictEqual(previewRaw.readUInt16BE(0), 0x0400);
+	assert.strictEqual(previewRaw.readUInt16BE(2), 0x0C00);
 	assert.strictEqual(hudRaw.readUInt16BE(0), 0x8001);
 	assert.strictEqual(hudRaw.readUInt16BE(2), 0x8801);
 });
@@ -301,7 +301,7 @@ test('course-select reserved local tiles are derived from decoded packed overlay
 		const entryBytes = getTrackPreviewTilemapEntryBytes(track.index);
 		const expected = new Set(
 			decodePackedTilemapWords(entryBytes)
-				.map(word => (word & 0x07FF) - 65)
+				.map(word => (word & 0x07FF) - 2)
 				.filter(index => index >= 0 && index < stockPreview.tile_count),
 		);
 		assert.deepStrictEqual(
@@ -331,15 +331,27 @@ test('generated minimap assets keep reserved course-select tile graphics identic
 	}
 });
 
-test('generated minimap assets stay within the course-select live tile budget', () => {
-	for (const track of getStockTrackList()) {
-		const randomizedTrack = JSON.parse(JSON.stringify(track));
-		setRuntimeSafeRandomized(randomizedTrack, true);
-		const assets = buildGeneratedMinimapAssets(randomizedTrack);
-		assert.ok(
-			assets.tiles.length <= COURSE_SELECT_PREVIEW_TILE_BUDGET,
-			`${track.slug} generated ${assets.tiles.length} minimap tiles, above course-select budget ${COURSE_SELECT_PREVIEW_TILE_BUDGET}`,
-		);
+test('randomized workspace minimap renders back to the asset preview in the current course-select case', () => {
+	const workspaceTracks = JSON.parse(fs.readFileSync('build/workspaces/SMGP-1-01-12345/tools/data/tracks.json', 'utf8'));
+	const track = getTracks(workspaceTracks).find(entry => entry.index === 4);
+	assert.ok(track, 'expected workspace track index 4');
+	const preview = buildAssetPreview(track, buildGeneratedMinimapPreview(track));
+	const assets = buildGeneratedMinimapAssets(track);
+	const rendered = Array.from(renderMinimapPixels(assets.tiles, assets.words, PREVIEW_TILE_COLUMNS, PREVIEW_TILE_ROWS));
+	assert.deepStrictEqual(rendered, preview.pixels, 'generated minimap tiles/words should render back to the intended asset preview');
+});
+
+test('asset preview keeps right-edge lower-tail border pixels for current randomized workspace case', () => {
+	const workspaceTracks = JSON.parse(fs.readFileSync('build/workspaces/SMGP-1-01-12345/tools/data/tracks.json', 'utf8'));
+	const track = getTracks(workspaceTracks).find(entry => entry.index === 4);
+	assert.ok(track, 'expected workspace track index 4');
+	const rawPreview = buildGeneratedMinimapPreview(track);
+	const assetPreview = buildAssetPreview(track, rawPreview);
+	for (const [x, y] of [[32, 80], [33, 80], [34, 80], [35, 81], [36, 81], [37, 82], [38, 82], [39, 82], [40, 83], [41, 83], [42, 83], [43, 81], [43, 82]]) {
+		const index = (y * assetPreview.width) + x;
+		assert.ok(rawPreview.pixels[index], `expected raw preview border pixel at ${x},${y}`);
+		assert.ok(assetPreview.pixels[index], `asset preview removed right-edge border pixel at ${x},${y}`);
+		assert.ok(!assetPreview.road_pixels[index], `right-edge border pixel at ${x},${y} must remain border, not road`);
 	}
 });
 
@@ -505,17 +517,21 @@ slowTest('emitLegalContourPreview leaves no orphan or roadless single-handoff fr
 	}
 });
 
-test('styleRoadPreview keeps straight right walls to a single extra outline column', () => {
+test('styleRoadPreview keeps straight right walls two pixels wide', () => {
 	const preview = styleRoadPreview(rightSideThicknessRectangleLoop(), PREVIEW_WIDTH, PREVIEW_HEIGHT, null);
 	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 34], 1, 'straight right wall should keep the first right-side black pixel');
-	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 35], 0, 'straight right wall should stop after a single extra right-side outline column');
-	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 36], 0, 'straight right wall should not extend beyond the thinner right-side outline');
+	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 35], 1, 'straight right wall should keep the second right-side black pixel');
+	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 36], 0, 'straight right wall should stop after the two-pixel right-side outline');
+	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 12], 1, 'straight left wall should keep the single outer outline pixel');
+	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 11], 0, 'straight left wall should not widen past one pixel');
+	assert.strictEqual(preview.pixels[(12 * PREVIEW_WIDTH) + 22], 1, 'top edge should keep the single outer outline pixel');
+	assert.strictEqual(preview.pixels[(11 * PREVIEW_WIDTH) + 22], 0, 'top edge should not widen past one pixel');
 });
 
-test('styleRoadPreview does not over-thicken inner bend rows while preserving the outer right wall', () => {
+test('styleRoadPreview keeps the two-pixel outer right wall without fattening inner bend rows', () => {
 	const preview = styleRoadPreview(rightSideThicknessBendLoop(), PREVIEW_WIDTH, PREVIEW_HEIGHT, null);
 	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 32], 1, 'outer right wall should remain present before the bend');
-	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 33], 0, 'outer right wall should no longer retain the extra second black column before the bend');
+	assert.strictEqual(preview.pixels[(22 * PREVIEW_WIDTH) + 33], 1, 'outer right wall should keep the second black column before the bend');
 	assert.strictEqual(preview.pixels[(26 * PREVIEW_WIDTH) + 26], 1, 'inner bend row should keep the local turn outline');
 	assert.strictEqual(preview.pixels[(26 * PREVIEW_WIDTH) + 27], 1, 'inner bend row should keep adjacent turn support');
 	assert.strictEqual(preview.pixels[(26 * PREVIEW_WIDTH) + 28], 1, 'bend join may touch the horizontal contour run');
@@ -525,6 +541,20 @@ test('styleRoadPreview does not over-thicken inner bend rows while preserving th
 	assert.strictEqual(preview.pixels[(26 * PREVIEW_WIDTH) + 32], 0, 'inner bend row should not inherit unrelated right-wall thickness');
 	assert.strictEqual(preview.pixels[(26 * PREVIEW_WIDTH) + 33], 0, 'inner bend row should not square off into a fat right-side shelf');
 	assert.strictEqual(preview.pixels[(26 * PREVIEW_WIDTH) + 34], 0, 'inner bend row should stop before the outer wall extension zone');
+});
+
+test('buildAssetPreview preserves the current Brazil right-wall strip and inner bend contour pixels', () => {
+	const workspaceTracks = JSON.parse(fs.readFileSync('build/workspaces/SMGP-1-01-12345/tools/data/tracks.json', 'utf8'));
+	const track = getTracks(workspaceTracks).find(entry => entry.index === 1);
+	assert.ok(track, 'expected workspace track index 1');
+	const rawPreview = buildGeneratedMinimapPreview(track);
+	const assetPreview = buildAssetPreview(track, rawPreview);
+	for (const [x, y] of [[23, 15], [39, 24], [39, 25], [39, 26], [39, 27], [39, 28], [39, 29], [39, 30], [39, 31]]) {
+		const index = (y * assetPreview.width) + x;
+		assert.ok(rawPreview.pixels[index], `expected raw preview border pixel at ${x},${y}`);
+		assert.strictEqual(assetPreview.pixels[index], 1, `asset preview should preserve border pixel at ${x},${y}`);
+		assert.strictEqual(assetPreview.road_pixels[index], 0, `border pixel at ${x},${y} must remain border, not road`);
+	}
 });
 
 function orphanBlackComponentCount(pixels, roadPixels, startMarkerPixels = null, width = PREVIEW_WIDTH, height = PREVIEW_HEIGHT) {

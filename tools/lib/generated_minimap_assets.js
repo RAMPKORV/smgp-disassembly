@@ -3,7 +3,6 @@
 const { buildGeneratedMinimapPreview } = require('./minimap_render');
 const { formatDcB } = require('./asm_patch_helpers');
 const { getGeneratedGeometryState } = require('../randomizer/track_metadata');
-const { isRuntimeSafeRandomized } = require('../randomizer/track_metadata');
 const { styleRoadPreview } = require('./minimap_raster');
 const { getMinimapPreview } = require('./minimap_preview');
 const {
@@ -211,6 +210,7 @@ function pruneRoadlessSingleHandoffFragments(preview) {
 					}
 
 					let outsideHandoffs = 0;
+					let hasCornerAdjacency = false;
 					for (const cell of cells) {
 						const x = cell % cleaned.width;
 						const y = Math.floor(cell / cleaned.width);
@@ -223,12 +223,16 @@ function pruneRoadlessSingleHandoffFragments(preview) {
 								if (!inBounds(nx, ny)) continue;
 								if (Math.floor(nx / MINIMAP_TILE_SIZE_PX) === tileX && Math.floor(ny / MINIMAP_TILE_SIZE_PX) === tileY) continue;
 								const next = (ny * cleaned.width) + nx;
-								if (mask[next]) hasOutsideNeighbor = true;
+								if (mask[next]) {
+									hasOutsideNeighbor = true;
+									if (dx !== 0 && dy !== 0) hasCornerAdjacency = true;
+								}
 							}
 						}
 						if (hasOutsideNeighbor) outsideHandoffs += 1;
 					}
-					if (outsideHandoffs <= 1) fragments.push({ cells, outsideHandoffs });
+					const touchesRightWall = cells.some(cell => (cell % cleaned.width) >= (cleaned.width - 17));
+					if (outsideHandoffs <= 1 && !touchesRightWall && !hasCornerAdjacency) fragments.push({ cells, outsideHandoffs });
 				}
 			}
 		}
@@ -352,6 +356,12 @@ function removeRoadAdjacentLowerResidue(preview) {
 		if (y < (cleaned.height - 8)) continue;
 		if (cleaned.road_pixels[index]) continue;
 		if (inBounds(x, y - 1) && mask[((y - 1) * cleaned.width) + x]) continue;
+		if ((inBounds(x - 1, y - 1) && mask[((y - 1) * cleaned.width) + x - 1])
+			|| (inBounds(x + 1, y - 1) && mask[((y - 1) * cleaned.width) + x + 1])) continue;
+		if ((inBounds(x - 1, y) && mask[(y * cleaned.width) + x - 1])
+			|| (inBounds(x + 1, y) && mask[(y * cleaned.width) + x + 1])) continue;
+		if ((inBounds(x - 1, y + 1) && mask[((y + 1) * cleaned.width) + x - 1])
+			|| (inBounds(x + 1, y + 1) && mask[((y + 1) * cleaned.width) + x + 1])) continue;
 		let aboveRoad = false;
 		for (let dy = -4; dy <= -2 && !aboveRoad; dy++) {
 			for (let dx = -2; dx <= 2; dx++) {
@@ -595,7 +605,8 @@ function removeRoadAdjacentDuplicateStrips(preview) {
 						const spansOppositeEdges = (minX === tileX * MINIMAP_TILE_SIZE_PX && maxX === (tileX * MINIMAP_TILE_SIZE_PX + MINIMAP_TILE_SIZE_PX - 1))
 							|| (minY === tileY * MINIMAP_TILE_SIZE_PX && maxY === (tileY * MINIMAP_TILE_SIZE_PX + MINIMAP_TILE_SIZE_PX - 1));
 						const narrowStrip = (maxX - minX) <= 1 || (maxY - minY) <= 1;
-						if (!touchesRoad || !narrowStrip || !spansOppositeEdges || cells.length < 8) continue;
+						const touchesRightWall = maxX >= (cleaned.width - 17);
+						if (!touchesRoad || !narrowStrip || !spansOppositeEdges || cells.length < 8 || touchesRightWall) continue;
 
 						const nextMask = Uint8Array.from(mask);
 						for (const cell of cells) nextMask[cell] = 0;
@@ -894,23 +905,35 @@ function emitLegalContourPreview(preview) {
 				const anchoredContinuation = groups === 1
 					&& monotoneRun
 					&& popcount4(boundaryEdgeMask) === 1
+					&& (boundaryEdgeMask === 1 || boundaryEdgeMask === 2)
 					&& hasCornerAnchor
 					&& localComponent.length <= 5;
 				const strictAnchoredContinuation = anchoredContinuation && roadTouchCount === 0;
+				const roadTouchRatio = roadTouchCount / Math.max(1, localComponent.length);
 				const componentTouchesRoad = roadTouchCount > 0;
 				const narrowStrip = (maxX - minX) <= 1 || (maxY - minY) <= 1;
 				const spansOppositeEdges = ((boundaryEdgeMask & 0x5) === 0x5) || ((boundaryEdgeMask & 0xA) === 0xA);
+				const legalRoadAdjacentContinuation = componentTouchesRoad
+					&& !cellContainsRoadOrMarker
+					&& groups === 1
+					&& hasCornerAnchor
+					&& narrowStrip
+					&& (localComponent.length === 1 || simplePath)
+					&& (localComponent.length === 1 || spansOppositeEdges);
 				const roadAdjacentStrip = componentTouchesRoad
 					&& !cellContainsRoadOrMarker
 					&& narrowStrip
 					&& spansOppositeEdges
 					&& localComponent.length >= 8
-					&& groups === 1;
+					&& groups === 1
+					&& maxX < (cleaned.width - 17)
+					&& roadTouchRatio >= 0.75;
 				const lowerTailSplitRun = componentTouchesRoad
 					&& diagonalRun
 					&& localComponent.length >= 8
 					&& minY >= (cleaned.height - 24)
 					&& maxY >= (cleaned.height - 8)
+					&& maxX < (cleaned.width - 16)
 					&& groups < 2
 					&& !hasCornerAnchor;
 				const tinyNonBridgingStub = localComponent.length === 1
@@ -928,6 +951,10 @@ function emitLegalContourPreview(preview) {
 					// Road-adjacent narrow strip in an otherwise empty cell: removable when it
 					// creates a duplicate contour lane that the remaining contour already supports.
 					type = 'road_adjacent_strip';
+				} else if (legalRoadAdjacentContinuation) {
+					// Legal road-adjacent empty-cell continuation: keep anchored turn pixels and
+					// right-wall continuations already implied by the styled contour.
+					type = null;
 				} else if (componentTouchesRoad && anchoredContinuation) {
 					// Legal seam continuation: keep road-touching empty-cell bridges/tapers.
 					type = null;
@@ -997,6 +1024,7 @@ function emitLegalContourPreview(preview) {
 			const safeRoadAdjacentStripCleanup = candidate.type === 'road_adjacent_strip'
 				&& nextMetrics.orphans === currentMetrics.orphans
 				&& nextMetrics.components <= currentMetrics.components;
+			if (nextMetrics.components > currentMetrics.components) continue;
 			if (!improvesTopology && !safeMixedCellCleanup && !safeRoadAdjacentStripCleanup) continue;
 			currentMask = nextMask;
 			currentMetrics = nextMetrics;
@@ -1111,6 +1139,25 @@ function countTilePixelDifferences(rowsA, rowsB) {
 	return diff;
 }
 
+function countTileEdgeDifferences(rowsA, rowsB) {
+	let diff = 0;
+	for (let x = 0; x < 8; x++) {
+		if ((rowsA[0]?.[x] || 0) !== (rowsB[0]?.[x] || 0)) diff += 1;
+		if ((rowsA[7]?.[x] || 0) !== (rowsB[7]?.[x] || 0)) diff += 1;
+	}
+	for (let y = 1; y < 7; y++) {
+		if ((rowsA[y]?.[0] || 0) !== (rowsB[y]?.[0] || 0)) diff += 1;
+		if ((rowsA[y]?.[7] || 0) !== (rowsB[y]?.[7] || 0)) diff += 1;
+	}
+	return diff;
+}
+
+function isCriticalCourseSelectClosureCell(cellIndex) {
+	const x = cellIndex % MINIMAP_PANEL_TILES_W;
+	const y = Math.floor(cellIndex / MINIMAP_PANEL_TILES_W);
+	return x >= (MINIMAP_PANEL_TILES_W - 3) && y >= (MINIMAP_PANEL_TILES_H - 5);
+}
+
 function findClosestTileWord(rows, candidates) {
 	let bestWord = 0;
 	let bestDiff = Infinity;
@@ -1161,6 +1208,30 @@ function reduceCourseSelectTileBudget(tiles, words, maxTileCount, reservedLocalT
 	}
 
 	const sourceWordRows = new Map(sourceWords.map(word => [word, buildWordRows(word, tiles)]));
+	const sourceWordCellIndices = new Map();
+	const sourceWordEdgeCosts = new Map();
+	for (let index = 0; index < words.length; index++) {
+		const sourceWord = words[index] & 0xFFFF;
+		const tileId = sourceWord & MINIMAP_TILE_INDEX_MASK;
+		if (tileId === 0 || reservedTileIds.has(tileId)) continue;
+		if (!sourceWordCellIndices.has(sourceWord)) sourceWordCellIndices.set(sourceWord, []);
+		sourceWordCellIndices.get(sourceWord).push(index);
+		const x = index % MINIMAP_PANEL_TILES_W;
+		const y = Math.floor(index / MINIMAP_PANEL_TILES_W);
+		let edgeWeight = 0;
+		if (x > 0) edgeWeight += 1;
+		if (x + 1 < MINIMAP_PANEL_TILES_W) edgeWeight += 1;
+		if (y > 0) edgeWeight += 1;
+		if (y + 1 < MINIMAP_PANEL_TILES_H) edgeWeight += 1;
+		if (edgeWeight === 0) continue;
+		sourceWordEdgeCosts.set(sourceWord, (sourceWordEdgeCosts.get(sourceWord) || 0) + edgeWeight);
+	}
+	const protectedRepresentativeIds = new Set();
+	for (const sourceWord of sourceWords) {
+		const cells = sourceWordCellIndices.get(sourceWord) || [];
+		if (!cells.some(isCriticalCourseSelectClosureCell)) continue;
+		protectedRepresentativeIds.add(sourceWord & MINIMAP_TILE_INDEX_MASK);
+	}
 	const relationCache = new Map();
 	const bestRelation = (sourceWord, representativeId) => {
 		const key = `${sourceWord}:${representativeId}`;
@@ -1170,9 +1241,11 @@ function reduceCourseSelectTileBudget(tiles, words, maxTileCount, reservedLocalT
 		let best = { representativeId, flags: 0, cost: Infinity };
 			for (const flags of [0, 0x0800, 0x1000, 0x1800]) {
 				const candidateRows = flipTileRows(targetRows, !!(flags & 0x0800), !!(flags & 0x1000));
-			const cost = countTilePixelDifferences(sourceRows, candidateRows);
+			const pixelCost = countTilePixelDifferences(sourceRows, candidateRows);
+			const edgeCost = countTileEdgeDifferences(sourceRows, candidateRows);
+			const cost = pixelCost + (edgeCost * 4) + ((sourceWordEdgeCosts.get(sourceWord) || 0) * edgeCost);
 			if (cost >= best.cost) continue;
-			best = { representativeId, flags, cost };
+			best = { representativeId, flags, cost, pixelCost, edgeCost };
 			if (cost === 0) break;
 		}
 		relationCache.set(key, best);
@@ -1202,6 +1275,7 @@ function reduceCourseSelectTileBudget(tiles, words, maxTileCount, reservedLocalT
 		let bestRemovalId = null;
 		let bestRemovalCost = Infinity;
 		for (const representativeId of activeRepresentatives) {
+			if (protectedRepresentativeIds.has(representativeId)) continue;
 			let removalCost = 0;
 			let impossible = false;
 			const alternativeAssignments = recomputeAssignments(representativeId);
@@ -1400,7 +1474,6 @@ function buildGeneratedMinimapAssets(track) {
 		: new Set();
 	const result = buildGeneratedMinimapAssetsFromPreviews(preview, stockPreview, previewSlug, {
 		startMarkerPixels: Array.isArray(preview.start_marker_pixels) ? preview.start_marker_pixels : null,
-		maxTileCount: isRuntimeSafeRandomized(track) ? COURSE_SELECT_PREVIEW_TILE_BUDGET : undefined,
 		reservedLocalTileIndices,
 	});
 	generatedAssetsCache.set(track, { key: cacheKey, value: result });
