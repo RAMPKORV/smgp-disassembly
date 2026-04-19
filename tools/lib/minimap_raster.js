@@ -281,6 +281,28 @@ function computeJoinClearance(mask, width, height, firstPoint, lastPoint) {
 	return clearance;
 }
 
+function renderStyledPixelsFromRoadMask(fillMask, width, height, centerlinePoints = null, options = {}) {
+	const dilated = dilateMask(fillMask, width, height, [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]]);
+	const outlineMask = subtractMask(dilated, fillMask);
+	const rightWideMask = subtractMask(shiftMask(fillMask, width, height, 1, 0), dilated);
+	const blackMask = unionMasks(outlineMask, rightWideMask);
+	const pixels = new Uint8Array(width * height);
+	for (let i = 0; i < pixels.length; i++) {
+		if (fillMask[i]) {
+			pixels[i] = 3;
+			continue;
+		}
+		if (blackMask[i]) pixels[i] = 1;
+	}
+	if (options.underpass_segment && Array.isArray(centerlinePoints) && centerlinePoints.length > 1) {
+		drawUnderpassIndicator(pixels, width, height, centerlinePoints, options.underpass_segment);
+	}
+	return {
+		pixels,
+		blackMask,
+	};
+}
+
 function findBranchPixels(mask, width, height) {
 	const branches = [];
 	for (let y = 1; y < height - 1; y++) {
@@ -337,6 +359,32 @@ function buildArcIndices(startIndex, endIndex, count) {
 		cursor = (cursor + 1) % count;
 	}
 	return result;
+}
+
+function buildStartMarkerMask(fillMask, width, height, centerlinePoints, startIndex) {
+	const markerMask = new Uint8Array(width * height);
+	if (!Number.isInteger(startIndex) || !Array.isArray(centerlinePoints) || centerlinePoints.length <= 2) return markerMask;
+	const normalizedIndex = (startIndex + centerlinePoints.length) % centerlinePoints.length;
+	const point = centerlinePoints[normalizedIndex];
+	const prev = centerlinePoints[(normalizedIndex - 1 + centerlinePoints.length) % centerlinePoints.length];
+	const next = centerlinePoints[(normalizedIndex + 1) % centerlinePoints.length];
+	const span = findHorizontalSpan(fillMask, width, height, Math.round(point[0]), Math.round(point[1]));
+	if (span) {
+		const lineWidth = Math.min(4, Math.max(1, span.width));
+		const startX = span.left + Math.max(0, Math.floor((span.width - lineWidth) / 2));
+		const endX = Math.min(span.right, startX + lineWidth - 1);
+		for (let x = startX; x <= endX; x++) {
+			if (fillMask[(span.y * width) + x]) markerMask[(span.y * width) + x] = 1;
+		}
+		return markerMask;
+	}
+	const tx = next[0] - prev[0];
+	const ty = next[1] - prev[1];
+	const len = Math.hypot(tx, ty) || 1;
+	const nx = -ty / len;
+	const ny = tx / len;
+	drawThickLine(markerMask, width, height, point[0] - (nx * 1.5), point[1] - (ny * 1.5), point[0] + (nx * 1.5), point[1] + (ny * 1.5), 1, 0.1);
+	return markerMask;
 }
 
 function drawUnderpassIndicator(pixels, width, height, centerlinePoints, underpassSegment) {
@@ -410,45 +458,18 @@ function styleRoadPreview(centerlinePoints, width, height, startIndex = null, op
 	const fillMask = Uint8Array.from(rasterizePolyline(centerlinePoints, width, height, { closePath: true, radius: 1.46 }).pixels);
 	const firstPoint = centerlinePoints[0];
 	const lastPoint = centerlinePoints[centerlinePoints.length - 1];
-	const dilated = dilateMask(fillMask, width, height, [[-1, 0], [0, 0], [1, 0], [0, -1], [0, 1]]);
-	const outlineMask = subtractMask(dilated, fillMask);
-	const rightWideMask = subtractMask(unionMasks(shiftMask(fillMask, width, height, 1, 0), shiftMask(fillMask, width, height, 2, 0)), dilated);
-	const blackMask = unionMasks(outlineMask, rightWideMask);
-	const pixels = new Uint8Array(width * height);
-	for (let i = 0; i < pixels.length; i++) {
-		if (fillMask[i]) {
-			pixels[i] = 3;
-			continue;
-		}
-		if (blackMask[i]) pixels[i] = 1;
-	}
+	const styledPixels = renderStyledPixelsFromRoadMask(fillMask, width, height, centerlinePoints, options);
+	const pixels = styledPixels.pixels;
 	if (Number.isInteger(startIndex) && centerlinePoints.length > 2) {
-		const point = centerlinePoints[(startIndex + centerlinePoints.length) % centerlinePoints.length];
-		const prev = centerlinePoints[(startIndex - 1 + centerlinePoints.length) % centerlinePoints.length];
-		const next = centerlinePoints[(startIndex + 1 + centerlinePoints.length) % centerlinePoints.length];
-		const span = findHorizontalSpan(fillMask, width, height, Math.round(point[0]), Math.round(point[1]));
-		if (span) {
-			const lineWidth = Math.min(4, Math.max(1, span.width));
-			const startX = span.left + Math.max(0, Math.floor((span.width - lineWidth) / 2));
-			const endX = Math.min(span.right, startX + lineWidth - 1);
-			for (let x = startX; x <= endX; x++) {
-				if (fillMask[(span.y * width) + x]) pixels[(span.y * width) + x] = 1;
-			}
-		} else {
-			const tx = next[0] - prev[0];
-			const ty = next[1] - prev[1];
-			const len = Math.hypot(tx, ty) || 1;
-			const nx = -ty / len;
-			const ny = tx / len;
-			drawThickLine(pixels, width, height, point[0] - (nx * 1.5), point[1] - (ny * 1.5), point[0] + (nx * 1.5), point[1] + (ny * 1.5), 1, 0.1);
+		const markerMask = buildStartMarkerMask(fillMask, width, height, centerlinePoints, startIndex);
+		for (let i = 0; i < markerMask.length; i++) {
+			if (markerMask[i] && fillMask[i]) pixels[i] = 1;
 		}
-	}
-	if (options.underpass_segment) {
-		drawUnderpassIndicator(pixels, width, height, centerlinePoints, options.underpass_segment);
 	}
 	return {
 		pixels: Array.from(pixels),
 		road_pixels: Array.from(fillMask),
+		start_marker_pixels: Array.from(buildStartMarkerMask(fillMask, width, height, centerlinePoints, startIndex)),
 		join_clearance: computeJoinClearance(fillMask, width, height, firstPoint, lastPoint),
 		branch_pixels: findBranchPixels(fillMask, width, height),
 	};
@@ -456,10 +477,12 @@ function styleRoadPreview(centerlinePoints, width, height, startIndex = null, op
 
 module.exports = {
 	rasterizeRoadMask,
+	renderStyledPixelsFromRoadMask,
 	fitStyledPathIntoFrame,
 	expandLowerTail,
 	computeLowerTailClearance,
 	collapseShortestSegment,
+	buildStartMarkerMask,
 	chooseStartIndex,
 	styleRoadPreview,
 	buildArcIndices,

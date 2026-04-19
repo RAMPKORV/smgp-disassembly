@@ -4,10 +4,10 @@
       "callsites.json",
       "functions.json"
     ],
-    "generated": "2026-03-09",
+    "generated": "2026-04-16",
     "total_routines": 376,
-    "headered_routines": 362,
-    "header_coverage_pct": "96.3%",
+    "headered_routines": 363,
+    "header_coverage_pct": "96.5%",
     "unreferenced_count": 59,
     "single_site_count": 159,
     "hotspot_threshold": 10,

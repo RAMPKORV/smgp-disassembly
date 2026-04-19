@@ -124,6 +124,19 @@ test('buildMapFirstGeometryState returns the documented scaffold with sampled po
 	assert.strictEqual(state.projections.minimap_preview, null);
 });
 
+test('buildMapFirstGeometryState sampled points stay unique and within the sampling canvas', () => {
+	const state = buildMapFirstGeometryState({ index: 1, track_length: 4096 }, 24680, {
+		pointSampling: { targetPointCount: 12, minimumSpacingPx: 7, edgeMarginPx: 4 },
+	});
+	const points = state.sampled_points;
+	assert.strictEqual(points.length, 12);
+	assert.strictEqual(new Set(points.map(([x, y]) => `${x},${y}`)).size, points.length);
+	for (const [x, y] of points) {
+		assert.ok(x >= state.canvas.x_min && x <= state.canvas.x_max, `x ${x} outside canvas`);
+		assert.ok(y >= state.canvas.y_min && y <= state.canvas.y_max, `y ${y} outside canvas`);
+	}
+});
+
 test('buildConvexHull keeps extreme boundary points in order', () => {
 	const hull = buildConvexHull([[2, 2], [8, 2], [8, 8], [2, 8], [5, 5], [4, 6]]);
 	assert.deepStrictEqual(hull, [[2, 2], [8, 2], [8, 8], [2, 8]]);
@@ -146,6 +159,31 @@ test('buildSimpleCycleFromPoints is deterministic for repeated calls', () => {
 	const b = buildSimpleCycleFromPoints(points);
 	assert.deepStrictEqual(a, b);
 });
+
+test('buildSimpleCycleFromPoints can produce a non-convex simple cycle from uniformly scattered points', () => {
+	const points = [[2, 2], [8, 2], [10, 6], [8, 10], [2, 10], [1, 6], [5, 4], [7, 6], [5, 8], [3, 6]];
+	const result = buildSimpleCycleFromPoints(points);
+	assert.strictEqual(result.success, true);
+	assert.strictEqual(result.loop_points.length, points.length);
+	assert.strictEqual(countProperSelfIntersections(result.loop_points), 0);
+	const hull = buildConvexHull(points);
+	assert.ok(result.diagnostics.attempt_count >= 1);
+	assert.ok(result.loop_points.length > hull.length, 'expected cycle to retain interior points');
+	let reflexCount = 0;
+	const orientation = Math.sign(result.loop_points.reduce((sum, point, index) => {
+		const next = result.loop_points[(index + 1) % result.loop_points.length];
+		return sum + ((point[0] * next[1]) - (next[0] * point[1]));
+	}, 0));
+	for (let index = 0; index < result.loop_points.length; index++) {
+		const prev = result.loop_points[(index - 1 + result.loop_points.length) % result.loop_points.length];
+		const cur = result.loop_points[index];
+		const next = result.loop_points[(index + 1) % result.loop_points.length];
+		const turn = ((cur[0] - prev[0]) * (next[1] - cur[1])) - ((cur[1] - prev[1]) * (next[0] - cur[0]));
+		if (Math.sign(turn) !== 0 && Math.sign(turn) !== orientation) reflexCount += 1;
+	}
+	assert.ok(reflexCount >= 1, `expected at least one reflex vertex, got ${reflexCount}`);
+});
+
 
 test('buildSimpleCycleFromPoints reports deterministic diagnostics for degenerate input', () => {
 	const result = buildSimpleCycleFromPoints([[1, 1], [2, 2], [3, 3]]);
@@ -263,23 +301,23 @@ test('injectSingleGradeSeparatedCrossing converts a simple loop into exactly one
 	assert.ok(result.diagnostics.selected_pair);
 });
 
-test('buildMapFirstGeometryState emits one approved crossing when crossing selection hits', () => {
-	let chosenSeed = null;
+test('buildMapFirstGeometryState can emit one approved crossing for an eligible seed', () => {
+	let crossedState = null;
 	for (let seed = 1; seed < 5000; seed++) {
-		if (evaluateCrossingEligibility(seed, 0).eligible) {
-			chosenSeed = seed;
-			break;
-		}
+		if (!evaluateCrossingEligibility(seed, 0).eligible) continue;
+		const state = buildMapFirstGeometryState({ index: 0, track_length: 4096 }, seed, {
+			pointSampling: { targetPointCount: 9, minimumSpacingPx: 8 },
+		});
+		if (state.topology.proper_crossing_count !== 1) continue;
+		crossedState = state;
+		break;
 	}
-	assert.ok(chosenSeed !== null, 'expected at least one crossing-eligible seed');
-	const state = buildMapFirstGeometryState({ index: 0, track_length: 4096 }, chosenSeed, {
-		pointSampling: { targetPointCount: 9, minimumSpacingPx: 8 },
-	});
-	assert.strictEqual(state.generation_diagnostics.crossing_selection.eligible, true);
-	assert.strictEqual(state.topology.proper_crossing_count, 1);
-	assert.ok(state.topology.single_grade_separated_crossing);
-	assert.ok(state.generation_diagnostics.crossing_injection.selected_pair);
-	assert.strictEqual(countProperSelfIntersections(state.resampled_centerline), 1);
+	assert.ok(crossedState, 'expected at least one eligible seed to produce a single approved crossing');
+	assert.strictEqual(crossedState.generation_diagnostics.crossing_selection.eligible, true);
+	assert.strictEqual(crossedState.topology.proper_crossing_count, 1);
+	assert.ok(crossedState.topology.single_grade_separated_crossing);
+	assert.ok(crossedState.generation_diagnostics.crossing_injection.selected_pair);
+	assert.strictEqual(countProperSelfIntersections(crossedState.resampled_centerline), 1);
 });
 
 const total = passed + failed;

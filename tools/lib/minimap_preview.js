@@ -380,8 +380,8 @@ function renderMinimapPixels(tiles, words, width, height) {
 			if (localTileIndex < 0) continue;
 			const tile = tiles[localTileIndex] || null;
 			if (!tile) continue;
-			const hFlip = !!(word & 0x1000);
-			const vFlip = !!(word & 0x0800);
+			const hFlip = !!(word & 0x0800);
+			const vFlip = !!(word & 0x1000);
       for (let row = 0; row < 8; row++) {
         for (let column = 0; column < 8; column++) {
           const srcRow = vFlip ? 7 - row : row;

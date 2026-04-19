@@ -7,6 +7,57 @@ OPEN PROBLEMS (unsolved / partially solved)
 - $A980 struct: unknown struct type; ;loc_A980 in smgp.asm; fields not yet named
 
 
+RANDOMIZED COURSE-SELECT MINIMAP FIX EVIDENCE (MAPFIX-204 / MAPFIX-301)
+===============================================================================
+The previously failing randomized screenshot families are now covered by
+structural tests instead of ad hoc visual inspection.
+
+Retired artifact families and their guards:
+
+- Detached black specks / orphan islands:
+  covered by orphan-component assertions in
+  `tools/tests/test_generated_minimap_assets.js` and deterministic sweeps in
+  `tools/tests/test_minimap_seed_fuzz.js`.
+
+- Roadless one-handoff tails / bottom stubs:
+  covered by synthetic fixtures such as
+  `bottomAttachedStubWithOrphansPreview()` plus rendered-output checks in
+  `tools/tests/test_generated_minimap_assets.js`.
+
+- Over-aggressive seam cleanup:
+  guarded by synthetic Monaco-style seam bridge and narrow seam continuation
+  fixtures in `tools/tests/test_generated_minimap_assets.js`.
+
+- False extra contour components:
+  guarded by fixed-seed structural component-count checks and the seed-fuzz
+  suite, which rejects unexpected extra non-crossing contour components.
+
+- Right-side thickness drift / bend over-thickening:
+  guarded by direct raster assertions for straight right walls and inner bends
+  in `tools/tests/test_generated_minimap_assets.js`.
+
+- Start-marker coupling regressions:
+  guarded by marker-independence tests in
+  `tools/tests/test_generated_minimap_assets.js` that prove contour pixels stay
+  unchanged outside marker positions in both asset-preview and rendered output.
+
+Key fixed-seed evidence set:
+
+- Seed 42 artifact regression tracks: `hungary`, `west_germany`, `italy`,
+  `mexico`
+- Direct-emitter regression experiment also exposed bounded fallback necessity on
+  synthetic bottom-stub coverage and real tracks including `italy` / `usa`
+
+Current contract summary:
+
+- Direct contour emission now owns legality decisions via
+  `emitLegalContourPreview()`.
+- Remaining fallback pruning is intentionally narrow:
+  `pruneRoadlessSingleHandoffFragments()` removes only proven-illegal roadless
+  single-handoff fragments and refuses removals that would increase contour
+  component count.
+
+
 SOLVED PROBLEMS (kept for reference — canonical docs are in smgp.asm source comments)
 ===============================================================================
 - Slope data encoding: fully documented in Update_slope_data / Integrate_curveslope headers.
@@ -293,7 +344,7 @@ Source: driving.asm, rendering.asm, race_support.asm, ai.asm, road_and_track_dat
   Max safe: 8188  (decompressed arrays are 2048 bytes; indexed by distance>>2)
   Hard absolute max: 65415  (sign arithmetic wraps at 65536; must stay positive)
   All 19 ROM tracks are in the range 3392–7744 (recommend staying ≤ 8000).
-  Minimap position map must cover at least (track_length >> 5) + 1 x/y byte pairs.
+  Minimap position map must contain exactly (track_length >> 6) x/y byte pairs.
 
   Track lengths by name (all ROM tracks):
     Australia  6080   Monaco (champ)  6144   France        6144
@@ -380,8 +431,8 @@ Source: driving.asm, rendering.asm, race_support.asm, ai.asm, road_and_track_dat
 
 --- Minimap position map ---
   Flat array of (x, y) signed byte pairs; no explicit length field.
-  Must contain at least (track_length >> 5) + 1 pairs.
-  Example: San Marino length 7040 → need ≥ 221 pairs (442 bytes minimum).
+  Must contain exactly (track_length >> 6) pairs.
+  Example: San Marino length 7040 → need 110 pairs (220 bytes).
 
 --- Lap targets format (15 × 3-byte BCD per track) ---
   14 real entries of <min_BCD>, <sec_BCD>, <centisec_BCD>.
@@ -396,7 +447,41 @@ Source: driving.asm, rendering.asm, race_support.asm, ai.asm, road_and_track_dat
   4. Both RLE streams (curve and slope) must fit in their 2048-byte decompressed buffers.
   5. Steering divisors must be non-zero.
   6. Sign records must be terminated by $FFFF and use only valid sign IDs (0–$14).
-  7. Minimap must have ≥ (track_length >> 5) + 1 entries.
+  7. Minimap must have exactly (track_length >> 6) entries.
+
+--- Japan crossing research note (TRR-002, phase-1-safe) ---
+  Repo evidence points to Japan as the best reference track for a grade-separated
+  crossing, but the implementation split is only partly documented.
+
+  Data-driven facts confirmed in the repo:
+    - Track_data gives Japan only the standard per-track pointers: sign_data,
+      sign_tileset, minimap_pos, curve_data, slope_data, and phys_slope_data.
+      No dedicated bridge/crossing pointer field is present in track_config_data.asm.
+    - minimap_pos is only signed (x, y) byte pairs. Compute_minimap_index in
+      race_support.asm derives a byte index from distance>>5 with bit 0 cleared,
+      then Load_minimap_position reads two bytes. There is no explicit z/layer field.
+    - The extracted Japan track uses ordinary track streams plus its own sign_data
+      and sign_tileset records, so at least some crossing presentation is selected
+      from per-track data rather than a separate hard-coded track switch.
+
+  Runtime-driven facts confirmed in the repo:
+    - ai.asm routes special sign IDs through Parse_sign_data_Special and installs
+      handlers from Special_sign_dispatch_table, so tunnel/approach behaviour is
+      at least partly runtime-object driven.
+    - rendering.asm switches the VDP to an H32 tunnel variant when
+      Road_column_update_state == 2, proving that tunnel-style road presentation
+      is not expressed by minimap data alone.
+    - Aux_object_pool reserves slots for tunnel-style aux objects, so the runtime
+      already has nontrivial support for tunnel presentation.
+
+  Current phase-1 conclusion:
+    - Japan proves that the game can present crossing-adjacent/tunnel-like track
+      behaviour with the existing track data plus runtime handlers.
+    - The repo does not yet document a generic overpass metadata model, generic
+      bridge z-order flag, or minimap-layer field.
+    - Map-first tooling work should therefore assume: zero-crossing tracks are the
+      default, one grade-separated crossing is optional, and any later ASM work
+      must be justified by a specific gap that tooling-only prototypes cannot cover.
   8. Lap targets must end with $99,$00,$00 sentinel + one $00 pad byte.
 
 

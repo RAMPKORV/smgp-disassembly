@@ -191,3 +191,37 @@ the ROM -- it supports breakpoints, memory/register inspection, and step executi
 - Close every randomizer refactor checkpoint with canonical PowerShell verify.
 - See `docs/randomizer_refactor_workflow.md` for the expected command loop.
 
+## Randomizer Anti-Overfitting Guardrails
+
+- The randomizer must work for arbitrary seeds and arbitrary runtime-safe tracks. Treat any seed-specific or track-name-specific fix as presumptively wrong until proven to be a direct encoding of an actual ROM rule.
+- Never hardcode randomizer behavior around a screenshot, a single seed, or a hand-picked track slug unless the ROM/disassembly itself contains a matching per-track rule or data table and you can point to it explicitly.
+- Never write regression tests that freeze behavior to a named stock track, a hand-picked screenshot window, or exact pixel/tile coordinates just because that case exposed the bug. Those tests overfit the implementation and block valid randomizer changes.
+- A named-track test is only acceptable when the behavior is explicitly defined by ROM/disassembly data for that track, and the expected result must be derived from source data or decoded ROM semantics rather than copied in as ad-hoc literals.
+- Prefer invariant-driven coverage: synthetic fixtures, all-track/property-style assertions, arbitrary-seed checks, round-trip checks, and runtime-path validation against derived ROM data.
+- If a bug is first seen on one track, generalize the regression before committing it: either reproduce the failure with a synthetic fixture or express the rule as a class-wide invariant. Do not keep screenshot-driven or slug-driven tests as the long-term fix.
+- Before keeping any new randomizer/minimap test, explicitly ask whether it would still pass after a legitimate generator improvement that preserves ROM rules. If the answer is no, rewrite or delete the test.
+- Do not steer randomized map/minimap generation back toward stock slot shapes as a fallback. Remove the bad candidate and fix the generator/renderer instead of blending against stock guides, stock minimap pairs, or stock preview silhouettes.
+- Do not keep track-family-specific acceptance logic (for example Monaco-only minimap thresholds) unless the distinction is directly derived from ROM/disassembly behavior.
+- Do not rank randomized minimap candidates primarily by stock-proxy metrics such as stock sign-match similarity, stock used-cell floors, stock phase alignment, or stock silhouette similarity. Prefer direct rendered-output validity and generator invariants.
+- If a heuristic only exists to rescue weak output so it looks more like stock preview art, treat it as suspect and remove it unless it can be justified as a general rendering rule.
+- When evaluating a generator change, verify the actual built ROM/rendered path before claiming success. Do not rely on internal geometry metrics or intermediate previews as proof.
+- Before adding a patch step, identify which layer of the ROM is actually responsible: generated minimap tiles, generated minimap map, stock packed course-select overlay, runtime tile base, etc. Verify the layer in disassembly/source first.
+- If a fix depends on per-track behavior, derive it from the source data/packed stream/ROM semantics programmatically. Do not maintain ad-hoc `PATCHES_BY_SLUG`/offset tables for randomized output when those offsets can be decoded from existing data.
+- When you suspect a visual bug, first prove whether it comes from generated assets, a stock overlay, or the compositor path. Do not patch symptoms until the owning layer is identified.
+- If a proposed fix removes or redraws a whole screen layer (text, overlay, tilemap, helper path, etc.), state that explicitly before implementation and verify the exact user-visible consequence afterward. Do not describe a whole-layer suppression as a narrow visual fix.
+- If a change fixes one symptom but introduces a new visible regression in another layer (for example text corruption after a map fix), treat that as evidence the layer model is still wrong. Revert the assumption, update the diagnosis, and avoid adding tests that bless the regressed state.
+- Never lock in a broken intermediate state with regression tests just because it is the newest output. A failing screenshot is debugging evidence, not a contract.
+- For compositor/path bugs, prefer tests that prove layer ownership and hook behavior (which helper runs, which tile slots are preserved, which addresses/pointers are used) before any screenshot-adjacent assertions.
+- Before keeping a runtime patch, ask whether it preserves all unaffected screen content. If it fixes the target artifact by deleting unrelated content, it is not a valid fix.
+- When multiple symptoms share a screen, do not assume they share one cause. Prove whether text/UI corruption and map corruption come from the same layer before writing code or tests.
+- If multiple attempted fixes fail to change a single visible pixel of the target bug, stop iterating on nearby theories. Re-open diagnosis from the live ROM path and identify one concrete piece of evidence that the next change touches the owning layer.
+- Do not treat passing helper/unit tests as evidence that a screen bug is fixed when the user-visible ROM output is unchanged. A no-op-on-screen result means the wrong layer or wrong data path is still being modified.
+- After any runtime visual fix, compare the expected changed layer against the actual observed outcome. If the observed output is unchanged, explicitly conclude that the patch did not hit the owning path and remove or rethink the change instead of stacking more patches.
+- Avoid long debugging loops with net-negative productivity: when two successive fixes fail to improve the target pixels, switch from patching to instrumentation/ownership proof before writing more code.
+- If the user names a specific screen/state (for example free practice track select, title menu preview, championship preview, results screen), trace that exact runtime path first. Do not assume another superficially similar screen shares the same draw calls, layers, or VRAM destinations.
+- After a failed visual fix, explicitly ask: did this patch target the exact screen/state the user reported, or only a related one? If not exact, revert course immediately and trace the correct path before any more edits.
+- When a patch changes some other screen element but leaves the target pixels unchanged, treat that as proof the patch hit a neighboring path rather than the owning one. Remove the neighbor-path patch instead of expanding it.
+- A fix that corrupts unaffected content on the reported screen is evidence of wrong-path debugging, not partial success. Roll back the assumption and re-open path ownership.
+- For title/options/free-practice preview bugs, do not assume the `race.asm` championship preview loader owns the screen. Prove whether the screen is actually using `menus.asm` title-preview assets (`Title_sign_*`, `Round_sign_*`) before patching any race-preview path.
+- Any temporary workaround must be labeled as temporary in the code and replaced with a derived/general solution before the task is considered complete.
+

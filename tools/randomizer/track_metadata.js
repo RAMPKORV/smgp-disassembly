@@ -69,12 +69,6 @@ function ensureOriginalMinimapPos(track) {
 	return track[TRACK_METADATA_FIELDS.originalMinimapPos];
 }
 
-function getMinimapGuideSource(track) {
-	const original = getOriginalMinimapPos(track);
-	if (original && original.length > 0) return original;
-	return Array.isArray(track?.minimap_pos) && track.minimap_pos.length > 0 ? track.minimap_pos : null;
-}
-
 function getGeneratedMinimapPreview(track) {
 	const preview = track?.[TRACK_METADATA_FIELDS.generatedMinimapPreview];
 	return preview && typeof preview === 'object' ? preview : {};
@@ -146,7 +140,6 @@ module.exports = {
 	ensureAssignedHorizonOverride,
 	getOriginalMinimapPos,
 	ensureOriginalMinimapPos,
-	getMinimapGuideSource,
 	getGeneratedMinimapPreview,
 	setGeneratedMinimapPreview,
 	getGeneratedGeometryState,

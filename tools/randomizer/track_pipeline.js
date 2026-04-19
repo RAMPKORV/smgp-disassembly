@@ -23,10 +23,105 @@ const {
 	setPreserveOriginalSignCadence,
 	setRuntimeSafeRandomized,
 } = require('./track_metadata');
+const { getSignedArea } = require('./track_geometry');
 
 const TRACK_LENGTH_MIN = 4000;
 const TRACK_LENGTH_MAX = 7500;
 const TRACK_LENGTH_STEP = 64;
+const TRACK_GENERATION_ATTEMPTS = 6;
+
+function comparePoints(a, b) {
+	if (a[0] !== b[0]) return a[0] - b[0];
+	return a[1] - b[1];
+}
+
+function cross(o, a, b) {
+	return ((a[0] - o[0]) * (b[1] - o[1])) - ((a[1] - o[1]) * (b[0] - o[0]));
+}
+
+function buildConvexHull(points) {
+	const sorted = (points || []).map(point => [Number(point[0]), Number(point[1])]).sort(comparePoints);
+	if (sorted.length <= 1) return sorted;
+	const lower = [];
+	for (const point of sorted) {
+		while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
+		lower.push(point);
+	}
+	const upper = [];
+	for (let index = sorted.length - 1; index >= 0; index--) {
+		const point = sorted[index];
+		while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
+		upper.push(point);
+	}
+	return lower.slice(0, -1).concat(upper.slice(0, -1));
+}
+
+function loopPerimeter(points) {
+	if (!Array.isArray(points) || points.length < 2) return 0;
+	let total = 0;
+	for (let index = 0; index < points.length; index++) {
+		const a = points[index];
+		const b = points[(index + 1) % points.length];
+		total += Math.hypot(b[0] - a[0], b[1] - a[1]);
+	}
+	return total;
+}
+
+function countReflexVertices(points) {
+	if (!Array.isArray(points) || points.length < 4) return 0;
+	const orientation = Math.sign(getSignedArea(points));
+	if (orientation === 0) return 0;
+	let reflexCount = 0;
+	for (let index = 0; index < points.length; index++) {
+		const prev = points[(index - 1 + points.length) % points.length];
+		const cur = points[index];
+		const next = points[(index + 1) % points.length];
+		const turn = cross(prev, cur, next);
+		if (Math.sign(turn) !== 0 && Math.sign(turn) !== orientation) reflexCount += 1;
+	}
+	return reflexCount;
+}
+
+function countTurnRuns(points) {
+	if (!Array.isArray(points) || points.length < 4) return 0;
+	const signs = [];
+	for (let index = 0; index < points.length; index++) {
+		const prev = points[(index - 1 + points.length) % points.length];
+		const cur = points[index];
+		const next = points[(index + 1) % points.length];
+		const sign = Math.sign(cross(prev, cur, next));
+		if (sign !== 0) signs.push(sign);
+	}
+	if (signs.length === 0) return 0;
+	let runs = 1;
+	for (let index = 1; index < signs.length; index++) {
+		if (signs[index] !== signs[index - 1]) runs += 1;
+	}
+	if (signs.length > 1 && signs[0] !== signs[signs.length - 1]) runs -= 1;
+	return runs;
+}
+
+function buildLoopShapeMetrics(loopPoints) {
+	if (!Array.isArray(loopPoints) || loopPoints.length < 3) {
+		return {
+			reflexVertexCount: 0,
+			turnRunCount: 0,
+			areaRatioToHull: 1,
+			perimeterRatioToHull: 1,
+		};
+	}
+	const hull = buildConvexHull(loopPoints);
+	const loopArea = Math.abs(getSignedArea(loopPoints));
+	const hullArea = Math.max(loopArea, Math.abs(getSignedArea(hull)));
+	const loopPerimeterValue = loopPerimeter(loopPoints);
+	const hullPerimeterValue = Math.max(loopPerimeterValue, loopPerimeter(hull));
+	return {
+		reflexVertexCount: countReflexVertices(loopPoints),
+		turnRunCount: countTurnRuns(loopPoints),
+		areaRatioToHull: Number((hullArea > 0 ? loopArea / hullArea : 1).toFixed(3)),
+		perimeterRatioToHull: Number((hullPerimeterValue > 0 ? loopPerimeterValue / hullPerimeterValue : 1).toFixed(3)),
+	};
+}
 
 function pickTrackLength(rng, isPrelim = false) {
 	if (isPrelim) {
@@ -81,15 +176,24 @@ function makeTrackPipeline(deps) {
 			Number.isFinite(resampling.incoming_angle_delta) ? resampling.incoming_angle_delta : 180,
 			Number.isFinite(resampling.outgoing_angle_delta) ? resampling.outgoing_angle_delta : 180,
 		);
+		const shapeMetrics = buildLoopShapeMetrics(loopPoints);
 		const topologyPenalty = (topology.crossing_count || 0) > 1
 			? (topology.crossing_count || 0) * 1000
 			: ((topology.crossing_count || 0) === 1 && !singleCrossing ? 1000 : 0);
 		const fallbackPenalty = smoothing.used_fallback ? ((requestedPasses - appliedPasses) * 10) : 0;
+		const complexityPenalty = Math.max(0, 6 - shapeMetrics.reflexVertexCount) * 8
+			+ Math.max(0, 8 - shapeMetrics.turnRunCount) * 4
+			+ Math.max(0, shapeMetrics.areaRatioToHull - 0.6) * 40
+			- Math.min(10, Math.max(0, shapeMetrics.perimeterRatioToHull - 1) * 30);
+		const shapeComplexityPasses = shapeMetrics.reflexVertexCount >= 5
+			&& shapeMetrics.turnRunCount >= 6
+			&& shapeMetrics.areaRatioToHull <= 0.72;
 		const geometryScore = topologyPenalty
 			+ (sampleCountError * 20)
 			+ seamAnglePenalty
 			+ ((1 - Math.min(1, startVerticality)) * 40)
-			+ fallbackPenalty;
+			+ fallbackPenalty
+			+ Math.max(0, complexityPenalty);
 
 		return {
 			geometryScore: Number(geometryScore.toFixed(3)),
@@ -105,6 +209,11 @@ function makeTrackPipeline(deps) {
 			requestedSmoothingPasses: requestedPasses,
 			loopPointCount: loopPoints.length,
 			resampledPointCount: resampledCenterline.length,
+			reflexVertexCount: shapeMetrics.reflexVertexCount,
+			turnRunCount: shapeMetrics.turnRunCount,
+			areaRatioToHull: shapeMetrics.areaRatioToHull,
+			perimeterRatioToHull: shapeMetrics.perimeterRatioToHull,
+			shapeComplexityPasses,
 			passes: ((topology.crossing_count || 0) === 0 || ((topology.crossing_count || 0) === 1 && !!singleCrossing))
 				&& producedSampleCount === requestedSampleCount
 				&& startVerticality >= 0.5
@@ -113,14 +222,30 @@ function makeTrackPipeline(deps) {
 	}
 
 	function compareGeneratedTrackCandidates(a, b) {
-		if (a.geometryQuality.passes !== b.geometryQuality.passes) return a.geometryQuality.passes ? -1 : 1;
-		if (a.geometryQuality.geometryScore !== b.geometryQuality.geometryScore) return a.geometryQuality.geometryScore - b.geometryQuality.geometryScore;
+		const aFullyPasses = a.geometryQuality.passes && a.constraints.passes;
+		const bFullyPasses = b.geometryQuality.passes && b.constraints.passes;
+		if (aFullyPasses !== bFullyPasses) return aFullyPasses ? -1 : 1;
 		if (a.constraints.passes !== b.constraints.passes) return a.constraints.passes ? -1 : 1;
+		if (a.geometryQuality.passes !== b.geometryQuality.passes) return a.geometryQuality.passes ? -1 : 1;
 		if (a.constraints.selfIntersections !== b.constraints.selfIntersections) return a.constraints.selfIntersections - b.constraints.selfIntersections;
-		if (a.constraints.startVerticality !== b.constraints.startVerticality) return b.constraints.startVerticality - a.constraints.startVerticality;
-		if (a.constraints.tileCount !== b.constraints.tileCount) return a.constraints.tileCount - b.constraints.tileCount;
 		if (a.constraints.coverageMatchPercent !== b.constraints.coverageMatchPercent) return b.constraints.coverageMatchPercent - a.constraints.coverageMatchPercent;
 		if (a.constraints.signMatchPercent !== b.constraints.signMatchPercent) return b.constraints.signMatchPercent - a.constraints.signMatchPercent;
+		if (a.geometryQuality.shapeComplexityPasses !== b.geometryQuality.shapeComplexityPasses) {
+			return a.geometryQuality.shapeComplexityPasses ? -1 : 1;
+		}
+		if (a.geometryQuality.reflexVertexCount !== b.geometryQuality.reflexVertexCount) {
+			return b.geometryQuality.reflexVertexCount - a.geometryQuality.reflexVertexCount;
+		}
+		if (a.geometryQuality.turnRunCount !== b.geometryQuality.turnRunCount) {
+			return b.geometryQuality.turnRunCount - a.geometryQuality.turnRunCount;
+		}
+		if (a.geometryQuality.areaRatioToHull !== b.geometryQuality.areaRatioToHull) {
+			return a.geometryQuality.areaRatioToHull - b.geometryQuality.areaRatioToHull;
+		}
+		if (a.constraints.selfIntersections !== b.constraints.selfIntersections) return a.constraints.selfIntersections - b.constraints.selfIntersections;
+		if (a.constraints.startVerticality !== b.constraints.startVerticality) return b.constraints.startVerticality - a.constraints.startVerticality;
+		if (a.constraints.tileCount !== b.constraints.tileCount) return b.constraints.tileCount - a.constraints.tileCount;
+		if (a.geometryQuality.geometryScore !== b.geometryQuality.geometryScore) return a.geometryQuality.geometryScore - b.geometryQuality.geometryScore;
 		return 0;
 	}
 
@@ -236,12 +361,11 @@ function makeTrackPipeline(deps) {
 		}
 
 		let bestAttempt = null;
-		for (let attemptIndex = 0; attemptIndex < 2; attemptIndex++) {
+		for (let attemptIndex = 0; attemptIndex < TRACK_GENERATION_ATTEMPTS; attemptIndex++) {
 			const attempt = buildAttempt(attemptIndex);
 			if (!bestAttempt || compareGeneratedTrackCandidates(attempt, bestAttempt) < 0) {
 				bestAttempt = attempt;
 			}
-			if (attempt.geometryQuality.passes && attempt.constraints.passes) break;
 		}
 
 		for (const key of Object.keys(track)) delete track[key];
@@ -255,7 +379,8 @@ function makeTrackPipeline(deps) {
 			process.stdout.write(
 				`    geometry: score ${bestAttempt.geometryQuality.geometryScore} / crossings ${bestAttempt.geometryQuality.crossingCount} / ` +
 				`resampled ${bestAttempt.geometryQuality.producedSampleCount}/${bestAttempt.geometryQuality.requestedSampleCount} / ` +
-				`start ${bestAttempt.geometryQuality.startVerticality}\n`
+				`start ${bestAttempt.geometryQuality.startVerticality} / reflex ${bestAttempt.geometryQuality.reflexVertexCount} / ` +
+				`runs ${bestAttempt.geometryQuality.turnRunCount} / hull ${bestAttempt.geometryQuality.areaRatioToHull}\n`
 			);
 			const previewInfo = getGeneratedMinimapPreview(track);
 			process.stdout.write(

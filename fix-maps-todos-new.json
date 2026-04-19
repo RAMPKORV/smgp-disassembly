@@ -1,0 +1,442 @@
+{
+  "_meta": {
+    "project": "Super Monaco GP Disassembly",
+    "created": "2026-04-15",
+    "updated": "2026-04-15",
+    "status": "in_progress",
+    "deliverable": "New TDD-first plan to fix the remaining randomized course-select minimap screenshot defects",
+    "planning_mode": "TDD-first, screenshot-guided structural fix, no per-track exceptions",
+    "image_sampling_limit": 5,
+    "sampled_inputs": [
+      "E:/Romhacking/fail1.png",
+      "E:/Romhacking/fail1-highlighted.png",
+      "E:/Romhacking/fail2-highlighted.png",
+      "E:/Romhacking/fail3-highlighted.png",
+      "E:/Romhacking/fail4-highlighted.png"
+    ],
+    "primary_goal": "Eliminate the remaining screenshot-visible course-select minimap defects by locking the failing bend/side-wall/body-shape families in tests, then fixing raster/emitter behavior structurally."
+  },
+  "schema_version": 1,
+  "evidence_sample": {
+    "tracks_seen": [
+      "san_marino",
+      "brazil",
+      "hungary",
+      "west_germany"
+    ],
+    "observed_issue_families": [
+      {
+        "id": "SCREENFIX-ART-001",
+        "name": "convex_corner_wedge",
+        "description": "Convex bends keep an extra diagonal shoulder/wedge or taper incorrectly at the upper-right style of corner instead of resolving to a clean stock-like bend.",
+        "seen_in": [
+          "fail1-highlighted.png",
+          "fail3-highlighted.png",
+          "fail4-highlighted.png"
+        ]
+      },
+      {
+        "id": "SCREENFIX-ART-002",
+        "name": "straight_wall_shelf_or_notch",
+        "description": "Long side walls show a rectangular shelf, pocket, or side-thickness mismatch along a straight wall instead of a smooth stock-like side run.",
+        "seen_in": [
+          "fail2-highlighted.png",
+          "fail4-highlighted.png"
+        ]
+      },
+      {
+        "id": "SCREENFIX-ART-003",
+        "name": "lower_side_detached_residue",
+        "description": "Lower-left or lower-side residue remains outside the main loop as a tiny detached or weakly attached artifact family that is still screenshot-visible.",
+        "seen_in": [
+          "fail2-highlighted.png",
+          "fail3-highlighted.png",
+          "fail4-highlighted.png"
+        ]
+      },
+      {
+        "id": "SCREENFIX-ART-004",
+        "name": "road_body_shape_drift",
+        "description": "Some remaining defects involve the gray/white road body or shoulder shape, not only black contour topology, so full-layer raster assertions are required.",
+        "seen_in": [
+          "fail1-highlighted.png",
+          "fail2-highlighted.png",
+          "fail4-highlighted.png"
+        ]
+      }
+    ],
+    "current_read": "The previous roadmap fixed many black-contour topology failures, but these sampled screenshots show residual raster/body-shape defects at bends and side walls that the existing tests did not lock."
+  },
+  "problem_statement": {
+    "current_failures": [
+      "Convex bends can still render an extra diagonal wedge or incorrect taper in the course-select preview.",
+      "Straight side walls can still render a rectangular shelf, notch, or thickness mismatch.",
+      "Lower-side detached or weakly attached residue is still screenshot-visible in some tracks.",
+      "The remaining failures are not only black-contour-component problems; they also involve road-body/shoulder shape drift.",
+      "The recurrence across multiple tracks indicates a structural raster/emitter issue rather than a slug-specific exception case."
+    ],
+    "root_cause_hypothesis": [
+      "`renderStyledPixelsFromRoadMask()` currently derives the stock-style 2px right-side thickness from global +X mask shifts (`rightWideMask`) rather than local tangent-aware wall semantics, which can create shelves or wedges at bends and side walls.",
+      "`emitLegalContourPreview()` and the remaining cleanup passes primarily reason about outline-only fragments, so road-bearing or road-adjacent body-shape defects can survive if they stay attached to the main structure.",
+      "Existing tests strongly cover black-topology invariants, seam survival, marker independence, and roadless-fragment pruning, but they do not yet lock screenshot-visible bend/body cleanliness at the full styled-pixel level."
+    ],
+    "things_that_must_not_happen_again": [
+      "No per-track or per-screenshot production branches.",
+      "No broad cleanup heuristic that silently shaves valid seams or re-breaks marker independence.",
+      "No new fix that only improves black topology while leaving visible road-body shelves or wedges in place.",
+      "No claim of success based only on a generated ROM or a single screenshot; the failure family must be encoded in tests first."
+    ]
+  },
+  "locked_decisions": {
+    "tdd_required": true,
+    "production_special_casing": "forbidden",
+    "image_review_policy": "Inspect fail*.png only in capped batches of <= 5 images per iteration to avoid tool instability.",
+    "primary_scope": "Fix preview/asset generation, especially raster and emitter semantics, before considering any runtime-only workaround.",
+    "marker_policy": "Start marker handling remains a separate concern and must stay independent from contour/body fixes.",
+    "validation_scope": "Confidence comes from synthetic fixtures, fixed-seed regressions, deterministic fuzzing, workspace ROM builds, canonical verify, and targeted screenshot-family spot checks.",
+    "new_test_requirement": "The next tranche must add full-layer styled-preview assertions, not only black-mask topology checks."
+  },
+  "global_acceptance": [
+    "The sampled convex-corner wedge family is reproduced in tests and then eliminated without harming legal seam bridges or right-side thickness rules.",
+    "The sampled straight-wall shelf/notch family is reproduced in tests and then eliminated without collapsing valid side-wall thickness.",
+    "The sampled lower-side detached-residue family is reproduced in tests and then eliminated in both asset-preview and rendered-output paths.",
+    "New assertions inspect full styled pixels (`pixels` plus `road_pixels` semantics), not only black connected-component counts.",
+    "All previously green seam/marker/orphan/topology tests remain green.",
+    "Deterministic seed-fuzz and workspace ROM validation remain green.",
+    "Canonical `verify.bat` remains bit-perfect after source changes."
+  ],
+  "validation_commands": {
+    "fast_loop": [
+      "node tools/tests/test_minimap_raster_contract.js",
+      "node tools/tests/test_generated_minimap_assets.js",
+      "node tools/tests/test_map_first_minimap_regressions.js",
+      "node tools/tests/test_track_data_generation.js"
+    ],
+    "expanded_loop": [
+      "node tools/tests/test_minimap_stock_contour_contract.js",
+      "node tools/tests/test_minimap_seed_fuzz.js",
+      "node tools/tests/test_randomizer_smoke.js"
+    ],
+    "workspace_loop": [
+      "node tools/hack_workdir.js SMGP-1-01-42 --keep --force --output build/roms/test_randomized_42.bin"
+    ],
+    "canonical_root_confirmation": [
+      "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+    ]
+  },
+  "phases": [
+    {
+      "id": "SCREENFIX-P0",
+      "title": "Capture The Remaining Screenshot Failure Model",
+      "goal": "Translate the sampled fail*.png evidence into explicit structural/raster classes before changing production code again.",
+      "exit_criteria": [
+        "Every sampled highlighted defect maps to at least one structural/raster class.",
+        "The next tests target full styled-preview layers, not just black topology."
+      ],
+      "tasks": [
+        {
+          "id": "SCREENFIX-001",
+          "title": "Classify the sampled fail*.png artifacts into structural raster families",
+          "status": "done",
+          "priority": "critical",
+          "effort": "small",
+          "files": [
+            "fix-maps-todos-new.json"
+          ],
+          "acceptance": [
+            "The sampled screenshots are classified into convex-corner wedge, straight-wall shelf/notch, lower-side residue, and road-body shape drift families.",
+            "The classification is phrased in raster/emitter terms rather than track-specific naming hacks."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Sampled only five images due tool stability limits: fail1.png, fail1-highlighted.png, fail2-highlighted.png, fail3-highlighted.png, fail4-highlighted.png. The visible defects are not limited to black contour topology; several are road-body/shoulder shape artifacts at bends and straight walls."
+        },
+        {
+          "id": "SCREENFIX-002",
+          "title": "Inspect additional fail*.png images only in capped batches if a new family appears after the first fixes",
+          "status": "todo",
+          "priority": "medium",
+          "effort": "small",
+          "files": [
+            "E:/Romhacking/fail*.png",
+            "fix-maps-todos-new.json"
+          ],
+          "acceptance": [
+            "Any later image review stays capped at five images per iteration.",
+            "New image sampling is only used if the first screenshot-derived fixes leave an unexplained family behind."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCREENFIX-P1",
+      "title": "Lock The Screenshot Families In Tests",
+      "goal": "Create failing tests that express the sampled screenshot defects as durable raster and rendered-output contracts.",
+      "exit_criteria": [
+        "Each sampled screenshot family has at least one focused failing test or synthetic fixture.",
+        "The tests distinguish road-body shape drift from pure black-topology failures."
+      ],
+      "tasks": [
+        {
+          "id": "SCREENFIX-101",
+          "title": "Add screenshot-derived synthetic fixtures for corner wedges, side shelves, and lower-side residue",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/minimap_synthetic_fixtures.js",
+            "tools/tests/test_minimap_raster_contract.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Fixtures exist for: convex upper-right wedge, straight right-wall shelf, lower-left detached residue, and side-wall notch/shelf variants.",
+            "At least one fixture intentionally fails against the current raster/emitter behavior before the fix lands."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added synthetic road-mask fixtures in `tools/tests/minimap_synthetic_fixtures.js` for a convex-corner shelf/wedge, a straight-wall shelf/notch family, and a lower-side residue family. These now drive the new raster contract suite."
+        },
+        {
+          "id": "SCREENFIX-102",
+          "title": "Create a dedicated minimap raster contract suite for full-layer assertions",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/test_minimap_raster_contract.js",
+            "tools/lib/minimap_raster.js"
+          ],
+          "acceptance": [
+            "The new suite checks visible raster cleanliness at bends and side walls using styled `pixels` plus `road_pixels` semantics.",
+            "The suite proves that black-topology-green output can still be raster-wrong, preventing another false closeout."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added `tools/tests/test_minimap_raster_contract.js` with full-layer failing assertions for the sampled screenshot families. The first run fails on five cases: synthetic convex-corner shelf, synthetic straight-wall shelf, synthetic lower-side residue, plus fixed-seed San Marino and Hungary windows from seed 42."
+        },
+        {
+          "id": "SCREENFIX-103",
+          "title": "Add fixed-seed regression tests for the screenshot tracks from the current test ROM",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/test_generated_minimap_assets.js",
+            "tools/tests/test_minimap_raster_contract.js"
+          ],
+          "acceptance": [
+            "Seed `SMGP-1-01-42` regressions explicitly cover `san_marino`, `brazil`, `hungary`, and `west_germany`.",
+            "The assertions target the screenshot-visible families: corner wedge, wall shelf/notch, and lower-side residue."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "The first screenshot-driven fixed-seed tranche now includes failing raster-layer windows in `tools/tests/test_minimap_raster_contract.js` and a failing generated-asset invariant in `tools/tests/test_generated_minimap_assets.js` showing that `san_marino`, `brazil`, `hungary`, and `west_germany` currently leave all course-select overlay-reserved local tile slots blank. This gives a concrete TDD handle for the final-screen missing-border defect rather than only an intermediate preview render mismatch."
+        },
+        {
+          "id": "SCREENFIX-104",
+          "title": "Preserve existing seam, marker, orphan, and right-side-thickness contracts while adding the new tests",
+          "status": "todo",
+          "priority": "high",
+          "effort": "small",
+          "files": [
+            "tools/tests/test_generated_minimap_assets.js",
+            "tools/tests/test_minimap_stock_contour_contract.js"
+          ],
+          "acceptance": [
+            "All previously fixed seam/marker/orphan/right-thickness tests remain present and green.",
+            "The new screenshot-family tests extend the contract instead of replacing the earlier one."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCREENFIX-P2",
+      "title": "Fix Raster And Emitter Semantics",
+      "goal": "Repair the actual source of the sampled screenshot defects, starting at raster semantics and only using bounded cleanup when tests prove it is necessary.",
+      "exit_criteria": [
+        "The sampled screenshot families are eliminated by structural code changes, not by track-specific hacks.",
+        "Any remaining cleanup pass is clearly bounded to a tested defect class."
+      ],
+      "tasks": [
+        {
+          "id": "SCREENFIX-201",
+          "title": "Audit `renderStyledPixelsFromRoadMask()` and `styleRoadPreview()` for tangent-incorrect wall thickening",
+          "status": "in_progress",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/lib/minimap_raster.js",
+            "tools/tests/test_minimap_raster_contract.js"
+          ],
+          "acceptance": [
+            "The code path that creates the sampled wedges/shelves is identified with a failing test first.",
+            "The audit explicitly evaluates whether global +X right-side expansion (`rightWideMask`) is causing bend and straight-wall artifacts."
+          ],
+          "started": "2026-04-15",
+          "notes": "Audit now covers both the raster path and the actual course-select packed-screen path. Confirmed that the screenshots cannot be explained by the raw generated preview path alone: the final course-select screen still consumes `Track_preview_tilemap_data`, and generated assets had been leaving overlay-referenced local tile slots blank. Replaced the old blank-reserved-slot invariant with a final-screen compatibility invariant in `tools/tests/test_generated_minimap_assets.js`, then fixed a shared emitter regression by adding generic split-tail contour pruning for road-adjacent lower-tail outline runs that formed an illegal third black contour component. The asset suite is back to green (`50 passed`). Additional screenshot-driven TDD in `tools/tests/test_minimap_raster_contract.js` now targets the real final composed preview for `hungary`, `west_germany`, and `italy`. A key structural discovery is that all screenshot tracks use the geometry-centerline fast path in `buildGeneratedMinimapPreview()`, which currently skips the candidate-pipeline rescue variants (`expandLowerTail`, `collapseShortestSegment`, `smoothClosedPoints`) that may be needed to prevent lower-tail border loss and black-component fragmentation. Remaining open failures are isolated to that shared preview-generation/styling tranche plus the synthetic shelf/residue fixtures."
+        },
+        {
+          "id": "SCREENFIX-202",
+          "title": "Fix convex-corner wedge emission without breaking stock-style right-side thickness",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "SCREENFIX-201"
+          ],
+          "files": [
+            "tools/lib/minimap_raster.js",
+            "tools/tests/test_minimap_raster_contract.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Convex bend fixtures and fixed-seed screenshot-track regressions pass.",
+            "Straight right-wall 2px thickness tests remain green."
+          ]
+        },
+        {
+          "id": "SCREENFIX-203",
+          "title": "Fix straight-wall shelf/notch artifacts at side walls and cell boundaries",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "large",
+          "depends_on": [
+            "SCREENFIX-201"
+          ],
+          "files": [
+            "tools/lib/minimap_raster.js",
+            "tools/lib/generated_minimap_assets.js",
+            "tools/tests/test_minimap_raster_contract.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Side-wall shelf/notch fixtures and fixed-seed regressions pass.",
+            "The fix does not reintroduce detached seam cleanup damage or false contour components."
+          ]
+        },
+        {
+          "id": "SCREENFIX-204",
+          "title": "Remove remaining lower-side residue families in both asset-preview and rendered output",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "files": [
+            "tools/lib/generated_minimap_assets.js",
+            "tools/tests/test_generated_minimap_assets.js",
+            "tools/tests/test_minimap_raster_contract.js"
+          ],
+          "acceptance": [
+            "The sampled lower-left/lower-side residue family is eliminated in both asset-preview and final rendered minimap output.",
+            "Any cleanup used for this remains structural, bounded, and test-proven."
+          ]
+        },
+        {
+          "id": "SCREENFIX-205",
+          "title": "If needed, add a bounded road-bearing cleanup pass for screenshot-visible body-shape defects",
+          "status": "todo",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "SCREENFIX-202",
+            "SCREENFIX-203",
+            "SCREENFIX-204"
+          ],
+          "files": [
+            "tools/lib/generated_minimap_assets.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Only add this if raster fixes alone cannot solve the screenshot families.",
+            "Any new cleanup targets a named tested class such as convex-corner wedge or side-wall shelf and must not rely on slug-specific logic."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCREENFIX-P3",
+      "title": "Prove The New Fix On Real Randomization",
+      "goal": "Demonstrate that the new screenshot-driven fixes survive real seeds, packing, and ROM generation.",
+      "exit_criteria": [
+        "The screenshot-guided regressions are green on the known failing seed.",
+        "Fuzz and workspace ROM validation remain green."
+      ],
+      "tasks": [
+        {
+          "id": "SCREENFIX-301",
+          "title": "Run fixed-seed screenshot-family regression on the current test seed",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "small",
+          "files": [
+            "tools/tests/test_minimap_raster_contract.js",
+            "tools/tests/test_generated_minimap_assets.js",
+            "build/roms/latest_randomized.bin"
+          ],
+          "acceptance": [
+            "The new regression tests pass for `san_marino`, `brazil`, `hungary`, and `west_germany` under seed 42.",
+            "The tracks no longer show the sampled highlighted families."
+          ]
+        },
+        {
+          "id": "SCREENFIX-302",
+          "title": "Re-run deterministic fuzz and workspace ROM validation after the raster/emitter changes",
+          "status": "todo",
+          "priority": "high",
+          "effort": "small",
+          "files": [
+            "tools/tests/test_minimap_seed_fuzz.js",
+            "tools/tests/test_randomizer_smoke.js",
+            "build/roms/test_randomized_42.bin"
+          ],
+          "acceptance": [
+            "Seed fuzz stays green.",
+            "Workspace ROM build and minimap patch validation stay green."
+          ]
+        },
+        {
+          "id": "SCREENFIX-303",
+          "title": "Close the new screenshot-fix tranche with canonical root verify",
+          "status": "todo",
+          "priority": "critical",
+          "effort": "small",
+          "files": [
+            "build/roms/test_randomized_42.bin"
+          ],
+          "acceptance": [
+            "All minimap suites are green.",
+            "The new raster contract suite is green.",
+            "Workspace ROM rebuild passes.",
+            "Canonical `verify.bat` passes."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SCREENFIX-P4",
+      "title": "Document The Expanded Contract",
+      "goal": "Record that screenshot-visible raster/body-shape failures require full-layer tests in addition to contour-topology tests.",
+      "exit_criteria": [
+        "The repo explains why the previous closeout missed these families.",
+        "Future contributors know to add raster-layer tests for visible course-select defects."
+      ],
+      "tasks": [
+        {
+          "id": "SCREENFIX-401",
+          "title": "Document the new screenshot-derived raster contract once the fixes land",
+          "status": "todo",
+          "priority": "medium",
+          "effort": "small",
+          "files": [
+            "docs/randomizer_architecture.md",
+            "docs/randomizer_refactor_workflow.md",
+            "notes.txt"
+          ],
+          "acceptance": [
+            "The docs explain that full-layer styled-preview cleanliness is a separate contract from black-topology cleanliness.",
+            "The screenshot-derived bend/shelf/residue families are mapped to the new tests."
+          ]
+        }
+      ]
+    }
+  ]
+}

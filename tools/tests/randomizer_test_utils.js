@@ -4,10 +4,17 @@ const path = require('path');
 
 const { readJson } = require('../lib/json');
 const { REPO_ROOT } = require('../lib/rom');
+const { requireTracksDataShape, getTracks } = require('../randomizer/track_model');
+const { randomizeTracks } = require('../randomizer/track_randomizer');
 
 const TRACKS_JSON_PATH = path.join(REPO_ROOT, 'tools', 'data', 'tracks.json');
 const TEAMS_JSON_PATH = path.join(REPO_ROOT, 'tools', 'data', 'teams.json');
 const CHAMPIONSHIP_JSON_PATH = path.join(REPO_ROOT, 'tools', 'data', 'championship.json');
+
+let cachedTracksJson = null;
+let cachedTeamsJson = null;
+let cachedChampionshipJson = null;
+const randomizedTracksDataCache = new Map();
 
 function deepCopy(value) {
 	return JSON.parse(JSON.stringify(value));
@@ -82,15 +89,32 @@ function makeValidTrack(trackLength = 4096) {
 }
 
 function loadTracksJson() {
-	return readJson(TRACKS_JSON_PATH);
+	if (cachedTracksJson === null) cachedTracksJson = readJson(TRACKS_JSON_PATH);
+	return deepCopy(cachedTracksJson);
 }
 
 function loadTeamsJson() {
-	return readJson(TEAMS_JSON_PATH);
+	if (cachedTeamsJson === null) cachedTeamsJson = readJson(TEAMS_JSON_PATH);
+	return deepCopy(cachedTeamsJson);
 }
 
 function loadChampionshipJson() {
-	return readJson(CHAMPIONSHIP_JSON_PATH);
+	if (cachedChampionshipJson === null) cachedChampionshipJson = readJson(CHAMPIONSHIP_JSON_PATH);
+	return deepCopy(cachedChampionshipJson);
+}
+
+function buildTrackSlugsCacheKey(trackSlugs) {
+	if (trackSlugs === null) return '*';
+	return Array.from(trackSlugs).sort().join(',');
+}
+
+function getRandomizedTracksData(masterSeed, trackSlugs = null, verbose = false) {
+	const cacheKey = `${masterSeed}::${buildTrackSlugsCacheKey(trackSlugs)}`;
+	if (randomizedTracksDataCache.has(cacheKey)) return randomizedTracksDataCache.get(cacheKey);
+	const tracksData = requireTracksDataShape(loadTracksJson());
+	randomizeTracks(tracksData, masterSeed, trackSlugs, verbose);
+	randomizedTracksDataCache.set(cacheKey, tracksData);
+	return tracksData;
 }
 
 module.exports = {
@@ -109,4 +133,5 @@ module.exports = {
 	loadTracksJson,
 	loadTeamsJson,
 	loadChampionshipJson,
+	getRandomizedTracksData,
 };

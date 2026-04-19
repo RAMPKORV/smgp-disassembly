@@ -3,7 +3,7 @@
 //
 // TEST-009: End-to-end randomizer smoke test.
 //
-// Section A: Generate + validate all 19 tracks using a fixed seed.
+// Section A: Generate + validate all 19 tracks using a representative seed.
 //            38 per-track tests (2 per track: no validation errors, correct
 //            minimap pair count) + 1 aggregate test = 39 tests.
 //
@@ -16,11 +16,12 @@
 //            12 tests: workspace created, hack builder ran, exit code 0,
 //            output ROM written, workspace ROM present, expected ROM growth,
 //            ROM end header matches actual size, log written, root-tree safety,
-//            and same-seed determinism.
+//            and workspace determinism.
 //
 // Usage:
-//   node tools/tests/test_randomizer_smoke.js            # all sections
-//   node tools/tests/test_randomizer_smoke.js --no-build # skip Section C
+//   node tools/tests/test_randomizer_smoke.js             # fast mode
+//   node tools/tests/test_randomizer_smoke.js --with-build # include Section C
+//   node tools/tests/test_randomizer_smoke.js --no-build   # skip Section C explicitly
 
 'use strict';
 
@@ -36,6 +37,11 @@ const trackRandomizer    = require('../randomizer/track_randomizer.js');
 const { getTrackMinimapPairs, getTracks, requireTracksDataShape } = require('../randomizer/track_model.js');
 const { validateTrack, validateTracks } = require('../randomizer/track_validator.js');
 const { injectTrack }    = require('../inject_track_data.js');
+const { readTrackEntryAddresses } = require('../generated_minimap_runtime.js');
+const { buildTrackAssetBytes } = require('../patch_all_track_minimap_assets_rom.js');
+const { buildPreviewRawMap } = require('../patch_all_track_minimap_raw_maps_rom.js');
+const { encodeMinimapPos } = require('../inject_track_data.js');
+const { buildGeneratedMinimapPosPairs } = require('../lib/generated_minimap_pos.js');
 const { deepCopy, loadTracksJson } = require('./randomizer_test_utils.js');
 
 const EXPECTED_ROM_SIZE = 524288;
@@ -69,15 +75,22 @@ function snapshotExistingFiles(filePaths) {
   }));
 }
 
-// ---------------------------------------------------------------------------
-// Parse --no-build flag
-// ---------------------------------------------------------------------------
-const NO_BUILD = process.argv.includes('--no-build');
+function assertBufferContains(haystack, needle, label) {
+	const offset = haystack.indexOf(needle);
+	assert.ok(offset >= 0, `missing ${label}`);
+	return offset;
+}
 
 // ---------------------------------------------------------------------------
-// Section A: Generate + validate all 19 tracks using a fixed seed
+// Parse build-mode flags
 // ---------------------------------------------------------------------------
-console.log('Section A: generate + validate all 19 tracks with fixed seed');
+const WITH_BUILD = process.argv.includes('--with-build');
+const NO_BUILD = process.argv.includes('--no-build') || !WITH_BUILD;
+
+// ---------------------------------------------------------------------------
+// Section A: Generate + validate all 19 tracks using a representative seed
+// ---------------------------------------------------------------------------
+console.log('Section A: generate + validate all 19 tracks with representative seed');
 
 const FIXED_SEED_STR = 'SMGP-1-01-42';
 const WORKSPACE_SEED_STR = 'SMGP-1-01-12345';
@@ -211,7 +224,7 @@ test('original data/tracks/ files were not modified by inject', () => {
 // ---------------------------------------------------------------------------
 // Section C: assemble ROM in an isolated temp workspace
 // ---------------------------------------------------------------------------
-console.log(`Section C: assemble ROM in isolated workspace (${NO_BUILD ? 'SKIPPED — --no-build' : 'running'})`);
+console.log(`Section C: assemble ROM in isolated workspace (${NO_BUILD ? 'SKIPPED - fast mode/--no-build' : 'running'})`);
 
 if (!NO_BUILD) {
   const tmpRootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'smgp-smoke-ws-'));
@@ -293,6 +306,49 @@ if (!NO_BUILD) {
     assert.ok(buildOutput.includes('Timing:'), `expected timing line in output:\n${buildOutput}`);
   });
 
+	test('Section C: workspace ROM contains generated minimap tile payload for a randomized track', () => {
+		const wsRomPath = path.join(tmpWsDir, 'out.bin');
+		const wsTracksPath = path.join(tmpWsDir, 'tools', 'data', 'tracks.json');
+		const rom = fs.readFileSync(wsRomPath);
+		const workspaceTracks = requireTracksDataShape(JSON.parse(fs.readFileSync(wsTracksPath, 'utf8')));
+		const track = getTracks(workspaceTracks).find(entry => entry.slug === 'san_marino');
+		assert.ok(track, 'missing san_marino in workspace tracks.json');
+		const assets = buildTrackAssetBytes(track);
+		const { minimapTilesAddr } = readTrackEntryAddresses(rom, track.index);
+		assert.ok(minimapTilesAddr >= EXPECTED_ROM_SIZE, `expected appended minimap tiles pointer, got 0x${minimapTilesAddr.toString(16)}`);
+		assert.strictEqual(rom.subarray(minimapTilesAddr, minimapTilesAddr + assets.tileBytes.length).compare(assets.tileBytes), 0, 'workspace ROM minimap tile payload mismatch');
+	});
+
+	test('Section C: workspace ROM contains generated raw preview map payload for a randomized track', () => {
+		const wsRomPath = path.join(tmpWsDir, 'out.bin');
+		const wsTracksPath = path.join(tmpWsDir, 'tools', 'data', 'tracks.json');
+		const rom = fs.readFileSync(wsRomPath);
+		const workspaceTracks = requireTracksDataShape(JSON.parse(fs.readFileSync(wsTracksPath, 'utf8')));
+		const track = getTracks(workspaceTracks).find(entry => entry.slug === 'san_marino');
+		assert.ok(track, 'missing san_marino in workspace tracks.json');
+		const rawPreviewMap = buildPreviewRawMap(track);
+		const offset = assertBufferContains(rom, rawPreviewMap, 'generated raw preview map');
+		assert.ok(offset >= EXPECTED_ROM_SIZE, `expected appended raw preview map, got 0x${offset.toString(16)}`);
+	});
+
+	test('Section C: workspace ROM contains generated minimap_pos payload for a randomized track', () => {
+		const wsRomPath = path.join(tmpWsDir, 'out.bin');
+		const wsTracksPath = path.join(tmpWsDir, 'tools', 'data', 'tracks.json');
+		const rom = fs.readFileSync(wsRomPath);
+		const workspaceTracks = requireTracksDataShape(JSON.parse(fs.readFileSync(wsTracksPath, 'utf8')));
+		const track = getTracks(workspaceTracks).find(entry => entry.slug === 'san_marino');
+		assert.ok(track, 'missing san_marino in workspace tracks.json');
+		const expected = Buffer.from(encodeMinimapPos(buildGeneratedMinimapPosPairs(track), Array.isArray(track.minimap_pos_trailing) ? track.minimap_pos_trailing : []));
+		const entryAddr = 0x0000F872 + (track.index * 0x48);
+		const minimapPosAddr = rom.readUInt32BE(entryAddr + 0x2C);
+		assert.strictEqual(rom.subarray(minimapPosAddr, minimapPosAddr + expected.length).compare(expected), 0, 'workspace ROM minimap_pos payload mismatch');
+	});
+
+	test('Section C: workspace ROM records minimap patch phase in log output', () => {
+		assert.ok(buildOutput.includes('Patching generated minimap data into workspace ROM ...'), `expected minimap patch phase in output:\n${buildOutput}`);
+		assert.ok(buildOutput.includes('Expanded workspace ROM size:'), `expected expanded ROM size report in output:\n${buildOutput}`);
+	});
+
   test('Section C: root-tree sentinel files remain unchanged', () => {
     for (const entry of rootSentinelSnapshot) {
       assert.strictEqual(fs.existsSync(entry.filePath), entry.exists, `${entry.filePath} existence changed`);
@@ -302,18 +358,18 @@ if (!NO_BUILD) {
     }
   });
 
-  test('Section C: second same-seed workspace build exit code is 0', () => {
+  test('Section C: second workspace build exit code is 0', () => {
     assert.strictEqual(buildResult2.status, 0,
       `exit code ${buildResult2.status}\noutput:\n${buildOutput2.slice(0, 500)}`);
   });
 
-  test('Section C: same-seed workspace builds produce identical ROM hashes', () => {
+  test('Section C: workspace builds produce identical ROM hashes', () => {
     assert.ok(fs.existsSync(tmpRomPath), `missing first ROM: ${tmpRomPath}`);
     assert.ok(fs.existsSync(tmpRomPath2), `missing second ROM: ${tmpRomPath2}`);
     assert.strictEqual(sha256File(tmpRomPath), sha256File(tmpRomPath2));
   });
 
-  test('Section C: same-seed workspace builds produce identical randomized track JSON', () => {
+  test('Section C: workspace builds produce identical randomized track JSON', () => {
     const first = path.join(tmpWsDir, 'tools', 'data', 'tracks.json');
     const second = path.join(tmpWsDir2, 'tools', 'data', 'tracks.json');
     assert.ok(fs.existsSync(first), `missing first randomized tracks.json: ${first}`);
@@ -326,7 +382,7 @@ if (!NO_BUILD) {
   fs.rmSync(tmpRootDir2, { recursive: true, force: true });
 } else {
   // Skip tests but keep counts honest — just record them as "not run"
-  console.log('  (Section C skipped — 8 build tests not run)');
+  console.log('  (Section C skipped - fast mode/--no-build; build tests not run)');
 }
 
 // ---------------------------------------------------------------------------
@@ -340,6 +396,6 @@ fs.rmSync(tmpDataDir, { recursive: true, force: true });
 const total = passed + failed;
 console.log(`\nResults: ${passed} passed, ${failed} failed, ${total} total`);
 if (NO_BUILD) {
-  console.log('(Section C skipped: 8 build tests not included in total)');
+	console.log('(Section C skipped: build tests not included in total; use --with-build to run them)');
 }
 if (failed > 0) process.exit(1);

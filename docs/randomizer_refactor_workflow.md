@@ -47,6 +47,50 @@ Add more focused suites when the change touches a specific subsystem, for exampl
 - workspace/build flow: `tools/tests/test_canonical_build.js`, `tools/tests/test_workspace_guard.js`, `tools/tests/test_hack_workdir.js`
 - checkpoint/restore flow: `tools/tests/test_in_root_checkpoint.js`, `tools/tests/test_randomize_actions.js`
 
+## Course-select minimap checklist
+
+Use this checklist for any change that touches minimap preview rasterization,
+course-select asset generation, contour cleanup, marker handling, tile packing,
+or minimap ROM patching.
+
+1. Add or update focused tests first.
+2. Keep runtime `minimap_pos`, preview contour emission, start-marker handling,
+   and tile packing as separate concerns.
+3. Preserve the contour contract:
+   - no detached orphan black specks
+   - no roadless single-handoff tails/stubs
+   - legal seam bridges and narrow continuations survive
+   - stock-style 1px outline plus valid 2px right-side thickness remain intact
+   - start marker stays independent and on-road
+4. Prefer direct structural emission over broad cleanup heuristics.
+5. If fallback pruning remains necessary, limit it to a tested illegal fragment
+   class and forbid removals that increase contour component count.
+6. Run the minimap-focused fast tier:
+
+```text
+node tools/tests/test_generated_minimap_assets.js
+node tools/tests/test_map_first_minimap_regressions.js
+node tools/tests/test_track_data_generation.js
+node tools/tests/test_minimap_stock_contour_contract.js
+node tools/tests/test_minimap_seed_fuzz.js
+```
+
+7. Run the real workspace validation tier:
+
+```text
+node tools/tests/test_randomizer_smoke.js
+node tools/hack_workdir.js SMGP-1-01-42 --keep --force --output build/roms/test_randomized_42.bin
+```
+
+8. Close the change with canonical root confirmation:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& .\verify.bat"
+```
+
+Do not treat screenshot luck or one-off manual inspection as proof that a
+minimap change is safe.
+
 ## Workspace-safe validation
 
 Before claiming a tool-flow refactor is safe, run a real workspace build:

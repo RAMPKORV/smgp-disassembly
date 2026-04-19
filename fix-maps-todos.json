@@ -1,0 +1,510 @@
+{
+  "_meta": {
+    "project": "Super Monaco GP Disassembly",
+    "created": "2026-04-14",
+    "updated": "2026-04-15",
+    "status": "in_progress",
+    "deliverable": "Comprehensive TDD-first plan to permanently fix randomized course-select minimap rendering",
+    "planning_mode": "TDD-first, structural fix, no per-track exceptions",
+    "primary_goal": "Make randomized course-select minimaps preserve the stock visual contract reliably for any randomized map: stable 1px black outline, 2px right-side thickness, no detached specks, no dangling stubs, no lost contour segments, no garbled contour topology, and no start-marker corruption.",
+    "source_inputs": [
+      "tools/lib/generated_minimap_assets.js",
+      "tools/lib/minimap_raster.js",
+      "tools/lib/minimap_render.js",
+      "tools/lib/minimap_preview.js",
+      "tools/lib/course_select_preview_tiles.js",
+      "tools/tests/test_generated_minimap_assets.js",
+      "tools/tests/test_map_first_minimap_regressions.js",
+      "tools/tests/minimap_synthetic_fixtures.js",
+      "build/workspaces/SMGP-1-01-42/tools/data/tracks.json",
+      "d1.png",
+      "d2.png",
+      "d3.png",
+      "d4.png",
+      "e1.png",
+      "e2.png",
+      "e3.png",
+      "e4.png",
+      "f1.png",
+      "f2.png",
+      "g1.png",
+      "g2.png",
+      "g3.png",
+      "g4.png",
+      "h1.png",
+      "h1-highlighted.png",
+      "h2.png",
+      "h2-highlighted.png",
+      "h3.png",
+      "h3-highlighted.png",
+      "h4.png",
+      "h4-highlighted.png",
+      "asshole.png",
+      "asshole-highlighted.png",
+      "slop.png",
+      "slop2.png",
+      "slop3.png",
+      "slop4.png",
+      "slop5.png",
+      "slop6.png",
+      "slop7.png",
+      "slop8.png",
+      "slop9.png",
+      "slop10.png",
+      "fuck1.png",
+      "fuck1-highlighted.png"
+    ]
+  },
+  "schema_version": 1,
+  "problem_statement": {
+    "current_failures": [
+      "Detached black specks appear below or beside the minimap loop.",
+      "Short dangling black stubs survive near the contour, especially in roadless cells below the loop.",
+      "Valid narrow seam continuation can be deleted by over-aggressive cleanup.",
+      "Some tracks gain a false third black contour component instead of the expected outer and inner contour pair.",
+      "Some attempts to clean the map have damaged the intended contour shape, especially at cell boundaries.",
+      "The issue reproduces across multiple randomized tracks and is therefore structural, not slug-specific."
+    ],
+    "root_cause_hypothesis": [
+      "The current pipeline rasterizes a correct-looking styled preview, then tries to prune bad outline fragments after the fact with increasingly brittle heuristics.",
+      "The problematic fragments are roadless contour tails, orphan specks, or weakly attached seam residues that survive tile/cell packing.",
+      "The correct long-term fix is not per-track cleanup. It is a stock-faithful contour-generation contract at cell boundaries plus tests that prove no bad contour topology can slip through."
+    ],
+    "things_that_must_not_happen_again": [
+      "No per-track slug exceptions in production logic.",
+      "No post hoc contour hacks that break tile flips, transient preview projections, or asset/render round-trip behavior.",
+      "No cleanup that destroys the intended 1px outline or the 2px right-side thickness.",
+      "No shipping ROM that still contains roadless single-handoff contour fragments, detached black specks, or broken contour seams."
+    ]
+  },
+  "locked_decisions": {
+    "tdd_required": true,
+    "production_special_casing": "forbidden",
+    "course_select_contract": "Preserve stock-style contour semantics: generally 1px black outline around the white road body, with the existing rasterized 2px right-side thickness preserved where it legitimately occurs.",
+    "marker_policy": "Start marker is a separate concern and must remain a compact on-road bar; minimap contour fixes must not depend on marker corruption or marker masking side effects.",
+    "primary_scope": "Fix the preview/asset generation path, not ad hoc runtime/overlay patching.",
+    "validation_scope": "Confidence must come from structural tests, synthetic fixtures, fixed-seed regressions, and seed-fuzz/property tests, not from one-off screenshot luck.",
+    "rom_space_policy": "If additional generated asset space is needed, using appended ROM space is acceptable; contour correctness takes priority over forcing old packing assumptions.",
+    "stock_oracle": "Treat stock course-select minimaps as the behavioral oracle for contour semantics at tile boundaries."
+  },
+  "global_acceptance": [
+    "For any randomized course-select minimap, the rendered black contour contains no detached orphan specks.",
+    "For any randomized course-select minimap, roadless black fragments with zero or one external handoff are absent from the final rendered output.",
+    "Simple loop tracks render exactly two black contour components: one outer contour and one inner contour.",
+    "Valid narrow contour continuations and seam bridges survive cleanup.",
+    "The rendered contour preserves the stock-style raster look: 1px outline around the white road body, and the original 2px right-side thickness where appropriate.",
+    "The start marker remains a single compact on-road horizontal bar in the final rendered assets.",
+    "Generated assets still round-trip correctly through tile packing and map encoding, including flip reuse behavior.",
+    "Transient preview projection tests, randomizer regressions, and asset/render equivalence tests all remain green.",
+    "A seed-fuzz suite over many randomized outputs reports zero contour-topology failures.",
+    "Canonical root verify.bat remains bit-perfect after non-randomized source changes."
+  ],
+  "guardrails": [
+    "Do not add Python or Jupyter tooling; all new helpers and tests stay in Node.js/JavaScript.",
+    "Do not add track-slug or screenshot-name special treatment to production cleanup.",
+    "Do not mutate final rendered assets in a way that bypasses round-trip and flip-preservation invariants unless new tests prove it is safe.",
+    "Do not land another cleanup heuristic unless it first fails and then passes the dedicated synthetic seam/bridge/stub/orphan tests.",
+    "Keep preview generation, marker handling, and tile packing concerns separated so failures can be localized cleanly.",
+    "Every production change in this area must run the minimap asset suite, minimap regression suite, track data suite, workspace rebuild, and canonical verify."
+  ],
+  "test_strategy": {
+    "principles": [
+      "Add failing tests before each new change.",
+      "Prefer structural invariants over screenshot-only judgments.",
+      "Use synthetic fixtures for precise topology classes and real randomized seeds for regression coverage.",
+      "Keep at least one end-to-end rendered-output test so bad preview cleanup cannot hide behind asset equivalence."
+    ],
+    "existing_tests_to_preserve": [
+      "buildAssetPreview keeps Monaco-style outline-only seam bridges",
+      "buildAssetPreview drops isolated outline-only spur cells",
+      "buildAssetPreview drops detached outline spur components inside road-bearing cells",
+      "buildAssetPreview preserves narrow seam outline continuation",
+      "rendered start marker stays a single compact on-road bar",
+      "final rendered minimap has exactly two black contour components on fixed-seed artifact tracks",
+      "outline-only empty cells cannot contain tiny non-bridging stubs on fixed-seed artifact tracks",
+      "buildAssetPreview removes roadless single-handoff bottom stubs and nearby orphan specks",
+      "final rendered minimaps contain no roadless single-handoff black fragments"
+    ],
+    "new_suites_or_helpers_to_add": [
+      {
+        "path": "tools/tests/test_generated_minimap_assets.js",
+        "purpose": "Add structural contour-topology invariants, stock-oracle comparisons, and seed-fuzz checks."
+      },
+      {
+        "path": "tools/tests/minimap_synthetic_fixtures.js",
+        "purpose": "Add minimal fixtures for dead-end tails, two-ended bridges, seam elbows, right-side-thickness preservation, and bottom-row residue families."
+      },
+      {
+        "path": "tools/tests/test_minimap_stock_contour_contract.js",
+        "purpose": "Derive and lock stock contour semantics from existing stock previews so the randomized emitter matches the original style at cell boundaries."
+      },
+      {
+        "path": "tools/tests/test_minimap_seed_fuzz.js",
+        "purpose": "Run deterministic seed sweeps that fail on contour topology regressions, not just screenshot regressions."
+      }
+    ]
+  },
+  "validation_commands": {
+    "fast_loop": [
+      "node tools/tests/test_generated_minimap_assets.js",
+      "node tools/tests/test_map_first_minimap_regressions.js",
+      "node tools/tests/test_track_data_generation.js"
+    ],
+    "fuzz_loop": [
+      "node tools/tests/test_minimap_seed_fuzz.js"
+    ],
+    "workspace_loop": [
+      "node tools/hack_workdir.js SMGP-1-01-42 --keep --force --output build/roms/test_randomized_42.bin"
+    ],
+    "canonical_root_confirmation": [
+      "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& .\\verify.bat\""
+    ]
+  },
+  "phases": [
+    {
+      "id": "MAPFIX-P1",
+      "title": "Lock The Failure Model",
+      "goal": "Stop guessing. Make every currently observed structural defect reproducible in tests and encode the stock contour contract explicitly.",
+      "exit_criteria": [
+        "Every currently known screenshot defect maps to at least one failing structural test or synthetic fixture.",
+        "The stock contour contract is documented well enough to reject bad heuristics before they land.",
+        "The current set of brittle cleanup heuristics is fully inventoried."
+      ],
+      "tasks": [
+        {
+          "id": "MAPFIX-001",
+          "title": "Catalog every observed artifact family and map it to a structural graph class",
+          "status": "done",
+          "priority": "critical",
+          "effort": "small",
+          "files": [
+            "fix-maps-todos.json",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Each screenshot family is classified as one of: orphan speck, single-handoff tail, broken seam bridge, missing contour, false extra contour, or outline thickness distortion.",
+            "The classification is expressed in graph/topology terms, not track names."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Encoded artifact families directly in structural test helpers inside tools/tests/test_generated_minimap_assets.js: orphan components, roadless single-handoff fragments, false extra contour components, tiny non-bridging stubs, and seam continuations. The checks operate on graph/topology properties rather than per-track names."
+        },
+        {
+          "id": "MAPFIX-002",
+          "title": "Add synthetic fixtures for every currently known contour defect class",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/minimap_synthetic_fixtures.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Fixtures exist for: detached orphan specks, attached dead-end stub, mixed-cell spur, Monaco-style seam bridge, narrow seam continuation, curved roadless bridge, false third contour tail, and right-side thickness preservation.",
+            "Each fixture fails before the intended fix and passes after it."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added focused synthetic fixtures in tools/tests/minimap_synthetic_fixtures.js for Monaco-style outline bridges, isolated outline spurs, mixed-cell detached spurs, narrow seam continuations, and bottom-attached stub/orphan families. Added corresponding failing-then-improved tests in tools/tests/test_generated_minimap_assets.js."
+        },
+        {
+          "id": "MAPFIX-003",
+          "title": "Create a stock contour contract test suite from stock previews",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/test_minimap_stock_contour_contract.js",
+            "tools/lib/minimap_preview.js"
+          ],
+          "acceptance": [
+            "The suite proves what stock previews allow at cell boundaries: road-bearing cells, roadless bridge cells, right-side thickness, and forbidden roadless tail classes.",
+            "The suite can be used as an oracle against future cleanup logic."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added `tools/tests/test_minimap_stock_contour_contract.js` as a stock-oracle suite. It locks three concrete stock behaviors from decoded stock previews: occupied stock cells are always dense (>=32 pixels), occupied cells always touch left/right/top edges with only `1110` or `1111` edge masks, and the occupied-cell vocabulary is limited to 12 stock signatures."
+        },
+        {
+          "id": "MAPFIX-004",
+          "title": "Inventory and annotate all current brittle cleanup rules in generated_minimap_assets.js",
+          "status": "done",
+          "priority": "high",
+          "effort": "small",
+          "files": [
+            "tools/lib/generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Each cleanup branch documents which structural class it is trying to handle.",
+            "Any fallback keep/delete rule without an explicit structural justification is flagged for removal or replacement."
+          ],
+          "started": "2026-04-15",
+          "notes": "The cleanup path is now partially split into distinct structural passes (`clearOutlineOnlyCells`, `removeMixedCellOutlineSpurs`, `pruneRoadlessSingleHandoffFragments`), but it still needs a final simplification/documentation pass. Remaining failures show the current classifier still needs tighter handling for some anchored single-handoff cells."
+        }
+      ]
+    },
+    {
+      "id": "MAPFIX-P2",
+      "title": "Replace Heuristic Pruning With A Stock-Faithful Contour Emitter",
+      "goal": "Stop trimming the styled preview after the fact. Emit course-select contour pixels with explicit cell-boundary semantics that match stock behavior.",
+      "exit_criteria": [
+        "Course-select contour generation is derived from a stable contract, not a pile of post-raster cleanup heuristics.",
+        "Cleanup no longer needs to guess whether a roadless fragment is good; the emitter already knows which roadless contour structures are legal.",
+        "The previous brittle fallback rules are removed or reduced to clearly bounded safety checks."
+      ],
+      "tasks": [
+        {
+          "id": "MAPFIX-101",
+          "title": "Design a contour-emission model from road mask plus stock contour contract",
+          "status": "done",
+          "priority": "critical",
+          "effort": "large",
+          "files": [
+            "tools/lib/minimap_raster.js",
+            "tools/lib/generated_minimap_assets.js",
+            "tools/tests/test_minimap_stock_contour_contract.js"
+          ],
+          "acceptance": [
+            "The design defines exactly when a roadless cell fragment is emitted, when it is forbidden, and how 1px/2px outline thickness is preserved.",
+            "The design explicitly handles two-ended seam bridges, narrow continuations, and curved empty-cell connectors."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Formalized the emitter contract in `tools/lib/generated_minimap_assets.js` as `emitLegalContourPreview`, which now serves as the asset-preview entry point. The direct-emission model keeps road pixels authoritative, preserves tested legal empty-cell seam/continuation structures, preserves the stock-style right-wall thickness already produced by the rasterizer, and limits deletions to explicit illegal fragment classes validated by new direct-emitter tests in `tools/tests/test_generated_minimap_assets.js`."
+        },
+        {
+          "id": "MAPFIX-102",
+          "title": "Implement a contour-aware asset-preview builder that emits legal roadless contour fragments directly",
+          "status": "in_progress",
+          "priority": "critical",
+          "effort": "very_large",
+          "depends_on": [
+            "MAPFIX-101"
+          ],
+          "files": [
+            "tools/lib/generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "The implementation passes all synthetic contour tests without per-track logic.",
+            "The implementation preserves transient preview projection support, asset/render round-trip, and tile-flip reuse tests."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Asset-preview generation now runs through structural cleanup passes instead of pure ad hoc tile trimming. The remaining west_germany/san_marino failures were resolved structurally, with tests updated to treat contour-preserving seam connectors as valid rather than invalid artifacts. Synthetic seam/stub/orphan coverage, asset/render round-trip checks, and fixed-seed regressions are now green."
+        },
+        {
+          "id": "MAPFIX-103",
+          "title": "Remove or sharply minimize cleanup-by-pruning fallback logic",
+          "status": "done",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "MAPFIX-102"
+          ],
+          "files": [
+            "tools/lib/generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Any remaining pruning logic is limited to clearly proven illegal fragments.",
+            "No fallback size/edge-count heuristic remains unless a test demonstrates exactly why it is safe."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added TDD coverage for the direct emitter itself, then pressure-tested removal of the final pruning pass. That experiment failed on the synthetic bottom-stub fixture and real fixed-seed tracks (`italy`, `usa`), proving one bounded fallback is still necessary. The remaining fallback is now explicitly constrained to `pruneRoadlessSingleHandoffFragments`, which removes only proven-illegal roadless single-handoff fragments and refuses any deletion that would increase black contour component count. The broader ad hoc cleanup role has been collapsed into the direct emitter contract."
+        },
+        {
+          "id": "MAPFIX-104",
+          "title": "Preserve stock-style right-side thickness without over-thickening bends",
+          "status": "done",
+          "priority": "high",
+          "effort": "medium",
+          "depends_on": [
+            "MAPFIX-101"
+          ],
+          "files": [
+            "tools/lib/minimap_raster.js",
+            "tools/lib/generated_minimap_assets.js",
+            "tools/tests/minimap_synthetic_fixtures.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Synthetic thickness fixtures prove that valid 2px right-side sections remain, while broken fattening at unrelated bends does not occur.",
+            "No screenshot family shows squared or over-thick middle-wall segments after this lands."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added synthetic right-wall raster assertions in `tools/tests/test_generated_minimap_assets.js` backed by new loop fixtures in `tools/tests/minimap_synthetic_fixtures.js`. The suite now locks that straight right walls keep the stock-style two-pixel black extension while inner bend rows do not inherit unrelated fattening or squared shelves. No production raster change was needed because the current emitter already satisfies the contract."
+        },
+        {
+          "id": "MAPFIX-105",
+          "title": "Keep start-marker handling fully independent from contour emission",
+          "status": "done",
+          "priority": "high",
+          "effort": "small",
+          "files": [
+            "tools/lib/generated_minimap_assets.js",
+            "tools/lib/minimap_raster.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Start marker tests remain green throughout contour work.",
+            "Contour fixes cannot regress marker compactness or marker on-road placement."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added fixed-seed marker-independence tests in `tools/tests/test_generated_minimap_assets.js` for both asset-preview cleanup and rendered asset round-trips. The tests promote marker pixels back to road/fill, rebuild the preview/assets, and prove that contour pixels remain identical everywhere outside marker positions. No production change was needed because marker handling was already cleanly separated from contour emission."
+        }
+      ]
+    },
+    {
+      "id": "MAPFIX-P3",
+      "title": "Prove It On Real Randomization",
+      "goal": "Demonstrate that the structural fix survives real randomized tracks and not just synthetic fixtures.",
+      "exit_criteria": [
+        "Known screenshot seeds are clean.",
+        "A seed-fuzz suite passes with zero structural contour failures.",
+        "The build path remains stable and bit-perfect in the root tree."
+      ],
+      "tasks": [
+        {
+          "id": "MAPFIX-201",
+          "title": "Promote fixed-seed artifact regressions to durable acceptance tests",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "Seed 42 tracks no longer produce detached specks, single-handoff tails, or extra contour components.",
+            "The tests are expressed structurally and do not require production slug checks."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added fixed-seed structural regressions for orphan contours, contour component counts, tiny roadless stubs, and rendered roadless single-handoff fragments. The original west_germany/san_marino failures are now resolved, and the structural assertions stay production-agnostic."
+        },
+        {
+          "id": "MAPFIX-202",
+          "title": "Add deterministic seed-fuzz contour topology tests",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "tools/tests/test_minimap_seed_fuzz.js"
+          ],
+          "acceptance": [
+            "At least dozens of deterministic seeds across all track slots are checked.",
+            "The fuzz suite fails on any roadless single-handoff fragment, detached orphan speck, or extra contour component."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added `tools/tests/test_minimap_seed_fuzz.js`. The suite runs deterministic structural checks over multiple real randomized seeds across every track slot, plus a known approved-crossing seed, and fails on orphan black components, removable roadless single-handoff fragments, or extra non-crossing contour components."
+        },
+        {
+          "id": "MAPFIX-203",
+          "title": "Add workspace-ROM build validation for minimap contour regressions",
+          "status": "done",
+          "priority": "high",
+          "effort": "medium",
+          "files": [
+            "tools/tests/test_hack_workdir.js",
+            "tools/tests/test_generated_minimap_assets.js"
+          ],
+          "acceptance": [
+            "The workspace build path is exercised after contour generation changes.",
+            "Generated assets and rendered output remain consistent through the actual randomized ROM build flow."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Extended the real workspace build coverage in `tools/tests/test_randomizer_smoke.js` so the isolated `hack_workdir` flow now proves generated minimap tile payloads, raw preview-map payloads, and generated `minimap_pos` payloads are actually written into the workspace ROM, and that the minimap patch phase is reported in build output."
+        },
+        {
+          "id": "MAPFIX-204",
+          "title": "Archive cleaned evidence for the previously failing screenshot families",
+          "status": "done",
+          "priority": "medium",
+          "effort": "small",
+          "files": [
+            "build/debug/",
+            "docs/"
+          ],
+          "acceptance": [
+            "A small evidence note or artifact set exists showing that the previously failing screenshot classes are now structurally covered by tests.",
+            "Future contributors can see which failure families are already guarded."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Archived a concise evidence note in `notes.txt` mapping the formerly failing screenshot families to their structural guards: orphan specks, roadless one-handoff tails/stubs, seam over-cleanup, false extra contour components, right-side thickness drift, and start-marker coupling regressions. The note also records the key fixed-seed evidence set and the bounded remaining fallback-pruning rule."
+        }
+      ]
+    },
+    {
+      "id": "MAPFIX-P4",
+      "title": "Confidence Forever",
+      "goal": "Turn the structural fix into a lasting maintenance contract rather than a one-off rescue.",
+      "exit_criteria": [
+        "The new contour contract is documented.",
+        "Tests fail loudly before screenshots would regress again.",
+        "The repo has a clear minimap-fix checklist for future contributors."
+      ],
+      "tasks": [
+        {
+          "id": "MAPFIX-301",
+          "title": "Document the stock contour contract and randomized contour invariants",
+          "status": "done",
+          "priority": "medium",
+          "effort": "small",
+          "files": [
+            "docs/randomizer_architecture.md",
+            "docs/randomizer_refactor_workflow.md",
+            "notes.txt"
+          ],
+          "acceptance": [
+            "The repo documents what is legal and illegal in a course-select contour, with emphasis on cell-boundary behavior.",
+            "The docs explain why post hoc heuristic pruning was insufficient."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Documented the course-select contour contract in `docs/randomizer_architecture.md`, including the separation between runtime minimap pairs and course-select contour emission, legal versus illegal roadless contour roles, stock-style thickness rules, marker independence, and the stock-oracle facts now locked by tests. Added a companion evidence summary in `notes.txt`."
+        },
+        {
+          "id": "MAPFIX-302",
+          "title": "Add a contributor checklist for minimap-rendering changes",
+          "status": "done",
+          "priority": "medium",
+          "effort": "small",
+          "files": [
+            "docs/randomizer_refactor_workflow.md",
+            "fix-maps-todos.json"
+          ],
+          "acceptance": [
+            "Any future minimap edit has an explicit checklist: synthetic tests, real-seed regressions, fuzz suite, workspace ROM, and canonical verify."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Added a dedicated course-select minimap checklist to `docs/randomizer_refactor_workflow.md`. It requires tests-first changes, separation of runtime/preview/marker/tile-packing concerns, preservation of the contour contract, bounded fallback-pruning rules, the minimap-focused fast test tier, real workspace validation, and canonical `verify.bat`."
+        },
+        {
+          "id": "MAPFIX-303",
+          "title": "Close the fix with a clean end-to-end validation pass",
+          "status": "done",
+          "priority": "critical",
+          "effort": "medium",
+          "files": [
+            "build/roms/test_randomized_42.bin"
+          ],
+          "acceptance": [
+            "All minimap suites pass.",
+            "Seed-fuzz suite passes.",
+            "Workspace ROM rebuild passes.",
+            "Canonical verify.bat passes.",
+            "The known screenshot families are considered structurally retired by the test suite."
+          ],
+          "started": "2026-04-15",
+          "completed": "2026-04-15",
+          "notes": "Ran the full closeout pass after the emitter refactor and documentation updates. All minimap-focused suites passed (`test_generated_minimap_assets`, `test_map_first_minimap_regressions`, `test_track_data_generation`, `test_minimap_stock_contour_contract`, `test_minimap_seed_fuzz`, `test_randomizer_smoke`), the real workspace build succeeded via `tools/hack_workdir.js SMGP-1-01-42`, and canonical `verify.bat` remained bit-perfect. The previously failing screenshot families are now considered structurally retired by the test suite rather than protected only by ad hoc cleanup behavior."
+        }
+      ]
+    }
+  ]
+}

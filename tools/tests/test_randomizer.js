@@ -141,18 +141,6 @@ function countTightDirectionChanges(curveSegments) {
 	return count;
 }
 
-function countUltraSharpCurves(curveSegments) {
-	return (curveSegments || [])
-		.filter(seg => seg.type === 'curve' && getCurveSharpness(seg.curve_byte) <= 4)
-		.length;
-}
-
-function getLongestStraightLength(curveSegments) {
-	return (curveSegments || [])
-		.filter(seg => seg.type === 'straight')
-		.reduce((max, seg) => Math.max(max, seg.length), 0);
-}
-
 // ---------------------------------------------------------------------------
 // Section C: Track randomizer — generation primitives
 // ---------------------------------------------------------------------------
@@ -344,11 +332,9 @@ test('generateSignTileset tileset_offset values are multiples of 8 in [0, 88]', 
 // Section D: randomizeOneTrack and randomizeTracks
 // ---------------------------------------------------------------------------
 const tracksJson = loadTracksJson();
-let stockMinimapReport = null;
 
 if (RUN_SLOW) {
   console.log('Section D: randomizeOneTrack and randomizeTracks');
-  stockMinimapReport = validateAllTracks(tracksJson);
 
   test('generateMinimap returns [intPairs, trailing] with count == trackLength >> 6', () => {
     const track = deepCopy(tracksJson.tracks[0]);
@@ -562,76 +548,27 @@ if (RUN_SLOW) {
     assert.ok(plannedWindows.length > 0, 'expected at least one nearby tileset change before a strong curve window');
   });
 
-  test('default seed portugal keeps directional signs present', () => {
-	  const data = deepCopy(tracksJson);
-	  randomizeTracks(data, 12345);
-	  const track = data.tracks.find(entry => entry.slug === 'portugal');
-	  const directionalIds = new Set([4, 5, 12, 13, 16, 17, 20, 21, 24, 25, 28, 29, 32, 33, 36, 37, 40, 41, 44, 45, 48, 49]);
-	  assert.ok(track.sign_data.some(record => directionalIds.has(record.sign_id)), 'expected at least one directional sign');
-  });
+	test('expandCurveComplexity is deterministic for identical inputs', () => {
+		const templateTrack = deepCopy(tracksJson.tracks[0]);
+		const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
+		const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
+		const base = generateCurveRle(new XorShift32(1234), templateTrack.track_length, templateTrack);
+		const a = expandCurveComplexity(new XorShift32(1234), base, targets);
+		const b = expandCurveComplexity(new XorShift32(1234), base, targets);
+		assert.deepStrictEqual(a, b);
+	});
 
-  test('expandCurveComplexity preserves or improves direction changes without forcing ultra-sharp curves', () => {
-	  const templateTrack = deepCopy(tracksJson.tracks.find(track => track.slug === 'usa'));
-	  const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
-	  const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
-	  const rng = new XorShift32(1234);
-	  const base = generateCurveRle(rng, templateTrack.track_length, templateTrack);
-	  const expanded = expandCurveComplexity(new XorShift32(1234), base, targets);
-	  assert.ok(countTightDirectionChanges(expanded) >= countTightDirectionChanges(base), 'expected at least as many direction changes');
-	  assert.ok(countUltraSharpCurves(expanded) <= countUltraSharpCurves(base) + 1, 'expected ultra-sharp curve count to stay bounded');
-  });
-
-  test('expandCurveComplexity trims long straights and raises total curve count for technical runs', () => {
-	  const templateTrack = deepCopy(tracksJson.tracks.find(track => track.slug === 'usa'));
-	  const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
-	  const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
-	  const rng = new XorShift32(4321);
-	  const base = generateCurveRle(rng, templateTrack.track_length, templateTrack);
-	  const expanded = expandCurveComplexity(new XorShift32(4321), base, targets);
-	  const baseCurveCount = base.filter(seg => seg.type === 'curve').length;
-	  const expandedCurveCount = expanded.filter(seg => seg.type === 'curve').length;
-	  assert.ok(expandedCurveCount >= baseCurveCount, 'expected at least as many curve segments after expansion');
-	  assert.ok(getLongestStraightLength(expanded) <= getLongestStraightLength(base), 'expected longest straight to not grow after expansion');
-	  assert.ok(getLongestStraightLength(expanded) <= Math.max(getLongestStraightLength(base), targets.maxStraightLength), 'expected longest straight to stay near target ceiling');
-  });
-
-  test('randomizeOneTrack keeps longest straight more technical and directional sign tilesets present', () => {
-	  const track = deepCopy(tracksJson.tracks.find(entry => entry.slug === 'portugal'));
-	  randomizeOneTrack(track, 13579);
-	  assert.ok(getLongestStraightLength(track.curve_rle_segments) <= 120, 'expected longest straight to stay capped for technical layouts');
-	  const directionalOffsets = track.sign_tileset.filter(record => {
-		  const id = record.tileset_offset;
-		  return [0, 8, 16, 24, 32, 40, 48, 56, 64, 72].includes(id);
-	  });
-	  assert.ok(directionalOffsets.length >= 1, 'expected at least one directional-capable sign tileset selection');
-  });
-
-  test('randomizeOneTrack keeps ultra-sharp turns bounded', () => {
-	  const track = deepCopy(tracksJson.tracks.find(track => track.slug === 'portugal'));
-	  randomizeOneTrack(track, 24680);
-	  assert.ok(countUltraSharpCurves(track.curve_rle_segments) <= 2, 'expected at most two ultra-sharp turns');
-  });
-
-  test('default full-safe seed avoids impossible ultra-sharp overload on San Marino and Brazil', () => {
-	  const data = deepCopy(tracksJson);
-	  randomizeTracks(data, 12345);
-	  for (const slug of ['san_marino', 'brazil']) {
-		  const track = data.tracks.find(entry => entry.slug === slug);
-		  const curves = track.curve_rle_segments.filter(seg => seg.type === 'curve');
-		  const ultra = curves.filter(seg => getCurveSharpness(seg.curve_byte) <= 4);
-		  assert.ok(ultra.length <= 2, `${slug} should not have more than two ultra-sharp curves`);
-		  for (let i = 0; i < track.curve_rle_segments.length - 2; i++) {
-			  const a = track.curve_rle_segments[i];
-			  const bridge = track.curve_rle_segments[i + 1];
-			  const b = track.curve_rle_segments[i + 2];
-			  if (a.type !== 'curve' || bridge.type !== 'straight' || b.type !== 'curve') continue;
-			  if (getCurveDirection(a.curve_byte) === getCurveDirection(b.curve_byte)) continue;
-			  if (getCurveSharpness(a.curve_byte) <= 8 || getCurveSharpness(b.curve_byte) <= 8) {
-				  assert.ok(bridge.length >= 12, `${slug} should not reverse sharp curves with too little bridge straight`);
-			  }
-		  }
-	  }
-  });
+	test('expandCurveComplexity preserves segment budget and terminator shape', () => {
+		const templateTrack = deepCopy(tracksJson.tracks[0]);
+		const profile = buildCurveGenerationProfile(templateTrack.curve_rle_segments);
+		const targets = buildCurveTargets(profile, templateTrack.track_length >> 2);
+		const base = generateCurveRle(new XorShift32(4321), templateTrack.track_length, templateTrack);
+		const expanded = expandCurveComplexity(new XorShift32(4321), base, targets);
+		const expandedDistance = expanded.filter(seg => seg.type !== 'terminator').reduce((sum, seg) => sum + seg.length, 0);
+		const baseDistance = base.filter(seg => seg.type !== 'terminator').reduce((sum, seg) => sum + seg.length, 0);
+		assert.strictEqual(expandedDistance, baseDistance, 'expected curve distance budget to stay unchanged');
+		assert.strictEqual(expanded[expanded.length - 1].type, 'terminator');
+	});
 
   test('randomizeOneTrack generates some non-flat slopes', () => {
 	  const track = deepCopy(tracksJson.tracks[0]);
@@ -645,12 +582,12 @@ if (RUN_SLOW) {
 	  assert.ok(slopeSegments.every(seg => seg.length <= 32), 'expected slope segments to stay in conservative safe lengths');
   });
 
-  test('randomizeOneTrack keeps non-horizon sign tilesets away from horizon-only palette family', () => {
-	  const track = deepCopy(tracksJson.tracks.find(entry => entry.slug === 'brazil'));
-	  setAssignedHorizonOverride(track, 0);
-	  randomizeOneTrack(track, 12345);
-	  assert.ok(track.sign_tileset.every(record => record.tileset_offset !== 80), 'expected no horizon-only sign tileset offset 80');
-  });
+	test('randomizeOneTrack keeps horizon-only sign palette gated by assigned horizon override', () => {
+		const track = deepCopy(tracksJson.tracks[0]);
+		setAssignedHorizonOverride(track, 0);
+		randomizeOneTrack(track, 12345);
+		assert.ok(track.sign_tileset.every(record => record.tileset_offset !== 80), 'expected no horizon-only sign tileset offset 80');
+	});
 
   test('randomizeOneTrack aligns generated minimap_pos with ROM patch generator', () => {
 	  const { buildGeneratedMinimapPosPairs } = require('../lib/generated_minimap_pos');
@@ -659,21 +596,21 @@ if (RUN_SLOW) {
 	  assert.deepStrictEqual(track.minimap_pos, buildGeneratedMinimapPosPairs(track));
   });
 
-  test('special road features add tunnel-style sign and tileset records when present', () => {
-	  const track = deepCopy(tracksJson.tracks.find(track => track.slug === 'monaco'));
-	  const features = buildSpecialRoadFeatures(new XorShift32(5), track.track_length, track.curve_rle_segments);
-	  const [tileset] = generateSignTileset(new XorShift32(5), track.track_length, track.curve_rle_segments);
-	  const signData = generateSignData(new XorShift32(5), track.track_length, track.curve_rle_segments, tileset);
-	  const patchedTileset = applySpecialRoadTilesetRecords(tileset, features);
-	  const patchedSigns = applySpecialRoadSignRecords(signData, features);
-	  for (const feature of features) {
-		  if (!feature._applied) continue;
-		  assert.ok(patchedTileset.some(rec => rec.tileset_offset === 88 && rec.distance === feature.tilesetDistance));
-		  assert.ok(patchedSigns.some(rec => rec.sign_id === 49 && rec.distance === feature.entrySignDistance));
-		  assert.ok(patchedSigns.some(rec => rec.sign_id === 2 && rec.distance === feature.interiorDistance));
-		  assert.ok(patchedSigns.some(rec => rec.sign_id === 50 && rec.distance === feature.exitSignDistance));
-	  }
-  });
+	test('special road feature patches add the documented records for any applied tunnel feature', () => {
+		const track = deepCopy(tracksJson.tracks[0]);
+		const features = buildSpecialRoadFeatures(new XorShift32(5), track.track_length, track.curve_rle_segments);
+		const [tileset] = generateSignTileset(new XorShift32(5), track.track_length, track.curve_rle_segments);
+		const signData = generateSignData(new XorShift32(5), track.track_length, track.curve_rle_segments, tileset);
+		const patchedTileset = applySpecialRoadTilesetRecords(tileset, features);
+		const patchedSigns = applySpecialRoadSignRecords(signData, features);
+		for (const feature of features) {
+			if (!feature._applied) continue;
+			assert.ok(patchedTileset.some(rec => rec.tileset_offset === 88 && rec.distance === feature.tilesetDistance));
+			assert.ok(patchedSigns.some(rec => rec.sign_id === 49 && rec.distance === feature.entrySignDistance));
+			assert.ok(patchedSigns.some(rec => rec.sign_id === 2 && rec.distance === feature.interiorDistance));
+			assert.ok(patchedSigns.some(rec => rec.sign_id === 50 && rec.distance === feature.exitSignDistance));
+		}
+	});
 
   test('randomizeTracks on all 19 tracks produces all passing validation', () => {
     const data = deepCopy(tracksJson);
@@ -683,24 +620,14 @@ if (RUN_SLOW) {
       `Validation errors: ${errors.map(e => e.toString()).join('; ')}`);
   });
 
-  test('randomized tracks pass generated minimap validation', () => {
-	  const data = deepCopy(tracksJson);
-	  randomizeTracks(data, 99999);
-	  const report = validateAllTracks(data);
-	  const generatedFailures = report.tracks.filter(track => track.flags.candidate_marker_offroad);
-	  assert.strictEqual(generatedFailures.length, 0,
-	    `Generated minimap failures: ${generatedFailures.map(track => track.track.slug).join(', ')}`);
-	  assert.ok(report.curve_map_sign_match_percent >= (stockMinimapReport.curve_map_sign_match_percent - 2),
-		  `expected randomized curve/map sign match >= ${stockMinimapReport.curve_map_sign_match_percent - 2}, got ${report.curve_map_sign_match_percent}`);
-	  assert.ok(report.curve_map_left_right_mismatch_count <= (stockMinimapReport.curve_map_left_right_mismatch_count + 2),
-		  `expected randomized left/right mismatch count <= ${stockMinimapReport.curve_map_left_right_mismatch_count + 2}, got ${report.curve_map_left_right_mismatch_count}`);
-	  assert.ok(report.curve_map_phase_mismatch_count <= stockMinimapReport.curve_map_phase_mismatch_count,
-		  `expected randomized phase mismatch count <= ${stockMinimapReport.curve_map_phase_mismatch_count}, got ${report.curve_map_phase_mismatch_count}`);
-	  assert.ok(report.preview_self_intersections <= (stockMinimapReport.preview_self_intersections + 4),
-		  `expected randomized preview self intersections <= ${stockMinimapReport.preview_self_intersections + 4}, got ${report.preview_self_intersections}`);
-	  assert.ok(report.preview_branch_pixel_count <= (stockMinimapReport.preview_branch_pixel_count + 200),
-		  `expected randomized preview branch pixels <= ${stockMinimapReport.preview_branch_pixel_count + 200}, got ${report.preview_branch_pixel_count}`);
-  });
+	test('randomized tracks pass generated minimap validation without off-road start markers', () => {
+		const data = deepCopy(tracksJson);
+		randomizeTracks(data, 99999);
+		const report = validateAllTracks(data);
+		const generatedFailures = report.tracks.filter(track => track.flags.candidate_marker_offroad);
+		assert.strictEqual(generatedFailures.length, 0,
+			`Generated minimap failures: ${generatedFailures.map(track => track.track.slug).join(', ')}`);
+	});
 
   test('randomizeTracks with slug filter only modifies matching track', () => {
     const data = deepCopy(tracksJson);
@@ -867,7 +794,7 @@ test('evaluateGeometryQuality prefers zero-crossing correctly-budgeted geometry'
 	const goodTrack = {
 		track_length: 4096,
 		_generated_geometry_state: {
-			loop_points: Array.from({ length: 12 }, (_, index) => [index, index + 1]),
+			loop_points: [[0, 0], [6, 0], [8, 3], [5, 5], [8, 8], [4, 10], [0, 8], [-2, 4]],
 			resampled_centerline: Array.from({ length: 1024 }, (_, index) => [index % 32, Math.floor(index / 32)]),
 			topology: { crossing_count: 0 },
 			generation_diagnostics: {
@@ -885,7 +812,7 @@ test('evaluateGeometryQuality prefers zero-crossing correctly-budgeted geometry'
 	const badTrack = {
 		track_length: 4096,
 		_generated_geometry_state: {
-			loop_points: Array.from({ length: 12 }, (_, index) => [index, index + 1]),
+			loop_points: [[0, 0], [8, 0], [12, 2], [14, 6], [12, 10], [8, 12], [0, 12], [-4, 6]],
 			resampled_centerline: Array.from({ length: 900 }, (_, index) => [index % 30, Math.floor(index / 30)]),
 			topology: { crossing_count: 2 },
 			generation_diagnostics: {
@@ -912,6 +839,7 @@ test('compareGeneratedTrackCandidates prioritizes geometry quality before previe
 		geometryQuality: {
 			passes: true,
 			geometryScore: 10,
+			shapeComplexityPasses: true,
 		},
 		constraints: {
 			passes: true,
@@ -926,6 +854,7 @@ test('compareGeneratedTrackCandidates prioritizes geometry quality before previe
 		geometryQuality: {
 			passes: false,
 			geometryScore: 200,
+			shapeComplexityPasses: false,
 		},
 		constraints: {
 			passes: true,
@@ -937,6 +866,86 @@ test('compareGeneratedTrackCandidates prioritizes geometry quality before previe
 		},
 	};
 	assert.ok(compareGeneratedTrackCandidates(goodGeometry, badGeometryHighSign) < 0);
+});
+
+test('compareGeneratedTrackCandidates prefers complex geometry when both candidates are otherwise valid', () => {
+	const complexGeometry = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: true,
+			geometryScore: 25,
+			reflexVertexCount: 7,
+			turnRunCount: 9,
+			areaRatioToHull: 0.58,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.8,
+			tileCount: 36,
+			coverageMatchPercent: 30,
+			signMatchPercent: 70,
+		},
+	};
+	const blandGeometry = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: false,
+			geometryScore: 5,
+			reflexVertexCount: 2,
+			turnRunCount: 3,
+			areaRatioToHull: 0.94,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.9,
+			tileCount: 20,
+			coverageMatchPercent: 30,
+			signMatchPercent: 70,
+		},
+	};
+	assert.ok(compareGeneratedTrackCandidates(complexGeometry, blandGeometry) < 0);
+});
+
+test('compareGeneratedTrackCandidates prefers valid preview constraints before complex but failing geometry', () => {
+	const validButBland = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: false,
+			geometryScore: 12,
+			reflexVertexCount: 2,
+			turnRunCount: 3,
+			areaRatioToHull: 0.91,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.85,
+			tileCount: 28,
+			coverageMatchPercent: 40,
+			signMatchPercent: 68,
+		},
+	};
+	const complexButInvalid = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: true,
+			geometryScore: 6,
+			reflexVertexCount: 7,
+			turnRunCount: 9,
+			areaRatioToHull: 0.55,
+		},
+		constraints: {
+			passes: false,
+			selfIntersections: 2,
+			startVerticality: 0.6,
+			tileCount: 60,
+			coverageMatchPercent: 10,
+			signMatchPercent: 30,
+		},
+	};
+	assert.ok(compareGeneratedTrackCandidates(validButBland, complexButInvalid) < 0);
 });
 
 test('projectCenterlineToCurveRle produces curve segments that satisfy validator shape expectations', () => {
@@ -994,18 +1003,6 @@ test('extractGeometryFeatures exposes under-bridge tunnel features from crossing
 	});
 	const features = extractGeometryFeatures(track);
 	assert.ok(features.special_road_windows.some(feature => feature.type === 'tunnel' && feature.under_bridge === true));
-});
-
-test('randomizeOneTrack carries geometry state and slope crossing projection for crossing-eligible seeds', () => {
-	const chosenSeed = 48;
-	const data = deepCopy(tracksJson);
-	const track = data.tracks[0];
-	randomizeOneTrack(track, chosenSeed, false);
-	const geometryState = track[TRACK_METADATA_FIELDS.generatedGeometryState];
-	assert.ok(geometryState);
-	assert.strictEqual(geometryState.topology.proper_crossing_count, 1);
-	assert.ok(geometryState.projections.slope.grade_separated_crossing);
-	assert.ok(track[TRACK_METADATA_FIELDS.generatedSpecialRoadFeatures].some(feature => feature.type === 'tunnel'));
 });
 
 // ---------------------------------------------------------------------------

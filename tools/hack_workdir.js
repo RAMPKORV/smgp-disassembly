@@ -55,7 +55,7 @@ const MONACO_INLINE_BLOB_PAD_BYTES = 2399;
 const WORKSPACES = path.join(REPO_ROOT, 'build', 'workspaces');
 const ROM_OUTPUTS = path.join(REPO_ROOT, 'build', 'roms');
 const WORKSPACE_TEMPLATE_DIR = path.join(WORKSPACES, '_template');
-const WORKSPACE_TEMPLATE_VERSION = 2;
+const WORKSPACE_TEMPLATE_VERSION = 3;
 const USAGE_TEXT = [
 	'Usage: node tools/hack_workdir.js SMGP-<v>-<flags_hex>-<decimal> [options]',
 	'       node tools/hack_workdir.js --list [--json]',
@@ -347,21 +347,22 @@ function refreshWorkspaceFromTemplate(templateDir, wsDir, verbose) {
 
 function ensureWorkspaceTemplate(repoRoot, verbose, options = {}) {
 	const useWorkingTreeAsm = options.useWorkingTreeAsm === true;
-	const markerPath = path.join(WORKSPACE_TEMPLATE_DIR, '.template-ready.json');
+	const templateDir = options.templateDir || WORKSPACE_TEMPLATE_DIR;
+	const markerPath = path.join(templateDir, '.template-ready.json');
 	const desiredMarker = JSON.stringify({
 		version: WORKSPACE_TEMPLATE_VERSION,
 		asmBase: useWorkingTreeAsm ? 'working-tree' : 'git-head',
 	});
-	if (fs.existsSync(WORKSPACE_TEMPLATE_DIR) && fs.existsSync(markerPath)) {
+	if (fs.existsSync(templateDir) && fs.existsSync(markerPath)) {
 		try {
 			if (fs.readFileSync(markerPath, 'utf8').trim() === desiredMarker) return { reused: true };
 		} catch (_) {
 			// fall through to rebuild
 		}
 	}
-	fs.mkdirSync(WORKSPACE_TEMPLATE_DIR, { recursive: true });
-	removeDirContents(WORKSPACE_TEMPLATE_DIR);
-	const fileCount = copyBuildFiles(repoRoot, WORKSPACE_TEMPLATE_DIR, verbose, options);
+	fs.mkdirSync(templateDir, { recursive: true });
+	removeDirContents(templateDir);
+	const fileCount = copyBuildFiles(repoRoot, templateDir, verbose, options);
 	fs.writeFileSync(markerPath, desiredMarker, 'utf8');
 	return { reused: false, fileCount };
 }
@@ -609,6 +610,18 @@ function parseLstSymbolMapFromText(text) {
 
 function parseLstSymbolMap(lstPath) {
   return parseLstSymbolMapFromText(fs.readFileSync(lstPath, 'utf8'));
+}
+
+function createTestExports() {
+	return {
+		validateSeed,
+		copyDirRecursive,
+		copyBuildFiles,
+		runRandomizer,
+		copyWorkspaceTemplate,
+		refreshWorkspaceFromTemplate,
+		ensureWorkspaceTemplate,
+	};
 }
 
 function normalizeCompatibilitySymbols(baseline, current) {
@@ -1211,4 +1224,8 @@ function main() {
   console.log(`       Time: ${totalElapsed.toFixed(1)}s`);
 }
 
-main();
+if (require.main === module) {
+	main();
+} else {
+	module.exports = createTestExports();
+}

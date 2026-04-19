@@ -12,9 +12,6 @@ const {
 	PREVIEW_EDGE_LEFT_MIN,
 	PREVIEW_EDGE_PENALTY,
 	PREVIEW_EDGE_RIGHT_MARGIN,
-	PREVIEW_GUIDE_BLEND_NORMAL,
-	PREVIEW_GUIDE_BLEND_UNDERDRAWN,
-	PREVIEW_GUIDE_SAMPLE_MIN,
 	PREVIEW_HORIZONTAL_PENALTY_SCALE,
 	PREVIEW_INFLECTION_PENALTY,
 	PREVIEW_LOWER_TAIL_EXPAND_FACTOR,
@@ -30,8 +27,6 @@ const {
 	PREVIEW_TOP_PENALTY_RATIO,
 	PREVIEW_TOP_PENALTY_SCALE,
 	PREVIEW_TURN_SCORE_SCALE,
-	PREVIEW_UNDERDRAWN_USED_CELL_MIN,
-	PREVIEW_UNDERDRAWN_USED_CELL_RATIO,
 } = require('./minimap_thresholds');
 const {
 	countSelfIntersections,
@@ -110,11 +105,13 @@ function buildGeneratedMinimapPreview(track) {
 	if (cached && cached.key === cacheKey) return cached.value;
 	const previewSlug = resolvePreviewSlug(track);
 	const preview = getMinimapPreview(previewSlug);
+	const stockTileBudget = Array.isArray(preview.tiles) && preview.tiles.length > 0 ? preview.tiles.length : 32;
+	const previewPoints = getPreviewOccupiedPoints(preview);
+	const previewBounds = getBounds(previewPoints);
+	const stockUsedCells = countUsedPreviewCells(preview.pixels, preview.width, preview.height);
 	const geometryState = getGeneratedGeometryState(track);
 	const geometryCenterline = Array.isArray(geometryState?.resampled_centerline) ? geometryState.resampled_centerline : null;
 	if (geometryCenterline && geometryCenterline.length > 0) {
-		const fittedPath = fitStyledPathIntoFrame(geometryCenterline, preview.width, preview.height, 2);
-		const startIndex = chooseStartIndex(fittedPath, preview.width, preview.height);
 		const crossingProjection = geometryState?.projections?.slope?.grade_separated_crossing || null;
 		const underpassSegment = crossingProjection?.lower_branch
 			? {
@@ -122,7 +119,64 @@ function buildGeneratedMinimapPreview(track) {
 				end_index: crossingProjection.lower_branch.end_index,
 			}
 			: null;
-		const styled = styleRoadPreview(fittedPath, preview.width, preview.height, startIndex, { underpass_segment: underpassSegment });
+		const basePath = fitStyledPathIntoFrame(geometryCenterline, preview.width, preview.height, 2);
+		const fastCandidates = [];
+
+		function pushFastCandidate(path, tag) {
+			if (!Array.isArray(path) || path.length < 3) return;
+			const startIndex = chooseStartIndex(path, preview.width, preview.height);
+			const styled = styleRoadPreview(path, preview.width, preview.height, startIndex, { underpass_segment: underpassSegment });
+			const validationScore = scoreCurvePathAgreement(track, path, 0);
+			const phasePenalty = Math.abs(validationScore.bestShift || 0);
+			const zeroShiftCorr = Number.isFinite(validationScore.zeroShiftCorr) ? validationScore.zeroShiftCorr : -Infinity;
+			const phaseGain = (validationScore.bestCorr || 0) - (validationScore.zeroShiftCorr || 0);
+			const startVerticality = (() => {
+				const prev = path[(startIndex - 1 + path.length) % path.length];
+				const cur = path[startIndex];
+				const next = path[(startIndex + 1) % path.length];
+				const len1 = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]) || 1;
+				const len2 = Math.hypot(next[0] - cur[0], next[1] - cur[1]) || 1;
+				return (((Math.abs(cur[1] - prev[1]) / len1) + (Math.abs(next[1] - cur[1]) / len2)) / 2);
+			})();
+			const coverage = scoreRasterAgainstPreview(styled.road_pixels
+				.map((value, index) => value ? [index % preview.width, Math.floor(index / preview.width)] : null)
+				.filter(Boolean), previewPoints, previewBounds, PREVIEW_COVERAGE_TOLERANCE);
+			const tileCount = countUniquePreviewTilesFromPixels(styled.pixels, preview.width, preview.height);
+			const lowerTailClearance = computeLowerTailClearance(path, PREVIEW_LOWER_TAIL_START_RATIO, PREVIEW_LOWER_TAIL_MIN_INDEX_GAP);
+			fastCandidates.push({
+				track,
+				factor: 1,
+				tag,
+				path,
+				styled,
+				transform: { name: `geometry_${tag}`, score: { signMatchPercent: validationScore.signMatchPercent } },
+				start_index: startIndex,
+				start_verticality: Number(startVerticality.toFixed(3)),
+				validation_sign_match_percent: validationScore.signMatchPercent,
+				validation_zero_shift_corr: zeroShiftCorr,
+				validation_best_shift: validationScore.bestShift,
+				validation_phase_gain: phaseGain,
+				validation_phase_penalty: phasePenalty,
+				self_intersections: countSelfIntersections(path),
+				branch_pixel_count: styled.branch_pixels.length,
+				tile_count: tileCount,
+				tile_budget_ok: tileCount <= stockTileBudget,
+				used_cell_count: countUsedPreviewCells(styled.pixels, preview.width, preview.height),
+				coverage_match_percent: coverage.matchPercent,
+				lower_tail_clearance: Number.isFinite(lowerTailClearance) ? lowerTailClearance : -Infinity,
+			});
+		}
+
+		pushFastCandidate(basePath, 'base');
+		pushFastCandidate(fitStyledPathIntoFrame(collapseShortestSegment(basePath), preview.width, preview.height, 2), 'collapse');
+		pushFastCandidate(fitStyledPathIntoFrame(smoothClosedPoints(basePath, 1), preview.width, preview.height, 2), 'smooth');
+		pushFastCandidate(fitStyledPathIntoFrame(expandLowerTail(basePath, PREVIEW_LOWER_TAIL_EXPAND_FACTOR, PREVIEW_LOWER_TAIL_EXPAND_START_RATIO), preview.width, preview.height, 2), 'tail');
+		pushFastCandidate(fitStyledPathIntoFrame(expandLowerTail(smoothClosedPoints(basePath, 1), PREVIEW_LOWER_TAIL_EXPAND_FACTOR, PREVIEW_LOWER_TAIL_EXPAND_START_RATIO), preview.width, preview.height, 2), 'tail_smooth');
+
+		const bestCandidate = chooseBestMinimapCandidate(fastCandidates, comparePreviewCandidates);
+		const fittedPath = bestCandidate.path;
+		const startIndex = bestCandidate.start_index;
+		const styled = bestCandidate.styled;
 		const bounds = getBounds(fittedPath);
 		const result = {
 			slug: previewSlug,
@@ -130,36 +184,25 @@ function buildGeneratedMinimapPreview(track) {
 			height: preview.height,
 			pixels: styled.pixels,
 			road_pixels: styled.road_pixels,
+			start_marker_pixels: styled.start_marker_pixels,
 			centerline_points: fittedPath.map(([x, y]) => [Number(x.toFixed(3)), Number(y.toFixed(3))]),
 			start_index: startIndex,
 			seam_index: 0,
 			bounds,
-			transform: 'geometry_identity',
-			curve_sign_match_percent: 0,
+			transform: bestCandidate.transform.name,
+			curve_sign_match_percent: Number((bestCandidate.validation_sign_match_percent ?? 0).toFixed(2)),
 			match_percent: 0,
 			join_clearance: styled.join_clearance,
 			branch_pixel_count: styled.branch_pixels.length,
 			crossing_classification: crossingProjection?.classification || null,
-			lower_tail_clearance: null,
+			lower_tail_clearance: Number.isFinite(bestCandidate.lower_tail_clearance) ? bestCandidate.lower_tail_clearance : null,
 			self_intersections: countSelfIntersections(fittedPath),
 			tile_count: countUniquePreviewTilesFromPixels(styled.pixels, preview.width, preview.height),
-			start_verticality: (() => {
-				if (!fittedPath.length) return 0;
-				const prev = fittedPath[(startIndex - 1 + fittedPath.length) % fittedPath.length];
-				const cur = fittedPath[startIndex];
-				const next = fittedPath[(startIndex + 1) % fittedPath.length];
-				const len1 = Math.hypot(cur[0] - prev[0], cur[1] - prev[1]) || 1;
-				const len2 = Math.hypot(next[0] - cur[0], next[1] - cur[1]) || 1;
-				return Number((((Math.abs(cur[1] - prev[1]) / len1) + (Math.abs(next[1] - cur[1]) / len2)) / 2).toFixed(3));
-			})(),
+			start_verticality: bestCandidate.start_verticality,
 		};
 		previewCache.set(track, { key: cacheKey, value: result });
 		return result;
 	}
-	const stockTileBudget = Array.isArray(preview.tiles) && preview.tiles.length > 0 ? preview.tiles.length : 32;
-	const previewPoints = getPreviewOccupiedPoints(preview);
-	const previewBounds = getBounds(previewPoints);
-	const stockUsedCells = countUsedPreviewCells(preview.pixels, preview.width, preview.height);
 	const candidates = buildMinimapCandidates({
 		track,
 		preview,
@@ -204,6 +247,7 @@ function buildGeneratedMinimapPreview(track) {
 		height: preview.height,
 		pixels: styled.pixels,
 		road_pixels: styled.road_pixels,
+		start_marker_pixels: styled.start_marker_pixels,
 		centerline_points: styledPath.map(([x, y]) => [Number(x.toFixed(3)), Number(y.toFixed(3))]),
 		start_index: startIndex,
 		seam_index: seamIndex,

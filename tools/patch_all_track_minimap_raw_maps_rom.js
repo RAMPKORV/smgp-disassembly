@@ -102,6 +102,7 @@ function buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs) {
 		'\tADD.w\tD0, D0',
 		'\tLEA\tPreview_raw_map_ptr_table(PC), A3',
 		'\tMOVEA.l\t0(A3,D0.w), A6',
+		'\tMOVE.w\t#1, D1',
 		'\tMOVE.l\t#$01000000, D3',
 		'\tJSR\tWrite_tilemap_rows_to_vdp',
 		'\tRTS',
@@ -118,6 +119,7 @@ function buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs) {
 		'\tJMP\tDecompress_hud_map',
 		'Hud_map_found:',
 		'\tMOVEA.l\t(A3), A6',
+		'\tMOVE.w\t#$04C9, D1',
 		'\tMOVE.l\t#$00400000, D3',
 		'\tJSR\tWrite_tilemap_rows_to_vdp',
 		'\tRTS',
@@ -189,6 +191,65 @@ function findFreeRegion(rom, length, preferredStart = DEFAULT_BASE_ADDR) {
 	return -1;
 }
 
+function planRawMapPatchLayout(tracks, romLength, asm68kPath, options = {}) {
+	const reuseFreeSpace = options.reuseFreeSpace === true;
+	const baseAddr = Number.isInteger(options.baseAddr) ? options.baseAddr : DEFAULT_BASE_ADDR;
+	const sourceRom = options.sourceRom || null;
+	let cursor = reuseFreeSpace ? alignEven(baseAddr) : romLength;
+	const previewRawMapPtrs = [];
+	const hudRawMapPtrs = [];
+	let totalPayloadBytes = 0;
+	for (const track of tracks) totalPayloadBytes += alignEven(buildPreviewRawMap(track).length);
+	for (const track of tracks) totalPayloadBytes += alignEven(buildHudRawMap(track).length);
+	const compressedMapPtrs = sourceRom
+		? tracks.map(track => readTrackCompressedMapPointer(sourceRom, track.index))
+		: tracks.map(() => 0);
+	const helperAsmProbe = buildHelperAsm(compressedMapPtrs, new Array(tracks.length).fill(0), new Array(tracks.length).fill(0));
+	const { codeBytes } = assembleHelperBlock(helperAsmProbe, asm68kPath);
+	totalPayloadBytes += alignEven(codeBytes.length);
+	if (reuseFreeSpace) {
+		if (!sourceRom) throw new Error('sourceRom is required when planning a free-space raw-map patch layout');
+		const freeStart = findFreeRegion(sourceRom, totalPayloadBytes, baseAddr);
+		if (freeStart < 0) {
+			throw new Error(`no free ROM region of ${totalPayloadBytes} bytes found at or after 0x${baseAddr.toString(16).toUpperCase()}`);
+		}
+		cursor = freeStart;
+	}
+
+	for (const track of tracks) {
+		const start = alignEven(cursor);
+		previewRawMapPtrs.push(start);
+		cursor = start + buildPreviewRawMap(track).length;
+	}
+
+	for (const track of tracks) {
+		const start = alignEven(cursor);
+		hudRawMapPtrs.push(start);
+		cursor = start + buildHudRawMap(track).length;
+	}
+
+	const helperAsm = buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs);
+	const assembled = assembleHelperBlock(helperAsm, asm68kPath);
+	const { helperOffsets } = assembled;
+	if (helperOffsets.preview === undefined || helperOffsets.hud === undefined) {
+		throw new Error('failed to resolve helper labels from assembled minimap raw-map block');
+	}
+	const codeBlockStart = alignEven(cursor);
+
+	return {
+		previewRawMapPtrs,
+		hudRawMapPtrs,
+		compressedMapPtrs,
+		helperCodeBytes: assembled.codeBytes,
+		helperOffsets,
+		codeBlockStart,
+		previewHelperAddr: codeBlockStart + helperOffsets.preview,
+		hudHelperAddr: codeBlockStart + helperOffsets.hud,
+		finalCursor: codeBlockStart + assembled.codeBytes.length,
+		totalPayloadBytes,
+	};
+}
+
 function main() {
 	const args = parseArgs(process.argv.slice(2), {
 		flags: ['--reuse-free-space', '--allow-root-mutation'],
@@ -215,20 +276,14 @@ function main() {
 	const baseAddr = args.options['--base-addr'] ? parseInt(String(args.options['--base-addr']).replace(/^0x/i, ''), 16) : DEFAULT_BASE_ADDR;
 	let cursor = reuseFreeSpace ? alignEven(baseAddr) : sourceRom.length;
 	const chunks = [Buffer.from(sourceRom)];
+	const layout = planRawMapPatchLayout(tracks, sourceRom.length, asm68kPath, {
+		reuseFreeSpace,
+		baseAddr,
+		sourceRom,
+	});
 	const previewRawMapPtrs = [];
 	const hudRawMapPtrs = [];
-	let totalPayloadBytes = 0;
-	for (const track of tracks) totalPayloadBytes += alignEven(buildPreviewRawMap(track).length);
-	for (const track of tracks) totalPayloadBytes += alignEven(buildHudRawMap(track).length);
-	const compressedMapPtrs = tracks.map(track => readTrackCompressedMapPointer(sourceRom, track.index));
-	const helperAsmProbe = buildHelperAsm(compressedMapPtrs, new Array(tracks.length).fill(0), new Array(tracks.length).fill(0));
-	const { codeBytes } = assembleHelperBlock(helperAsmProbe, asm68kPath);
-	totalPayloadBytes += alignEven(codeBytes.length);
-	if (reuseFreeSpace) {
-		const freeStart = findFreeRegion(sourceRom, totalPayloadBytes, baseAddr);
-		if (freeStart < 0) die(`no free ROM region of ${totalPayloadBytes} bytes found at or after 0x${baseAddr.toString(16).toUpperCase()}`);
-		cursor = freeStart;
-	}
+	if (reuseFreeSpace) cursor = alignEven(layout.previewRawMapPtrs[0] || cursor);
 
 	for (const track of tracks) {
 		const block = appendBlock(chunks, cursor, buildPreviewRawMap(track));
@@ -242,13 +297,8 @@ function main() {
 		hudRawMapPtrs.push(block.start);
 	}
 
-	const helperAsm = buildHelperAsm(compressedMapPtrs, previewRawMapPtrs, hudRawMapPtrs);
-	const assembled = assembleHelperBlock(helperAsm, asm68kPath);
-	const { helperOffsets } = assembled;
-	const helperCodeBytes = assembled.codeBytes;
-	if (helperOffsets.preview === undefined || helperOffsets.hud === undefined) {
-		throw new Error('failed to resolve helper labels from assembled minimap raw-map block');
-	}
+	const helperCodeBytes = layout.helperCodeBytes;
+	const helperOffsets = layout.helperOffsets;
 
 	const codeBlock = appendBlock(chunks, cursor, helperCodeBytes);
 	const previewHelperAddr = codeBlock.start + helperOffsets.preview;
@@ -276,5 +326,8 @@ if (require.main === module) main();
 module.exports = {
 	buildPreviewRawMap,
 	buildHudRawMap,
+	planRawMapPatchLayout,
+	PREVIEW_MAP_JSR_ADDR,
+	HUD_MAP_JSR_ADDR,
 	main,
 };

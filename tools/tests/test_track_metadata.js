@@ -12,7 +12,6 @@ const {
 	getAssignedHorizonOverride,
 	getGeneratedMinimapPreview,
 	getGeneratedSpecialRoadFeatures,
-	getMinimapGuideSource,
 	getTrackTopologyReport,
 	isRuntimeSafeRandomized,
 	preservesOriginalSignCadence,
@@ -73,7 +72,6 @@ test('original minimap helper clones current minimap once', () => {
 	assert.deepStrictEqual(original, [[1, 2], [3, 4]]);
 	track.minimap_pos[0][0] = 9;
 	assert.deepStrictEqual(track[TRACK_METADATA_FIELDS.originalMinimapPos], [[1, 2], [3, 4]]);
-	assert.deepStrictEqual(getMinimapGuideSource(track), [[1, 2], [3, 4]]);
 });
 
 test('generated minimap preview helper defaults to empty object', () => {

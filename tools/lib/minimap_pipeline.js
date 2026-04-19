@@ -1,20 +1,13 @@
 'use strict';
 
-const { getMinimapGuideSource } = require('../randomizer/track_metadata');
-
 const {
 	PREVIEW_COVERAGE_TOLERANCE,
-	PREVIEW_GUIDE_BLEND_NORMAL,
-	PREVIEW_GUIDE_BLEND_UNDERDRAWN,
-	PREVIEW_GUIDE_SAMPLE_MIN,
 	PREVIEW_LOWER_TAIL_EXPAND_FACTOR,
 	PREVIEW_LOWER_TAIL_EXPAND_START_RATIO,
 	PREVIEW_LOWER_TAIL_MIN_INDEX_GAP,
 	PREVIEW_LOWER_TAIL_START_RATIO,
 	PREVIEW_SIGN_MATCH_MIN,
 	PREVIEW_SIGN_MATCH_SLACK,
-	PREVIEW_UNDERDRAWN_USED_CELL_MIN,
-	PREVIEW_UNDERDRAWN_USED_CELL_RATIO,
 } = require('./minimap_thresholds');
 const { countSelfIntersections } = require('./path_utils');
 
@@ -25,7 +18,6 @@ function buildMinimapCandidates(context) {
 		previewPoints,
 		previewBounds,
 		stockTileBudget,
-		stockUsedCells,
 		buildDerivedPath,
 		chooseCurveFaithfulTransform,
 		styleRoadPreview,
@@ -41,11 +33,8 @@ function buildMinimapCandidates(context) {
 		smoothClosedPoints,
 		sampleClosedPath,
 		dedupeAdjacentPairs,
-		selectBestRotatedPathForAgreement,
-		blendClosedPaths,
 	} = context;
 
-	const underdrawnUsedCellFloor = Math.max(PREVIEW_UNDERDRAWN_USED_CELL_MIN, Math.floor(stockUsedCells * PREVIEW_UNDERDRAWN_USED_CELL_RATIO));
 	const derivedPath = buildDerivedPath(track, { sampleEvery: 1, smoothingPasses: 0, closePath: true });
 	const candidateFactors = [1, 0.8, 0.68, 0.55, 0.45, 0.35];
 	const candidates = [];
@@ -131,19 +120,6 @@ function buildMinimapCandidates(context) {
 			if (candidates.some(entry => entry.self_intersections <= 1 && getCandidateSignScore(entry) >= PREVIEW_SIGN_MATCH_MIN)) break;
 		}
 
-		const worstIntersection = Math.min(...candidates.map(entry => entry.self_intersections));
-		const hasUnderdrawnCandidate = candidates.some(entry => entry.used_cell_count < underdrawnUsedCellFloor);
-		const guideSource = getMinimapGuideSource(track);
-		if ((worstIntersection > 2 || hasUnderdrawnCandidate || bestBaseSign < PREVIEW_SIGN_MATCH_MIN) && guideSource && guideSource.length >= 8) {
-			const sampledGuide = sampleClosedPath(dedupeAdjacentPairs(guideSource), Math.max(PREVIEW_GUIDE_SAMPLE_MIN, fallbackSource[0]?.path?.length || PREVIEW_GUIDE_SAMPLE_MIN));
-			let guidePath = fitStyledPathIntoFrame(sampledGuide, preview.width, preview.height, 2);
-			guidePath = selectBestRotatedPathForAgreement(track, guidePath);
-			const basePath = fallbackSource[0]?.path || guidePath;
-			for (const alpha of hasUnderdrawnCandidate ? PREVIEW_GUIDE_BLEND_UNDERDRAWN : PREVIEW_GUIDE_BLEND_NORMAL) {
-				const blended = fitStyledPathIntoFrame(blendClosedPaths(basePath, guidePath, alpha), preview.width, preview.height, 2);
-				pushCandidate(blended, 1, `guide_blend_${alpha}`);
-			}
-		}
 	}
 
 	return candidates;
@@ -156,11 +132,6 @@ function getCandidateSignScore(candidate) {
 		: candidate.transform.score.signMatchPercent;
 }
 
-function isTrackMonacoFamily(track) {
-	const slug = track?.slug;
-	return slug === 'monaco' || slug === 'monaco_arcade_prelim' || slug === 'monaco_arcade';
-}
-
 function chooseBestMinimapCandidate(candidates, comparePreviewCandidates) {
 	const baselineCandidate = candidates[0];
 	const baselineSignMatch = getCandidateSignScore(baselineCandidate);
@@ -170,10 +141,6 @@ function chooseBestMinimapCandidate(candidates, comparePreviewCandidates) {
 		: candidates.filter(candidate => getCandidateSignScore(candidate) >= (baselineSignMatch - PREVIEW_SIGN_MATCH_SLACK));
 	const selfLimitedCandidates = eligibleCandidates.filter(candidate => candidate.self_intersections <= 1);
 	let finalCandidates = selfLimitedCandidates.length > 0 ? selfLimitedCandidates : eligibleCandidates;
-	if (isTrackMonacoFamily(baselineCandidate?.track) && finalCandidates.some(candidate => getCandidateSignScore(candidate) >= 58)) {
-		const monacoTightCandidates = finalCandidates.filter(candidate => getCandidateSignScore(candidate) >= 58 && candidate.branch_pixel_count <= 460);
-		if (monacoTightCandidates.length > 0) finalCandidates = monacoTightCandidates;
-	}
 	finalCandidates.sort(comparePreviewCandidates);
 	return finalCandidates[0] || candidates.sort(comparePreviewCandidates)[0];
 }

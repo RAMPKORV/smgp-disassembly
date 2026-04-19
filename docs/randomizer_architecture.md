@@ -215,7 +215,7 @@ Primary deliverable.  Generates entirely new track layouts for all 19 tracks
 - **RAND-002** Curve generation: produce random but driveable curve sequences.
 - **RAND-003** Slope generation: generate visual + physical slope profiles.
 - **RAND-004** Sign placement: place road signs at appropriate intervals.
-- **RAND-005** Minimap generation: the active pipeline derives runtime minimap pairs and generated preview assets from transient geometry-state centerlines, with separate regression gates for runtime marker paths and course-select preview assets.
+- **RAND-005** Minimap generation: the active pipeline derives runtime minimap pairs and generated preview assets from transient geometry-state centerlines, with separate regression gates for runtime marker paths and course-select preview assets. Course-select contour emission is now locked by a direct structural contract rather than screenshot-only cleanup.
 - **RAND-006** Art/config assignment: assign road styles and background art.
 
 Each sub-task runs with its own derived PRNG seed (§4).
@@ -414,6 +414,44 @@ Revamp target:
    branch metadata in `geometry_state.topology.single_grade_separated_crossing`,
    and derives underpass/tunnel handling from projection data instead of adding
    persisted schema fields to `tools/data/tracks.json`.
+
+#### Course-select contour contract
+
+The course-select preview path is separate from runtime `minimap_pos` generation.
+It now follows a structural contract derived from stock preview behavior and
+enforced by minimap-specific tests.
+
+- Road pixels are authoritative. The contour emitter starts from the styled road
+  mask and emits course-select contour pixels from that mask instead of relying
+  on broad post hoc tile pruning.
+- Start-marker handling is separate. Marker pixels must remain a compact on-road
+  horizontal bar and must not change contour pixels outside marker positions.
+- Stock-style thickness is preserved. The rasterizer keeps the existing 1px
+  outline around the white road body plus the stock-style 2px right-side black
+  extension where that straight-wall shape legitimately occurs.
+- Legal roadless contour fragments are limited to structural seam roles such as
+  two-ended bridges, narrow seam continuations, and anchored empty-cell
+  continuations whose removal would damage contour topology.
+- Illegal roadless contour fragments are removed. This includes detached orphan
+  specks, detached mixed-cell outline spurs, and roadless single-handoff tails
+  or stubs that do not improve contour connectivity.
+- The remaining fallback cleanup is intentionally narrow. Any final pruning is
+  limited to proven-illegal roadless single-handoff fragments and must refuse
+  any deletion that would increase the number of black contour components.
+
+Stock-oracle facts now locked by tests:
+
+- Occupied stock minimap cells are dense (`>= 32` pixels).
+- Occupied stock minimap cells touch left, right, and top edges, with only edge
+  masks `1110` or `1111`.
+- The occupied stock-cell vocabulary is limited to 12 signatures.
+
+Primary structural guards live in:
+
+- `tools/tests/test_generated_minimap_assets.js`
+- `tools/tests/test_minimap_stock_contour_contract.js`
+- `tools/tests/test_minimap_seed_fuzz.js`
+- `tools/tests/test_randomizer_smoke.js`
 
 ### Art and config assignment (RAND-006)
 

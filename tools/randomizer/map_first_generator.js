@@ -26,9 +26,14 @@ const DEFAULT_POINT_SAMPLING_OPTIONS = Object.freeze({
 });
 
 const CYCLE_BUILD_STRATEGIES = Object.freeze([
-	'centroid_distance_desc',
-	'centroid_angle',
-	'lexicographic',
+	'nearest_neighbor_2opt',
+	'farthest_neighbor_2opt',
+	'input_order_2opt',
+	'centroid_distance_desc_2opt',
+	'lexicographic_2opt',
+	'centroid_distance_desc_hull',
+	'centroid_angle_hull',
+	'lexicographic_hull',
 ]);
 
 const DEFAULT_SMOOTHING_OPTIONS = Object.freeze({
@@ -332,6 +337,37 @@ function buildConvexHull(points) {
 }
 
 function sortRemainingPoints(points, strategyName) {
+	const normalizedStrategyName = String(strategyName || '').replace(/_(?:2opt|hull)$/, '');
+	if (normalizedStrategyName === 'nearest_neighbor' || normalizedStrategyName === 'farthest_neighbor') {
+		const unique = uniquePoints(points);
+		if (unique.length <= 1) return unique;
+		let startIndex = 0;
+		for (let index = 1; index < unique.length; index++) {
+			if (unique[index][1] < unique[startIndex][1]
+				|| (unique[index][1] === unique[startIndex][1] && unique[index][0] < unique[startIndex][0])) {
+				startIndex = index;
+			}
+		}
+		const ordered = [unique[startIndex]];
+		const remaining = unique.slice(0, startIndex).concat(unique.slice(startIndex + 1));
+		while (remaining.length > 0) {
+			const current = ordered[ordered.length - 1];
+			let bestIndex = 0;
+			let bestDistance = distanceSquared(current, remaining[0]);
+			for (let index = 1; index < remaining.length; index++) {
+				const candidateDistance = distanceSquared(current, remaining[index]);
+				const better = normalizedStrategyName === 'nearest_neighbor'
+					? candidateDistance < bestDistance - 1e-9
+					: candidateDistance > bestDistance + 1e-9;
+				if (better || (Math.abs(candidateDistance - bestDistance) <= 1e-9 && comparePoints(remaining[index], remaining[bestIndex]) < 0)) {
+					bestIndex = index;
+					bestDistance = candidateDistance;
+				}
+			}
+			ordered.push(remaining.splice(bestIndex, 1)[0]);
+		}
+		return ordered;
+	}
 	const centroid = computeCentroid(points);
 	const withMetrics = (points || []).map(point => {
 		const dx = point[0] - centroid[0];
@@ -344,12 +380,12 @@ function sortRemainingPoints(points, strategyName) {
 	});
 
 	withMetrics.sort((a, b) => {
-		if (strategyName === 'centroid_distance_desc') {
+		if (normalizedStrategyName === 'centroid_distance_desc') {
 			if (b.distanceSquared !== a.distanceSquared) return b.distanceSquared - a.distanceSquared;
 			if (a.angle !== b.angle) return a.angle - b.angle;
 			return comparePoints(a.point, b.point);
 		}
-		if (strategyName === 'centroid_angle') {
+		if (normalizedStrategyName === 'centroid_angle') {
 			if (a.angle !== b.angle) return a.angle - b.angle;
 			if (b.distanceSquared !== a.distanceSquared) return b.distanceSquared - a.distanceSquared;
 			return comparePoints(a.point, b.point);
@@ -358,6 +394,110 @@ function sortRemainingPoints(points, strategyName) {
 	});
 
 	return withMetrics.map(entry => entry.point);
+}
+
+function loopPerimeter(loopPoints) {
+	if (!Array.isArray(loopPoints) || loopPoints.length < 2) return 0;
+	let total = 0;
+	for (let index = 0; index < loopPoints.length; index++) {
+		total += segmentLength(loopPoints[index], loopPoints[(index + 1) % loopPoints.length]);
+	}
+	return total;
+}
+
+function countReflexVertices(loopPoints) {
+	if (!Array.isArray(loopPoints) || loopPoints.length < 4) return 0;
+	const orientation = Math.sign(getSignedArea(loopPoints));
+	if (orientation === 0) return 0;
+	let reflexCount = 0;
+	for (let index = 0; index < loopPoints.length; index++) {
+		const prev = loopPoints[(index - 1 + loopPoints.length) % loopPoints.length];
+		const cur = loopPoints[index];
+		const next = loopPoints[(index + 1) % loopPoints.length];
+		const turn = cross(prev, cur, next);
+		if (Math.sign(turn) !== 0 && Math.sign(turn) !== orientation) reflexCount += 1;
+	}
+	return reflexCount;
+}
+
+function rotateLoopToBestStartPoint(loopPoints) {
+	if (!Array.isArray(loopPoints) || loopPoints.length < 3) return clonePointPath(loopPoints);
+	let bestIndex = 0;
+	let bestVerticality = -Infinity;
+	let bestTurnPenalty = Infinity;
+	for (let index = 0; index < loopPoints.length; index++) {
+		const prev = loopPoints[(index - 1 + loopPoints.length) % loopPoints.length];
+		const cur = loopPoints[index];
+		const next = loopPoints[(index + 1) % loopPoints.length];
+		const incoming = [cur[0] - prev[0], cur[1] - prev[1]];
+		const outgoing = [next[0] - cur[0], next[1] - cur[1]];
+		const inLen = Math.hypot(incoming[0], incoming[1]) || 1;
+		const outLen = Math.hypot(outgoing[0], outgoing[1]) || 1;
+		const verticality = ((Math.abs(incoming[1]) / inLen) + (Math.abs(outgoing[1]) / outLen)) / 2;
+		const turnPenalty = vectorAngleDegrees(incoming, outgoing);
+		if (verticality > bestVerticality + 1e-9
+			|| (Math.abs(verticality - bestVerticality) <= 1e-9 && turnPenalty < bestTurnPenalty - 1e-9)
+			|| (Math.abs(verticality - bestVerticality) <= 1e-9 && Math.abs(turnPenalty - bestTurnPenalty) <= 1e-9 && index < bestIndex)) {
+			bestIndex = index;
+			bestVerticality = verticality;
+			bestTurnPenalty = turnPenalty;
+		}
+	}
+	return loopPoints.slice(bestIndex).concat(loopPoints.slice(0, bestIndex)).map(roundPoint);
+}
+
+function untangleLoopWithTwoOpt(loopPoints) {
+	let loop = clonePointPath(loopPoints);
+	const diagnostics = {
+		iterations: 0,
+		failure_reason: null,
+	};
+	if (!isClosedLoop(loop)) {
+		diagnostics.failure_reason = 'not_closed_loop';
+		return { success: false, loop_points: [], diagnostics };
+	}
+	const maxIterations = Math.max(1, loop.length * loop.length);
+	for (let iteration = 0; iteration < maxIterations; iteration++) {
+		const intersections = listSelfIntersections(loop, { includeEndpointTouches: false }).filter(intersection => intersection.proper);
+		if (intersections.length === 0) {
+			diagnostics.iterations = iteration;
+			return {
+				success: true,
+				loop_points: rotateLoopToBestStartPoint(loop),
+				diagnostics,
+			};
+		}
+		intersections.sort((a, b) => {
+			if (a.segmentA !== b.segmentA) return a.segmentA - b.segmentA;
+			if (a.segmentB !== b.segmentB) return a.segmentB - b.segmentB;
+			return 0;
+		});
+		const crossing = intersections[0];
+		loop = applyTwoOptCrossing(loop, crossing.segmentA, crossing.segmentB);
+		diagnostics.iterations = iteration + 1;
+	}
+	diagnostics.failure_reason = 'crossings_persist';
+	return { success: false, loop_points: [], diagnostics };
+}
+
+function evaluateCycleCandidate(loopPoints, hullArea) {
+	const area = Math.abs(getSignedArea(loopPoints));
+	return {
+		loop_points: rotateLoopToBestStartPoint(loopPoints),
+		reflex_vertex_count: countReflexVertices(loopPoints),
+		area_ratio_to_hull: hullArea > 0 ? Number((area / hullArea).toFixed(6)) : 1,
+		perimeter: Number(loopPerimeter(loopPoints).toFixed(6)),
+	};
+}
+
+function compareCycleCandidates(a, b) {
+	const aTwoOpt = String(a.strategy || '').endsWith('_2opt');
+	const bTwoOpt = String(b.strategy || '').endsWith('_2opt');
+	if (aTwoOpt !== bTwoOpt) return aTwoOpt ? -1 : 1;
+	if (a.reflex_vertex_count !== b.reflex_vertex_count) return b.reflex_vertex_count - a.reflex_vertex_count;
+	if (a.area_ratio_to_hull !== b.area_ratio_to_hull) return a.area_ratio_to_hull - b.area_ratio_to_hull;
+	if (a.perimeter !== b.perimeter) return b.perimeter - a.perimeter;
+	return 0;
 }
 
 function chooseInsertion(loopPoints, point) {
@@ -403,50 +543,77 @@ function buildSimpleCycleFromPoints(points, options = {}) {
 		diagnostics.failure_reason = 'degenerate_hull';
 		return { success: false, loop_points: [], diagnostics };
 	}
+	const hullArea = Math.abs(getSignedArea(hull));
 
 	const hullKeys = new Set(hull.map(pointKey));
 	const remaining = unique.filter(point => !hullKeys.has(pointKey(point)));
+	let bestCandidate = null;
 
 	for (const strategyName of CYCLE_BUILD_STRATEGIES) {
-		let loopPoints = hull.map(roundPoint);
-		const ordered = sortRemainingPoints(remaining, strategyName);
+		let loopPoints = [];
 		const attempt = {
 			strategy: strategyName,
-			inserted_point_count: loopPoints.length,
-			remaining_point_count: ordered.length,
+			inserted_point_count: 0,
+			remaining_point_count: 0,
 			success: false,
 			failure_reason: null,
 			failed_point: null,
+			reflex_vertex_count: 0,
+			area_ratio_to_hull: null,
 		};
-		let failed = false;
 
-		for (const point of ordered) {
-			const choice = chooseInsertion(loopPoints, point);
-			if (!choice) {
-				failed = true;
-				attempt.failure_reason = 'no_simple_insertion';
-				attempt.failed_point = point.slice();
-				break;
+		if (strategyName.endsWith('_2opt')) {
+			const ordered = sortRemainingPoints(unique, strategyName);
+			attempt.inserted_point_count = ordered.length;
+			attempt.remaining_point_count = 0;
+			const untangled = untangleLoopWithTwoOpt(ordered);
+			if (!untangled.success) {
+				attempt.failure_reason = untangled.diagnostics.failure_reason || 'two_opt_failed';
+			} else {
+				loopPoints = untangled.loop_points;
 			}
-			loopPoints = choice.loop.map(roundPoint);
-			attempt.inserted_point_count += 1;
+		} else {
+			loopPoints = hull.map(roundPoint);
+			const ordered = sortRemainingPoints(remaining, strategyName);
+			attempt.inserted_point_count = loopPoints.length;
+			attempt.remaining_point_count = ordered.length;
+			for (const point of ordered) {
+				const choice = chooseInsertion(loopPoints, point);
+				if (!choice) {
+					attempt.failure_reason = 'no_simple_insertion';
+					attempt.failed_point = point.slice();
+					loopPoints = [];
+					break;
+				}
+				loopPoints = choice.loop.map(roundPoint);
+				attempt.inserted_point_count += 1;
+			}
 		}
 
-		if (!failed && countProperSelfIntersections(loopPoints) === 0 && isClosedLoop(loopPoints) && loopPoints.length === unique.length) {
+		if (loopPoints.length === unique.length && countProperSelfIntersections(loopPoints) === 0 && isClosedLoop(loopPoints)) {
+			const candidate = evaluateCycleCandidate(loopPoints, hullArea);
 			attempt.success = true;
-			diagnostics.attempts.push(attempt);
-			diagnostics.attempt_count = diagnostics.attempts.length;
-			diagnostics.selected_strategy = strategyName;
-			diagnostics.final_point_count = loopPoints.length;
-			return {
-				success: true,
-				loop_points: loopPoints,
-				diagnostics,
-			};
+			attempt.reflex_vertex_count = candidate.reflex_vertex_count;
+			attempt.area_ratio_to_hull = candidate.area_ratio_to_hull;
+			if (!bestCandidate || compareCycleCandidates(candidate, bestCandidate) < 0) {
+				bestCandidate = Object.assign({ strategy: strategyName }, candidate);
+			}
+		} else if (!attempt.failure_reason) {
+			attempt.failure_reason = 'invalid_final_loop';
 		}
 
-		if (!attempt.failure_reason) attempt.failure_reason = 'invalid_final_loop';
 		diagnostics.attempts.push(attempt);
+	}
+
+	if (bestCandidate) {
+		diagnostics.attempt_count = diagnostics.attempts.length;
+		diagnostics.selected_strategy = bestCandidate.strategy;
+		diagnostics.final_point_count = bestCandidate.loop_points.length;
+		return {
+			success: true,
+			loop_points: bestCandidate.loop_points,
+			diagnostics,
+		};
 	}
 
 	diagnostics.attempt_count = diagnostics.attempts.length;
