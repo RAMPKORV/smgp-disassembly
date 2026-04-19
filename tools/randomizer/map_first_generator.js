@@ -37,7 +37,7 @@ const CYCLE_BUILD_STRATEGIES = Object.freeze([
 ]);
 
 const DEFAULT_SMOOTHING_OPTIONS = Object.freeze({
-	passes: 3,
+	passes: 0,
 	maxStartAngleDeltaDegrees: 60,
 	preserveStartPoint: true,
 	clampToCanvas: true,
@@ -246,6 +246,39 @@ function validateSmoothedLoop(originalLoopPoints, candidateLoopPoints, canvas, c
 		return { valid: false, reason: 'orientation_flipped' };
 	}
 
+	const originalShape = buildLoopShapeMetrics(originalLoopPoints);
+	const candidateShape = buildLoopShapeMetrics(candidateLoopPoints);
+	if ((config.allowedProperCrossings || 0) > 0) {
+		return {
+			valid: true,
+			properCrossingCount: topology.properCrossingCount,
+			singleGradeSeparatedCrossing: topology.singleGradeSeparatedCrossing,
+			reflexVertexCount: candidateShape.reflexVertexCount,
+			turnRunCount: candidateShape.turnRunCount,
+			areaRatioToHull: candidateShape.areaRatioToHull,
+			incomingAngleDelta: 0,
+			outgoingAngleDelta: 0,
+		};
+	}
+	const minimumReflexVertexCount = originalShape.reflexVertexCount <= 2
+		? 0
+		: Math.min(originalShape.reflexVertexCount, Math.max(1, Math.ceil(originalShape.reflexVertexCount * 0.6)));
+	const minimumTurnRunCount = originalShape.turnRunCount <= 2
+		? 0
+		: Math.min(originalShape.turnRunCount, Math.max(2, Math.ceil(originalShape.turnRunCount * 0.7)));
+	const enforceAreaRatio = requireSamePointCount && (originalShape.reflexVertexCount >= 4 || originalShape.turnRunCount >= 6);
+	if (candidateShape.reflexVertexCount < minimumReflexVertexCount
+		|| candidateShape.turnRunCount < minimumTurnRunCount
+		|| (enforceAreaRatio && candidateShape.areaRatioToHull > (originalShape.areaRatioToHull + 0.12))) {
+		return {
+			valid: false,
+			reason: 'shape_flattened',
+			reflexVertexCount: candidateShape.reflexVertexCount,
+			turnRunCount: candidateShape.turnRunCount,
+			areaRatioToHull: candidateShape.areaRatioToHull,
+		};
+	}
+
 	const originalSeam = computeSeamOrientation(originalLoopPoints);
 	const candidateSeam = computeSeamOrientation(candidateLoopPoints);
 	if (!originalSeam || !candidateSeam) return { valid: false, reason: 'degenerate_seam' };
@@ -264,6 +297,9 @@ function validateSmoothedLoop(originalLoopPoints, candidateLoopPoints, canvas, c
 		valid: true,
 		properCrossingCount: topology.properCrossingCount,
 		singleGradeSeparatedCrossing: topology.singleGradeSeparatedCrossing,
+		reflexVertexCount: candidateShape.reflexVertexCount,
+		turnRunCount: candidateShape.turnRunCount,
+		areaRatioToHull: candidateShape.areaRatioToHull,
 		incomingAngleDelta: Number(incomingAngleDelta.toFixed(3)),
 		outgoingAngleDelta: Number(outgoingAngleDelta.toFixed(3)),
 	};
@@ -420,6 +456,47 @@ function countReflexVertices(loopPoints) {
 	return reflexCount;
 }
 
+function countTurnRuns(loopPoints) {
+	if (!Array.isArray(loopPoints) || loopPoints.length < 4) return 0;
+	const signs = [];
+	for (let index = 0; index < loopPoints.length; index++) {
+		const prev = loopPoints[(index - 1 + loopPoints.length) % loopPoints.length];
+		const cur = loopPoints[index];
+		const next = loopPoints[(index + 1) % loopPoints.length];
+		const sign = Math.sign(cross(prev, cur, next));
+		if (sign !== 0) signs.push(sign);
+	}
+	if (signs.length === 0) return 0;
+	let runs = 1;
+	for (let index = 1; index < signs.length; index++) {
+		if (signs[index] !== signs[index - 1]) runs += 1;
+	}
+	if (signs.length > 1 && signs[0] !== signs[signs.length - 1]) runs -= 1;
+	return runs;
+}
+
+function buildLoopShapeMetrics(loopPoints) {
+	if (!Array.isArray(loopPoints) || loopPoints.length < 3) {
+		return {
+			reflexVertexCount: 0,
+			turnRunCount: 0,
+			areaRatioToHull: 1,
+			perimeterRatioToHull: 1,
+		};
+	}
+	const hull = buildConvexHull(loopPoints);
+	const loopArea = Math.abs(getSignedArea(loopPoints));
+	const hullArea = Math.max(loopArea, Math.abs(getSignedArea(hull)));
+	const loopPerimeterValue = loopPerimeter(loopPoints);
+	const hullPerimeterValue = Math.max(loopPerimeterValue, loopPerimeter(hull));
+	return {
+		reflexVertexCount: countReflexVertices(loopPoints),
+		turnRunCount: countTurnRuns(loopPoints),
+		areaRatioToHull: Number((hullArea > 0 ? loopArea / hullArea : 1).toFixed(6)),
+		perimeterRatioToHull: Number((hullPerimeterValue > 0 ? loopPerimeterValue / hullPerimeterValue : 1).toFixed(6)),
+	};
+}
+
 function rotateLoopToBestStartPoint(loopPoints) {
 	if (!Array.isArray(loopPoints) || loopPoints.length < 3) return clonePointPath(loopPoints);
 	let bestIndex = 0;
@@ -481,23 +558,70 @@ function untangleLoopWithTwoOpt(loopPoints) {
 }
 
 function evaluateCycleCandidate(loopPoints, hullArea) {
-	const area = Math.abs(getSignedArea(loopPoints));
+	const shapeMetrics = buildLoopShapeMetrics(loopPoints);
 	return {
 		loop_points: rotateLoopToBestStartPoint(loopPoints),
-		reflex_vertex_count: countReflexVertices(loopPoints),
-		area_ratio_to_hull: hullArea > 0 ? Number((area / hullArea).toFixed(6)) : 1,
+		reflex_vertex_count: shapeMetrics.reflexVertexCount,
+		turn_run_count: shapeMetrics.turnRunCount,
+		area_ratio_to_hull: hullArea > 0 ? shapeMetrics.areaRatioToHull : 1,
+		perimeter_ratio_to_hull: shapeMetrics.perimeterRatioToHull,
+		visual_complexity_passes: shapeMetrics.reflexVertexCount >= 4 && shapeMetrics.areaRatioToHull <= 0.68,
 		perimeter: Number(loopPerimeter(loopPoints).toFixed(6)),
 	};
 }
 
 function compareCycleCandidates(a, b) {
+	if (a.visual_complexity_passes !== b.visual_complexity_passes) return a.visual_complexity_passes ? -1 : 1;
+	if (a.area_ratio_to_hull !== b.area_ratio_to_hull) return a.area_ratio_to_hull - b.area_ratio_to_hull;
+	if (a.perimeter_ratio_to_hull !== b.perimeter_ratio_to_hull) return b.perimeter_ratio_to_hull - a.perimeter_ratio_to_hull;
+	if (a.reflex_vertex_count !== b.reflex_vertex_count) return b.reflex_vertex_count - a.reflex_vertex_count;
+	if (a.turn_run_count !== b.turn_run_count) return b.turn_run_count - a.turn_run_count;
 	const aTwoOpt = String(a.strategy || '').endsWith('_2opt');
 	const bTwoOpt = String(b.strategy || '').endsWith('_2opt');
 	if (aTwoOpt !== bTwoOpt) return aTwoOpt ? -1 : 1;
-	if (a.reflex_vertex_count !== b.reflex_vertex_count) return b.reflex_vertex_count - a.reflex_vertex_count;
-	if (a.area_ratio_to_hull !== b.area_ratio_to_hull) return a.area_ratio_to_hull - b.area_ratio_to_hull;
 	if (a.perimeter !== b.perimeter) return b.perimeter - a.perimeter;
 	return 0;
+}
+
+function moveLoopVertex(loopPoints, fromIndex, insertAfterIndex) {
+	const count = loopPoints.length;
+	if (count < 4) return clonePointPath(loopPoints);
+	if (fromIndex === insertAfterIndex || ((fromIndex - 1 + count) % count) === insertAfterIndex) return clonePointPath(loopPoints);
+	const point = loopPoints[fromIndex];
+	const withoutPoint = loopPoints.slice(0, fromIndex).concat(loopPoints.slice(fromIndex + 1));
+	let adjustedInsertAfter = insertAfterIndex;
+	if (insertAfterIndex > fromIndex) adjustedInsertAfter -= 1;
+	return withoutPoint
+		.slice(0, adjustedInsertAfter + 1)
+		.concat([point], withoutPoint.slice(adjustedInsertAfter + 1))
+		.map(roundPoint);
+}
+
+function optimizeLoopComplexity(loopPoints, hullArea) {
+	let current = clonePointPath(loopPoints);
+	let currentMetrics = evaluateCycleCandidate(current, hullArea);
+	const maxIterations = Math.max(1, current.length * 4);
+	for (let iteration = 0; iteration < maxIterations; iteration++) {
+		let bestLoop = null;
+		let bestMetrics = currentMetrics;
+		for (let fromIndex = 0; fromIndex < current.length; fromIndex++) {
+			for (let insertAfterIndex = 0; insertAfterIndex < current.length; insertAfterIndex++) {
+				const candidate = moveLoopVertex(current, fromIndex, insertAfterIndex);
+				if (candidate.length !== current.length) continue;
+				if (!isClosedLoop(candidate)) continue;
+				if (countProperSelfIntersections(candidate) > 0) continue;
+				const candidateMetrics = evaluateCycleCandidate(candidate, hullArea);
+				if (compareCycleCandidates(candidateMetrics, bestMetrics) < 0) {
+					bestLoop = candidate;
+					bestMetrics = candidateMetrics;
+				}
+			}
+		}
+		if (!bestLoop) break;
+		current = bestLoop;
+		currentMetrics = bestMetrics;
+	}
+	return currentMetrics;
 }
 
 function chooseInsertion(loopPoints, point) {
@@ -559,6 +683,7 @@ function buildSimpleCycleFromPoints(points, options = {}) {
 			failure_reason: null,
 			failed_point: null,
 			reflex_vertex_count: 0,
+			turn_run_count: 0,
 			area_ratio_to_hull: null,
 		};
 
@@ -591,12 +716,13 @@ function buildSimpleCycleFromPoints(points, options = {}) {
 		}
 
 		if (loopPoints.length === unique.length && countProperSelfIntersections(loopPoints) === 0 && isClosedLoop(loopPoints)) {
-			const candidate = evaluateCycleCandidate(loopPoints, hullArea);
+			const candidate = Object.assign({ strategy: strategyName }, optimizeLoopComplexity(loopPoints, hullArea));
 			attempt.success = true;
 			attempt.reflex_vertex_count = candidate.reflex_vertex_count;
+			attempt.turn_run_count = candidate.turn_run_count;
 			attempt.area_ratio_to_hull = candidate.area_ratio_to_hull;
 			if (!bestCandidate || compareCycleCandidates(candidate, bestCandidate) < 0) {
-				bestCandidate = Object.assign({ strategy: strategyName }, candidate);
+				bestCandidate = candidate;
 			}
 		} else if (!attempt.failure_reason) {
 			attempt.failure_reason = 'invalid_final_loop';

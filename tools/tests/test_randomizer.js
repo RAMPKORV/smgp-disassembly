@@ -908,6 +908,88 @@ test('compareGeneratedTrackCandidates prefers complex geometry when both candida
 	assert.ok(compareGeneratedTrackCandidates(complexGeometry, blandGeometry) < 0);
 });
 
+test('compareGeneratedTrackCandidates prefers higher turn-run complexity before lower raw geometry score', () => {
+	const moreInteresting = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: true,
+			geometryScore: 18,
+			reflexVertexCount: 7,
+			turnRunCount: 11,
+			areaRatioToHull: 0.61,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.8,
+			tileCount: 34,
+			coverageMatchPercent: 30,
+			signMatchPercent: 70,
+		},
+	};
+	const flatterButCheaper = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: true,
+			geometryScore: 8,
+			reflexVertexCount: 7,
+			turnRunCount: 7,
+			areaRatioToHull: 0.61,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.8,
+			tileCount: 34,
+			coverageMatchPercent: 30,
+			signMatchPercent: 70,
+		},
+	};
+	assert.ok(compareGeneratedTrackCandidates(moreInteresting, flatterButCheaper) < 0);
+});
+
+test('compareGeneratedTrackCandidates prefers lower preview cell usage when sign match is comparable', () => {
+	const smallerSilhouette = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: true,
+			geometryScore: 10,
+			reflexVertexCount: 6,
+			turnRunCount: 8,
+			areaRatioToHull: 0.45,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.85,
+			tileCount: 40,
+			coverageMatchPercent: 95,
+			signMatchPercent: 80,
+			usedCellCount: 36,
+		},
+	};
+	const bloatedSilhouette = {
+		geometryQuality: {
+			passes: true,
+			shapeComplexityPasses: true,
+			geometryScore: 10,
+			reflexVertexCount: 6,
+			turnRunCount: 8,
+			areaRatioToHull: 0.45,
+		},
+		constraints: {
+			passes: true,
+			selfIntersections: 0,
+			startVerticality: 0.85,
+			tileCount: 40,
+			coverageMatchPercent: 95,
+			signMatchPercent: 79,
+			usedCellCount: 49,
+		},
+	};
+	assert.ok(compareGeneratedTrackCandidates(smallerSilhouette, bloatedSilhouette) < 0);
+});
+
 test('compareGeneratedTrackCandidates prefers valid preview constraints before complex but failing geometry', () => {
 	const validButBland = {
 		geometryQuality: {

@@ -55,7 +55,7 @@ const MONACO_INLINE_BLOB_PAD_BYTES = 2399;
 const WORKSPACES = path.join(REPO_ROOT, 'build', 'workspaces');
 const ROM_OUTPUTS = path.join(REPO_ROOT, 'build', 'roms');
 const WORKSPACE_TEMPLATE_DIR = path.join(WORKSPACES, '_template');
-const WORKSPACE_TEMPLATE_VERSION = 3;
+const WORKSPACE_TEMPLATE_VERSION = 4;
 const USAGE_TEXT = [
 	'Usage: node tools/hack_workdir.js SMGP-<v>-<flags_hex>-<decimal> [options]',
 	'       node tools/hack_workdir.js --list [--json]',
@@ -73,6 +73,41 @@ const USAGE_TEXT = [
 	'  --verbose, -v        Show additional progress output',
 	'  --help, -h           Show this help text',
 ].join('\n');
+
+const SELECTED_TOOL_FILES = [
+	'randomize.js',
+	'randomizer_plan.js',
+	'randomize_actions.js',
+	'randomize_track_support.js',
+	'randomize_modules.js',
+	'randomize_build.js',
+	'patch_rom_checksum.js',
+	'patch_preview_minimap_raw_rom.js',
+	'patch_generated_minimap_rom.js',
+	'patch_generated_minimap_pos_rom.js',
+	'workspace_patch_generated_minimap_rom.js',
+	'patch_all_track_minimap_assets_rom.js',
+	'patch_all_track_minimap_raw_maps_rom.js',
+	'inject_track_data.js',
+	'inject_team_data.js',
+	'inject_championship_data.js',
+	'sync_track_config.js',
+	'generate_track_data_asm.js',
+	'generate_minimap_preview_runtime.js',
+	'generated_minimap_runtime.js',
+	'minimap_graphics_codec.js',
+	'minimap_map_codec.js',
+	'minimap_validate.js',
+	'write_generated_minimap_pos.js',
+	'write_generated_minimap_assets.js',
+	'workspace_apply_generated_minimap.js',
+];
+
+const SELECTED_TOOL_DIRS = [
+	'data',
+	'lib',
+	'randomizer',
+];
 
 // ---------------------------------------------------------------------------
 // Seed validation
@@ -123,41 +158,8 @@ function copyDirRecursive(src, dst, verbose) {
 
 function copySelectedToolFiles(repoRoot, wsDir, verbose) {
 	let totalFiles = 0;
-	const toolFiles = [
-		'randomize.js',
-		'randomizer_plan.js',
-		'randomize_actions.js',
-		'randomize_track_support.js',
-		'randomize_modules.js',
-		'randomize_build.js',
-		'patch_rom_checksum.js',
-		'patch_preview_minimap_raw_rom.js',
-		'patch_generated_minimap_rom.js',
-		'patch_generated_minimap_pos_rom.js',
-		'workspace_patch_generated_minimap_rom.js',
-		'patch_all_track_minimap_assets_rom.js',
-		'patch_all_track_minimap_raw_maps_rom.js',
-		'inject_track_data.js',
-		'inject_team_data.js',
-		'inject_championship_data.js',
-		'sync_track_config.js',
-		'generate_track_data_asm.js',
-		'generate_minimap_preview_runtime.js',
-		'generated_minimap_runtime.js',
-		'minimap_graphics_codec.js',
-		'minimap_map_codec.js',
-		'minimap_validate.js',
-		'write_generated_minimap_pos.js',
-		'write_generated_minimap_assets.js',
-		'workspace_apply_generated_minimap.js',
-	];
-	const toolDirs = [
-		'data',
-		'lib',
-		'randomizer',
-	];
 
-	for (const relFile of toolFiles) {
+	for (const relFile of SELECTED_TOOL_FILES) {
 		const srcPath = path.join(repoRoot, 'tools', relFile);
 		if (!fs.existsSync(srcPath) || !fs.statSync(srcPath).isFile()) continue;
 		fs.mkdirSync(path.join(wsDir, 'tools'), { recursive: true });
@@ -166,7 +168,7 @@ function copySelectedToolFiles(repoRoot, wsDir, verbose) {
 		totalFiles++;
 	}
 
-	for (const relDir of toolDirs) {
+	for (const relDir of SELECTED_TOOL_DIRS) {
 		const srcDir = path.join(repoRoot, 'tools', relDir);
 		const dstDir = path.join(wsDir, 'tools', relDir);
 		if (!fs.existsSync(srcDir) || !fs.statSync(srcDir).isDirectory()) continue;
@@ -327,10 +329,10 @@ function copyWorkspaceTemplate(templateDir, wsDir, verbose) {
 
 function refreshWorkspaceFromTemplate(templateDir, wsDir, verbose) {
 	const mutablePaths = [
+		...SELECTED_TOOL_FILES.map(relPath => ['tools', ...relPath.split(/[\\/]/)]),
 		['src'],
 		['data', 'tracks'],
-		['tools'],
-		['tools', 'data'],
+		...SELECTED_TOOL_DIRS.map(relDir => ['tools', relDir]),
 	];
 	for (const parts of mutablePaths) {
 		const srcPath = path.join(templateDir, ...parts);

@@ -184,6 +184,20 @@ test('buildSimpleCycleFromPoints can produce a non-convex simple cycle from unif
 	assert.ok(reflexCount >= 1, `expected at least one reflex vertex, got ${reflexCount}`);
 });
 
+test('buildSimpleCycleFromPoints prefers the most interesting successful strategy, not just the first 2-opt one', () => {
+	const points = generateMapSamplePointsForTrack({ index: 0 }, 12345, {
+		pointSampling: { targetPointCount: 14, minimumSpacingPx: 11, edgeMarginPx: 4 },
+	});
+	const result = buildSimpleCycleFromPoints(points);
+	assert.strictEqual(result.success, true);
+	assert.strictEqual(result.diagnostics.selected_strategy, 'input_order_2opt');
+	const nearest = result.diagnostics.attempts.find(attempt => attempt.strategy === 'nearest_neighbor_2opt');
+	const selected = result.diagnostics.attempts.find(attempt => attempt.strategy === result.diagnostics.selected_strategy);
+	assert.ok(nearest && selected, 'expected both nearest and selected attempts to be present');
+	assert.ok(selected.area_ratio_to_hull < nearest.area_ratio_to_hull, 'selected strategy should become meaningfully less hull-like than nearest-neighbor baseline');
+	assert.ok(selected.area_ratio_to_hull <= 0.68, 'selected strategy should satisfy the visual-complexity hull ratio target');
+});
+
 
 test('buildSimpleCycleFromPoints reports deterministic diagnostics for degenerate input', () => {
 	const result = buildSimpleCycleFromPoints([[1, 1], [2, 2], [3, 3]]);
@@ -216,6 +230,15 @@ test('clampSmoothLoop falls back to fewer passes when start orientation toleranc
 	assert.strictEqual(countProperSelfIntersections(result.smoothed_points), 0);
 });
 
+test('clampSmoothLoop rejects over-smoothed candidates that flatten non-convex shape complexity', () => {
+	const canvas = buildMapFirstCanvas();
+	const loop = [[6, 10], [20, 6], [36, 12], [42, 28], [34, 44], [24, 36], [14, 50], [8, 32]];
+	const result = clampSmoothLoop(loop, canvas, { passes: 3, maxStartAngleDeltaDegrees: 90 });
+	assert.strictEqual(result.success, true);
+	assert.strictEqual(result.diagnostics.applied_passes, 0, 'expected shape-preserving fallback to reject smoothing entirely for this loop');
+	assert.strictEqual(result.diagnostics.used_fallback, true);
+});
+
 test('clampSmoothLoop preserves the original loop when no smoothing pass is allowed', () => {
 	const canvas = buildMapFirstCanvas();
 	const loop = [[10, 10], [30, 10], [40, 24], [36, 44], [20, 60], [8, 40]];
@@ -241,6 +264,75 @@ test('buildMapFirstGeometryState stores smoothing diagnostics and smoothed cente
 	assert.strictEqual(countProperSelfIntersections(state.resampled_centerline), 0);
 	assert.strictEqual(pathFitsCanvas(state.smoothed_centerline, state.canvas), true);
 	assert.strictEqual(pathFitsCanvas(state.resampled_centerline, state.canvas), true);
+});
+
+test('buildMapFirstGeometryState keeps strong non-convex complexity for the stock track set under a representative seed', () => {
+	const tracks = require('../data/tracks.json').tracks.slice(0, 19);
+	let strongTrackCount = 0;
+	for (const track of tracks) {
+		const state = buildMapFirstGeometryState({ index: track.index, track_length: track.track_length }, 12345, {
+			trackSlot: track.index,
+		});
+		const loop = state.loop_points;
+		const orientation = Math.sign(loop.reduce((sum, point, index) => {
+			const next = loop[(index + 1) % loop.length];
+			return sum + ((point[0] * next[1]) - (next[0] * point[1]));
+		}, 0));
+		let reflexCount = 0;
+		const turnSigns = [];
+		for (let index = 0; index < loop.length; index++) {
+			const prev = loop[(index - 1 + loop.length) % loop.length];
+			const cur = loop[index];
+			const next = loop[(index + 1) % loop.length];
+			const turn = ((cur[0] - prev[0]) * (next[1] - cur[1])) - ((cur[1] - prev[1]) * (next[0] - cur[0]));
+			const sign = Math.sign(turn);
+			if (sign !== 0) turnSigns.push(sign);
+			if (sign !== 0 && sign !== orientation) reflexCount += 1;
+		}
+		let turnRuns = 0;
+		if (turnSigns.length > 0) {
+			turnRuns = 1;
+			for (let index = 1; index < turnSigns.length; index++) {
+				if (turnSigns[index] !== turnSigns[index - 1]) turnRuns += 1;
+			}
+			if (turnSigns.length > 1 && turnSigns[0] !== turnSigns[turnSigns.length - 1]) turnRuns -= 1;
+		}
+		const hull = buildConvexHull(loop);
+		const loopArea = Math.abs(loop.reduce((sum, point, index) => {
+			const next = loop[(index + 1) % loop.length];
+			return sum + ((point[0] * next[1]) - (next[0] * point[1]));
+		}, 0) / 2);
+		const hullArea = Math.abs(hull.reduce((sum, point, index) => {
+			const next = hull[(index + 1) % hull.length];
+			return sum + ((point[0] * next[1]) - (next[0] * point[1]));
+		}, 0) / 2) || 1;
+		const areaRatio = loopArea / hullArea;
+		if (reflexCount >= 5 && turnRuns >= 6 && areaRatio <= 0.72) strongTrackCount += 1;
+		assert.ok(reflexCount >= 4, `${track.slug} expected >= 4 reflex vertices, got ${reflexCount}`);
+		assert.ok(turnRuns >= 3, `${track.slug} expected >= 3 turn runs, got ${turnRuns}`);
+		assert.ok(areaRatio <= 0.83, `${track.slug} expected hull area ratio <= 0.83, got ${areaRatio.toFixed(3)}`);
+	}
+	assert.ok(strongTrackCount >= 7, `expected several tracks to hit the strong-complexity target, got ${strongTrackCount}`);
+});
+
+test('buildMapFirstGeometryState avoids hull-like loops for the opening championship tracks under representative seed', () => {
+	const tracks = require('../data/tracks.json').tracks.slice(0, 3);
+	for (const track of tracks) {
+		const state = buildMapFirstGeometryState({ index: track.index, track_length: track.track_length }, 12345, {
+			trackSlot: track.index,
+		});
+		const loop = state.loop_points;
+		const hull = buildConvexHull(loop);
+		const loopArea = Math.abs(loop.reduce((sum, point, index) => {
+			const next = loop[(index + 1) % loop.length];
+			return sum + ((point[0] * next[1]) - (next[0] * point[1]));
+		}, 0) / 2);
+		const hullArea = Math.abs(hull.reduce((sum, point, index) => {
+			const next = hull[(index + 1) % hull.length];
+			return sum + ((point[0] * next[1]) - (next[0] * point[1]));
+		}, 0) / 2) || 1;
+		assert.ok((loopArea / hullArea) <= 0.5, `${track.slug} expected hull area ratio <= 0.5, got ${(loopArea / hullArea).toFixed(3)}`);
+	}
 });
 
 test('resolveResamplingConfig defaults to track_length>>2 sample budget', () => {

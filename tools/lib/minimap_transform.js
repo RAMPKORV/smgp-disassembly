@@ -192,7 +192,11 @@ function comparePreviewCandidates(a, b) {
 	const bPhasePenalty = Number.isFinite(b.validation_phase_penalty) ? b.validation_phase_penalty : Infinity;
 	const aPhaseGain = Number.isFinite(a.validation_phase_gain) ? a.validation_phase_gain : Infinity;
 	const bPhaseGain = Number.isFinite(b.validation_phase_gain) ? b.validation_phase_gain : Infinity;
+	const aLoopArea = getBounds(a.path).width * getBounds(a.path).height;
+	const bLoopArea = getBounds(b.path).width * getBounds(b.path).height;
 	if (a.tile_budget_ok !== b.tile_budget_ok) return a.tile_budget_ok ? -1 : 1;
+	if (a.used_cell_count !== b.used_cell_count) return a.used_cell_count - b.used_cell_count;
+	if (aLoopArea !== bLoopArea) return aLoopArea - bLoopArea;
 	const signDelta = Math.abs(aSign - bSign);
 	if (signDelta <= 12 && aZeroShift !== bZeroShift) return bZeroShift - aZeroShift;
 	if (signDelta <= 12 && aPhasePenalty !== bPhasePenalty) return aPhasePenalty - bPhasePenalty;

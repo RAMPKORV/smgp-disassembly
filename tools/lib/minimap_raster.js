@@ -121,7 +121,9 @@ function fitStyledPathIntoFrame(points, width, height, margin = 1) {
 	const bounds = getBounds(points);
 	const usableWidth = Math.max(1, width - (margin * 2));
 	const usableHeight = Math.max(1, height - (margin * 2));
-	const scale = Math.min(usableWidth / Math.max(bounds.width, 1), usableHeight / Math.max(bounds.height, 1), 1);
+	const targetWidth = usableWidth * 0.82;
+	const targetHeight = usableHeight * 0.82;
+	const scale = Math.min(targetWidth / Math.max(bounds.width, 1), targetHeight / Math.max(bounds.height, 1), 1);
 	const scaled = scaleClosedPoints(points, scale, scale);
 	const scaledBounds = getBounds(scaled);
 	return offsetClosedPoints(scaled, (margin + ((usableWidth - scaledBounds.width) / 2)) - scaledBounds.minX, (margin + ((usableHeight - scaledBounds.height) / 2)) - scaledBounds.minY);
